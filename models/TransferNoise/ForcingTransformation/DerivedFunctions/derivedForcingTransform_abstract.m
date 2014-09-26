@@ -1,0 +1,2 @@
+classdef derivedForcingTransform_abstract < forcingTransform_abstract
+end
