@@ -32,7 +32,7 @@ classdef responseFunction_Bruggeman < responseFunction_abstract
             setParameters(obj, params);                 
             
             % No settings are required.
-            settings=[];
+            obj.settings=[];
         end
        
          % Set parameters
@@ -51,14 +51,13 @@ classdef responseFunction_Bruggeman < responseFunction_abstract
         end        
         
         function isValidParameter = getParameterValidity(obj, params, param_names)
-            isValidParameter = true(size(params));
+            
+            % Get physical bounds.
+            [params_upperLimit, params_lowerLimit] = getParameters_physicalLimit(obj);
 
-	    % Get physical bounds.
-	    [params_upperLimit, params_lowerLimit] = getParameters_physicalLimit(obj);
-
-	    % Check parameters are within bounds and T>0 and 0<S<1.
-            isValidParameter = params >= params_lowerLimit(:,ones(1,size(params,2))) & ...
-		params <= params_upperLimit(:,ones(1,size(params,2)));   
+            % Check parameters are within bounds and T>0 and 0<S<1.
+                isValidParameter = params >= params_lowerLimit(:,ones(1,size(params,2))) & ...
+            params <= params_upperLimit(:,ones(1,size(params,2)));   
 
         end
 
@@ -98,6 +97,13 @@ classdef responseFunction_Bruggeman < responseFunction_abstract
             result = 0; 
         end   
 
+        % Calculate integral of impulse-response function from t to inf.
+        % This is used to minimise the impact from a finit forcign data set.
+        % TODO: IMPLEMENTED integral of theta
+        function result = intTheta_lowerTail(obj, t)          
+            result = 0; 
+        end
+        
         % Transform the estimate of the response function * the forcing.
         function result = transform_h_star(obj, h_star_est)
            result = h_star_est;

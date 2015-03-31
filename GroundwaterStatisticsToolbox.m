@@ -58,8 +58,11 @@ classdef GroundwaterStatisticsToolbox < handle
 %   GNU GPL3 or later.
 %
     properties
+
+        % Model Label
+        model_label
         
-        % Model identifier, eg bore ID (string) 
+        % Bore ID (string). Most model types require the bore ID to be listed within the coordinates file. 
         bore_ID;
         
         % Model class object.       
@@ -72,11 +75,24 @@ classdef GroundwaterStatisticsToolbox < handle
         % Simulation results structure.        
         simulationResults;
     end
+    
+
+%%  STATIC METHODS        
+% Static methods used by the Graphical User Interface to inform the
+% user of the available model types. Any new models must be listed here
+% in order to be accessable within the GUI.
+    methods(Static)
+        function [types,recommendedType] = model_types()
+            types = {'model_TFN','Transfer function noise model with nonlinear transformation of climate forcing' ; ...
+                    'model_HARTT','Linear regression model usinf cumulative rainfall residual'};
+            recommendedType = 1;    
+        end
+    end    
 
 %%  PUBLIC METHODS     
     methods
 %% Construct the model
-        function obj = GroundwaterStatisticsToolbox(bore_ID, model_class_name, obsHead, obsHead_maxObsFreq, forcingData, siteCoordinates, varargin)
+        function obj = GroundwaterStatisticsToolbox(model_label, bore_ID, model_class_name, obsHead, obsHead_maxObsFreq, forcingData, siteCoordinates, varargin)
 % Model construction.
 %
 % Syntax:
@@ -96,6 +112,9 @@ classdef GroundwaterStatisticsToolbox < handle
 %   open example_TFN_model()
 %
 % Input:
+%   model_label - label for describing the model. This is only used to
+%   inform the user of the model.
+%   
 %   bore_ID - string identified for the model, eg 'Bore_ID_1234'. This bore
 %   ID must be listed within the cell array of 'siteCoordinates'.
 %
@@ -164,8 +183,8 @@ classdef GroundwaterStatisticsToolbox < handle
 %                      'precip', 100, 100 };
 %
 %   Build the model with a maximum frequency of observation data of 7 days:
-%   >> model_124705 = GroundwaterStatisticsToolbox('Bore 124705', 'model_TFN' , ...
-%                     ObsHead_BoreID_124705, 7, forcingData, ...
+%   >> model_124705 = GroundwaterStatisticsToolbox('Example TFN model', 'Bore 124705',  ...
+%                     'model_TFN', ObsHead_BoreID_124705, 7, forcingData, ...
 %                     siteCoordinates, modelOptions_TFN)
 %
 %                   
@@ -193,8 +212,8 @@ classdef GroundwaterStatisticsToolbox < handle
 %    
 
             % Check constructor inputs.
-            if nargin <6
-                error('All four inputs are required!');
+            if nargin < 7
+                error('All seven inputs are required!');
             end            
             if size(obsHead,2) <4
                 error('The input observed head must be at least four columns: year; month; day; head; which is assumed to be the last column.');
@@ -237,8 +256,22 @@ classdef GroundwaterStatisticsToolbox < handle
                error('The three left most forcing data column names must be the following and in the following order: "year,"month",day"');
             end
             
+            % Derive columns of year, month, day etc to matlab date value
             forcingDates = datenum(forcingData_data(:,1), forcingData_data(:,2), forcingData_data(:,3));
-            obsDates = datenum(obsHead(:,1), obsHead(:,2), obsHead(:,3));
+            switch size(obsHead,2)-1
+                case 3
+                    obsDates = datenum(obsHead(:,1), obsHead(:,2), obsHead(:,3));
+                case 4
+                    obsDates = datenum(obsHead(:,1), obsHead(:,2), obsHead(:,3),obsHead(:,4), zeros(size(obsHead,1),1), zeros(size(obsHead,1),1));
+                case 5
+                    obsDates = datenum(obsHead(:,1), obsHead(:,2), obsHead(:,3),obsHead(:,4),obsHead(:,5), zeros(size(obsHead,1),1));
+                case 6
+                    obsDates = datenum(obsHead(:,1), obsHead(:,2), obsHead(:,3),obsHead(:,4),obsHead(:,5),obsHead(:,6));
+                otherwise
+                    error('The input observed head must be 4 to 7 columns with right hand column being the head and the left columns: year; month; day; hour (optional), minute (options), second (optional).');
+            end
+            
+            % Check date limits of obs head and forcing data
             if max(diff(forcingDates)) > 1 || min(diff(forcingDates)) < 1
                 error('The input forcing data must of a daily time step with no gaps!');
             end
@@ -286,32 +319,34 @@ classdef GroundwaterStatisticsToolbox < handle
                error('The input "siteCoordinates" must be a cell array of three columns (site name, easting, northing) and atleast two rows (for bore ID and precipitation).'); 
             end
             
-            % Aggregate sub-daily observed groundwater to daily steps            
-            j=1;
-            ii=1;
-            while ii  <= size(obsDates,1)
-                % Find last observation for the day
-                [iirow, junk] = find( obsDates == obsDates(ii,1), 1, 'last');
-                
-                % Derive the date and time at the end of the day
-                date_time = datenum(obsHead(iirow,1), obsHead(iirow,2), obsHead(iirow,3), 23, 59, 59 );
-                
-                % Add date and head to new matrix.
-                obsHead(j,1:2) = [ date_time , obsHead(iirow,end)];
-                j=j+1;
-                ii = iirow+1;
-            end
-            obsHead = obsHead(:,1:2);
-            
             % Ammend column 1-3 from year, month, day  to time.
             forcingData_data = [forcingDates, forcingData_data(:,4:end)];
             forcingData_colnames = {'time', forcingData_colnames{4:end}};
             
-            % Thin out observed heads to a user defined maxium frequency.
+            % Thin out observed heads to a user defined maximum frequency.
             % This feature is included to overcome the considerable
             % computational burdon of calibrating the model to daily head
             % observations using 50+ years of prior daily climate data.
             if ~isempty(obsHead_maxObsFreq) && obsHead_maxObsFreq >0
+                
+                % Aggregate sub-daily observed groundwater to daily steps            
+                j=1;
+                ii=1;
+                while ii  <= size(obsDates,1)
+                    % Find last observation for the day
+                    [iirow, junk] = find( obsDates == obsDates(ii,1), 1, 'last');
+
+                    % Derive the date and time at the end of the day
+                    date_time = datenum(obsHead(iirow,1), obsHead(iirow,2), obsHead(iirow,3), 23, 59, 59 );
+
+                    % Add date and head to new matrix.
+                    obsHead(j,1:2) = [ date_time , obsHead(iirow,end)];
+                    j=j+1;
+                    ii = iirow+1;
+                end
+                obsHead = obsHead(1:j-1,1:2);                
+                
+                % Now thin out to requested freq.
                 obsHead_orig = obsHead;
                 obsHead = zeros(size(obsHead));
                 obsHead(1,:) = obsHead_orig(1,:);
@@ -329,6 +364,10 @@ classdef GroundwaterStatisticsToolbox < handle
                 obsHead = obsHead(1:j,:);
                 
                 clear obsHead_orig;
+            else
+                % Use all input data
+                obsHead = [obsDates, obsHead(:,end)];
+                
             end
             % Warn the user of the obs. date was aggregated.
             if size(obsHead,1) < size(obsHead,1)
@@ -338,8 +377,12 @@ classdef GroundwaterStatisticsToolbox < handle
             end
             
             % Add data to object.
+            obj.model_label = model_label;            
             obj.bore_ID = bore_ID;            
             obj.model = feval(model_class_name, bore_ID, obsHead, forcingData_data, forcingData_colnames, siteCoordinates, varargin{1} );
+            
+            % Add flag to denote the calibration has not been undertaken.
+            obj.calibrationResults.isCalibrated = false;
         end
 
 %% Solve the model        
@@ -412,35 +455,41 @@ classdef GroundwaterStatisticsToolbox < handle
            
            % Calculate contribution from past climate
            %---------------------
-           if doClimateLagCalcuations 
-               % Set the year past for which the focing contribution is to be
-               % derived.
-               obj.simulationResults.tor_min = [0; 1; 2; 5;  10;  20; 50; 75;  100];
-               obj.simulationResults.tor_max = [1; 2; 5; 10; 20; 50; 75;  100; inf];
+           try
+               if doClimateLagCalcuations 
+                   % Set the year past for which the focing contribution is to be
+                   % derived.
+                   obj.simulationResults.tor_min = [0; 1; 2; 5;  10;  20; 50; 75;  100];
+                   obj.simulationResults.tor_max = [1; 2; 5; 10; 20; 50; 75;  100; inf];
 
-               % Limit the maximum climate lag to be <= the length of the
-               % climate record.
-               forcingData = getForcingData(obj);
-               filt = forcingData( : ,1) < ceil(time_points(end));
-               tor_max =  max(time_points(1)  - forcingData( filt ,1));
-               filt = obj.simulationResults.tor_max*365 < tor_max;
-               obj.simulationResults.tor_min = obj.simulationResults.tor_min(filt);
-               obj.simulationResults.tor_max = obj.simulationResults.tor_max(filt);
-               
-               % Calc the head forcing for each period.
-               for ii=1: size(obj.simulationResults.tor_min,1)                    
-                    head_lag_temp = solve(obj.model, time_points, ...
-                        obj.simulationResults.tor_min(ii)*365.25, obj.simulationResults.tor_max(ii)*365.25 );
-                    
-                    obj.simulationResults.head_lag(:,ii) = head_lag_temp(:,2);                    
-               end               
-               
-               % Add time column.
-               obj.simulationResults.head_lag = [time_points, obj.simulationResults.head_lag];                              
-           else
+                   % Limit the maximum climate lag to be <= the length of the
+                   % climate record.
+                   forcingData = getForcingData(obj);
+                   filt = forcingData( : ,1) < ceil(time_points(end));
+                   tor_max =  max(time_points(1)  - forcingData( filt ,1));
+                   filt = obj.simulationResults.tor_max*365 < tor_max;
+                   obj.simulationResults.tor_min = obj.simulationResults.tor_min(filt);
+                   obj.simulationResults.tor_max = obj.simulationResults.tor_max(filt);
+
+                   % Calc the head forcing for each period.
+                   for ii=1: size(obj.simulationResults.tor_min,1)                    
+                        head_lag_temp = solve(obj.model, time_points, ...
+                            obj.simulationResults.tor_min(ii)*365.25, obj.simulationResults.tor_max(ii)*365.25 );
+
+                        obj.simulationResults.head_lag(:,ii) = head_lag_temp(:,2);                    
+                   end               
+
+                   % Add time column.
+                   obj.simulationResults.head_lag = [time_points, obj.simulationResults.head_lag];                              
+               else
+                   obj.simulationResults.tor_min = [];
+                   obj.simulationResults.tor_max = [];
+                   obj.simulationResults.head_lag = [];               
+               end
+           catch
                obj.simulationResults.tor_min = [];
                obj.simulationResults.tor_max = [];
-               obj.simulationResults.head_lag = [];               
+               obj.simulationResults.head_lag = [];         
            end
         end
     
@@ -486,7 +535,7 @@ classdef GroundwaterStatisticsToolbox < handle
 %   7 May 2012
 %%
             
-            % Creat the figure. If varargin is empty then a new figure
+            % Create the figure. If varargin is empty then a new figure
             % window is created. If varagin equals a figure handle, h, then
             % the calibration results are plotted into 'h'.            
             if nargin==1 || isempty(handle)
@@ -586,11 +635,11 @@ classdef GroundwaterStatisticsToolbox < handle
         end
 
 %% Interpolate and extrapolate observation data        
-        function head_estimates = interpolateData(obj, targetDates, p_value)
+        function head_estimates = interpolateData(obj, targetDates, maxKrigingObs, useModel)
 % Interpolate and extrapolate observation data.
 %
 % Syntax:
-%   interpolateData(obj, targetDates, p_value)
+%   interpolateData(obj, targetDates, maxKrigingObs, useModel)
 %
 % Description:
 %   Interpolates or extrapolates observed heads of a calibrated model and
@@ -609,7 +658,12 @@ classdef GroundwaterStatisticsToolbox < handle
 %   time_points - column vector of the time points to be interpolated 
 %   and or extrapolated.
 %
-%   p_value - probability for the prediction interval, eg 0.95.%
+%   maxKrigingObs - scalar integer for the maximum number of observation
+%   points to use in the kriging. The default is inf.
+%   
+%   useModel - logical scalar indicating if the kriging is to be
+%   undertaken using the model residuals or the observed data. The default is
+%   true.
 %
 % Output:
 %   head_estimates - matrix of simulated head formatted as the following columns:
@@ -624,11 +678,11 @@ classdef GroundwaterStatisticsToolbox < handle
 %
 %   Define the time points for simulation as from start_date to end_date at 
 %   steps of 365 days:
-%   >> time_points = start_date : 365: end_date;
+%   >> time_points = [start_date : 365: end_date]';
 %
 %   Interpolate the model object 'model_124705' to time_points with the 
 %   error estimate defined for a 95% prediction interval:
-%   >> head_estimates = interpolateData(model_124705, targetDates, 0.95)
+%   >> head_estimates = interpolateData(model_124705, time_points, 20, true)
 %
 % See also:
 %   GroundwaterStatisticsToolbox: class_description;
@@ -652,10 +706,17 @@ classdef GroundwaterStatisticsToolbox < handle
             if size(targetDates,2) ~= 1 && size(targetDates,2) ~= 3 && size(targetDates,2) ~= 6
                 error('The taget date(s) must be either a matlab date number or have the following columns: year, month, day, hour (optional), minute (options)');
             end
+            
+            % Assign defaults for 3rd and 4th inputs. 
+            if nargin==2
+                maxKrigingObs = inf;
+                useModel = true;
+            end
+                
             % Check if any target dates are beyond the end of the climate
             % record.
             forcingData = getForcingData(obj);
-            if (max(forcingData(:,1)) < max(targetDates))
+            if useModel && ~isempty(forcingData) && (max(forcingData(:,1)) < max(targetDates))
                 error('The maximum date for interpolation is greater than the maximum date of the input forcing data');
             end
             clear forcingData
@@ -665,43 +726,73 @@ classdef GroundwaterStatisticsToolbox < handle
             
             % Call model at target date and remove the first column
             % containing the date (it is added back later)
-            head_estimates= solveModel(obj, targetDates, p_value, false, false);
-            head_estimates = head_estimates(:,2:end);
+            if useModel
+                head_estimates= solveModel(obj, targetDates, false);
+                head_estimates = head_estimates(:,2);
+                krigingData = obj.calibrationResults.data.modelledHead_residuals;
+
+                range = obj.calibrationResults.performance.variogram_residual.range;
+                sill = obj.calibrationResults.performance.variogram_residual.sill;
+                nugget = obj.calibrationResults.performance.variogram_residual.nugget;                
+            else
+                head_estimates = zeros(length(targetDates),5);
+                krigingData = getObservedHead(obj.model);
+                
+                % Set variogram fitting calibration options.
+                variogramOptions = optimset('fminsearch');
+                variogramOptions.MaxIter = 1200;
+                variogramOptions.MaxFunEvals = 1000000;
+                
+                % Derive model variogram from the observed data.
+                expVariogram = variogram([krigingData(:,1), zeros( size(krigingData(:,1))) ] ...
+                , krigingData(:,2) , 'maxdist', min(365*10, krigingData(end,1) - krigingData(1,1) ), 'nrbins', 10);
             
-            % Get ordinary kriging estimate of resdiuals at target date.
+                [range, sill, nugget, variogram_model] ...
+                    = variogramfit(expVariogram.distance, expVariogram.val, 365/4, 0.75.*var( krigingData(:,2)), expVariogram.num, variogramOptions,...
+                    'model', 'exponential', 'nugget', 0.25.*var( krigingData(:,2)) ,'plotit',false );          
+                
+            end
+            
+            % Undertake unievral kriging. 
+            % If 'useModel'==true then the krigin is undertaken on the
+            % simulation residuals. Else, it is undertaken using entire 
+            % record of the the observed head.
             % Adapted from :
             % Martin H. Trauth, Robin Gebbers, Norbert Marwan, MATLAB
             % recipes for earth sciences.
-            %----------------------------
-            
-            % Get variogram parameters.
-            range = obj.calibrationResults.performance.variogram_residual.range;
-            sill = obj.calibrationResults.performance.variogram_residual.sill;
-            nugget = obj.calibrationResults.performance.variogram_residual.nugget;
-            nobs = size(obj.calibrationResults.data.modelledHead_residuals,1);
-            
-            % Calculate distance (1-D in units of days) between all obs
-            % data dates.
-            dist = ipdm( obj.calibrationResults.data.modelledHead_residuals(:,1));                        
-
-            % Calculate kriging matrix for obs data from avriogram, then
-            % expand g_mod matrix for kriging and finally invert.
-            G_mod = nan(nobs+1, nobs+1);
-            G_mod = nugget + sill*(1-exp(-3.*dist./range)).*(dist>0);
-            G_mod(: , nobs+1) = 1;
-            G_mod(nobs+1 , :) = 1;
-            G_mod(nobs+1,nobs+1) = 0;
-            G_mod = inv(G_mod); 
-
+            %----------------------------            
             for ii=1: length(targetDates)
-                dist_to_target =  abs(obj.calibrationResults.data.modelledHead_residuals(:,1) - targetDates(ii));
-                G_target = nugget + sill*(1-exp(-3.*dist_to_target./range)).*(dist_to_target>0);
-                G_target(nobs+1) = 1;
-                kriging_weights = G_mod * G_target;
+                
+                % Find  'maxKrigingObs' cloest to the target obs.
+                [~, ind] = sort(abs(krigingData(:,1) - targetDates(ii)));
+                ind = ind(1: min(length(ind),maxKrigingObs));
+                nobs = length(ind);
+                
+                % Calculate distance (1-D in units of days) between the closest
+                % 'maxObs'
+                dist = ipdm( krigingData(ind,1));
+
+                % Calculate kriging matrix for obs data from avriogram, then
+                % expand g_mod matrix for kriging and finally invert.
+                G_mod = nan(nobs+1, nobs+1);    
+                G_mod(1:nobs,1:nobs) = nugget + sill*(1-exp(-3.*abs(dist)./range));
+                %G_mod(: , nobs+1) = 1;
+                %G_mod(nobs+1 , :) = 1;
+                %G_mod(nobs+1,nobs+1) = 0;
+                G_mod(: , nobs+1) = 1;
+                G_mod(nobs+1 , 1:nobs) = krigingData(ind,1) ;
+                G_mod(nobs+1,nobs+1) = 0;
+                
+                % Calculate the distance from the cloest maxObs to the
+                % target obs.
+                dist_to_target =  abs(krigingData(ind,1) - targetDates(ii));
+                G_target = nugget + sill*(1-exp(-3.*abs(dist_to_target)./range));
+                G_target(nobs+1) = targetDates(ii);
+                kriging_weights = G_mod \ G_target;
                 
                 % Estimate residual at target date
-                head_estimates(ii,4) = sum( kriging_weights(1:nobs,1) .* obj.calibrationResults.data.modelledHead_residuals(:,2)) ...
-                    + (1-sum(kriging_weights(1:end-1,1))) .* mean(obj.calibrationResults.data.modelledHead_residuals(:,2) );
+                head_estimates(ii,4) = sum( kriging_weights(1:nobs,1) .* krigingData(ind,2)) ...
+                    + (1-sum(kriging_weights(1:end-1,1))) .* mean(krigingData(ind,2) );                    
                 
                 % Estimate kriging variance of the residual at target date.
                 head_estimates(ii,5) = sum( kriging_weights(1:nobs,1) .* G_target(1:nobs,1)) + kriging_weights(end,1);
@@ -717,7 +808,9 @@ classdef GroundwaterStatisticsToolbox < handle
            
            % Estimate prediction error with weighting by normalised kriging
            % variance.
-           head_estimates(:,5) = head_estimates(:,5) .* 0.5.*(head_estimates(:,3) - head_estimates(:,2));
+           if useModel
+                head_estimates(:,5) = head_estimates(:,5) .* 0.5.*(head_estimates(:,3) - head_estimates(:,2));
+           end
 
            % Remove the columns of working data and return prediction and
            % the error estimate.
@@ -827,6 +920,9 @@ classdef GroundwaterStatisticsToolbox < handle
             obj.evaluationResults = [];            
             seed = sum(100*clock);                          % Seed value for random number generation.
 
+            % Add flag to denote the calibration is not complete.
+            obj.calibrationResults.isCalibrated = false;
+            
             % Check the number of inputs.            
             if nargin < 3
                 error('Calibration of the model requires input of at least the following: model object, start date and end date');
@@ -1013,7 +1109,7 @@ classdef GroundwaterStatisticsToolbox < handle
             cmaes_options.UBounds = params_upperPhysBound;
             cmaes_options.Restarts = numRestarts;
             cmaes_options.LogFilenamePrefix = ['CMAES_',obj.bore_ID];
-            cmaes_options.LogPlot = 'on';
+            cmaes_options.LogPlot = 'off';
             
             % Undertake parrallel function evaluation
             cmaes_options.EvalParallel = 'yes';
@@ -1047,7 +1143,11 @@ classdef GroundwaterStatisticsToolbox < handle
                         
             % Calculate calibration and evaluation heads
             %--------------------------------------------------------------            
-            head_est = solveModel(obj, obsHead(:,1), true );
+            try
+                head_est = solveModel(obj, obsHead(:,1), true );
+            catch
+                head_est = solveModel(obj, obsHead(:,1), false );
+            end
                 
             % Calib residuals.
             head_est = real(head_est);
@@ -1176,7 +1276,7 @@ classdef GroundwaterStatisticsToolbox < handle
             [obj.calibrationResults.performance.variogram_residual.range, obj.calibrationResults.performance.variogram_residual.sill, ...
                 obj.calibrationResults.performance.variogram_residual.nugget, obj.calibrationResults.performance.variogram_residual.model] ...
                 = variogramfit(calib_var.distance, ...                
-                calib_var.val, 365/4, 0.75.*var( head_calib_resid(:,2)), calib_var.num, ...
+                calib_var.val, 365/4, 0.75.*var( head_calib_resid(:,2)), calib_var.num, [], ...
                 'model', 'exponential', 'nugget', 0.25.*var( head_calib_resid(:,2)) ,'plotit',false );
              
             if neval > 0;                
@@ -1190,11 +1290,14 @@ classdef GroundwaterStatisticsToolbox < handle
                     'model', 'exponential', 'nugget', 0.25.*var( head_calib_resid(:,2)), 'plotit',false  );
             end                        
                                    
+            % Update flag to denote the calibration completed successfully.
+            obj.calibrationResults.isCalibrated = true;
+            
             % Store the settings for calibration scheme.
             obj.calibrationResults.algorithm_stats = evolutions;
 	end
 
-        function calibrateModelPlotResults(obj, handle)
+        function handle = calibrateModelPlotResults(obj, h, plotNumber)
 % Plot the calibration results
 %
 % Syntax:
@@ -1238,20 +1341,23 @@ classdef GroundwaterStatisticsToolbox < handle
             % Create the figure. If varargin is empty then a new figure
             % window is created. If varagin equals a figure handle, h, then
             % the calibration results are plotted into 'h'.            
-            if nargin<2 || isempty(handle)
+            if nargin<2 || isempty(h)
                 % Create new figure window.
-                figure('Name',['Calib. ',obj.bore_ID]);
-            elseif ~ishandle(handle)    
+                h = figure('Name',['Calib. ',obj.bore_ID]);
+            elseif ~ishandle(h)    
                 error('Input handle is not a valid figure handle.');
-            else
-                % Create figure in figure 'h'
-                figure(h, 'Name',['Calib. ',obj.bore_ID]);
+            %else
+            %    % Create figure in figure 'h'
+            %    figure('Parent',handle, 'Name',['Calib. ',obj.bore_ID]);
+            %    
             end
             
             % Define the dimensions of the subplots
-            ncol_plots = 3;
-            nrow_plots = 4;
-             
+            if isempty(plotNumber)
+                ncol_plots = 3;
+                nrow_plots = 4;
+            end
+            
             % Calc. number of evaluation points.
             neval=0;
             if isfield(obj.evaluationResults,'data')
@@ -1268,175 +1374,209 @@ classdef GroundwaterStatisticsToolbox < handle
             
             % Plot time series of heads.                        
             %-------
-            iplot = 1;
-            nplots = ncol_plots;
-            subplot(nrow_plots,ncol_plots , 1 :ncol_plots);
-            iplot = iplot + nplots;
+            if isempty(plotNumber)
+                iplot = 1;
+                nplots = ncol_plots;
+                h=subplot(nrow_plots,ncol_plots , 1 :ncol_plots,'Parent',handle);
+                iplot = iplot + nplots;
+            end
             
             % Plot bounds for noise component.
-            if hasNoiseComponant
-               if neval > 0; 
-                   XFill = [obj.calibrationResults.data.modelledNoiseBounds(:,1)' ...
-                            obj.evaluationResults.data.modelledNoiseBounds(:,1)' ...
-                            fliplr([obj.calibrationResults.data.modelledNoiseBounds(:,1); ...
-                                    obj.evaluationResults.data.modelledNoiseBounds(:,1)]')];
-                   YFill = [obj.calibrationResults.data.modelledNoiseBounds(:,3)', ...
-                            obj.evaluationResults.data.modelledNoiseBounds(:,3)', ...
-                            fliplr([obj.calibrationResults.data.modelledNoiseBounds(:,2); ...
-                            obj.evaluationResults.data.modelledNoiseBounds(:,2)]')];
-               else
-                   XFill = [obj.calibrationResults.data.modelledNoiseBounds(:,1)' ...
-                            fliplr(obj.calibrationResults.data.modelledHead(:,1)')];
-                   YFill = [obj.calibrationResults.data.modelledNoiseBounds(:,3)', ...
-                            fliplr(obj.calibrationResults.data.modelledNoiseBounds(:,2)')];
-               end
-               fill(XFill, YFill,[0.8 0.8 0.8]);
-               clear XFill YFill               
-               hold on;
-            end
-            
-            % Plot the observed head
-            plot(obj.model.inputData.head(:,1), obj.model.inputData.head(:,2),'.-k' );
-            hold on;
-            
-            % Plot model results
-            plot(obj.calibrationResults.data.modelledHead(:,1), obj.calibrationResults.data.modelledHead(:,2),'.-b' );
-            if neval > 0;
-                plot(obj.evaluationResults.data.modelledHead(:,1), obj.evaluationResults.data.modelledHead(:,2),'.-r' );
-            end
-            datetick('x','mmm-yy');
-            xlabel('Date');
-            ylabel('Head (m)');            
-            title(['Bore ', obj.bore_ID, ' - Observed and modelled head']);                                       
-                                    
-            % Create legend strings              
-            if neval > 0;
+            if plotNumber==1 || isempty(plotNumber)
                 if hasNoiseComponant
-                    legendstr={'Noise';'Observed';'Calibration';'Evaluation'};
-                else
-                    legendstr={'Observed';'Calibration';'Evaluation'};
+                   if neval > 0; 
+                       XFill = [obj.calibrationResults.data.modelledNoiseBounds(:,1)' ...
+                                obj.evaluationResults.data.modelledNoiseBounds(:,1)' ...
+                                fliplr([obj.calibrationResults.data.modelledNoiseBounds(:,1); ...
+                                        obj.evaluationResults.data.modelledNoiseBounds(:,1)]')];
+                       YFill = [obj.calibrationResults.data.modelledNoiseBounds(:,3)', ...
+                                obj.evaluationResults.data.modelledNoiseBounds(:,3)', ...
+                                fliplr([obj.calibrationResults.data.modelledNoiseBounds(:,2); ...
+                                obj.evaluationResults.data.modelledNoiseBounds(:,2)]')];
+                   else
+                       XFill = [obj.calibrationResults.data.modelledNoiseBounds(:,1)' ...
+                                fliplr(obj.calibrationResults.data.modelledHead(:,1)')];
+                       YFill = [obj.calibrationResults.data.modelledNoiseBounds(:,3)', ...
+                                fliplr(obj.calibrationResults.data.modelledNoiseBounds(:,2)')];
+                   end
+                   fill(XFill, YFill,[0.8 0.8 0.8],'Parent',h);
+                   clear XFill YFill               
+                   hold(h,'on');
                 end
-            else
-                if hasNoiseComponant
-                    legendstr={'Noise';'Observed';'Calibration'};
-                else
-                    legendstr={'Observed';'Calibration'};
+
+                % Plot the observed head
+                plot(h,obj.model.inputData.head(:,1), obj.model.inputData.head(:,2),'.-k');
+                hold(h,'on');
+
+                % Plot model results
+                plot(h,obj.calibrationResults.data.modelledHead(:,1), obj.calibrationResults.data.modelledHead(:,2),'.-b' );
+                if neval > 0;
+                    plot(h,obj.evaluationResults.data.modelledHead(:,1), obj.evaluationResults.data.modelledHead(:,2),'.-r' );
                 end
+                datetick(h, 'x','mmm-yy');
+                xlabel(h, 'Date');
+                ylabel(h, 'Head (m)');           
+                if isempty(plotNumber)
+                    title(h, ['Bore ', obj.bore_ID, ' - Observed and modelled head']);
+                else
+                    title(h, 'Observed and modelled head');
+                end
+
+                % Create legend strings              
+                if neval > 0;
+                    if hasNoiseComponant
+                        legendstr={'Noise';'Observed';'Calibration';'Evaluation'};
+                    else
+                        legendstr={'Observed';'Calibration';'Evaluation'};
+                    end
+                else
+                    if hasNoiseComponant
+                        legendstr={'Noise';'Observed';'Calibration'};
+                    else
+                        legendstr={'Observed';'Calibration'};
+                    end
+                end
+
+                % Finish the first plot!
+                legend(legendstr);
+                hold(h,'off');               
             end
-            
-            % Finish the first plot!
-            legend( legendstr);
-            hold off;
             
             % Time series of residuals  
             %-------
-            nplots = ncol_plots;
-            subplot(nrow_plots,ncol_plots,iplot:iplot+nplots-1);
-            iplot = iplot + nplots;
-            scatter(obj.calibrationResults.data.modelledHead_residuals(:,1), obj.calibrationResults.data.modelledHead_residuals(:,2), '.b' );
-            hold on;
-            if neval > 0;
-                scatter( obj.evaluationResults.data.modelledHead_residuals(:,1),  obj.evaluationResults.data.modelledHead_residuals(:,2), '.r'  );                
-                legend('Calibration','Evaluation');                
+            if isempty(plotNumber)
+                nplots = ncol_plots;
+                h = subplot(nrow_plots,ncol_plots,iplot:iplot+nplots-1,'Parent',handle);
+                iplot = iplot + nplots;
             end
-            xlabel('Date');
-            ylabel('Residuals (obs-est) (m)');
-            title('Time series of residuals');
-            datetick('x','mmm-yy');
+            if plotNumber==2 || isempty(plotNumber)
+                scatter(h, obj.calibrationResults.data.modelledHead_residuals(:,1), obj.calibrationResults.data.modelledHead_residuals(:,2), '.b' );
+                hold(h,'on');
+                if neval > 0;
+                    scatter( h, obj.evaluationResults.data.modelledHead_residuals(:,1),  obj.evaluationResults.data.modelledHead_residuals(:,2), '.r'  );                
+                    legend('Calibration','Evaluation');                
+                end
+                xlabel(h, 'Date');
+                ylabel(h, 'Residuals (obs-est) (m)');
+                title(h, 'Time series of residuals');
+                datetick(h, 'x','mmm-yy');
+            end
             
             % Histograms of calibration data
-            nplots = 0;
-            subplot(nrow_plots,ncol_plots,iplot:iplot+nplots);
-            iplot = iplot + nplots + 1;                        
-            hist( obj.calibrationResults.data.modelledHead_residuals(:,2) , 0.5*size(obj.calibrationResults.data.modelledHead_residuals,1) );            
-            ylabel('Freq.');
-            xlabel('Calib. residuals (obs-est) (m)');
-            axis(gca,'tight');
-            title('Histogram of calib. residuals');
+            if isempty(plotNumber)
+                nplots = 0;
+                h = subplot(nrow_plots,ncol_plots,iplot:iplot+nplots,'Parent',handle);
+                iplot = iplot + nplots + 1;                        
+            end
+            if plotNumber==3 || isempty(plotNumber)
+                hist(h, obj.calibrationResults.data.modelledHead_residuals(:,2) , 0.5*size(obj.calibrationResults.data.modelledHead_residuals,1) );            
+                ylabel(h, 'Freq.');
+                xlabel(h, 'Calib. residuals (obs-est) (m)');
+                axis(h, 'tight');
+                title(h, 'Histogram of calib. residuals');
+            end
             
-            % Histograms of calibration data
-            nplots = 0;
-            subplot(nrow_plots,ncol_plots,iplot:iplot+nplots);
-            iplot = iplot + nplots + 1;                        
-            if neval > 0;            
-                hist( obj.evaluationResults.data.modelledHead_residuals(:,2) ,  0.5*size(obj.evaluationResults.data.modelledHead_residuals,1) );            
-            end           
-            ylabel('Freq.');
-            xlabel('Eval. residuals (obs-est) (m)');
-            axis(gca,'tight');
-            title('Histogram of eval. residuals');            
-
+            % Histograms of evaluation data
+            if isempty(plotNumber)
+                nplots = 0;
+                h = subplot(nrow_plots,ncol_plots,iplot:iplot+nplots,'Parent',handle);
+                iplot = iplot + nplots + 1;                        
+            end
+            if plotNumber==4 || isempty(plotNumber)
+                if neval > 0;            
+                    hist(h, obj.evaluationResults.data.modelledHead_residuals(:,2) ,  0.5*size(obj.evaluationResults.data.modelledHead_residuals,1) );            
+                end           
+                ylabel(h, 'Freq.');
+                xlabel(h, 'Eval. residuals (obs-est) (m)');
+                axis(h, 'tight');
+                title(h, 'Histogram of eval. residuals');            
+            end
+            
             % QQ plot
-            nplots = 0;
-            subplot(nrow_plots,ncol_plots,iplot:iplot+nplots);
-            iplot = iplot + nplots + 1;
-            if neval > 0;                
-                QQdata = NaN(size(obj.calibrationResults.data.modelledHead_residuals,1),2);
-                QQdata(:,1) = obj.calibrationResults.data.modelledHead_residuals(:,2);
-                QQdata(1:neval,2) = obj.evaluationResults.data.modelledHead_residuals(:,2);
-                qqplot(QQdata);
-                legend('Calibration','Evaluation','Location','NorthWest');                
-            else
-                qqplot(obj.calibrationResults.data.modelledHead_residuals(:,2) );
-            end            
-            title('Quantile-quantile plot of residuals');
+            if isempty(plotNumber)
+                nplots = 0;
+                h = subplot(nrow_plots,ncol_plots,iplot:iplot+nplots,'Parent',handle);
+                iplot = iplot + nplots + 1;
+            end
+            if plotNumber==5 || isempty(plotNumber)
+                if neval > 0;                
+                    QQdata = NaN(size(obj.calibrationResults.data.modelledHead_residuals,1),2);
+                    QQdata(:,1) = obj.calibrationResults.data.modelledHead_residuals(:,2);
+                    QQdata(1:neval,2) = obj.evaluationResults.data.modelledHead_residuals(:,2);
+                    qqplot(h, QQdata);
+                    legend('Calibration','Evaluation','Location','NorthWest');                
+                else
+                    qqplot(h, obj.calibrationResults.data.modelledHead_residuals(:,2) );
+                end            
+                title(h, 'Quantile-quantile plot of residuals');
+            end
             
             % Scatter plot of obs versus modelled
-            nplots = 0;
-            subplot(nrow_plots,ncol_plots,iplot:iplot+nplots);
-            iplot = iplot + nplots + 1;
-            scatter(obj.calibrationResults.data.obsHead(:,2),  obj.calibrationResults.data.modelledHead(:,2),'.b');
-            hold on;
-            if neval > 0;                
-                scatter(obj.evaluationResults.data.obsHead(:,2),  obj.evaluationResults.data.modelledHead(:,2),'.r');
-                legend('Calibration','Evaluation','Location','NorthWest');                
-                head_min = min([obj.model.inputData.head(:,2);  obj.calibrationResults.data.modelledHead(:,2); obj.evaluationResults.data.modelledHead(:,2)] );
-                head_max = max([obj.model.inputData.head(:,2);  obj.calibrationResults.data.modelledHead(:,2); obj.evaluationResults.data.modelledHead(:,2)] );
-            else
-                head_min = min([obj.model.inputData.head(:,2);  obj.calibrationResults.data.modelledHead(:,2)] );
-                head_max = max([obj.model.inputData.head(:,2);  obj.calibrationResults.data.modelledHead(:,2)] );
-            end            
-            xlabel('Obs. head (m)');
-            ylabel('Modelled. head (m)');
-            title('Observed vs. modellled heads');
-            xlim([head_min , head_max] );
-            ylim([head_min , head_max] );
-            plot([head_min, head_max] , [head_min, head_max],'--k');
-            hold off;
+            if isempty(plotNumber)
+                nplots = 0;
+                h = subplot(nrow_plots,ncol_plots,iplot:iplot+nplots,'Parent',handle);
+                iplot = iplot + nplots + 1;
+            end
+            if plotNumber==6 || isempty(plotNumber)
+                scatter(h, obj.calibrationResults.data.obsHead(:,2),  obj.calibrationResults.data.modelledHead(:,2),'.b');
+                hold(h,'on');
+                if neval > 0;                
+                    scatter(h, obj.evaluationResults.data.obsHead(:,2),  obj.evaluationResults.data.modelledHead(:,2),'.r');
+                    legend('Calibration','Evaluation','Location','NorthWest');                
+                    head_min = min([obj.model.inputData.head(:,2);  obj.calibrationResults.data.modelledHead(:,2); obj.evaluationResults.data.modelledHead(:,2)] );
+                    head_max = max([obj.model.inputData.head(:,2);  obj.calibrationResults.data.modelledHead(:,2); obj.evaluationResults.data.modelledHead(:,2)] );
+                else
+                    head_min = min([obj.model.inputData.head(:,2);  obj.calibrationResults.data.modelledHead(:,2)] );
+                    head_max = max([obj.model.inputData.head(:,2);  obj.calibrationResults.data.modelledHead(:,2)] );
+                end            
+                xlabel(h, 'Obs. head (m)');
+                ylabel(h, 'Modelled. head (m)');
+                title(h, 'Observed vs. modellled heads');
+                xlim(h, [head_min , head_max] );
+                ylim(h, [head_min , head_max] );
+                plot(h, [head_min, head_max] , [head_min, head_max],'--k');
+                hold(h,'off');
+            end
             
             % Scatter plot of residuals versus observed head
-            nplots = 0;
-            subplot(nrow_plots,ncol_plots,iplot:iplot+nplots);
-            iplot = iplot + nplots + 1;
-            scatter(obj.calibrationResults.data.obsHead(:,2), obj.calibrationResults.data.modelledHead_residuals(:,2),'.b');
-            hold on;
-            if neval > 0;                
-                scatter(obj.evaluationResults.data.obsHead(:,2),  obj.evaluationResults.data.modelledHead_residuals(:,2),'.r');
-                legend('Calibration','Evaluation','Location','NorthWest');                
-            end            
-            xlabel('Obs. head (m)');
-            ylabel('Residuals (obs-est) (m)'); 
-            title('Observed vs. residuals');
-            hold off;            
+            if isempty(plotNumber)
+                nplots = 0;
+                h = subplot(nrow_plots,ncol_plots,iplot:iplot+nplots,'Parent',handle);
+                iplot = iplot + nplots + 1;
+            end
+            if plotNumber==7 || isempty(plotNumber)
+                scatter(h, obj.calibrationResults.data.obsHead(:,2), obj.calibrationResults.data.modelledHead_residuals(:,2),'.b');
+                hold(h,'on');
+                if neval > 0;                
+                    scatter(h, obj.evaluationResults.data.obsHead(:,2),  obj.evaluationResults.data.modelledHead_residuals(:,2),'.r');
+                    legend('Calibration','Evaluation','Location','NorthWest');                
+                end            
+                xlabel(h, 'Obs. head (m)');
+                ylabel(h, 'Residuals (obs-est) (m)'); 
+                title(h, 'Observed vs. residuals');
+                hold(h,'off');        
+            end
             
             % Semi-variogram of residuals
-            nplots = 0;
-            subplot(nrow_plots,ncol_plots,iplot:iplot+nplots);
-            iplot = iplot + nplots + 1;
-            scatter( obj.calibrationResults.performance.variogram_residual.model.h , obj.calibrationResults.performance.variogram_residual.model.gamma, 'ob');            
-            hold on;
-            plot( obj.calibrationResults.performance.variogram_residual.model.h , obj.calibrationResults.performance.variogram_residual.model.gammahat, '-b');                        
-            if neval > 0;                                
-                scatter( obj.evaluationResults.performance.variogram_residual.model.h,  obj.evaluationResults.performance.variogram_residual.model.gamma, 'or');
-                plot( obj.evaluationResults.performance.variogram_residual.model.h,  obj.evaluationResults.performance.variogram_residual.model.gammahat, '-r');                
-                legend('Calib. experimental','Calib model','Eval. experimental','Eval. model','Location','NorthWest');                
+            if isempty(plotNumber)
+                nplots = 0;
+                h = subplot(nrow_plots,ncol_plots,iplot:iplot+nplots,'Parent',handle);
+                iplot = iplot + nplots + 1;
             end
-            xlabel( 'Separation distance (days)' );
-            ylabel( 'Semi-variance (m^2)' );
-            title('Semi-variogram of residuals');
-            hold off;                     
-            %--------------------------------------------------------------
-            
+            if plotNumber==8 || isempty(plotNumber)
+                scatter(h, obj.calibrationResults.performance.variogram_residual.model.h , obj.calibrationResults.performance.variogram_residual.model.gamma, 'ob');            
+                hold(h,'on');
+                plot(h, obj.calibrationResults.performance.variogram_residual.model.h , obj.calibrationResults.performance.variogram_residual.model.gammahat, '-b');                        
+                if neval > 0;                                
+                    scatter(h, obj.evaluationResults.performance.variogram_residual.model.h,  obj.evaluationResults.performance.variogram_residual.model.gamma, 'or');
+                    plot(h, obj.evaluationResults.performance.variogram_residual.model.h,  obj.evaluationResults.performance.variogram_residual.model.gammahat, '-r');                
+                    legend('Calib. experimental','Calib model','Eval. experimental','Eval. model','Location','NorthWest');                
+                end
+                xlabel(h, 'Separation distance (days)' );
+                ylabel(h, 'Semi-variance (m^2)' );
+                title(h, 'Semi-variogram of residuals');
+                hold(h,'off');               
+            end
         end
 
         %% Calculate the sum of squared errors and model residuals for CAM-ES.

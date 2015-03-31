@@ -12,10 +12,12 @@ classdef responseFunction_Pearsons < responseFunction_abstract
 % Static methods used by the Graphical User Interface to inform the
 % user of the available model options and their input format.
     methods(Static)        
-        function [columns, cellFormat] = responseFunction_optionsFormat()
-            columns = {};
-            cellFormat = {};
-        end        
+        function [modelSettings, colNames, colFormats, colEdits] = modelOptions(bore_ID, forcingDataSiteID, siteCoordinates)
+           modelSettings = {};
+           colNames = {};
+           colFormats = {};
+           colEdits = [];           
+        end                 
     end
 
 %%    
@@ -26,8 +28,8 @@ classdef responseFunction_Pearsons < responseFunction_abstract
             % Define default parameters 
             if nargin==4
                 params=[log10(1); log10(0.01); log10(1.5)];
-            end
-                
+            end                
+            
             % Set parameters for transfer function.
             setParameters(obj, params)     
             

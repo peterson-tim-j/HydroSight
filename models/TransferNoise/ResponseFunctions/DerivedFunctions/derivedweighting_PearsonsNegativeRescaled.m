@@ -5,10 +5,12 @@ classdef derivedweighting_PearsonsNegativeRescaled < derivedweighting_PearsonsPo
 % Static methods used by the Graphical User Interface to inform the
 % user of the available model options and their input format.
     methods(Static)        
-        function [columns, cellFormat] = responseFunction_optionsFormat()
-            columns = {};
-            cellFormat = {};
-        end        
+        function [modelSettings, colNames, colFormats, colEdits] = modelOptions(bore_ID, forcingDataSiteID, siteCoordinates)
+           modelSettings = {};
+           colNames = {};
+           colFormats = {};
+           colEdits = [];           
+        end         
     end
 
 %%    

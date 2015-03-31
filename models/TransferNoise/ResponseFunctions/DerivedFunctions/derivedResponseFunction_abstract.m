@@ -5,9 +5,11 @@ classdef derivedResponseFunction_abstract < handle
     properties
     end
         
+    methods(Static, Abstract=true)
+        [types] = responseFunction_optionsFormat()          
+    end
+    
     methods(Abstract=true)
-        % Static methods
-        [types] = responseFunction_optionsFormat()  
                 
         % Set parameters
         setParameters(obj, params)

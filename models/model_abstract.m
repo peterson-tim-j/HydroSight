@@ -18,19 +18,23 @@ classdef model_abstract < handle
     
     methods (Abstract)
         
-        head = solve(obj, time_points)
+        [head, colnames, noise] = solve(obj, time_points)
             
-        params_initial = calibration_initialise(obj, t_start, t_end)
+        [params_initial, time_points] = calibration_initialise(obj, t_start, t_end)
             
         calibration_finalise(obj, params)
             
         [objFn, h_star] = objectiveFunction(params, time_points, obj)                
         
-        setParameters(obj, params)
+        setParameters(obj, params, param_names)
         
         [params, param_names] = getParameters(obj)
         
         [params_upperLimit, params_lowerLimit] = getParameters_physicalLimit(obj)
+        
+        [params_upperLimit, params_lowerLimit] = getParameters_plausibleLimit(obj)
+        
+        isValidParameter = getParameterValidity(obj, params, time_points)
         
     end
     

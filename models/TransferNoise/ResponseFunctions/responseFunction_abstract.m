@@ -4,10 +4,16 @@ classdef responseFunction_abstract < handle
     
     properties
     end
-        
+    
+    % Static methods
+    methods(Static, Abstract=true)
+        % Options for GUI table.        
+        [modelSettings, colNames, colFormats, colEdits] = modelOptions(bore_ID, forcingDataSiteID, siteCoordinates)
+    end
+    
     methods(Abstract=true)
         % Static methods
-        [types] = responseFunction_optionsFormat()  
+        %[types] = responseFunction_optionsFormat()  
                 
         % Set parameters
         setParameters(obj, params)

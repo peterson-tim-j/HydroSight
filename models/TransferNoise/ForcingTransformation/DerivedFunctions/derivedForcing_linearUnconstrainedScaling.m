@@ -8,12 +8,7 @@ classdef derivedForcing_linearUnconstrainedScaling < derivedForcingTransform_abs
 % user of the available model types. Any new models must be listed here
 % in order to be accessable within the GUI.
     methods(Static)
-        function [types, recommendedType] = tranformation_preset_types()
-         
-            % Default model type.
-            recommendedType = [];
-        end
-        
+       
         function [variable_names] = inputForcingData_required()
             variable_names = {'scalingData'};
         end
@@ -21,6 +16,26 @@ classdef derivedForcing_linearUnconstrainedScaling < derivedForcingTransform_abs
         function [variable_names] = outputForcingdata_options()
             variable_names = {'scaledForcing'};
         end
+        
+        function [options, colNames, colFormats, colEdits, toolTip] = modelOptions(sourceForcingTransformName)            
+            
+            % Get output options.
+            transformOutoutOptions = feval(strcat(sourceForcingTransformName,'.outputForcingdata_options'));
+
+            % Reshape to row vector            
+            transformOutoutOptions = reshape(transformOutoutOptions, 1, length(transformOutoutOptions));
+            
+            % Insert source function name.
+            transformOutoutOptions = strcat(sourceForcingTransformName,{' : '}, transformOutoutOptions);
+            
+            % Assign setting for GUI table
+            options = cell(1,1);
+            colNames={'Source Transform Function Output'};
+            colFormats={transformOutoutOptions};
+            colEdits=true;
+            toolTip='Select an output from the source transform function for input to this function.';            
+        end
+
     end
     
     methods       

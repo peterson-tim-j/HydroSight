@@ -11,10 +11,24 @@ classdef  responseFunction_FerrisKnowles < responseFunction_abstract
 % Static methods used by the Graphical User Interface to inform the
 % user of the available model types. Any new models must be listed here
 % in order to be accessable within the GUI.    
-    methods(Static)
-        function [columns, cellFormat] = responseFunction_optionsFormat()
-            columns = {'Pumping Bore ID', 'Image Bore ID', 'Image Bore Type'};
-            cellFormat = {'', '', {'recharge','no flow'}};
+    methods(Static)    
+        
+        function [options, colNames, colFormats, colEdits] = modelOptions(bore_ID, forcingDataSiteID, siteCoordinates)
+
+            % Get list of site IDs
+            siteIDs = siteCoordinates{:,1}';
+                        
+            % Reshape to be one row.
+            forcingDataSiteID = reshape(forcingDataSiteID, 1, length(forcingDataSiteID));            
+            
+            % No optins are pre-set
+            options = {};
+        
+            % Assign format of table for GUI.
+            colNames = {'Select' 'Pumping Bore ID', 'Image Bore ID', 'Image Bore Type'};
+            colFormats = {'logical', forcingDataSiteID, siteIDs, {'Recharge','No flow'}};
+            colEdits = logical([1 1 1 1]);
+            
         end        
     end
 
@@ -51,7 +65,7 @@ classdef  responseFunction_FerrisKnowles < responseFunction_abstract
 
                 % Check that the options is a cell object of Nx3
                 if ~isempty(options) && (~iscell(options) || size(options,2) ~=3)
-                    error('The input data for image wells but be a Nx3 cell array where for each row the left column contains a production bore ID, the centre column an image well ID and the right column the options "no flow" or "recharge".');
+                    error('The input data for image wells but be a Nx3 cell array where for each row the left column contains a production bore ID, the centre column an image well ID and the right column the options "No flow" or "Recharge".');
                 end                
                 
                 % Get the list of available options
@@ -64,7 +78,7 @@ classdef  responseFunction_FerrisKnowles < responseFunction_abstract
                 for i=1:nOptions
                     filt = cellfun(@(x)strcmp(x,options(i,3)),availableImageTypes);
                     if ~any(filt);
-                        error('The image well types specified within the third column of the input options cell array can only be "recharge" or "no flow".'); 
+                        error('The image well types specified within the third column of the input options cell array can only be "Recharge" or "No flow".'); 
                     end
                 end
                 
@@ -203,11 +217,11 @@ classdef  responseFunction_FerrisKnowles < responseFunction_abstract
                     imageWellMultiplier=zeros(size(obj.settings.pumpingBores{i,1}.imageBoreType,1),1);
                     
                     % create filter for recharge image wells
-                    filt =  cellfun(@(x)strcmp(x,'recharge'),obj.settings.pumpingBores{i,1}.imageBoreType);
+                    filt =  cellfun(@(x)strcmp(x,'Recharge'),obj.settings.pumpingBores{i,1}.imageBoreType);
                     imageWellMultiplier(filt)= 1;
                     
                     % create filter for no flow image wells
-                    filt =  cellfun(@(x)strcmp(x,'no flow'),obj.settings.pumpingBores{i,1}.imageBoreType);
+                    filt =  cellfun(@(x)strcmp(x,'No flow'),obj.settings.pumpingBores{i,1}.imageBoreType);
                     imageWellMultiplier(filt)= -1;
     
                     % Calculate the drawdown from the production well plus
@@ -253,11 +267,11 @@ classdef  responseFunction_FerrisKnowles < responseFunction_abstract
                     imageWellMultiplier=zeros(size(obj.settings.pumpingBores{i,1}.imageBoreType,1),1);
                     
                     % create filter for recharge image wells
-                    filt =  cellfun(@(x)strcmp(x,'recharge'),obj.settings.pumpingBores{i,1}.imageBoreType);
+                    filt =  cellfun(@(x)strcmp(x,'Recharge'),obj.settings.pumpingBores{i,1}.imageBoreType);
                     imageWellMultiplier(filt)= 1;
                     
                     % create filter for no flow image wells
-                    filt =  cellfun(@(x)strcmp(x,'no flow'),obj.settings.pumpingBores{i,1}.imageBoreType);
+                    filt =  cellfun(@(x)strcmp(x,'No flow'),obj.settings.pumpingBores{i,1}.imageBoreType);
                     imageWellMultiplier(filt)= -1;
     
                     % Calculate the drawdown from the production well plus

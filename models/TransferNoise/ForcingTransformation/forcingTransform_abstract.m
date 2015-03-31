@@ -2,7 +2,7 @@ classdef forcingTransform_abstract < handle
     %RESPONSEFUNCTION_ABSTRACT Summary of this class goes here
     %   Detailed explanation goes here
     
-    properties(GetAccess=public, SetAccess=protected)
+    properties
         
         % Vectors for the tranformed forcings and model state variable(s)
         settings
@@ -10,13 +10,12 @@ classdef forcingTransform_abstract < handle
         
     end
     
-    methods(Abstract)
-        % Static methods:
-        %----------------        
+    methods(Static, Abstract=true)
         [variable_names] = inputForcingData_required()
         [variable_names] = outputForcingdata_options()
-        
-        %----------------
+    end
+    
+    methods(Abstract)
         % Set parameters
         setParameters(obj, params)
         

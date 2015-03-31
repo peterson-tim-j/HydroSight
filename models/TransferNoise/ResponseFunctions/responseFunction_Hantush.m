@@ -104,11 +104,11 @@ classdef responseFunction_Hantush < responseFunction_FerrisKnowles
                     imageWellMultiplier=zeros(size(obj.settings.pumpingBores{i,1}.imageBoreType,1),1);
                     
                     % create filter for recharge image wells
-                    filt =  cellfun(@(x)strcmp(x,'recharge'),obj.settings.pumpingBores{i,1}.imageBoreType);
+                    filt =  cellfun(@(x)strcmp(x,'Recharge'),obj.settings.pumpingBores{i,1}.imageBoreType);
                     imageWellMultiplier(filt)= 1;
                     
                     % create filter for no flow image wells
-                    filt =  cellfun(@(x)strcmp(x,'no flow'),obj.settings.pumpingBores{i,1}.imageBoreType);
+                    filt =  cellfun(@(x)strcmp(x,'No flow'),obj.settings.pumpingBores{i,1}.imageBoreType);
                     imageWellMultiplier(filt)= -1;
     
                     % Calculate the drawdown from the production well plus

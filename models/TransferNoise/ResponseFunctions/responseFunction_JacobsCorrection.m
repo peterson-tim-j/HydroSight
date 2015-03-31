@@ -48,7 +48,7 @@ classdef responseFunction_JacobsCorrection < handle
                         
             zeta_filt =  strcmp('zeta',param_names);
             
-            zeta = params(gamma_filt,:);
+            zeta = params(zeta_filt,:);
             
             % Back transform to get Sat. Thickness.
             SatThickness = 10.^zeta;
