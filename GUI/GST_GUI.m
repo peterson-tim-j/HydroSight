@@ -233,7 +233,7 @@ classdef GST_GUI < handle
             this.Figure.UIContextMenu = uicontextmenu(this.Figure,'Visible','on');
             
             % Add items
-            uimenu(this.Figure.UIContextMenu,'Label','Copy selected rows','Callback',@this.rowAddDelete);
+            uimenu(this.Figure.UIContextMenu,'Label','Copy selected row','Callback',@this.rowAddDelete);
             uimenu(this.Figure.UIContextMenu,'Label','Paste rows','Callback',@this.rowAddDelete);
             uimenu(this.Figure.UIContextMenu,'Separator','on');
             uimenu(this.Figure.UIContextMenu,'Label','Insert row above selection','Callback',@this.rowAddDelete);
@@ -331,6 +331,9 @@ classdef GST_GUI < handle
                         
 %           Add context menu
             this.Figure.UIContextMenu = uicontextmenu(this.Figure,'Visible','on');
+            uimenu(this.Figure.UIContextMenu,'Label','Copy selected row','Callback',@this.rowAddDelete);
+            uimenu(this.Figure.UIContextMenu,'Label','Paste rows','Callback',@this.rowAddDelete);
+            uimenu(this.Figure.UIContextMenu,'Separator','on');
             uimenu(this.Figure.UIContextMenu,'Label','Select all','Callback',@this.rowSelection);
             uimenu(this.Figure.UIContextMenu,'Label','Select none','Callback',@this.rowSelection);
             uimenu(this.Figure.UIContextMenu,'Label','Invert selection','Callback',@this.rowSelection);
@@ -362,10 +365,10 @@ classdef GST_GUI < handle
                             '<html><center>Head<br />Start Date</center></html>', ...
                             '<html><center>Head<br />End Date</center></html>', ...
                             '<html><center>Simulation<br />Label</center></html>', ...   
+                            '<html><center>Forcing Data<br />File</center></html>', ...
                             '<html><center>Simulation<br />Start Date</center></html>', ...
                             '<html><center>Simulation<br />End Date</center></html>', ...
-                            '<html><center>Simulation<br />Time step</center></html>', ...
-                            '<html><center>Forcing Data<br />File</center></html>', ...
+                            '<html><center>Simulation<br />Time step</center></html>', ...                            
                             '<html><center>Simulation.<br />Status</center></html>'};
             data = cell(0,9);            
             rnames1t4 = {[1]};
@@ -375,6 +378,7 @@ classdef GST_GUI < handle
                   'Below are tips for undertaking simulations:<br>', ... 
                   '<ul type="bullet type">', ...
                   '<li>Select a calibrated model for simulation using the drop-down menu in the column "Model Label". <br>', ...
+                  '<li>Scenarios investigations, such as a change of rainfall or pumping, can be explore by inputting a new forcing data file (OPTIONAL). <br>', ...
                   '<li>Simulation time points can be input using the simulation start, end date and time-step columns (OPTIONAL). <br>', ...
                   '<li>Simulation can be undertaken using new forcing data by inputing a file name to new forcing data (OPTIONAL). <br>', ...
                   '<li>Sort the rows by clicking on the column headings. Below are more complex sorting options:<ul>', ...
@@ -387,7 +391,7 @@ classdef GST_GUI < handle
               
             this.tab_ModelSimulation.Table = uitable('Parent',vbox1t4,'ColumnName',cnames1t4, ... 
                 'ColumnFormat', cformats1t4, 'ColumnEditable', cedit1t4, ...
-                'RowName', rnames1t4, 'Tag','Model Calibration', ...
+                'RowName', rnames1t4, 'Tag','Model Simulation', ...
                 'Data', data, ...
                 'CellSelectionCallback', @this.modelSimulation_tableSelection,...
                 'CellEditCallback', @this.modelSimulation_tableEdit,...
@@ -400,6 +404,13 @@ classdef GST_GUI < handle
                         
 %           Add context menu
             this.Figure.UIContextMenu = uicontextmenu(this.Figure,'Visible','on');
+            uimenu(this.Figure.UIContextMenu,'Label','Copy selected row','Callback',@this.rowAddDelete);
+            uimenu(this.Figure.UIContextMenu,'Label','Paste rows','Callback',@this.rowAddDelete);
+            uimenu(this.Figure.UIContextMenu,'Separator','on');
+            uimenu(this.Figure.UIContextMenu,'Label','Insert row above selection','Callback',@this.rowAddDelete);
+            uimenu(this.Figure.UIContextMenu,'Label','Insert row below selection','Callback',@this.rowAddDelete);            
+            uimenu(this.Figure.UIContextMenu,'Label','Delete selected rows','Callback',@this.rowAddDelete);
+            uimenu(this.Figure.UIContextMenu,'Separator','on');            
             uimenu(this.Figure.UIContextMenu,'Label','Select all','Callback',@this.rowSelection);
             uimenu(this.Figure.UIContextMenu,'Label','Select none','Callback',@this.rowSelection);
             uimenu(this.Figure.UIContextMenu,'Label','Invert selection','Callback',@this.rowSelection);
@@ -923,7 +934,9 @@ classdef GST_GUI < handle
             boreID= this.tab_ModelCalibration.Table.Data{ind,3};
             if size(this.tab_ModelSimulation.Table.Data,1)<irow
                 this.tab_ModelSimulation.Table.Data = [this.tab_ModelSimulation.Table.Data; cell(1,size(this.tab_ModelSimulation.Table.Data,2))];
+            
             end
+            this.tab_ModelSimulation.Table.Data{irow,1} = false;
             this.tab_ModelSimulation.Table.Data{irow,2} = calibLabel;
             this.tab_ModelSimulation.Table.Data{irow,3} = boreID;
             this.tab_ModelSimulation.Table.Data{irow,4} = ['<html><font color = "#808080">',datestr(obshead_start,'dd-mmm-yyyy'),'</font></html>'];
@@ -931,8 +944,8 @@ classdef GST_GUI < handle
             this.tab_ModelSimulation.Table.Data{irow,6} = '';
             this.tab_ModelSimulation.Table.Data{irow,7} = '';
             this.tab_ModelSimulation.Table.Data{irow,8} = '';
-            this.tab_ModelSimulation.Table.Data{irow,9} = 0;
-            this.tab_ModelSimulation.Table.Data{irow,10} = '';
+            this.tab_ModelSimulation.Table.Data{irow,9} = '';
+            this.tab_ModelSimulation.Table.Data{irow,10} = 0;          
             this.tab_ModelSimulation.Table.Data{irow,11} = '<html><font color = "#FF0000">Not Simulated.</font></html>';
 
         end        
@@ -965,7 +978,7 @@ classdef GST_GUI < handle
 
                         % Assign calib model labels to drop down
                         this.tab_ModelSimulation.Table.ColumnFormat{2} = calibLabels;                           
-                    case 'Simulation Start Date' || 'Simulation End Date'
+                    case {'Simulation Start Date', 'Simulation End Date'}
                         % Get the selected model for simulation
                         calibLabel = data{irow,2};
 
@@ -979,13 +992,43 @@ classdef GST_GUI < handle
                         end
 
                         % Get the forcing data for the model.
-                        forcingData = getForcingData(this.models{ind,1});
-            
-                        % Get start and end dates of the forcing
-                        % data, remove HTML tags and then convert to a
-                        % date number.
-                        startDate = min(forcingData);
-                        endDate = max(forcingData);
+                        % If a new forcing data file is given, then open it
+                        % up and get the start and end dates from it.
+                        if isempty( data{irow,7}) || strcmp(data{irow,7},'');                            
+                            forcingData = getForcingData(this.models{ind,1});
+
+                            % Get start and end dates of the forcing
+                            % data, remove HTML tags and then convert to a
+                            % date number.
+                            startDate = min(forcingData(:,1));
+                            endDate = max(forcingData(:,1));                            
+                        else
+                            % Import forcing data
+                            % Check fname file exists.
+                            fname = data{irow,7};
+                            if exist(fname,'file') ~= 2;                   
+                                warndlg('The new forcing date file could not be open for examination of the start and end dates.', 'Error ...');
+                                return;
+                            end
+
+                            % Read in the file.
+                            try
+                               forcingData = readtable(fname);
+                            catch                   
+                                warndlg('The new forcing date file could not be imported for extraction of the start and end dates. Please check its format.', 'Error ...');
+                                return;
+                            end    
+                            
+                            % Calculate the start and end dates
+                            try
+                               forcingData_dates = datenum(forcingData{:,1}, forcingData{:,2}, forcingData{:,3});
+                               startDate = min(forcingData_dates);
+                               endDate = max(forcingData_dates);
+                            catch
+                                warndlg('The dates from the new forcing data file could not be calculated. Please check its format.', 'Error ...');
+                                return;                                
+                            end
+                        end
                                                                         
                         % Open the calander with the already input date,
                         % else use the start date of the obs. head.
@@ -998,58 +1041,37 @@ classdef GST_GUI < handle
                         
                         % Check the selected date
                         if strcmp(columnName, 'Simulation Start Date')
-                            % Get the obs head end date 
+                            % Get the end date 
                             simEndDate = datenum( data{irow,icol+1},'dd-mmm-yyyy');                        
                             
+                            % Check date is between start and end date of obs
+                            % head.
+                            if selectedDate < startDate || selectedDate > endDate    
+                                warndlg('The simulation start date must be within the range of the observed forcing data.');
+                            elseif selectedDate>=simEndDate
+                                warndlg('The simulation start date must be less than the simulation end date.');
+                            else
+                                data{irow,icol} = datestr(selectedDate,'dd-mmm-yyyy');
+                                set(hObject,'Data',data);
+                            end
+                            
                         else
+                            % Get the end date 
+                            simStartDate = datenum( data{irow,icol-1},'dd-mmm-yyyy');                        
+                            
+                            % Check date is between start and end date of obs
+                            % head.
+                            if selectedDate < startDate || selectedDate > endDate    
+                                warndlg('The simulation end date must be within the range of the observed forcing data.');
+                            elseif selectedDate<=simStartDate
+                                warndlg('The simulation end date must be less than the simulation end date.');
+                            else
+                                data{irow,icol} = datestr(selectedDate,'dd-mmm-yyyy');
+                                set(hObject,'Data',data);
+                            end
                             
                         end
-                        
-                        % Check date is between start and end date of obs
-                        % head.
-                        if selectedDate < startDate || selectedDate > endDate    
-                            warndlg('The simulation start date must be within the range of the observed forcing data.');
-                        elseif simEndDate<=selectedDate
-                            warndlg('The simulation start date must be less than the simulation end date.');
-                        else
-                            data{eventdata.Indices(1),eventdata.Indices(2)} = datestr(selectedDate,'dd-mmm-yyyy');
-                        end
-                        set(hObject,'Data',data);
-                    case 'Simulation End Date'
-                        % Get start and end dates of the observed head
-                        % data, remove HTML tags and then convert to a
-                        % date number.
-                        startDate = data{irow,4};
-                        endDate = data{irow,5};
-                        startDate = GST_GUI.removeHTMLTags(startDate);
-                        endDate = GST_GUI.removeHTMLTags(endDate);
-                        %startDate = strtrim(strjoin( strrep( strrep( regexp(startDate,'>.*?<','match'), '<', ''), '>', '')));
-                        %endDate = strtrim(strjoin( strrep( strrep( regexp(endDate,'>.*?<','match'), '<', ''), '>', '')));
-                        startDate = datenum(startDate,'dd-mmm-yyyy');
-                        endDate = datenum(endDate,'dd-mmm-yyyy');
-                                                                        
-                        % Open the calander with the already input date,
-                        % else use the start date of the obs. head.
-                        if isempty(data{irow,icol})
-                            inputDate = endDate;                            
-                        else
-                            inputDate = datenum( data{irow,icol},'dd-mmm-yyyy');
-                        end
-                        selectedDate = uical(inputDate, 'English',startDate, endDate);
-                        
-                        % Get the calibration start date 
-                        simStartDate = datenum( data{irow,icol-1},'dd-mmm-yyyy');                        
-                        
-                        % Check date is between start and end date of obs
-                        % head.
-                        if selectedDate < startDate || selectedDate > endDate    
-                            warndlg('The simulation end date must be within the range of the observed head data.');
-                        elseif simStartDate>=selectedDate
-                            warndlg('The simulation end date must be greater than the calibration start date.');
-                        else
-                            data{eventdata.Indices(1),eventdata.Indices(2)} = datestr(selectedDate,'dd-mmm-yyyy');
-                        end
-                        set(hObject,'Data',data);                        
+                    
                     otherwise
                         % Do nothing
                 end
@@ -1362,34 +1384,106 @@ classdef GST_GUI < handle
             tableObj = eval(eventdata.Source.Parent.UserData);            
             
             % Get selected rows
-            selectedRow = cell2mat(tableObj.Data(:,1));
+            selectedRows = cell2mat(tableObj.Data(:,1));
+
+            % Check if any rows are selected. Note, if not then
+            % rows will be added (for all but the calibration
+            % table).
+            anySelected = any(selectedRows);
+            indSelected = find(selectedRows);
             
-            if size(tableObj.Data(:,1),1)>0 &&  sum(selectedRow) == 0                             
+            if size(tableObj.Data(:,1),1)>0 &&  ~anySelected && ~strcmp(hObject.Label,'Paste rows')
                 warning('No rows are selected for the requested operation.');
                 return;
             elseif size(tableObj.Data(:,1),1)==0 ...
-            &&  (strcmp(hObject.Label, 'Copy selected rows') || strcmp(hObject.Label, 'Delete selected rows'))                
+            &&  (strcmp(hObject.Label, 'Copy selected row') || strcmp(hObject.Label, 'Delete selected rows'))                
                 return;
             end               
             
+            % Define the input for the status column
+            switch tableObj.Tag
+                case 'Model Construction'
+                    modelStatus = '<html><font color = "#FF0000">Model not built.</font></html>';
+                    modelStatus_col = 9;
+                case 'Model Calibration'
+                    modelStatus = '<html><font color = "#FF0000">Model not calibrated.</font></html>';
+                    modelStatus_col = 9;
+                case 'Model Simulation'
+                    modelStatus = '<html><font color = "#FF0000">Not simulated.</font></html>';                    
+                    modelStatus_col = 11;
+            end
+            
             % Do the selected action            
             switch hObject.Label
-                case 'Copy selected rows'
+                case 'Copy selected row'
                     this.copiedData.tableName = tableObj.Tag;
-                    this.copiedData.data = tableObj.Data(selectedRow,:);
+                    this.copiedData.data = tableObj.Data(selectedRows,:);
                     
                 case 'Paste rows'    
                     % Check that name of the table is same as that from the
-                    % copied data. If so copy the data.
-                    if strcmp(this.copiedData.tableName, tableObj.Tag)
-                       tableObj.Data = [tableObj.Data; this.copiedData.data];
-                    else
-                        warning('The copied row data was sourced froma different table.');
+                    % copied data. 
+                    if ~strcmp(this.copiedData.tableName, tableObj.Tag)
+                        warning('The copied row data was sourced from a different table.');
                         return;
                     end    
                     
-                    % Update model build status
-                     tableObj.Data(selectedRow,9) =  '<html><font color = "#FF0000">Model not built.</font></html>';
+                    if sum(selectedRows)>1
+                        warning('When pasting to selected rows, only one row can be copied.');
+                        return;
+                    end
+                    
+                    % Paste data and update model build status
+                    switch this.copiedData.tableName
+                        case 'Model Construction'
+                            if anySelected
+                                j=1;
+                                for i=indSelected
+                                    tableObj.Data{i,2} = [this.copiedData.data{1,2}, ' - copy ',num2str(j)];                                    
+                                    tableObj.Data{i,3} = this.copiedData.data{1,3};
+                                    tableObj.Data{i,4} = this.copiedData.data{1,4};
+                                    tableObj.Data{i,5} = this.copiedData.data{1,5};
+                                    tableObj.Data{i,6} = this.copiedData.data{1,6};
+                                    tableObj.Data{i,7} = this.copiedData.data{1,7};
+                                    tableObj.Data{i,8} = this.copiedData.data{1,8};
+                                    this.copiedData.data{i,9} = modelStatus;
+                                    j=j+1;
+                                end
+                            else
+                                this.copiedData.data{:,9} = modelStatus;
+                                tableObj.Data = [tableObj.Data; this.copiedData.data];
+                            end
+                        case 'Model Calibration'
+                            for i=indSelected
+                                tableObj.Data{i,6} = this.copiedData.data{1,6};
+                                tableObj.Data{i,7} = this.copiedData.data{1,7};
+                                tableObj.Data{i,8} = this.copiedData.data{1,8};
+                                tableObj.Data(i,9) =  modelStatus;
+                                tableObj.Data{i,10} = '';
+                                tableObj.Data{i,11} = '';
+                                tableObj.Data{i,12} = '';
+                                tableObj.Data{i,13} = '';
+                            end
+                        case 'Model Simulation'
+                            if anySelected
+                                j=1;
+                                for i=indSelected
+                                    tableObj.Data{i,2} = this.copiedData.data{1,2};                                    
+                                    tableObj.Data{i,3} = this.copiedData.data{1,3};
+                                    tableObj.Data{i,4} = this.copiedData.data{1,4};
+                                    tableObj.Data{i,5} = this.copiedData.data{1,5};
+                                    tableObj.Data{i,6} = [this.copiedData.data{1,6}, ' - copy ',num2str(j)];                                    
+                                    tableObj.Data{i,7} = this.copiedData.data{1,7};
+                                    tableObj.Data{i,8} = this.copiedData.data{1,8};
+                                    tableObj.Data{i,9} = this.copiedData.data{1,9};
+                                    tableObj.Data{i,10} = this.copiedData.data{1,10};
+                                    this.copiedData.data{i,11} = modelStatus;
+                                    j=j+1;
+                                end
+                            else
+                                this.copiedData.data{:,11} = modelStatus;
+                                tableObj.Data = [tableObj.Data; this.copiedData.data];
+                            end                            
+                    end
                     
                     % Update row numbers.
                     nrows = size(tableObj.Data,1);
@@ -1399,10 +1493,10 @@ classdef GST_GUI < handle
                     if size(tableObj.Data,1)==0
                         tableObj.Data = cell(1,size(tableObj.Data,2));
                     else
-                        selectedRow= find(selectedRow);
-                        for i=1:length(selectedRow)
+                        selectedRows= find(selectedRows);
+                        for i=1:length(selectedRows)
 
-                            ind = max(0,selectedRow(i) + i-1);
+                            ind = max(0,selectedRows(i) + i-1);
 
                             tableObj.Data = [tableObj.Data(1:ind-1,:); ...
                                              cell(1,size(tableObj.Data,2)); ...
@@ -1410,7 +1504,7 @@ classdef GST_GUI < handle
                             tableObj.Data{ind,1} = false; 
                             
                             % Update model build status
-                            tableObj.Data{ind,9} = '<html><font color = "#FF0000">Model not built.</font></html>';
+                            tableObj.Data{ind,modelStatus_col} = modelStatus;
 
                         end
                     end
@@ -1422,10 +1516,10 @@ classdef GST_GUI < handle
                     if size(tableObj.Data,1)==0
                         tableObj.Data = cell(1,size(tableObj.Data,2));
                     else
-                        selectedRow= find(selectedRow);
-                        for i=1:length(selectedRow)
+                        selectedRows= find(selectedRows);
+                        for i=1:length(selectedRows)
 
-                            ind = selectedRow(i) + i;
+                            ind = selectedRows(i) + i;
 
                             tableObj.Data = [tableObj.Data(1:ind-1,:); ...
                                              cell(1,size(tableObj.Data,2)); ...
@@ -1433,7 +1527,7 @@ classdef GST_GUI < handle
                             tableObj.Data{ind,1} = false;                                                              
                             
                             % Update model build status
-                            tableObj.Data{ind,9} = '<html><font color = "#FF0000">Model not built.</font></html>';
+                            tableObj.Data{ind,modelStatus_col} = modelStatus;
                             
                         end
                     end
@@ -1442,11 +1536,24 @@ classdef GST_GUI < handle
                     tableObj.RowName = mat2cell([1:nrows]',ones(1, nrows));
 
                 case 'Delete selected rows'    
-                    tableObj.Data = tableObj.Data(~selectedRow,:);
+                    
+                    % Delete the model objects if within the model
+                    % construction table
+                    if strcmp(this.copiedData.tableName,'Model Construction')                        
+                        for i=indSelected
+                            if ~isempty(this.models{i,1})
+                                this.models{i,1}  = '';
+                            end
+                        end
+                    end
+                    
+                    % Delete table data
+                    tableObj.Data = tableObj.Data(~selectedRows,:);
                     
                     % Update row numbers.
                     nrows = size(tableObj.Data,1);
                     tableObj.RowName = mat2cell([1:nrows]',ones(1, nrows));
+                    
             end
         end
         
@@ -1456,16 +1563,16 @@ classdef GST_GUI < handle
             tableObj = eval(eventdata.Source.Parent.UserData);            
                                     
             % Get selected rows
-            selectedRow = cell2mat(tableObj.Data(:,1));
+            selectedRows = cell2mat(tableObj.Data(:,1));
             
             % Do the selected action            
             switch hObject.Label
                 case 'Select all'
-                    tableObj.Data(:,1) = mat2cell(true(size(selectedRow,1),1),ones(1, size(selectedRow,1)));
+                    tableObj.Data(:,1) = mat2cell(true(size(selectedRows,1),1),ones(1, size(selectedRows,1)));
                 case 'Select none'
-                    tableObj.Data(:,1) = mat2cell(false(size(selectedRow,1),1),ones(1, size(selectedRow,1)));
+                    tableObj.Data(:,1) = mat2cell(false(size(selectedRows,1),1),ones(1, size(selectedRows,1)));
                 case 'Invert selection'
-                    tableObj.Data(:,1) = mat2cell(~selectedRow,ones(1, size(selectedRow,1)));
+                    tableObj.Data(:,1) = mat2cell(~selectedRows,ones(1, size(selectedRows,1)));
             end
                         
         end
