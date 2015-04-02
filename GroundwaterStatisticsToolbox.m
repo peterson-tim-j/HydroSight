@@ -386,7 +386,8 @@ classdef GroundwaterStatisticsToolbox < handle
         end
 
 %% Solve the model        
-        function h = solveModel(obj, time_points, doClimateLagCalcuations)
+%        function h = solveModel(obj, time_points, doClimateLagCalcuations)
+        function h = solveModel(obj, time_points, forcingData, forcingData_colnames, simulationLabel)
 % Solve the model and plot modelled and observed heads.
 %
 % Syntax:
@@ -441,56 +442,119 @@ classdef GroundwaterStatisticsToolbox < handle
 % Date:
 %   26 Sept 2014
 
-           % Get simulation of the head           
-           obj.simulationResults = [];  
-           [obj.simulationResults.head, obj.simulationResults.colnames, obj.simulationResults.noise] = solve(obj.model, time_points, -inf, inf);
-                
+           % Find out if the simulation label already exists. If not, add a new simulation. Else, replace it.
+           if isempty(simulationLabel)
+               simulationLabel = '(No label)';
+           end
+           if iscell(obj.simulationResults)
+               
+               % Find simulation label
+               simInd = cellfun( @(x) strcmp(x.simulationLabel , simulationLabel), obj.simulationResults);               
+               
+               % Check there is only one simulation with the given label,
+               % If the simulations does not exist then add a new
+               % simulation. 
+               if sum(simInd)>1
+                   error('The input simulation label is not unique. Multiple simulations exist with this label.');                   
+               elseif sum(simInd)==0                   
+                   if isempty(obj.simulationResults)
+                       simInd =  1;
+                   else
+                       simInd =  size(obj.simulationResults,1)+1;
+                   end                   
+               end                   
+           else
+                simInd =  1;
+           end
+
+           % Add the forcing data.
+           if ~isempty(forcingData)
+               % Get the forcing data used to build the model.
+               [forcingData_modConstruc, forcingData_colnames_modConstruc] = getForcingData(obj);
+               
+               % Check the column names for the new forcing data are identical
+               for i=1:length(forcingData_colnames)
+                  if ~any(cellarray( @(x) strcmp(x, forcingData_colnames{i}), forcingData_colnames_modConstruc))
+                      error('New forcing dat must have identical column names to the original data.');
+                  end
+               end
+               
+               % Assign the new forcing data and keep a copy in the
+               % simulation structure.
+               setForcingData(obj, forcingData, forcingData_colnames);                  
+           end
+           
+           % Add input data for the simulation to the structure.
+           obj.simulationResults{simInd,1}.simulationLabel = simulationLabel;
+           if ~isempty(forcingData)
+                 obj.simulationResults{simInd,1}.forcingData = forcingData;
+                 obj.simulationResults{simInd,1}.forcingData_colnames = forcingData_colnames;
+           end
+           
+           
+           % Undertake the simulation of the head                      
+           try
+              [obj.simulationResults{simInd,1}.head, obj.simulationResults{simInd,1}.colnames, obj.simulationResults{simInd,1}.noise] = solve(obj.model, time_points, -inf, inf);
+           catch ME
+                         
+              % Add the original forcing back into the model.
+              if ~isempty(forcingData)
+                  setForcingData(obj, forcingData_modConstruc, forcingData_colnames_modConstruc);
+              end  
+               
+              error(ME.message); 
+           end
                       
            % Add columns to output for the noise componant.
-           if ~isempty(obj.simulationResults.noise)
-               h = [obj.simulationResults.head(:,1:2), obj.simulationResults.head(:,2) - obj.simulationResults.noise(:,2), obj.simulationResults.head(:,2) + obj.simulationResults.noise(:,3)];
+           if ~isempty(obj.simulationResults{simInd,1}.noise)
+               h = [obj.simulationResults{simInd,1}.head(:,1:2), obj.simulationResults{simInd,1}.head(:,2) - obj.simulationResults{simInd,1}.noise(:,2), obj.simulationResults{simInd,1}.head(:,2) + obj.simulationResults{simInd,1}.noise(:,3)];
            else
-               h = [obj.simulationResults.head(:,1:2), zeros(size(obj.simulationResults.head(:,2),1),2)];
+               h = [obj.simulationResults{simInd,1}.head(:,1:2), zeros(size(obj.simulationResults{simInd,1}.head(:,2),1),2)];
+           end
+           
+           % Add the original forcing back into the model.
+           if ~isempty(forcingData)
+               setForcingData(obj, forcingData_modConstruc, forcingData_colnames_modConstruc);
            end
            
            % Calculate contribution from past climate
            %---------------------
-           try
-               if doClimateLagCalcuations 
-                   % Set the year past for which the focing contribution is to be
-                   % derived.
-                   obj.simulationResults.tor_min = [0; 1; 2; 5;  10;  20; 50; 75;  100];
-                   obj.simulationResults.tor_max = [1; 2; 5; 10; 20; 50; 75;  100; inf];
-
-                   % Limit the maximum climate lag to be <= the length of the
-                   % climate record.
-                   forcingData = getForcingData(obj);
-                   filt = forcingData( : ,1) < ceil(time_points(end));
-                   tor_max =  max(time_points(1)  - forcingData( filt ,1));
-                   filt = obj.simulationResults.tor_max*365 < tor_max;
-                   obj.simulationResults.tor_min = obj.simulationResults.tor_min(filt);
-                   obj.simulationResults.tor_max = obj.simulationResults.tor_max(filt);
-
-                   % Calc the head forcing for each period.
-                   for ii=1: size(obj.simulationResults.tor_min,1)                    
-                        head_lag_temp = solve(obj.model, time_points, ...
-                            obj.simulationResults.tor_min(ii)*365.25, obj.simulationResults.tor_max(ii)*365.25 );
-
-                        obj.simulationResults.head_lag(:,ii) = head_lag_temp(:,2);                    
-                   end               
-
-                   % Add time column.
-                   obj.simulationResults.head_lag = [time_points, obj.simulationResults.head_lag];                              
-               else
-                   obj.simulationResults.tor_min = [];
-                   obj.simulationResults.tor_max = [];
-                   obj.simulationResults.head_lag = [];               
-               end
-           catch
-               obj.simulationResults.tor_min = [];
-               obj.simulationResults.tor_max = [];
-               obj.simulationResults.head_lag = [];         
-           end
+%            try
+%                if doClimateLagCalcuations 
+%                    % Set the year past for which the focing contribution is to be
+%                    % derived.
+%                    obj.simulationResults.tor_min = [0; 1; 2; 5;  10;  20; 50; 75;  100];
+%                    obj.simulationResults.tor_max = [1; 2; 5; 10; 20; 50; 75;  100; inf];
+% 
+%                    % Limit the maximum climate lag to be <= the length of the
+%                    % climate record.
+%                    forcingData = getForcingData(obj);
+%                    filt = forcingData( : ,1) < ceil(time_points(end));
+%                    tor_max =  max(time_points(1)  - forcingData( filt ,1));
+%                    filt = obj.simulationResults.tor_max*365 < tor_max;
+%                    obj.simulationResults.tor_min = obj.simulationResults.tor_min(filt);
+%                    obj.simulationResults.tor_max = obj.simulationResults.tor_max(filt);
+% 
+%                    % Calc the head forcing for each period.
+%                    for ii=1: size(obj.simulationResults.tor_min,1)                    
+%                         head_lag_temp = solve(obj.model, time_points, ...
+%                             obj.simulationResults.tor_min(ii)*365.25, obj.simulationResults.tor_max(ii)*365.25 );
+% 
+%                         obj.simulationResults.head_lag(:,ii) = head_lag_temp(:,2);                    
+%                    end               
+% 
+%                    % Add time column.
+%                    obj.simulationResults.head_lag = [time_points, obj.simulationResults.head_lag];                              
+%                else
+%                    obj.simulationResults.tor_min = [];
+%                    obj.simulationResults.tor_max = [];
+%                    obj.simulationResults.head_lag = [];               
+%                end
+%            catch
+               obj.simulationResults{simInd,1}.tor_min = [];
+               obj.simulationResults{simInd,1}.tor_max = [];
+               obj.simulationResults{simInd,1}.head_lag = [];         
+           %end
         end
     
         function solveModelPlotResults(obj, handle)        
@@ -726,8 +790,8 @@ classdef GroundwaterStatisticsToolbox < handle
             
             % Call model at target date and remove the first column
             % containing the date (it is added back later)
-            if useModel
-                head_estimates= solveModel(obj, targetDates, false);
+            if useModel                
+                head_estimates= solveModel(obj, targetDates, [], [],'');
                 head_estimates = head_estimates(:,2);
                 krigingData = obj.calibrationResults.data.modelledHead_residuals;
 
@@ -1143,10 +1207,10 @@ classdef GroundwaterStatisticsToolbox < handle
                         
             % Calculate calibration and evaluation heads
             %--------------------------------------------------------------            
-            try
-                head_est = solveModel(obj, obsHead(:,1), true );
+            try                
+                head_est = solveModel(obj, obsHead(:,1), [], [] '' );
             catch
-                head_est = solveModel(obj, obsHead(:,1), false );
+                head_est = solveModel(obj, obsHead(:,1), [], [] '');
             end
                 
             % Calib residuals.

@@ -369,11 +369,11 @@ classdef GST_GUI < handle
                             '<html><center>Simulation<br />Start Date</center></html>', ...
                             '<html><center>Simulation<br />End Date</center></html>', ...
                             '<html><center>Simulation<br />Time step</center></html>', ...                            
-                            '<html><center>Simulation.<br />Status</center></html>'};
+                            '<html><center>Simulation<br />Status</center></html>'};
             data = cell(0,9);            
             rnames1t4 = {[1]};
             cedit1t4 = logical([1 1 0 0 0 1 1 1 1 0]);            
-            cformats1t4 = {'logical', {'(none calibrated)'}', 'char','char','char','char','char','char', {'Daily' 'Weekly' 'Monthly' 'Yearly'} ,'char'};
+            cformats1t4 = {'logical', {'(none calibrated)'}', 'char','char','char','char','char','char', 'char',{'Daily' 'Weekly' 'Monthly' 'Yearly'} };
             toolTipStr = ['<html>Use this table to undertake simulation using the models that have been calibrated. <br>' ...
                   'Below are tips for undertaking simulations:<br>', ... 
                   '<ul type="bullet type">', ...
@@ -977,7 +977,17 @@ classdef GST_GUI < handle
                         calibLabels = GST_GUI.removeHTMLTags(calibLabels);
 
                         % Assign calib model labels to drop down
-                        this.tab_ModelSimulation.Table.ColumnFormat{2} = calibLabels;                           
+                        this.tab_ModelSimulation.Table.ColumnFormat{2} = calibLabels;   
+                        
+                    case 'Forcing Data File'
+                        [fName,pName] = uigetfile({'*.*'},'Select the Forcing Data file');
+                        if fName~=0;
+                            % Assign file name to date cell array
+                            data{irow,icol} = fullfile(pName,fName);
+                            % Input file name to the table
+                            set(hObject,'Data',data);
+                        end
+                        
                     case {'Simulation Start Date', 'Simulation End Date'}
                         % Get the selected model for simulation
                         calibLabel = data{irow,2};
@@ -1337,6 +1347,132 @@ classdef GST_GUI < handle
             
             % Report Summary
             msgbox(['The model was successfully calibrated for ',num2str(nModelsCalib), ' models and failed for ',num2str(nModelsCalibFailed), ' models.'], 'Summary of model calibration ...');
+
+        end
+        
+        function onSimModels(this, hObject, eventdata)
+           
+            % Get table data
+            data = this.tab_ModelSimulation.Table.Data;
+            
+            % Get list of selected bores.
+            selectedBores = data(:,1);
+                                        
+            % Loop  through the list of selected bore and apply the model
+            % options.
+            nModelsSim = 0;
+            nModelsSimFailed = 0;
+            for i=1:length(selectedBores);
+                
+                % Get the simulation options
+                obsHeadStartDate = datenum( data{selectedBores{i},4},'dd-mmm-yyyy');
+                obsHeadEndDate = datenum( data{selectedBores{i},5},'dd-mmm-yyyy') + datenum(0,0,0,23,59,59);                
+                simLabel = data{selectedBores{i},6};
+                forcingdata_fname = data{selectedBores{i},7};
+                simStartDate = datenum( data{selectedBores{i},8},'dd-mmm-yyyy');
+                simEndDate = datenum( data{selectedBores{i},9},'dd-mmm-yyyy') + datenum(0,0,0,23,59,59);
+                simTimeStep = data{selectedBores{i},10};
+
+                % Get the selected model for simulation
+                calibLabel = data{selectedBores{i},2};
+
+                % Find index to the calibrated model label within the list of calibrated
+                % models.
+                calibLabel_all = GST_GUI.removeHTMLTags(this.tab_ModelCalibration.Table.Data(:,2));
+                ind = cellfun(@(x) strcmp(calibLabel, x), calibLabel_all);
+                if all(~ind)
+                    warndlg(['The following model was not successfully calibrated: ',calibLabel], 'Error ...');
+                    return;
+                end                
+                
+                % Get the forcing data.
+                if ~isempty(forcingTransform_data_fname)
+
+                    % Import forcing data
+                    %-----------------------
+                    % Check fname file exists.                    
+                    if exist(forcingdata_fname,'file') ~= 2;                   
+                        warndlg('The new forcing date file could not be open. Please check the file exists.', 'Error ...');
+                        return;
+                    end
+
+                    % Read in the file.
+                    try
+                       forcingData = readtable(forcingdata_fname);
+                    catch                   
+                        warndlg('The new forcing date file could not be imported. Please check its format.', 'Error ...');
+                        return;
+                    end                    
+                    
+                    % Convert data to matrix
+                    forcingData_colnames = forcingData.Properties.VariableNames;
+                    forcingData = table2array(forcingData);
+                else
+                    % Set forcing used to empty. This will cause the
+                    % calibration data to be used.
+                    forcingData = [];
+                    forcingData_colnames = [];
+                end
+                
+               % Get the start and end dates for the simulation.
+               if isempty(simStartDate)
+                   simStartDate = obsHeadStartDate;
+               end
+               if isempty(simEndDate)
+                   simEndDate = obsHeadEndDate;
+               end
+               
+               % Create a vector of simulation time points
+               switch  simTimeStep
+                   case 'Daily'
+                       simTimePoints = simStartDate:1:simEndDate;
+                   case 'Weekly'
+                       simTimePoints = simStartDate:7:simEndDate;
+                   case 'Monthly'
+                       startYear = year(simStartDate);
+                       startMonth= month(simStartDate);
+                       startDay= day(simStartDate);
+                       endYear = year(simEndDate);
+                       endMonth = month(simEndDate);
+                       endDay = day(simEndDate);
+                       iyear = startYear;
+                       imonth = startMonth;
+                       i=1;
+                       simTimePoints(i,1) = [iyear, imonth, iday];
+                       while iyear <= endYear && imonth <= endMonth && iday <= endDay
+                          
+                           if imonth == 12
+                               imonth = 1;
+                               iyear = iyear + 1;
+                           else
+                               imonth = imonth + 1;
+                           end
+                           i=i+1;
+                           simTimePoints(i,1) = [iyear, imonth, iday];                           
+                       end
+                       if iyear ~= endYear && imonth ~= endMonth && iday ~= endDay
+                           simTimePoints(i+1,1) = [endYear, endMonth, endDay];
+                       end
+                       
+                   case 'Yearly'
+                       simTimePoints = simStartDate:365:simEndDate;
+                   otherwise
+                                 
+                   % Undertake the simulation.
+                   try
+                       solveModel(obj, simTimePoints, forcingData, forcingData_colnames, simulationLabel)
+                       nModelsSim = nModelsSim + 1;
+                   catch ME
+                       nModelsSimFailed = nModelsSimFailed +1;
+                       this.tab_ModelSimulation.Table.Data{selectedBores{i},11} = ['<html><font color = "#FF0000">Sim. failed - ', ME.message,'</font></html>']; '<html><font color = "#FF0000">Failed. </font></html>';                       
+                   end
+                       
+               end
+               
+            end
+            
+            % Report Summary
+            msgbox(['The simulations were successfull for ',num2str(nModelsCalib), ' models and failed for ',num2str(nModelsCalibFailed), ' models.'], 'Summary of model simulaions...');
 
         end
         
