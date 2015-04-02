@@ -99,9 +99,9 @@ classdef GST_GUI < handle
             this.tab_ModelInterp.Panel = uiextras.Panel( 'Parent', this.figure_Layout, 'Padding', 5,  ...
                 'Title', 'Model Interpolation', 'Tag','ModelInterpolation');
             this.tab_ModelSimulation.Panel = uiextras.Panel( 'Parent', this.figure_Layout, 'Padding', 5, ...
-                'Title', 'Simulation & Decomposition', 'Tag','ModelSimulation');
+                'Title', 'Model Simulation', 'Tag','ModelSimulation');
             this.figure_Layout.TabNames = {'Project Description', 'Model Construction', 'Model Calibration', ...
-                'Model Interpolation','Simulation & Decomposition'};
+                'Model Interpolation','Model Simulation'};
             this.figure_Layout.SelectedChild = 1;
            
             % Create Default object for a model;
@@ -370,10 +370,10 @@ classdef GST_GUI < handle
                             '<html><center>Simulation<br />End Date</center></html>', ...
                             '<html><center>Simulation<br />Time step</center></html>', ...                            
                             '<html><center>Simulation<br />Status</center></html>'};
-            data = cell(0,9);            
+            data = cell(1,11);            
             rnames1t4 = {[1]};
-            cedit1t4 = logical([1 1 0 0 0 1 1 1 1 0]);            
-            cformats1t4 = {'logical', {'(none calibrated)'}', 'char','char','char','char','char','char', 'char',{'Daily' 'Weekly' 'Monthly' 'Yearly'} };
+            cedit1t4 = logical([1 1 0 0 0 1 1 1 1 1 0]);            
+            cformats1t4 = {'logical', {'(none calibrated)'}', 'char','char','char','char','char','char', 'char',{'Daily' 'Weekly' 'Monthly' 'Yearly'}, 'char' };
             toolTipStr = ['<html>Use this table to undertake simulation using the models that have been calibrated. <br>' ...
                   'Below are tips for undertaking simulations:<br>', ... 
                   '<ul type="bullet type">', ...
@@ -432,7 +432,7 @@ classdef GST_GUI < handle
 %Callbacks ~~~~~~~~~~~~~~~~~~~~~~~~~
         % Open saved model
         function onOpen(this,hObject,eventdata)
-            [fName,pName] = uigetfile({'*.gst'},'Select saved groundwater statistical model.');    
+            [fName,pName] = uigetfile({'*.mat'},'Select saved groundwater statistical model.');    
             if fName~=0;
                 % Assign the file name 
                 this.project_fileName = fullfile(pName,fName);
@@ -468,7 +468,7 @@ classdef GST_GUI < handle
         
         % Save as current model        
         function onSaveAs(this,hObject,eventdata)
-            [fName,pName] = uiputfile({'*.gst'},'Save models as...');    
+            [fName,pName] = uiputfile({'*.mat'},'Save models as...');    
             if fName~=0;
                 % Assign file name to date cell array
                 this.project_fileName = fullfile(pName,fName);
@@ -914,40 +914,82 @@ classdef GST_GUI < handle
         end
                 
         function modelSimulation_tableEdit(this, hObject, eventdata)
-            % Get the selected model for simulation
-            calibLabel = eventdata.EditData;
 
-            % Find index to the calibrated model label within the list of calibrated
-            % models.
-            calibLabel_all = GST_GUI.removeHTMLTags(this.tab_ModelCalibration.Table.Data(:,2));
-            ind = cellfun(@(x) strcmp(calibLabel, x), calibLabel_all);
-            if all(~ind)
-                return
-            end
+            icol=eventdata.Indices(:,2);
+            irow=eventdata.Indices(:,1);            
+            data=get(hObject,'Data'); % get the data cell array of the table
+                        
+            % Undertake column specific operations.
+            if ~isempty(icol) && ~isempty(irow)
+                
+                % Record the current row and column numbers
+                this.tab_ModelSimulation.currentRow = irow;
+                this.tab_ModelSimulation.currentCol = icol;
             
-            % Assign data from the calbration toable to the simulation
-            % table.
-            irow = eventdata.Indices(:,1);     
-            headData = getObservedHead(this.models{ind,1});
-            obshead_start = floor(min(headData(:,1)));
-            obshead_end = max(headData(:,1));            
-            boreID= this.tab_ModelCalibration.Table.Data{ind,3};
-            if size(this.tab_ModelSimulation.Table.Data,1)<irow
-                this.tab_ModelSimulation.Table.Data = [this.tab_ModelSimulation.Table.Data; cell(1,size(this.tab_ModelSimulation.Table.Data,2))];
-            
-            end
-            this.tab_ModelSimulation.Table.Data{irow,1} = false;
-            this.tab_ModelSimulation.Table.Data{irow,2} = calibLabel;
-            this.tab_ModelSimulation.Table.Data{irow,3} = boreID;
-            this.tab_ModelSimulation.Table.Data{irow,4} = ['<html><font color = "#808080">',datestr(obshead_start,'dd-mmm-yyyy'),'</font></html>'];
-            this.tab_ModelSimulation.Table.Data{irow,5} = ['<html><font color = "#808080">',datestr(obshead_end,'dd-mmm-yyyy'),'</font></html>'];
-            this.tab_ModelSimulation.Table.Data{irow,6} = '';
-            this.tab_ModelSimulation.Table.Data{irow,7} = '';
-            this.tab_ModelSimulation.Table.Data{irow,8} = '';
-            this.tab_ModelSimulation.Table.Data{irow,9} = '';
-            this.tab_ModelSimulation.Table.Data{irow,10} = 0;          
-            this.tab_ModelSimulation.Table.Data{irow,11} = '<html><font color = "#FF0000">Not Simulated.</font></html>';
+                % Remove HTML tags from the column name
+                columnName = GST_GUI.removeHTMLTags(eventdata.Source.ColumnName{icol});
+                
+                switch columnName;
+                    % Get the selected model.
+                    case 'Model Label'
+                        
+                        % Get the selected model for simulation
+                        calibLabel = eventdata.EditData;
 
+                        % Find index to the calibrated model label within the list of calibrated
+                        % models.
+                        calibLabel_all = GST_GUI.removeHTMLTags(this.tab_ModelCalibration.Table.Data(:,2));
+                        ind = cellfun(@(x) strcmp(calibLabel, x), calibLabel_all);
+                        if all(~ind)
+                            return
+                        end
+
+                        % Assign data from the calbration toable to the simulation
+                        % table.
+                        irow = eventdata.Indices(:,1);     
+                        headData = getObservedHead(this.models{ind,1});
+                        obshead_start = floor(min(headData(:,1)));
+                        obshead_end = max(headData(:,1));            
+                        boreID= this.tab_ModelCalibration.Table.Data{ind,3};
+                        if size(this.tab_ModelSimulation.Table.Data,1)<irow
+                            this.tab_ModelSimulation.Table.Data = [this.tab_ModelSimulation.Table.Data; cell(1,size(this.tab_ModelSimulation.Table.Data,2))];
+
+                        end
+                        this.tab_ModelSimulation.Table.Data{irow,1} = false;
+                        this.tab_ModelSimulation.Table.Data{irow,2} = calibLabel;
+                        this.tab_ModelSimulation.Table.Data{irow,3} = boreID;
+                        this.tab_ModelSimulation.Table.Data{irow,4} = ['<html><font color = "#808080">',datestr(obshead_start,'dd-mmm-yyyy'),'</font></html>'];
+                        this.tab_ModelSimulation.Table.Data{irow,5} = ['<html><font color = "#808080">',datestr(obshead_end,'dd-mmm-yyyy'),'</font></html>'];
+                        this.tab_ModelSimulation.Table.Data{irow,6} = '';
+                        this.tab_ModelSimulation.Table.Data{irow,7} = '';
+                        this.tab_ModelSimulation.Table.Data{irow,8} = '';
+                        this.tab_ModelSimulation.Table.Data{irow,9} = '';
+                        this.tab_ModelSimulation.Table.Data{irow,10} = '';          
+                        this.tab_ModelSimulation.Table.Data{irow,11} = '<html><font color = "#FF0000">Not Simulated.</font></html>';
+                        
+                    % Check the input model simulation label is unique for the selected model.    
+                    case 'Simulation Label'
+                        
+                        % Get the model label.
+                        calibLabel = this.tab_ModelSimulation.Table.Data{irow, 2};
+                        
+                        % Get the simulation label.
+                        simLabel = eventdata.EditData;
+                        
+                        % Get all model and simulation labels.
+                        calibLabel_all = this.tab_ModelSimulation.Table.Data(:,2);
+                        simLabel_all = this.tab_ModelSimulation.Table.Data(:,6);
+                        
+                        %  Check if the new model label is unique.
+                        ind = cellfun( @(x,y) strcmp( calibLabel, x) &&  strcmp( simLabel, y) , calibLabel_all, simLabel_all);
+                        ind = find(ind);                        
+                        if any(ind ~= irow)
+                            warndlg('The model and simulation label pair must be unique','Error ...');
+                            return;
+                        end
+                        
+                end
+            end
         end        
         
         function modelSimulation_tableSelection(this, hObject, eventdata)
@@ -1139,27 +1181,27 @@ classdef GST_GUI < handle
             nModelsBuilt = 0;
             nModelsBuiltFailed = 0;
             for i=1:length(selectedBores);
-                
+                % Check if the model is to be built.
                 if ~selectedBores{i}
                     continue;
                 end
 
                 % Update table with progress'
-                this.tab_ModelConstruction.Table.Data{selectedBores{i}, 9} = '<html><font color = "#FFA500">Building model ...</font></html>';
+                this.tab_ModelConstruction.Table.Data{i, 9} = '<html><font color = "#FFA500">Building model ...</font></html>';
                 
                 % Import head data
                 %----------------------------------------------------------
                 % Check the obs. head file is listed
-                fname = data{selectedBores{i},3};
+                fname = data{i,3};
                 if isempty(fname)                    
-                    this.tab_ModelConstruction.Table.Data{selectedBores{i}, 9} = '<html><font color = "#FF0000">Head data file error - file name empty.</font></html>';
+                    this.tab_ModelConstruction.Table.Data{i, 9} = '<html><font color = "#FF0000">Head data file error - file name empty.</font></html>';
                     nModelsBuiltFailed = nModelsBuiltFailed + 1;
                     continue;
                 end
 
                 % Check the bore ID file exists.
                 if exist(fname,'file') ~= 2;                    
-                    this.tab_ModelConstruction.Table.Data{selectedBores{i}, 9} = '<html><font color = "#FF0000">Head data file error - file does not exist.</font></html>';
+                    this.tab_ModelConstruction.Table.Data{i, 9} = '<html><font color = "#FF0000">Head data file error - file does not exist.</font></html>';
                     nModelsBuiltFailed = nModelsBuiltFailed + 1;
                     continue;
                 end
@@ -1168,13 +1210,13 @@ classdef GST_GUI < handle
                 try
                     tbl = readtable(fname);
                 catch                    
-                    this.tab_ModelConstruction.Table.Data{selectedBores{i}, 9} = '<html><font color = "#FF0000">Head data file error -  read in failed.</font></html>';
+                    this.tab_ModelConstruction.Table.Data{i, 9} = '<html><font color = "#FF0000">Head data file error -  read in failed.</font></html>';
                     nModelsBuiltFailed = nModelsBuiltFailed + 1;
                     continue;
                 end                
                 
                 % Filter for the required bore.
-                filt =  strcmp(tbl{:,1},data{selectedBores{i},6});
+                filt =  strcmp(tbl{:,1},data{i,6});
                 headData = tbl(filt,2:end);
                 headData = headData{:,:};
                 
@@ -1183,9 +1225,9 @@ classdef GST_GUI < handle
                 % Import forcing data
                 %----------------------------------------------------------
                 % Check fname file exists.
-                fname = data{selectedBores{i},4};
+                fname = data{i,4};
                 if exist(fname,'file') ~= 2;                   
-                   this.tab_ModelConstruction.Table.Data{selectedBores{i}, 9} = '<html><font color = "#FF0000">Forcing data file error - file name empty.</font></html>';
+                   this.tab_ModelConstruction.Table.Data{i, 9} = '<html><font color = "#FF0000">Forcing data file error - file name empty.</font></html>';
                    nModelsBuiltFailed = nModelsBuiltFailed + 1;
                    continue;
                 end
@@ -1194,7 +1236,7 @@ classdef GST_GUI < handle
                 try
                    forcingData = readtable(fname);
                 catch                   
-                   this.tab_ModelConstruction.Table.Data{selectedBores{i}, 9} = '<html><font color = "#FF0000">Forcing data file error -  read in failed.</font></html>';
+                   this.tab_ModelConstruction.Table.Data{i, 9} = '<html><font color = "#FF0000">Forcing data file error -  read in failed.</font></html>';
                    nModelsBuiltFailed = nModelsBuiltFailed + 1;
                    continue;
                 end                
@@ -1204,10 +1246,10 @@ classdef GST_GUI < handle
                 % Import coordintate data
                 %----------------------------------------------------------
                 % Check fname file exists.
-                fname = data{selectedBores{i},5};
+                fname = data{i,5};
                 if exist(fname,'file') ~= 2;                   
                    nModelsBuiltFailed = nModelsBuiltFailed + 1;
-                   this.tab_ModelConstruction.Table.Data{selectedBores{i}, 9} = '<html><font color = "#FF0000">Coordinate file error - file name empty.</font></html>';
+                   this.tab_ModelConstruction.Table.Data{i, 9} = '<html><font color = "#FF0000">Coordinate file error - file name empty.</font></html>';
                    continue;
                 end
 
@@ -1217,32 +1259,45 @@ classdef GST_GUI < handle
                    coordData = table2cell(coordData);
                 catch              
                    nModelsBuiltFailed = nModelsBuiltFailed + 1;
-                   this.tab_ModelConstruction.Table.Data{selectedBores{i}, 9} = '<html><font color = "#FF0000">Coordinate file error -  read in failed.</font></html>';
+                   this.tab_ModelConstruction.Table.Data{i, 9} = '<html><font color = "#FF0000">Coordinate file error -  read in failed.</font></html>';
                    continue;
                 end
                 %----------------------------------------------------------
 
                 % Get model label
-                model_label = data{selectedBores{i},2};
+                model_label = data{i,2};
                 
                 % Get bore IDs
-                boreID= data{selectedBores{i},6};
+                boreID= data{i,6};
                 
                 % Get model type
-                modelType = data{selectedBores{i},7};
+                modelType = data{i,7};
                 
                 % Get model options
                 try
-                    modelOptions= eval(data{selectedBores{i},8});
+                    modelOptions= eval(data{i,8});
                 catch
                     nModelsBuiltFailed = nModelsBuiltFailed + 1;
-                    this.tab_ModelConstruction.Table.Data{selectedBores{i}, 9} = '<html><font color = "#FF0000">Syntax error in model options - string not convertable to cell array.</font></html>';
+                    this.tab_ModelConstruction.Table.Data{i, 9} = '<html><font color = "#FF0000">Syntax error in model options - string not convertable to cell array.</font></html>';
                     continue;
                 end
                 
+                % Find index to the model to be built has already been
+                % built. If so, find the index. Else increment the index.
+                if iscell(this.models)
+                    ind = cellfun(@(x) strcmp(model_label, x.model_label), this.models);
+                    if all(~ind)
+                        ind = size(this.models,1)+1;
+                    end    
+                else
+                    this.models = cell(1,1);
+                    ind = 1;
+                end
+
+                
                 % Build model
                 try
-                    this.models{selectedBores{i},1} = GroundwaterStatisticsToolbox(model_label, boreID, modelType , headData, 1, forcingData, coordData, modelOptions);
+                    this.models{ind,1} = GroundwaterStatisticsToolbox(model_label, boreID, modelType , headData, 1, forcingData, coordData, modelOptions);
                     
                     % Check if the model is listed in the calibration date.
                     isModelListed  = []; 
@@ -1251,9 +1306,7 @@ classdef GST_GUI < handle
                         calibModelLabelsHTML = this.tab_ModelCalibration.Table.Data(:,2);
                         % Remove HTML tags
                         calibModelLabels = GST_GUI.removeHTMLTags(calibModelLabelsHTML);
-                        %for i=1:size(calibModelLabelsHTML,1)
-                        %    calibModelLabels{i} = strtrim(strjoin( strrep( strrep( regexp(calibModelLabelsHTML{i},'>.*?<','match'), '<', ''), '>', '')));
-                        %end
+
                         % Find index to calb. models
                         isModelListed = cellfun( @(x) strcmp( model_label, x), calibModelLabels);
                     end
@@ -1279,12 +1332,12 @@ classdef GST_GUI < handle
                     this.tab_ModelCalibration.Table.Data{isModelListed,8} = 1;
                     this.tab_ModelCalibration.Table.Data{isModelListed,9} = '<html><font color = "#FF0000">Not calibrated.</font></html>';
                                
-                    this.tab_ModelConstruction.Table.Data{selectedBores{i}, 9} = '<html><font color = "#008000">Model built.</font></html>';
+                    this.tab_ModelConstruction.Table.Data{i, 9} = '<html><font color = "#008000">Model built.</font></html>';
                     nModelsBuilt = nModelsBuilt + 1; 
                     
                 catch ME
                     nModelsBuiltFailed = nModelsBuiltFailed + 1;
-                    this.tab_ModelConstruction.Table.Data{selectedBores{i}, 9} = ['<html><font color = "#FF0000">Model build failed - ', ME.message,'</font></html>'];
+                    this.tab_ModelConstruction.Table.Data{i, 9} = ['<html><font color = "#FF0000">Model build failed - ', ME.message,'</font></html>'];
                 end
             end
             
@@ -1306,42 +1359,62 @@ classdef GST_GUI < handle
             nModelsCalib = 0;
             nModelsCalibFailed = 0;
             for i=1:length(selectedBores);
+                
+                % Check if the model is to be calibrated.
+                if ~selectedBores{i}
+                    continue;
+                end
+
+                % Get the selected model for simulation
+                calibLabel = data{i,2};
+
+                % Find index to the calibrated model label within the
+                % list of constructed models.
+                calibLabel = GST_GUI.removeHTMLTags(calibLabel);
+                ind = cellfun(@(x) strcmp(calibLabel, x.model_label), this.models);
+                if all(~ind)
+                    nModelsCalibFailed = nModelsCalibFailed +1;
+                    this.tab_ModelCalibration.Table.Data{i,9} = '<html><font color = "#FF0000">Calib. failed - Model appears not to have been built.</font></html>';
+                    continue;
+                end    
+
+                
                 % Get start and end date. Note, start date is at the start
                 % of the day and end date is shifted to the end of the day.
-                calibStartDate = datenum( data{selectedBores{i},6},'dd-mmm-yyyy');
-                calibEndDate = datenum( data{selectedBores{i},7},'dd-mmm-yyyy') + datenum(0,0,0,23,59,59);
-                CMAES_restarts = data{selectedBores{i},8};
+                calibStartDate = datenum( data{i,6},'dd-mmm-yyyy');
+                calibEndDate = datenum( data{i,7},'dd-mmm-yyyy') + datenum(0,0,0,23,59,59);
+                CMAES_restarts = data{i,8};
                 try
-                    this.tab_ModelCalibration.Table.Data{selectedBores{i},9} = '<html><font color = "#FFA500">Calibrating ... </font></html>';
+                    this.tab_ModelCalibration.Table.Data{i,9} = '<html><font color = "#FFA500">Calibrating ... </font></html>';
                     
-                    calibrateModel( this.models{selectedBores{i},1}, calibStartDate, calibEndDate, CMAES_restarts);
+                    calibrateModel( this.models{ind,1}, calibStartDate, calibEndDate, CMAES_restarts);
                     
-                    this.tab_ModelCalibration.Table.Data{selectedBores{i},9} = '<html><font color = "#008000">Calibrated. </font></html>';
+                    this.tab_ModelCalibration.Table.Data{i,9} = '<html><font color = "#008000">Calibrated. </font></html>';
 
                     % Set calib performance stats.
-                    calibAIC = this.models{1, 1}.calibrationResults.performance.AIC;
-                    calibCoE = this.models{1, 1}.calibrationResults.performance.CoeffOfEfficiency_mean.CoE;
-                    this.tab_ModelCalibration.Table.Data{selectedBores{i},10} = ['<html><font color = "#808080">',num2str(calibCoE),'</font></html>'];
-                    this.tab_ModelCalibration.Table.Data{selectedBores{i},12} = ['<html><font color = "#808080">',num2str(calibAIC),'</font></html>'];
+                    calibAIC = this.models{ind, 1}.calibrationResults.performance.AIC;
+                    calibCoE = this.models{ind, 1}.calibrationResults.performance.CoeffOfEfficiency_mean.CoE;
+                    this.tab_ModelCalibration.Table.Data{i,10} = ['<html><font color = "#808080">',num2str(calibCoE),'</font></html>'];
+                    this.tab_ModelCalibration.Table.Data{i,12} = ['<html><font color = "#808080">',num2str(calibAIC),'</font></html>'];
 
                     % Set eval performance stats
                     if isfield(this.models{1, 1}.evaluationResults,'performance')
-                        evalAIC = this.models{1, 1}.evaluationResults.performance.AIC;
-                        evalCoE = this.models{1, 1}.evaluationResults.performance.CoeffOfEfficiency_mean.CoE_unbias;                    
+                        evalAIC = this.models{ind, 1}.evaluationResults.performance.AIC;
+                        evalCoE = this.models{ind, 1}.evaluationResults.performance.CoeffOfEfficiency_mean.CoE_unbias;                    
                         
-                        this.tab_ModelCalibration.Table.Data{selectedBores{i},11} = ['<html><font color = "#808080">',num2str(evalCoE),'</font></html>'];
-                        this.tab_ModelCalibration.Table.Data{selectedBores{i},13} = ['<html><font color = "#808080">',num2str(evalAIC),'</font></html>'];
+                        this.tab_ModelCalibration.Table.Data{i,11} = ['<html><font color = "#808080">',num2str(evalCoE),'</font></html>'];
+                        this.tab_ModelCalibration.Table.Data{i,13} = ['<html><font color = "#808080">',num2str(evalAIC),'</font></html>'];
                     else
                         evalCoE = '(NA)';
                         evalAIC = '(NA)';
                         
-                        this.tab_ModelCalibration.Table.Data{selectedBores{i},11} = ['<html><font color = "#808080">',evalCoE,'</font></html>'];
-                        this.tab_ModelCalibration.Table.Data{selectedBores{i},13} = ['<html><font color = "#808080">',evalAIC,'</font></html>'];
+                        this.tab_ModelCalibration.Table.Data{i,11} = ['<html><font color = "#808080">',evalCoE,'</font></html>'];
+                        this.tab_ModelCalibration.Table.Data{i,13} = ['<html><font color = "#808080">',evalAIC,'</font></html>'];
                     end
                     nModelsCalib = nModelsCalib +1;
                 catch ME
                     nModelsCalibFailed = nModelsCalibFailed +1;
-                    this.tab_ModelCalibration.Table.Data{selectedBores{i},9} = ['<html><font color = "#FF0000">Calib. failed - ', ME.message,'</font></html>']; '<html><font color = "#FF0000">Failed. </font></html>';
+                    this.tab_ModelCalibration.Table.Data{i,9} = ['<html><font color = "#FF0000">Calib. failed - ', ME.message,'</font></html>'];
                 end
             end
             
@@ -1364,44 +1437,54 @@ classdef GST_GUI < handle
             nModelsSimFailed = 0;
             for i=1:length(selectedBores);
                 
+                % Check if the model is to be simulated.
+                if ~selectedBores{i}
+                    continue;
+                end
+                
                 % Get the simulation options
-                obsHeadStartDate = datenum( data{selectedBores{i},4},'dd-mmm-yyyy');
-                obsHeadEndDate = datenum( data{selectedBores{i},5},'dd-mmm-yyyy') + datenum(0,0,0,23,59,59);                
-                simLabel = data{selectedBores{i},6};
-                forcingdata_fname = data{selectedBores{i},7};
-                simStartDate = datenum( data{selectedBores{i},8},'dd-mmm-yyyy');
-                simEndDate = datenum( data{selectedBores{i},9},'dd-mmm-yyyy') + datenum(0,0,0,23,59,59);
-                simTimeStep = data{selectedBores{i},10};
+                obsHeadStartDate = GST_GUI.removeHTMLTags( data{i,4} );
+                obsHeadStartDate = datenum( obsHeadStartDate,'dd-mmm-yyyy');
+                obsHeadEndDate = GST_GUI.removeHTMLTags( data{i,5} );
+                obsHeadEndDate = datenum( obsHeadEndDate,'dd-mmm-yyyy') + datenum(0,0,0,23,59,59);                
+                simLabel = data{i,6};
+                forcingdata_fname = data{i,7};
+                simStartDate = datenum( data{i,8},'dd-mmm-yyyy');
+                simEndDate = datenum( data{i,9},'dd-mmm-yyyy') + datenum(0,0,0,23,59,59);
+                simTimeStep = data{i,10};
 
                 % Get the selected model for simulation
-                calibLabel = data{selectedBores{i},2};
+                calibLabel = data{i,2};
 
                 % Find index to the calibrated model label within the list of calibrated
                 % models.
                 calibLabel_all = GST_GUI.removeHTMLTags(this.tab_ModelCalibration.Table.Data(:,2));
                 ind = cellfun(@(x) strcmp(calibLabel, x), calibLabel_all);
                 if all(~ind)
-                    warndlg(['The following model was not successfully calibrated: ',calibLabel], 'Error ...');
-                    return;
+                   nModelsSimFailed = nModelsSimFailed +1;
+                   this.tab_ModelSimulation.Table.Data{i,11} = ['<html><font color = "#FF0000">Sim. failed - Model could not be found. Please rebuild and calibrate it.</font></html>'];
+                   continue;
                 end                
                 
                 % Get the forcing data.
-                if ~isempty(forcingTransform_data_fname)
+                if ~isempty(forcingdata_fname)
 
                     % Import forcing data
                     %-----------------------
                     % Check fname file exists.                    
                     if exist(forcingdata_fname,'file') ~= 2;                   
-                        warndlg('The new forcing date file could not be open. Please check the file exists.', 'Error ...');
-                        return;
+                        this.tab_ModelSimulation.Table.Data{i,11} = '<html><font color = "#FF0000">Sim. failed - The new forcing date file could not be open.</font></html>';
+                        nModelsSimFailed = nModelsSimFailed +1;
+                        continue;
                     end
 
                     % Read in the file.
                     try
                        forcingData = readtable(forcingdata_fname);
                     catch                   
-                        warndlg('The new forcing date file could not be imported. Please check its format.', 'Error ...');
-                        return;
+                        this.tab_ModelSimulation.Table.Data{i,11} = '<html><font color = "#FF0000">Sim. failed - The new forcing date file could not be imported.</font></html>';
+                        nModelsSimFailed = nModelsSimFailed +1;
+                        continue;                        
                     end                    
                     
                     % Convert data to matrix
@@ -1413,7 +1496,7 @@ classdef GST_GUI < handle
                     forcingData = [];
                     forcingData_colnames = [];
                 end
-                
+                                    
                % Get the start and end dates for the simulation.
                if isempty(simStartDate)
                    simStartDate = obsHeadStartDate;
@@ -1421,13 +1504,20 @@ classdef GST_GUI < handle
                if isempty(simEndDate)
                    simEndDate = obsHeadEndDate;
                end
+
+               % Check the date timestep
+               if isempty(simTimeStep) && (simStartDate <obsHeadStartDate || simEndDate > obsHeadEndDate)
+                    this.tab_ModelSimulation.Table.Data{i,11} = '<html><font color = "#FF0000">Sim. failed - The time step must be specified when the simulation dates are outside of the observed head period.</font></html>';
+                    nModelsSimFailed = nModelsSimFailed +1;
+                    continue;                        
+               end               
                
-               % Create a vector of simulation time points
+               % Create a vector of simulation time points 
                switch  simTimeStep
                    case 'Daily'
-                       simTimePoints = simStartDate:1:simEndDate;
+                       simTimePoints = [simStartDate:1:simEndDate]';
                    case 'Weekly'
-                       simTimePoints = simStartDate:7:simEndDate;
+                       simTimePoints = [simStartDate:7:simEndDate]';
                    case 'Monthly'
                        startYear = year(simStartDate);
                        startMonth= month(simStartDate);
@@ -1437,9 +1527,10 @@ classdef GST_GUI < handle
                        endDay = day(simEndDate);
                        iyear = startYear;
                        imonth = startMonth;
+                       iday = startDay;
                        i=1;
-                       simTimePoints(i,1) = [iyear, imonth, iday];
-                       while iyear <= endYear && imonth <= endMonth && iday <= endDay
+                       simTimePoints(i,1:3) = [iyear, imonth, iday];
+                       while iyear <= endYear || imonth <= endMonth || iday <= endDay
                           
                            if imonth == 12
                                imonth = 1;
@@ -1448,31 +1539,47 @@ classdef GST_GUI < handle
                                imonth = imonth + 1;
                            end
                            i=i+1;
-                           simTimePoints(i,1) = [iyear, imonth, iday];                           
+                           simTimePoints(i,1:3) = [iyear, imonth, iday];                           
                        end
                        if iyear ~= endYear && imonth ~= endMonth && iday ~= endDay
-                           simTimePoints(i+1,1) = [endYear, endMonth, endDay];
+                           simTimePoints(i+1,1:3) = [endYear, endMonth, endDay];
                        end
                        
+                       simTimePoints = datenum(simTimePoints);
                    case 'Yearly'
-                       simTimePoints = simStartDate:365:simEndDate;
+                       simTimePoints = [simStartDate:365:simEndDate]';
                    otherwise
-                                 
-                   % Undertake the simulation.
-                   try
-                       solveModel(obj, simTimePoints, forcingData, forcingData_colnames, simulationLabel)
-                       nModelsSim = nModelsSim + 1;
-                   catch ME
-                       nModelsSimFailed = nModelsSimFailed +1;
-                       this.tab_ModelSimulation.Table.Data{selectedBores{i},11} = ['<html><font color = "#FF0000">Sim. failed - ', ME.message,'</font></html>']; '<html><font color = "#FF0000">Failed. </font></html>';                       
-                   end
+                       % Get the observed head dates.
+                       obsTimePoints = getObservedHead(this.models{ind});
+                       obsTimePoints = obsTimePoints(:,1);
+                       
+                       % Filter observed head time points to between the
+                       % simulation dates.
+                       filt = obsTimePoints >= simStartDate & obsTimePoints<=simEndDate;
+                       simTimePoints = obsTimePoints(filt);
                        
                end
+               
+               % Undertake the simulation.
+               try
+                   this.tab_ModelSimulation.Table.Data{i,11} = '<html><font color = "#FFA500">Simulating ... </font></html>';
+                   
+                   solveModel(this.models{ind}, simTimePoints, forcingData, forcingData_colnames, simLabel);                   
+                    
+                   this.tab_ModelSimulation.Table.Data{i,11} = '<html><font color = "#008000">Simulated. </font></html>';
+                   
+                   nModelsSim = nModelsSim + 1;
+                                      
+               catch ME
+                   nModelsSimFailed = nModelsSimFailed +1;
+                   this.tab_ModelSimulation.Table.Data{i,11} = ['<html><font color = "#FF0000">Sim. failed - ', ME.message,'</font></html>']; '<html><font color = "#FF0000">Failed. </font></html>';                       
+               end
+                       
                
             end
             
             % Report Summary
-            msgbox(['The simulations were successfull for ',num2str(nModelsCalib), ' models and failed for ',num2str(nModelsCalibFailed), ' models.'], 'Summary of model simulaions...');
+            msgbox(['The simulations were successfull for ',num2str(nModelsSim), ' models and failed for ',num2str(nModelsSimFailed), ' models.'], 'Summary of model simulaions...');
 
         end
         

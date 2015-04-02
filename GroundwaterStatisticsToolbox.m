@@ -464,6 +464,7 @@ classdef GroundwaterStatisticsToolbox < handle
                    end                   
                end                   
            else
+                obj.simulationResults = cell(1,1);
                 simInd =  1;
            end
 
@@ -1208,9 +1209,9 @@ classdef GroundwaterStatisticsToolbox < handle
             % Calculate calibration and evaluation heads
             %--------------------------------------------------------------            
             try                
-                head_est = solveModel(obj, obsHead(:,1), [], [] '' );
+                head_est = solveModel(obj, obsHead(:,1), [], [], '' );
             catch
-                head_est = solveModel(obj, obsHead(:,1), [], [] '');
+                head_est = solveModel(obj, obsHead(:,1), [], [], '');
             end
                 
             % Calib residuals.

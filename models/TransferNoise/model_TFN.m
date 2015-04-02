@@ -2106,10 +2106,10 @@ classdef model_TFN < model_abstract
             % vector.
             if size(h_star,2)>1
                 h_star = [time_points , sum(h_star,2), h_star];
-                colnames = {'time','h_star',colnames{:}};
+                colnames = {'time','Head',colnames{:}};
             else
                 h_star = [ time_points, h_star];
-                colnames = {'time',colnames{:}};               
+                colnames = {'time','Head'};               
             end
                                 
         end
