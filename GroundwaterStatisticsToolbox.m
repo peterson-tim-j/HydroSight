@@ -558,7 +558,7 @@ classdef GroundwaterStatisticsToolbox < handle
            %end
         end
     
-        function solveModelPlotResults(obj, handle)        
+        function solveModelPlotResults(obj, simulationLabel, figHandle)        
 % Plot the simulation results
 %
 % Syntax:
@@ -600,21 +600,26 @@ classdef GroundwaterStatisticsToolbox < handle
 %   7 May 2012
 %%
             
-            % Create the figure. If varargin is empty then a new figure
-            % window is created. If varagin equals a figure handle, h, then
-            % the calibration results are plotted into 'h'.            
-            if nargin==1 || isempty(handle)
-                % Create new figure window.
-                handle = figure('Name',['Soln. ',strrep(obj.bore_ID,'_',' ')]);
-            elseif ~ishandle(handle)    
+           % Create the figure. If varargin is empty then a new figure
+           % window is created. If varagin equals a figure handle, h, then
+           % the calibration results are plotted into 'h'.            
+           if nargin==2 || isempty(figHandle)
+               % Create new figure window.
+               figHandle = figure('Name',['Soln. ',strrep(obj.bore_ID,'_',' ')]);
+           elseif ~ishandle(figHandle)    
                 error('Input handle is not a valid figure handle.');
-            else
-                % Create figure in figure 'h'
-                figure(handle, 'Name',['Calib. ',strrep(obj.bore_ID,'_',' ')]);
-            end
-
+           else
+                h = figHandle;                
+           end
+            
+           % Find simulation label
+           if isempty(simulationLabel)
+               error('The simulation label must be specified.');
+           end
+           simInd = cellfun( @(x) strcmp(x.simulationLabel , simulationLabel), obj.simulationResults);               
+                
            % Get number of model componant (ie forcing types).
-           nModelComponants = size(obj.simulationResults.head,2)-2;
+           nModelComponants = size(obj.simulationResults{simInd,1}.head,2)-2;
 
            % Check if there is data for the climate lags
            doClimateLagCalcuations = false;
@@ -624,79 +629,82 @@ classdef GroundwaterStatisticsToolbox < handle
            
            % Plot observed and modelled time series.
            %-------
-           if doClimateLagCalcuations || nModelComponants>0
-              subplot(2+nModelComponants+doClimateLagCalcuations,1,1:2)        
+%            if doClimateLagCalcuations || nModelComponants>0
+%               subplot(2+nModelComponants+doClimateLagCalcuations,1,1:2)        
+%            end
+           if nModelComponants>0
+              h = subplot(2+nModelComponants+doClimateLagCalcuations,1,1:2, 'Parent',figHandle);              
            end
            
            % Plot bounds for noise component.
-           if ~isempty(obj.simulationResults.noise)
-               XFill = [obj.simulationResults.head(:,1)' fliplr(obj.simulationResults.head(:,1)')];
-               YFill = [[obj.simulationResults.head(:,2) + obj.simulationResults.noise(:,3)]', fliplr([obj.simulationResults.head(:,2) - obj.simulationResults.noise(:,2)]')];
-               fill(XFill, YFill,[0.8 0.8 0.8]);
+           if ~isempty(obj.simulationResults{simInd,1}.noise)
+               XFill = [obj.simulationResults{simInd,1}.head(:,1)' fliplr(obj.simulationResults{simInd,1}.head(:,1)')];
+               YFill = [[obj.simulationResults{simInd,1}.head(:,2) + obj.simulationResults{simInd,1}.noise(:,3)]', fliplr([obj.simulationResults{simInd,1}.head(:,2) - obj.simulationResults{simInd,1}.noise(:,2)]')];
+               fill(XFill, YFill,[0.8 0.8 0.8],'Parent',h);
                clear XFill YFill
-               hold on;
+               hold(h,'on');
            end
            
            % Plot modelled deterministic componant.
-           plot(obj.simulationResults.head(:,1), obj.simulationResults.head(:,2),'-b' );
-           hold on;           
+           plot(h, obj.simulationResults{simInd,1}.head(:,1), obj.simulationResults{simInd,1}.head(:,2),'-b' );
+           hold(h,'on');         
            
            % Plot observed head
            head = getObservedHead(obj);
-           plot(head(:,1), head(:,2),'.-k' );
+           plot(h, head(:,1), head(:,2),'.-k' );
            
            % Set axis labels and title
-           datetick('x','mmm-yy');
-           ylabel('Head (m)');           
-           title(['Bore ', strrep(obj.bore_ID,'_',' ') , ' - Observed and modelled head']);                           
+           datetick(h, 'x','mmm-yy');
+           ylabel(h, 'Head (m)');           
+           title(h, ['Bore ', strrep(obj.bore_ID,'_',' ') , ' - Observed and modelled head']);                           
            
-           if ~isempty(obj.simulationResults.noise)
-                legend('Noise','Modelled','Observed', 'Location','NorthWest' );
+           if ~isempty(obj.simulationResults{simInd,1}.noise)
+                legend(h,'Noise','Modelled','Observed', 'Location','NorthWest' );
            else
-               legend('Observed','Modelled', 'Location','NorthWest' );
+               legend(h, 'Observed','Modelled', 'Location','NorthWest' );
            end
-           hold off;
+           hold(h,'off');
            %-------
             
            % Plot contributions to head
            %-------
            if nModelComponants>0
                for ii=1:nModelComponants
-                   subplot(2+nModelComponants+doClimateLagCalcuations,1, 2+ii );
+                   h = subplot(2+nModelComponants+doClimateLagCalcuations,1, 2+ii, 'Parent',figHandle );
 
-                   plot(obj.simulationResults.head(:,1), obj.simulationResults.head(:,ii+2),'.-b' );
+                   plot(h, obj.simulationResults{simInd,1}.head(:,1), obj.simulationResults{simInd,1}.head(:,ii+2),'.-b' );
                    
                    % Set axis labels and title
-                   datetick('x','mmm-yy');                   
-                   ylabel('Head rise(m)');
-                   title(['Head contribution from: ', strrep(obj.simulationResults.colnames{ii+2},'_',' ') ]);
+                   datetick(h, 'x','mmm-yy');                   
+                   ylabel(h, 'Head rise(m)');
+                   title(h, ['Head contribution from: ', strrep(obj.simulationResults{simInd,1}.colnames{ii+2},'_',' ') ]);
                    
                    
                end
            end
 
-           % Plot climate forcing contributions.     
-           %-------
-           if doClimateLagCalcuations
-               subplot(2+nModelComponants+doClimateLagCalcuations,1, nModelComponants+3)        
-
-               plot(obj.simulationResults.head_lag(:,1), obj.simulationResults.head_lag(:,2:end) );
-
-               % Set axis labels and title
-               datetick('x','mmm-yy');                    
-               xlabel('Date');
-               ylabel('Head rise (m)');
-               title(['Modelled head decomposed to the contibution from climate forcing at various temporal lags']);                               
-               set(gca,'YGrid','on');
-
-               % Add legend 
-               legendstr={};
-               for ii=1: size(obj.simulationResults.tor_min,1)
-                   legendstr{ii} = ['Lag: ', num2str(obj.simulationResults.tor_min(ii) ), ' to ', num2str(obj.simulationResults.tor_max(ii) ), ' yrs'];                       
-               end
-
-               legend( legendstr,'Location','NorthWest' );
-           end            
+%            % Plot climate forcing contributions.     
+%            %-------
+%            if doClimateLagCalcuations
+%                subplot(2+nModelComponants+doClimateLagCalcuations,1, nModelComponants+3)        
+% 
+%                plot(obj.simulationResults{simInd,1}.head_lag(:,1), obj.simulationResults{simInd,1}.head_lag(:,2:end) );
+% 
+%                % Set axis labels and title
+%                datetick('x','mmm-yy');                    
+%                xlabel('Date');
+%                ylabel('Head rise (m)');
+%                title(['Modelled head decomposed to the contibution from climate forcing at various temporal lags']);                               
+%                set(gca,'YGrid','on');
+% 
+%                % Add legend 
+%                legendstr={};
+%                for ii=1: size(obj.simulationResults{simInd,1}.tor_min,1)
+%                    legendstr{ii} = ['Lag: ', num2str(obj.simulationResults{simInd,1}.tor_min(ii) ), ' to ', num2str(obj.simulationResults{simInd,1}.tor_max(ii) ), ' yrs'];                       
+%                end
+% 
+%                legend( legendstr,'Location','NorthWest' );
+%            end            
         end
 
 %% Interpolate and extrapolate observation data        
@@ -1362,7 +1370,7 @@ classdef GroundwaterStatisticsToolbox < handle
             obj.calibrationResults.algorithm_stats = evolutions;
 	end
 
-        function handle = calibrateModelPlotResults(obj, h, plotNumber)
+        function handle = calibrateModelPlotResults(obj, plotNumber, figHandle)
 % Plot the calibration results
 %
 % Syntax:
@@ -1406,19 +1414,17 @@ classdef GroundwaterStatisticsToolbox < handle
             % Create the figure. If varargin is empty then a new figure
             % window is created. If varagin equals a figure handle, h, then
             % the calibration results are plotted into 'h'.            
-            if nargin<2 || isempty(h)
+            if nargin<3 || isempty(figHandle)
                 % Create new figure window.
-                h = figure('Name',['Calib. ',obj.bore_ID]);
-            elseif ~ishandle(h)    
+                figHandle = figure('Name',['Calib. ',obj.bore_ID]);
+            elseif ~ishandle(figHandle)    
                 error('Input handle is not a valid figure handle.');
-            %else
-            %    % Create figure in figure 'h'
-            %    figure('Parent',handle, 'Name',['Calib. ',obj.bore_ID]);
-            %    
+            else
+                h = figHandle;
             end
             
             % Define the dimensions of the subplots
-            if isempty(plotNumber)
+            if isempty(plotNumber) || nargin==1
                 ncol_plots = 3;
                 nrow_plots = 4;
             end
@@ -1442,7 +1448,7 @@ classdef GroundwaterStatisticsToolbox < handle
             if isempty(plotNumber)
                 iplot = 1;
                 nplots = ncol_plots;
-                h=subplot(nrow_plots,ncol_plots , 1 :ncol_plots,'Parent',handle);
+                h=subplot(nrow_plots,ncol_plots , 1 :ncol_plots,'Parent',figHandle);
                 iplot = iplot + nplots;
             end
             
@@ -1511,7 +1517,7 @@ classdef GroundwaterStatisticsToolbox < handle
             %-------
             if isempty(plotNumber)
                 nplots = ncol_plots;
-                h = subplot(nrow_plots,ncol_plots,iplot:iplot+nplots-1,'Parent',handle);
+                h = subplot(nrow_plots,ncol_plots,iplot:iplot+nplots-1,'Parent',figHandle);
                 iplot = iplot + nplots;
             end
             if plotNumber==2 || isempty(plotNumber)
@@ -1530,7 +1536,7 @@ classdef GroundwaterStatisticsToolbox < handle
             % Histograms of calibration data
             if isempty(plotNumber)
                 nplots = 0;
-                h = subplot(nrow_plots,ncol_plots,iplot:iplot+nplots,'Parent',handle);
+                h = subplot(nrow_plots,ncol_plots,iplot:iplot+nplots,'Parent',figHandle);
                 iplot = iplot + nplots + 1;                        
             end
             if plotNumber==3 || isempty(plotNumber)
@@ -1544,7 +1550,7 @@ classdef GroundwaterStatisticsToolbox < handle
             % Histograms of evaluation data
             if isempty(plotNumber)
                 nplots = 0;
-                h = subplot(nrow_plots,ncol_plots,iplot:iplot+nplots,'Parent',handle);
+                h = subplot(nrow_plots,ncol_plots,iplot:iplot+nplots,'Parent',figHandle);
                 iplot = iplot + nplots + 1;                        
             end
             if plotNumber==4 || isempty(plotNumber)
@@ -1560,7 +1566,7 @@ classdef GroundwaterStatisticsToolbox < handle
             % QQ plot
             if isempty(plotNumber)
                 nplots = 0;
-                h = subplot(nrow_plots,ncol_plots,iplot:iplot+nplots,'Parent',handle);
+                h = subplot(nrow_plots,ncol_plots,iplot:iplot+nplots,'Parent',figHandle);
                 iplot = iplot + nplots + 1;
             end
             if plotNumber==5 || isempty(plotNumber)
@@ -1579,7 +1585,7 @@ classdef GroundwaterStatisticsToolbox < handle
             % Scatter plot of obs versus modelled
             if isempty(plotNumber)
                 nplots = 0;
-                h = subplot(nrow_plots,ncol_plots,iplot:iplot+nplots,'Parent',handle);
+                h = subplot(nrow_plots,ncol_plots,iplot:iplot+nplots,'Parent',figHandle);
                 iplot = iplot + nplots + 1;
             end
             if plotNumber==6 || isempty(plotNumber)
@@ -1606,7 +1612,7 @@ classdef GroundwaterStatisticsToolbox < handle
             % Scatter plot of residuals versus observed head
             if isempty(plotNumber)
                 nplots = 0;
-                h = subplot(nrow_plots,ncol_plots,iplot:iplot+nplots,'Parent',handle);
+                h = subplot(nrow_plots,ncol_plots,iplot:iplot+nplots,'Parent',figHandle);
                 iplot = iplot + nplots + 1;
             end
             if plotNumber==7 || isempty(plotNumber)
@@ -1625,7 +1631,7 @@ classdef GroundwaterStatisticsToolbox < handle
             % Semi-variogram of residuals
             if isempty(plotNumber)
                 nplots = 0;
-                h = subplot(nrow_plots,ncol_plots,iplot:iplot+nplots,'Parent',handle);
+                h = subplot(nrow_plots,ncol_plots,iplot:iplot+nplots,'Parent',figHandle);
                 iplot = iplot + nplots + 1;
             end
             if plotNumber==8 || isempty(plotNumber)

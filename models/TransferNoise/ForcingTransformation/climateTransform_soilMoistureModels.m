@@ -746,7 +746,7 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                 obj.variables.evap = obj.settings.forcingData(filt_time, evap_col );
                 
                 % Filter percip by max infiltration rate, k_infilt.  
-                if obj.settings.activeParameters.k_infilt || obj.settings.fixedParameters.k_infilt
+                if obj.k_infilt < inf && (obj.settings.activeParameters.k_infilt || obj.settings.fixedParameters.k_infilt)
                     lambda_p = obj.settings.lambda_p .* 10.^obj.k_infilt;
                     obj.variables.precip = (obj.variables.precip>0).*(obj.variables.precip + lambda_p * log( 1./(1 + exp( (obj.variables.precip - 10.^obj.k_infilt)./lambda_p))));
                     obj.variables.precip(isinf(obj.variables.precip)) = 10.^obj.k_infilt;
@@ -818,17 +818,17 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
 
             switch variableName
                 case 'drainage'
-                    forcingData = 10.^obj.k_sat .* (obj.variables.SMS/10^(obj.SMSC)).^(10.^obj.beta);
+                    forcingData = (10.^obj.k_sat .* (10^(obj.SMSC)).^(10.^obj.beta)) .* obj.variables.SMS.^(10.^obj.beta);                    
                     isDailyIntegralFlux = false;
                 case 'drainage_bypassFlow'
-                    drainage = 10.^obj.k_sat .* (obj.variables.SMS/10^(obj.SMSC)).^(10.^obj.beta);                                        
+                    drainage = getTransformedForcing(obj, 'drainage');
                     runoff = getTransformedForcing(obj, 'runoff');
                     forcingData = drainage + obj.bypass_frac.*runoff;
                     
                     isDailyIntegralFlux = true;
                     
                 case 'drainage_normalised'
-                    forcingData = (obj.variables.SMS/10^(obj.SMSC)).^(10.^obj.beta);
+                    forcingData = (10^(obj.SMSC)).^(10.^obj.beta) .* obj.variables.SMS.^(10.^obj.beta);
                     isDailyIntegralFlux = false;
                     
                 case 'evap_soil'    
