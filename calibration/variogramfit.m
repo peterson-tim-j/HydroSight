@@ -1,4 +1,4 @@
-function [a,c,n,S] = variogramfit(h,gammaexp,a0,c0,numobs,varargin)
+function [a,c,n,S] = variogramfit(h,gammaexp,a0,c0, numobs,options,varargin)
 
 % fit a theoretical variogram to an experimental variogram
 %
@@ -136,7 +136,7 @@ function [a,c,n,S] = variogramfit(h,gammaexp,a0,c0,numobs,varargin)
 % References: Wackernagel, H. (1995): Multivariate Geostatistics, Springer.
 %             Webster, R., Oliver, M. (2001): Geostatistics for
 %             Environmental Scientists. Wiley & Sons.
-%             Minsasny, B., McBratney, A. B. (2005): The Matérn function as
+%             Minsasny, B., McBratney, A. B. (2005): The Matï¿½rn function as
 %             general model for soil variograms. Geoderma, 3-4, 192-207.
 % 
 % Date: 8. February, 2010
@@ -212,7 +212,11 @@ if any(nans);
 end
 
 % create options for fminsearch
-options = optimset('MaxFunEvals',1000000);
+if isempty(options)
+    options = optimset('MaxFunEvals',1000000);
+    options.MaxIter = 1200;
+end
+    
 
 % create vector with initial values
 % b(1) range
