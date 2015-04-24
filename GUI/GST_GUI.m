@@ -401,10 +401,8 @@ classdef GST_GUI < handle
             % Add drop-down for the results box
             uicontrol('Parent',vbox2t4,'Style','text','String','Select simulation results to display:' );
             this.tab_ModelSimulation.resultsOptions.popup = uicontrol('Parent',vbox2t4,'Style','popupmenu', ...
-                'String',{'Simulation data', 'Time series plots & decomposition','(none)'}, ...
+                'String',{'Simulation data', 'Simulation & decomposition plots','(none)'}, ...
                 'Value',3,'Callback', @this.modelSimulation_onResultsSelection);         
-            this.tab_ModelSimulation.resultsOptions.box = vbox2t4;
-            this.tab_ModelSimulation.resultsOptions.plots.panel = uiextras.BoxPanel('Parent', vbox2t4);
             
             this.tab_ModelSimulation.resultsOptions.dataTable.box = uiextras.Grid('Parent', vbox2t4,'Padding', 3, 'Spacing', 3);
             this.tab_ModelSimulation.resultsOptions.dataTable.table = uitable('Parent',this.tab_ModelSimulation.resultsOptions.dataTable.box, ...
@@ -412,7 +410,11 @@ classdef GST_GUI < handle
                 'ColumnFormat', {'numeric','numeric','numeric','numeric', 'numeric','numeric','numeric','numeric'}, ...
                 'ColumnEditable', true(1,8), ...
                 'Tag','Model Simulation - results table', ...
-                'TooltipString', 'Results data from the model simulation.');                        
+                'TooltipString', 'Results data from the model simulation.');  
+            
+            this.tab_ModelSimulation.resultsOptions.box = vbox2t4;
+            this.tab_ModelSimulation.resultsOptions.plots.panel = uiextras.BoxPanel('Parent', vbox2t4);                                  
+            this.tab_ModelSimulation.resultsOptions.legend.panel = uiextras.BoxPanel('Parent', vbox2t4);                                  
             
             % Set box sizes
             set(hbox1t4, 'Sizes', [-2 -1]);
@@ -715,7 +717,7 @@ classdef GST_GUI < handle
                         % Check that the model label is unique.
                         allLabels = hObject.Data(:,2);
                         newLabel = eventdata.NewData;
-                        hObject.Data{irow,2} = createUniqueLabel(allLabels, newLabel, irow);                          
+                        hObject.Data{irow,2} = GST_GUI.createUniqueLabel(allLabels, newLabel, irow);                          
                         
                         % Report error if required
                         if ~strcmp(newLabel, hObject.Data{irow,2})
@@ -988,7 +990,7 @@ classdef GST_GUI < handle
                         %  create a new label if not.
                         allLabels = hObject.Data(:,[2,6]);
                         newLabel = {hObject.Data{irow, 2}, eventdata.EditData};
-                        newLabel = createUniqueLabel(allLabels, newLabel, irow);                        
+                        newLabel = GST_GUI.createUniqueLabel(allLabels, newLabel, irow);                        
                         hObject.Data{irow,6} = newLabel{2};
 
                         % Warn user if the label has chnaged.
@@ -1136,8 +1138,13 @@ classdef GST_GUI < handle
                 end
             end
                         
+            % Check a row and column are selected.
+            if isempty(irow) || isempty(icol)
+                return
+            end
+            
             % Find index to the calibrated model label within the
-            % list of constructed models.
+            % list of constructed models.            
             modelLabel = data{irow,2};
             if isempty(modelLabel)
                 return;
@@ -1184,11 +1191,31 @@ classdef GST_GUI < handle
                         this.tab_ModelSimulation.resultsOptions.dataTable.table.ColumnName = {'Year','Month','Day','Hour','Minute',this.models{modelInd,1}.simulationResults{simInd,1}.colnames{2:end}};
 
                     case 2
-                        % Create an axis handle for the figure.
-                        axisHandle = axes( 'Parent', this.tab_ModelSimulation.resultsOptions.plots.panel);
-                        % Show the simulation plots
-                        solveModelPlotResults(this.models{irow,1}, simLabel, axisHandle);
+                        % Determine the number of plots to create.
+                        nsubPlots = size(this.models{modelInd,1}.simulationResults{simInd,1}.head,2) - 1;
                         
+                        % Delete existing uipanels                        
+                        
+                        % Add uipanel and axes for each plot
+                        panelHeights = [];
+                        for i=1: nsubPlots
+                            
+                            h = uipanel('Parent',this.tab_ModelSimulation.resultsOptions.plots.panel);
+                            axisHandles{i} = axes( 'Parent', h);
+                            
+                            h = uipanel('Parent',this.tab_ModelSimulation.resultsOptions.plots.panel);
+                            legendHandles{i} = axes( 'Parent', h);
+                            
+                            panelHeights  = [panelHeights -1 30];
+                        end
+                        
+                        % Create an axis handle for the figure.
+                        %plotaxisHandle = axes( 'Parent', this.tab_ModelSimulation.resultsOptions.plots.panel);
+                        %legendAxisHandle = axes( 'Parent', this.tab_ModelSimulation.resultsOptions.legend.panel);
+                        % Show the simulation plots
+                        solveModelPlotResults(this.models{irow,1}, simLabel, axisHandles);
+                        
+                        this.tab_ModelSimulation.resultsOptions.plots.panel.Heights = panelHeights;
                     case 3
                         % do nothing
                 end
@@ -1554,6 +1581,13 @@ classdef GST_GUI < handle
                    continue;
                 end                
                 
+                % Check there is a simulation label.
+                if isempty(simLabel)
+                   nModelsSimFailed = nModelsSimFailed +1;
+                   hObject.Data{i,11} = ['<html><font color = "#FF0000">Sim. failed - No simulation label.</font></html>'];
+                   continue;
+                end                      
+                
                 % Get the forcing data.
                 if ~isempty(forcingdata_fname)
 
@@ -1770,7 +1804,7 @@ classdef GST_GUI < handle
                                 for i=indSelected
                                     
                                     % Get a unique model label.
-                                    newModelLabel = createUniqueLabel(tableObj.Data{:,2}, this.copiedData.data{1,2}, i);
+                                    newModelLabel = GST_GUI.createUniqueLabel(tableObj.Data{:,2}, this.copiedData.data{1,2}, i);
                                     
                                     % Paste data
                                     tableObj.Data{i,2} = newModelLabel;
@@ -1805,7 +1839,7 @@ classdef GST_GUI < handle
                                     
                                     % Get a unique model label.
                                     newSimLabel = {this.copiedData.data{1,2}, this.copiedData.data{1,6}};
-                                    newSimLabel = createUniqueLabel(tableObj.Data{:,[2,6]}, newSimLabel, i);
+                                    newSimLabel = GST_GUI.createUniqueLabel(tableObj.Data(:,[2,6]), newSimLabel, i);
                                     
                                     tableObj.Data{i,2} = this.copiedData.data{1,2};                                    
                                     tableObj.Data{i,3} = this.copiedData.data{1,3};
@@ -1820,8 +1854,19 @@ classdef GST_GUI < handle
                                     j=j+1;
                                 end
                             else
-                                this.copiedData.data{:,11} = modelStatus;
-                                tableObj.Data = [tableObj.Data; this.copiedData.data];
+                                for i=1: size(this.copiedData.data,1)
+                                   
+                                    % Add a row
+                                    tableObj.Data = [tableObj.Data; this.copiedData.data(i,:)];
+                                    
+                                    % Edit simulation label and model
+                                    % status.
+                                    irow = size(tableObj.Data,1);
+                                    newSimLabel = {this.copiedData.data{i,2}, this.copiedData.data{i,6}};
+                                    newSimLabel = GST_GUI.createUniqueLabel(tableObj.Data(:,[2,6]), newSimLabel, irow );
+                                    tableObj.Data{irow,6} = newSimLabel{2};
+                                    tableObj.Data{irow,11} = modelStatus;                                    
+                                end
                             end                            
                     end
                     
@@ -1950,7 +1995,7 @@ classdef GST_GUI < handle
                 error('A maximum of two columns of model / simulation labels can be evaluated for uniqueness.');
             end
             ind = find(ind);                        
-            if any(ind ~= currentRow)                
+            if length(ind)==1 && ind(1) == currentRow % Return if there only the current row has the proposed new label.
                 return;
             end            
             

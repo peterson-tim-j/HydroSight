@@ -558,7 +558,7 @@ classdef GroundwaterStatisticsToolbox < handle
            %end
         end
     
-        function solveModelPlotResults(obj, simulationLabel, figHandle)        
+        function solveModelPlotResults(obj, simulationLabel, axisHandle, legendHandle)        
 % Plot the simulation results
 %
 % Syntax:
@@ -603,13 +603,13 @@ classdef GroundwaterStatisticsToolbox < handle
            % Create the figure. If varargin is empty then a new figure
            % window is created. If varagin equals a figure handle, h, then
            % the calibration results are plotted into 'h'.            
-           if nargin==2 || isempty(figHandle)
+           if nargin==2 || isempty(axisHandle)
                % Create new figure window.
-               figHandle = figure('Name',['Soln. ',strrep(obj.bore_ID,'_',' ')]);
+               h = figure('Name',['Soln. ',strrep(obj.bore_ID,'_',' ')]);
            elseif ~ishandle(figHandle)    
                 error('Input handle is not a valid figure handle.');
            else
-                h = figHandle;                
+                h = axisHandle;                
            end
             
            % Find simulation label
@@ -629,9 +629,6 @@ classdef GroundwaterStatisticsToolbox < handle
            
            % Plot observed and modelled time series.
            %-------
-%            if doClimateLagCalcuations || nModelComponants>0
-%               subplot(2+nModelComponants+doClimateLagCalcuations,1,1:2)        
-%            end
            if nModelComponants>0
               h = subplot(2+nModelComponants+doClimateLagCalcuations,1,1:2, 'Parent',figHandle);              
            end
@@ -664,6 +661,7 @@ classdef GroundwaterStatisticsToolbox < handle
                legend(h, 'Observed','Modelled', 'Location','NorthWest' );
            end
            hold(h,'off');
+           return
            %-------
             
            % Plot contributions to head
