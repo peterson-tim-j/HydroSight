@@ -365,10 +365,10 @@ classdef model_TFN < model_abstract
                             % function name is consistent with the abstract
                             % 'forcingTransform_abstract'.
                             try
-                                if ~strcmp(findAbstractName( propertyValue{filt,2}),'forcingTransform_abstract')
-                                    error(['The following forcing transform function class definition is not derived from the "forcingTransform_abstract.m" anstract:',propertyValue{filt,2}]);
+                                if ~any(strcmp(findAbstractName( propertyValue{filt,2}),'forcingTransform_abstract')) && ~any(strcmp(findAbstractName( propertyValue{filt,2}),'derivedForcingTransform_abstract'))
+                                    error(['The following forcing transform function class definition is not derived from the "forcingTransform_abstract.m" abstract:',propertyValue{filt,2}]);
                                 end
-                            catch
+                            catch ME
                                 display('... Warning: Checking that the required abstract for the forcing transform class definition was used failed. This is may be because the version of matlab is pre-2014a.');
                             end
                             
@@ -450,24 +450,26 @@ classdef model_TFN < model_abstract
                             end
                             
                             % Get a unique list of model components with
-                            % complete transforamtion models.
-                            modelComponets_transformed = unique(modelComponets_transformed(:,1));
+                            % complete transforamtion models and a list of
+                            % unieq tranformation functions
+                            modelComponets_transformed_uniqueComponents = unique(modelComponets_transformed(:,1));
+                            modelComponets_transformed_uniqueTransFunc = unique(modelComponets_transformed(:,2));
                             
                             % Check the inputcomponent is a valid
                             % component.
                             filt  =  strcmp(propertyValue(:,1), valid_transformProperties{5});
                             if any(filt) && ischar(propertyValue{filt,2})
-                                if ~any(strcmp(modelComponets_transformed(:,1), propertyValue{filt,2}))
-                                    error(['Invalid input componant for the forcing transform function name for component:', modelComponent,' . The input component must be a componant name that is listed within the model input options and it must also have a function transformation.']);
+                                if ~any(strcmp(modelComponets_transformed_uniqueTransFunc(:,1), propertyValue{filt,2}))
+                                    error(['Invalid source function for the forcing transform function name for component:', modelComponent,' . The input function must be a tranformation function name that is listed within the model.']);
                                 end
                             elseif any(filt) && iscell(propertyValue{filt,2})   
                                 for j=1:length(propertyValue{filt,2})
-                                    if ~any(strcmp(modelComponets_transformed(:,1), propertyValue{filt,2}{j}))
-                                        error(['Invalid input componant for the forcing transform function name for component:', modelComponent,' . The input component must be a componant name that is listed within the model input options and it must also have a function transformation.']);                                        
+                                    if ~any(strcmp(modelComponets_transformed_uniqueTransFunc(:,1), propertyValue{filt,2}{j}))
+                                        error(['Invalid source function for the forcing transform function name for component:', modelComponent,' . The input function must be a tranformation function name that is listed within the model.']);                                        
                                     end
                                 end
                             elseif any(filt)
-                                error(['Invalid input componant for the forcing transform function name for component:', modelComponent,' . The input component must be a componant name (string or cell vector of strings) that is listed within the model input options and it must also have a function transformation.']);                                
+                                error(['Invalid source function for the forcing transform function name for component:', modelComponent,' . The input component must be a a tranformation function name (string or cell vector of strings) that is listed within the model input options and it must also have a function transformation.']);                                
                             end
                         end
                         
@@ -857,11 +859,11 @@ classdef model_TFN < model_abstract
                     transformObject_options = {};
                 end
                 filt = strcmp(varargin{ii,3}(:,1), valid_transformProperties{5});
-                transformObject_inputComponentName = varargin{ii,3}{filt,2};
+                transformObject_sourceName = varargin{ii,3}{filt,2};
                 
-                % Find the name of the input transformation object for the
-                % specified input component name.
-                transformObject_inputComponentName = obj.inputData.componentData.(transformObject_inputComponentName).forcing_object;
+%                 % Find the name of the input transformation object for the
+%                 % specified input component name.
+%                 transformObject_inputComponentName = obj.inputData.componentData.(transformObject_inputComponentName).forcing_object;
                 
                 % Find the required columns in forcing data so that only the
                 % required data is input.
@@ -881,7 +883,7 @@ classdef model_TFN < model_abstract
                 end
                 
                 try                    
-                    obj.parameters.(transformObject_name) = feval(transformObject_name, bore_ID, forcingData_data(:,colNum), forcingData_colnames(colNum), siteCoordinates, transformObject_inputs, obj.parameters.(transformObject_inputComponentName), transformObject_options);
+                    obj.parameters.(transformObject_name) = feval(transformObject_name, bore_ID, forcingData_data(:,colNum), forcingData_colnames(colNum), siteCoordinates, transformObject_inputs, obj.parameters.(transformObject_sourceName), transformObject_options);
                 catch exception
                     display(['ERROR: Invalid model component class object for forcing transform: ', transformObject_name ]);
                     rethrow(exception);

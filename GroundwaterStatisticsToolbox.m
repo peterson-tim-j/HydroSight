@@ -605,8 +605,8 @@ classdef GroundwaterStatisticsToolbox < handle
            % the calibration results are plotted into 'h'.            
            if nargin==2 || isempty(axisHandle)
                % Create new figure window.
-               h = figure('Name',['Soln. ',strrep(obj.bore_ID,'_',' ')]);
-           elseif ~ishandle(figHandle)    
+               figHandle = figure('Name',['Soln. ',strrep(obj.bore_ID,'_',' ')]);
+           elseif ~iscell(axisHandle)    
                 error('Input handle is not a valid figure handle.');
            else
                 h = axisHandle;                
@@ -629,8 +629,12 @@ classdef GroundwaterStatisticsToolbox < handle
            
            % Plot observed and modelled time series.
            %-------
-           if nModelComponants>0
-              h = subplot(2+nModelComponants+doClimateLagCalcuations,1,1:2, 'Parent',figHandle);              
+           if ~isempty(axisHandle)
+              h = axisHandle{1}; 
+              %h_legend = legendHandle{1};
+           elseif nModelComponants>0
+              h = subplot(2+nModelComponants+doClimateLagCalcuations,1,1:2, 'Parent',figHandle);  
+              h_legend = [];
            end
            
            % Plot bounds for noise component.
@@ -656,20 +660,32 @@ classdef GroundwaterStatisticsToolbox < handle
            title(h, ['Bore ', strrep(obj.bore_ID,'_',' ') , ' - Observed and modelled head']);                           
            
            if ~isempty(obj.simulationResults{simInd,1}.noise)
-                legend(h,'Noise','Modelled','Observed', 'Location','NorthWest' );
-           else
-               legend(h, 'Observed','Modelled', 'Location','NorthWest' );
+               %if isempty(h_legend)
+                    legend(h,'Noise','Modelled','Observed', 'Location','NorthWest' );
+               %else
+               %     legend(h,'Noise','Modelled','Observed' );
+               %end
+           else               
+               %if isempty(h_legend)
+               %     legend(h,'Modelled','Observed', 'Location','NorthWest' );
+               %else
+                    legend(h,'Modelled','Observed' );
+               %end               
+               
            end
            hold(h,'off');
-           return
            %-------
             
            % Plot contributions to head
            %-------
            if nModelComponants>0
                for ii=1:nModelComponants
-                   h = subplot(2+nModelComponants+doClimateLagCalcuations,1, 2+ii, 'Parent',figHandle );
-
+                   if ~isempty(axisHandle)
+                       h = axisHandle{ii+1}; 
+                       %h_legend = legendHandle{ii+1};
+                   else
+                        h = subplot(2+nModelComponants+doClimateLagCalcuations,1, 2+ii, 'Parent',figHandle );
+                   end
                    plot(h, obj.simulationResults{simInd,1}.head(:,1), obj.simulationResults{simInd,1}.head(:,ii+2),'.-b' );
                    
                    % Set axis labels and title
@@ -1357,7 +1373,7 @@ classdef GroundwaterStatisticsToolbox < handle
                 [obj.evaluationResults.performance.variogram_residual.range, obj.evaluationResults.performance.variogram_residual.sill, ...
                     obj.evaluationResults.performance.variogram_residual.nugget, obj.evaluationResults.performance.variogram_residual.model] ...
                     = variogramfit(eval_var.distance, ...
-                    eval_var.val, 365/4, 0.5.*var( head_eval_resid(:,2)), eval_var.num , ...
+                    eval_var.val, 365/4, 0.75.*var( head_eval_resid(:,2)), eval_var.num , [], ...
                     'model', 'exponential', 'nugget', 0.25.*var( head_calib_resid(:,2)), 'plotit',false  );
             end                        
                                    
@@ -1478,7 +1494,7 @@ classdef GroundwaterStatisticsToolbox < handle
                 hold(h,'on');
 
                 % Plot model results
-                plot(h,obj.calibrationResults.data.modelledHead(:,1), obj.calibrationResults.data.modelledHead(:,2),'.-b' );
+                h_plot = plot(h,obj.calibrationResults.data.modelledHead(:,1), obj.calibrationResults.data.modelledHead(:,2),'.-b' );
                 if neval > 0;
                     plot(h,obj.evaluationResults.data.modelledHead(:,1), obj.evaluationResults.data.modelledHead(:,2),'.-r' );
                 end
@@ -1507,7 +1523,7 @@ classdef GroundwaterStatisticsToolbox < handle
                 end
 
                 % Finish the first plot!
-                legend(legendstr);
+                legend(h, legendstr,'Location','best');
                 hold(h,'off');               
             end
             
@@ -1523,7 +1539,7 @@ classdef GroundwaterStatisticsToolbox < handle
                 hold(h,'on');
                 if neval > 0;
                     scatter( h, obj.evaluationResults.data.modelledHead_residuals(:,1),  obj.evaluationResults.data.modelledHead_residuals(:,2), '.r'  );                
-                    legend('Calibration','Evaluation');                
+                    legend(h,'Calibration','Evaluation','Location','best');                
                 end
                 xlabel(h, 'Date');
                 ylabel(h, 'Residuals (obs-est) (m)');
@@ -1573,7 +1589,7 @@ classdef GroundwaterStatisticsToolbox < handle
                     QQdata(:,1) = obj.calibrationResults.data.modelledHead_residuals(:,2);
                     QQdata(1:neval,2) = obj.evaluationResults.data.modelledHead_residuals(:,2);
                     qqplot(h, QQdata);
-                    legend('Calibration','Evaluation','Location','NorthWest');                
+                    legend('Calibration','Evaluation','Location','best');                
                 else
                     qqplot(h, obj.calibrationResults.data.modelledHead_residuals(:,2) );
                 end            
@@ -1591,7 +1607,7 @@ classdef GroundwaterStatisticsToolbox < handle
                 hold(h,'on');
                 if neval > 0;                
                     scatter(h, obj.evaluationResults.data.obsHead(:,2),  obj.evaluationResults.data.modelledHead(:,2),'.r');
-                    legend('Calibration','Evaluation','Location','NorthWest');                
+                    legend(h,'Calibration','Evaluation','Location','best');                
                     head_min = min([obj.model.inputData.head(:,2);  obj.calibrationResults.data.modelledHead(:,2); obj.evaluationResults.data.modelledHead(:,2)] );
                     head_max = max([obj.model.inputData.head(:,2);  obj.calibrationResults.data.modelledHead(:,2); obj.evaluationResults.data.modelledHead(:,2)] );
                 else
@@ -1618,7 +1634,7 @@ classdef GroundwaterStatisticsToolbox < handle
                 hold(h,'on');
                 if neval > 0;                
                     scatter(h, obj.evaluationResults.data.obsHead(:,2),  obj.evaluationResults.data.modelledHead_residuals(:,2),'.r');
-                    legend('Calibration','Evaluation','Location','NorthWest');                
+                    legend(h,'Calibration','Evaluation','Location','best');                
                 end            
                 xlabel(h, 'Obs. head (m)');
                 ylabel(h, 'Residuals (obs-est) (m)'); 
@@ -1639,7 +1655,7 @@ classdef GroundwaterStatisticsToolbox < handle
                 if neval > 0;                                
                     scatter(h, obj.evaluationResults.performance.variogram_residual.model.h,  obj.evaluationResults.performance.variogram_residual.model.gamma, 'or');
                     plot(h, obj.evaluationResults.performance.variogram_residual.model.h,  obj.evaluationResults.performance.variogram_residual.model.gammahat, '-r');                
-                    legend('Calib. experimental','Calib model','Eval. experimental','Eval. model','Location','NorthWest');                
+                    legend(h, 'Calib. experimental','Calib model','Eval. experimental','Eval. model','Location','best');                
                 end
                 xlabel(h, 'Separation distance (days)' );
                 ylabel(h, 'Semi-variance (m^2)' );

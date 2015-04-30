@@ -6,7 +6,8 @@ classdef derivedResponseFunction_abstract < handle
     end
         
     methods(Static, Abstract=true)
-        [types] = responseFunction_optionsFormat()          
+        [modelSettings, colNames, colFormats, colEdits] = modelOptions(bore_ID, forcingDataSiteID, siteCoordinates)
+        modelDescription = modelDescription()         
     end
     
     methods(Abstract=true)
@@ -16,7 +17,13 @@ classdef derivedResponseFunction_abstract < handle
         
         % Get model parameters
         [params, param_names] = getParameters(obj)
-        
+
+        % Return pre-set physical limits to the function parameters.
+        [params_upperLimit, params_lowerLimit] = getParameters_physicalLimit(obj, param_name)
+
+        % Return pre-set physical limits to the function parameters.
+        [params_upperLimit, params_lowerLimit] = getParameters_plausibleLimit(obj, param_name)
+       
         % Check if each parameters is valid. This is primarily used to 
         % check parameters are within the physical bounds and sensible (eg 0<specific yield<1)
         isValidParameter = getParameterValidity(obj, params, param_names)
@@ -32,8 +39,6 @@ classdef derivedResponseFunction_abstract < handle
         % This is used handle rapidly chnageing fucntion in the range from 0 to 1.
         result = intTheta_lowerTail(obj, t)     
         
-        % Return pre-set physical limits to the function parameters.
-        [params_upperLimit, params_lowerLimit] = getParameters_physicalLimit(obj, param_name)
         
         % Transform the result of the response function multiplied by the
         % forcing. This method was included so that the groundwater pumping 

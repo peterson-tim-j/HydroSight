@@ -26,7 +26,7 @@ classdef derivedForcing_linearUnconstrainedScaling < derivedForcingTransform_abs
             transformOutoutOptions = reshape(transformOutoutOptions, 1, length(transformOutoutOptions));
             
             % Insert source function name.
-            transformOutoutOptions = strcat(sourceForcingTransformName,{' : '}, transformOutoutOptions);
+            transformOutoutOptions = transformOutoutOptions;
             
             % Assign setting for GUI table
             options = cell(1,1);
@@ -36,6 +36,22 @@ classdef derivedForcing_linearUnconstrainedScaling < derivedForcingTransform_abs
             toolTip='Select an output from the source transform function for input to this function.';            
         end
 
+        function modelDescription = modelDescription()
+           modelDescription = {'Name: derivedForcing_linearUnconstrainedScaling', ...
+                               '', ...
+                               'Purpose: scaling of an input or previously derived forcing time-series by another input time-series. This allows the', ...
+                               'estimation of landuse change impact by allowing the scaling of, say, free drainage by a landuse chnage fraction.', ...
+                               '', ...                               
+                               'Number of parameters: 1', ...
+                               '', ...                               
+                               'Options: none', ...
+                               '', ...                               
+                               'Comments: combine with the derived weighting functions derivedweighting_PearsonsPositiveRescaled or ', ...
+                               'derivedweighting_PearsonsNegativeRescaled to minimise the number of additional parameters required for the estimation.', ...
+                               'of landuse impacts.', ...
+                               '', ...                               
+                               'References: (none)'};
+        end          
     end
     
     methods       
@@ -49,8 +65,8 @@ classdef derivedForcing_linearUnconstrainedScaling < derivedForcingTransform_abs
             end
                         
             % Check there are at least two columns in the model options.
-            if ~ischar(options)
-                error('The model options must be string giving the output variable name from the source transformation model to transform');
+            if ~ischar(options) && ~ischar(options{1})
+                error('The model options must be string or 1x1 cell of a string giving the output variable name from the source transformation model to transform');
             end            
                                            
             % Check that the source object variable name is valid.
@@ -96,10 +112,6 @@ classdef derivedForcing_linearUnconstrainedScaling < derivedForcingTransform_abs
             param_names = {};        
         end        
         
-        function isValidParameter = getParameterValidity(obj, params, param_names)                                    
-            isValidParameter = true(size(params));
-        end
-        
         % Return fixed upper and lower bounds to the parameters.
         function [params_upperLimit, params_lowerLimit] = getParameters_physicalLimit(obj)
             params_upperLimit = [];
@@ -114,6 +126,10 @@ classdef derivedForcing_linearUnconstrainedScaling < derivedForcingTransform_abs
             params_upperLimit = [];
             params_lowerLimit = [];
         end
+
+        function isValidParameter = getParameterValidity(obj, params, param_names)                                    
+            isValidParameter = true(size(params));
+        end        
         
         % Check if the model parameters have chnaged since the last
         % estimation of the transformed forcing calculation
@@ -124,7 +140,7 @@ classdef derivedForcing_linearUnconstrainedScaling < derivedForcingTransform_abs
         % Calculate and set tranformed forcing from input climate data
         function setTransformedForcing(obj, t, forceRecalculation)
             % Get the source model transformation calculation.
-            forcingData = getTransformedForcing(obj.settings.sourceObject, obj.settings.sourceObject_outputvariable);
+            [forcingData, obj.variables.isDailyIntegralFlux] = getTransformedForcing(obj.settings.sourceObject, obj.settings.sourceObject_outputvariable);
             
             % Filter the forcing data to input t.
             filt_time = obj.settings.forcingData(:,1) >= t(1) & obj.settings.forcingData(:,1) <= t(end);
@@ -145,9 +161,10 @@ classdef derivedForcing_linearUnconstrainedScaling < derivedForcingTransform_abs
         end
         
         % Get tranformed forcing data
-        function forcingData = getTransformedForcing(obj, outputVariableName)                
+        function [forcingData, isDailyIntegralFlux] = getTransformedForcing(obj, outputVariableName)                
             if isfield(obj.variables,outputVariableName)
                 forcingData = obj.variables.(outputVariableName);
+                isDailyIntegralFlux = obj.variables.isDailyIntegralFlux;
             else
                 error(['The following output variable was requested from this transformation model but the variable has not yet been set. Call "setTransformedForcing()" first: ',outputVariableName]);
             end

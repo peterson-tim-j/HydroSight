@@ -226,6 +226,7 @@ classdef model_TFN_gui < model_gui_abstract
                 'ColumnEditable',cedit_weighting,'ColumnFormat',cformats_weighting,'RowName',...
                 rnames_weighting ,'Data',cdata_weighting, 'Visible','on', 'Units','normalized', ...
                 'CellSelectionCallback', @this.tableSelection, ...
+                'CellEditCallback', @this.tableEdit, ...
                 'Tag','Weighting Functions', ...
                 'TooltipString', toolTip_weighting);
             
@@ -527,104 +528,354 @@ classdef model_TFN_gui < model_gui_abstract
         
         function setModelOptions(this, modelOptionsStr)
             
+            % Convert model options string to a cell array
+            modelOptions = eval(modelOptionsStr);                  
+            
+            % Get the name of all model components
+            componentNames = unique( modelOptions(:,1));
+            
+            % Initialise some variables            
+            transformFunctionName = [];
+            transformForcingdata = [];
+            transformOutputdata = [];
+            transformOptions = [];
+            transformInputcomponent = [];
+            
+            % Clear GUI tables
+            this.weightingFunctions.tbl.Data = cell(0, size(this.weightingFunctions.tbl.Data,2));
+            this.derivedWeightingFunctions.tbl.Data = cell(0, size(this.derivedWeightingFunctions.tbl.Data,2));
+            this.forcingTranforms.tbl.Data = cell(0, size(this.weightingFunctions.tbl.Data,2));
+            this.derivedForcingTranforms.tbl.Data = cell(0, size(this.weightingFunctions.tbl.Data,2));
+            
+            % Loop through each weighting function and add the data to the
+            % GUI table. Also, get the cell arrays for the transformation
+            % functions.
+            for i=1:size(componentNames,1)
+                
+                % Find the cell options for the current weighting function
+                compentFilter = cellfun( @(x) strcmp(x, componentNames{i}), modelOptions(:,1));
+                
+                % Get model options relating to the current component.
+                modelOption_tmp = modelOptions(compentFilter,:);
+                
+                % initilise variables
+                weightingFunctionName = '';
+                inputcomponentName = '';
+                forcingdataName = '';
+                optionsName = '';
+                transformFunctionName = '';
+                transformForcingdata = '';
+                transformOutputdata = '';
+                transformInputcomponent = '';
+                
+                % Get each term for the component
+                weightingFunctionName_filt = cellfun( @(x) strcmp(x, 'weightingfunction'), modelOption_tmp(:,2));
+                if any(weightingFunctionName_filt)
+                    weightingFunctionName = modelOption_tmp{weightingFunctionName_filt,3};
+                end
+                
+                inputcomponentName_filt = cellfun( @(x) strcmp(x, 'inputcomponent'), modelOption_tmp(:,2));
+                if any(inputcomponentName_filt)
+                    inputcomponentName = modelOption_tmp{inputcomponentName_filt,3};
+                end
+                
+                forcingdata_filt = cellfun( @(x) strcmp(x, 'forcingdata'), modelOption_tmp(:,2));
+                if any(forcingdata_filt)
+                    forcingdataName = modelOption_tmp{forcingdata_filt,3};
+                end
+                
+                options_filt = cellfun( @(x) strcmp(x, 'options'), modelOption_tmp(:,2));
+                if any(options_filt)
+                    optionsName = modelOption_tmp{options_filt,3};  
+                    if ~isempty(optionsName) && iscell(optionsName)
+                        optionsName = model_TFN_gui.cell2string(optionsName, []);
+                    end
+                end
+                
+                % Check if the forcing data uses a transformation function.
+                % If so, extract the data and get the output required for
+                % the weighting function.
+                hasTransformFunction = false;
+                isFullTransformationFunction = false;
+                if ~isempty(forcingdataName) && iscell(forcingdataName) && size(forcingdataName,2)==2
+                    hasTransformFunction = true;
+                    
+                    transformFunctionName_filt = cellfun( @(x) strcmp(x, 'transformfunction'), forcingdataName(:,1));
+                    if any(transformFunctionName_filt)
+                        transformFunctionName = forcingdataName{transformFunctionName_filt,2};
+                    end
+                                    
+                    transformForcingdata_filt = cellfun( @(x) strcmp(x, 'forcingdata'), forcingdataName(:,1));
+                    if any(transformForcingdata_filt)
+                        transformForcingdata = forcingdataName{transformForcingdata_filt,2};
+                    end
+                
+                    transformOutputdata_filt = cellfun( @(x) strcmp(x, 'outputdata'), forcingdataName(:,1));
+                    if any(transformOutputdata_filt )
+                        transformOutputdata = forcingdataName{transformOutputdata_filt,2};
+                    end
+                                        
+                    transformOptions_filt = cellfun( @(x) strcmp(x, 'options'), forcingdataName(:,1));
+                    if any(transformOptions_filt)
+                        transformOptions = forcingdataName{transformOptions_filt,2};
+                    end
+                    
+                    transformInputcomponent_filt = cellfun( @(x) strcmp(x, 'inputcomponent'), forcingdataName(:,1));
+                    if any(transformInputcomponent_filt)
+                        transformInputcomponent = forcingdataName{transformInputcomponent_filt,2};                    
+                    end
+                    
+                    % Check if the full transformation model is defined or
+                    % is it just the output data for a tranformation model
+                    % modle defined for another weighting function.
+                    isFullTransformationFunction = true;
+                    if ~isempty(transformFunctionName) && ~isempty(transformOutputdata) && ...
+                       isempty(transformForcingdata) && isempty(transformInputcomponent) && isempty(transformOptions)
+                        isFullTransformationFunction = false;
+                    end
+                end
+                
+                % Add the weight function data to the GUI table. In doing
+                % so, check if it is to be input to the weighting function
+                % or derived weighting function.
+                if isempty(inputcomponentName)
+                   ind = size(this.weightingFunctions.tbl.Data,1)+1;
+                   if ind==1
+                        this.weightingFunctions.tbl.Data = cell(1,size(this.weightingFunctions.tbl.Data,2)); 
+                   else
+                       this.weightingFunctions.tbl.Data = [this.weightingFunctions.tbl.Data, cell(1,size(this.weightingFunctions.tbl.Data,2))]; 
+                   end
+                   this.weightingFunctions.tbl.Data{ind,2} = componentNames{i};
+                   this.weightingFunctions.tbl.Data{ind,3} = weightingFunctionName;
+                   this.weightingFunctions.tbl.Data{ind,5} = optionsName;
+
+                   % Check if the input comes from the output of a
+                   % transformation function.                   
+                   if hasTransformFunction
+                       if iscell(transformOutputdata)
+                            this.weightingFunctions.tbl.Data{ind,4} = strcat( [transformFunctionName, ' : '], transformOutputdata);
+                       else
+                            this.weightingFunctions.tbl.Data{ind,4} = [transformFunctionName, ' : ', transformOutputdata];
+                       end
+                   else
+                       if iscell(transformOutputdata)
+                            this.weightingFunctions.tbl.Data{ind,4} = strcat( ['Input Data : ', transformOutputdata]);
+                       else
+                           this.weightingFunctions.tbl.Data{ind,4} = ['Input Data : ', transformOutputdata];
+                       end
+                   end
+                    
+                   
+                    
+                else
+                   ind = size(this.derivedWeightingFunctions.tbl.Data,1)+1;
+                   if ind==1
+                        this.derivedWeightingFunctions.tbl.Data = cell(1,size(this.derivedWeightingFunctions.tbl.Data,2)); 
+                   else
+                       this.derivedWeightingFunctions.tbl.Data = [this.derivedWeightingFunctions.tbl.Data, cell(1,size(this.derivedWeightingFunctions.tbl.Data,2))]; 
+                   end                   
+                   this.derivedWeightingFunctions.tbl.Data{ind,2} = componentNames{i};
+                   this.derivedWeightingFunctions.tbl.Data{ind,3} = weightingFunctionName;
+                   this.derivedWeightingFunctions.tbl.Data{ind,4} = inputcomponentName; 
+                   this.derivedWeightingFunctions.tbl.Data{ind,6} = optionsName; 
+                   
+                   % Check if the input comes from the output of a
+                   % transformation function.
+                   if hasTransformFunction
+                       if iscell(transformOutputdata)
+                            this.derivedWeightingFunctions.tbl.Data{ind,5} = strcat( [transformFunctionName, ' : '], transformOutputdata);
+                       else
+                            this.derivedWeightingFunctions.tbl.Data{ind,5} = [transformFunctionName, ' : ', transformOutputdata];
+                       end
+                   else
+                       if iscell(transformOutputdata)
+                            this.derivedWeightingFunctions.tbl.Data{ind,5} = strcat( ['Input Data : ', transformOutputdata]);
+                       else
+                           this.derivedWeightingFunctions.tbl.Data{ind,5} = ['Input Data : ', transformOutputdata];
+                       end
+                   end
+                    
+                                      
+                end
+                
+                % Add the forcing transforation data to the GUI tables
+                if hasTransformFunction && isFullTransformationFunction
+                   
+                    if isempty(transformInputcomponent)
+                        ind = size(this.forcingTranforms.tbl.Data,1)+1;
+                        if ind==1
+                            this.forcingTranforms.tbl.Data = cell(1,size(this.forcingTranforms.tbl.Data,2)); 
+                        else
+                            this.forcingTranforms.tbl.Data = [this.forcingTranforms.tbl.Data, cell(1,size(this.forcingTranforms.tbl.Data,2))]; 
+                        end                             
+                        this.forcingTranforms.tbl.Data{ind,2} = transformFunctionName;
+                        
+                        if ~isempty(transformForcingdata) && iscell(transformForcingdata)
+                            transformForcingdata = model_TFN_gui.cell2string(transformForcingdata, []);
+                        end
+                        this.forcingTranforms.tbl.Data{ind,3} = transformForcingdata;
+
+                        if ~isempty(transformOptions) && iscell(transformOptions)
+                            transformOptions = model_TFN_gui.cell2string(transformOptions, []);
+                        end 
+                        this.forcingTranforms.tbl.Data{ind,4} = transformOptions;
+                                                                                                
+                    else
+                        ind = size(this.derivedForcingTranforms.tbl.Data,1)+1;
+                        if ind==1
+                            this.derivedForcingTranforms.tbl.Data = cell(1,size(this.derivedForcingTranforms.tbl.Data,2)); 
+                        else
+                            this.derivedForcingTranforms.tbl.Data = [this.derivedForcingTranforms.tbl.Data, cell(1,size(this.derivedForcingTranforms.tbl.Data,2))]; 
+                        end                            
+                        this.derivedForcingTranforms.tbl.Data{ind,2} = transformFunctionName;
+                        this.derivedForcingTranforms.tbl.Data{ind,3} = transformInputcomponent;                        
+                        
+                        if ~isempty(transformForcingdata) && iscell(transformForcingdata)
+                            transformForcingdata = model_TFN_gui.cell2string(transformForcingdata, []);
+                        end
+                        this.derivedForcingTranforms.tbl.Data{ind,4} = transformForcingdata;
+
+                        if ~isempty(transformOptions) && iscell(transformOptions)
+                            transformOptions = model_TFN_gui.cell2string(transformOptions, []);
+                        end 
+                        this.derivedForcingTranforms.tbl.Data{ind,5} = transformOptions;                        
+                        
+                    end
+                    
+                    
+                end     
+            end            
+            
+            
         end
         
         function modelOptionsArray = getModelOptions(this)
-            % Convert forcing tranformation functions to strings.
-            cellData  = this.forcingTranforms.tbl.Data;
-            for i=1:size(cellData ,1);
-               stringCell = '{';           
-               stringCell = strcat(stringCell, sprintf(' ''transformfunction'',  ''%s'';',cellData{i,2} ));
-               stringCell = strcat(stringCell, sprintf(' ''forcingdata'', ''%s'';',cellData{i,3} )); 
-               if ~isempty(cellData{i,4})
-                    stringCell = strcat(stringCell, sprintf(' ''options'', ''%s'';',cellData{i,4} )); 
-               end
-               stringCell = strcat(stringCell, '}'); 
-               forcingString.(cellData{i,2}) = stringCell;
-               
-               % Initialise logical variable denoting if its already been
-               % inserted.
-               forcingStringInserted.(cellData{i,2}) = false;
+            % Convert forcing tranformation and derived forcing tranformation functions to strings.
+            for k=1:2
+                if k==1
+                    cellData  = this.forcingTranforms.tbl.Data;
+                else
+                    cellData  = this.derivedForcingTranforms.tbl.Data;
+                end
+                for j=1:size(cellData ,1);
+                   stringCell = '{';           
+                   stringCell = strcat(stringCell, sprintf(' ''transformfunction'',  ''%s'';',cellData{j,2} ));
+                   if k==2
+                       stringCell = strcat(stringCell, sprintf(' ''inputcomponent'',  ''%s'';',cellData{j,3} ));               
+                   end
+                   stringCell = strcat(stringCell, sprintf(' ''forcingdata'', ''%s'';',cellData{j,2+k} )); 
+                   if ~isempty(cellData{j,3+k})
+                        stringCell = strcat(stringCell, sprintf(' ''options'', ''%s'';',cellData{j,3+k} )); 
+                   end
+                   stringCell = strcat(stringCell, '}'); 
+                   forcingString.(cellData{j,2}) = stringCell;
+
+                   % Initialise logical variable denoting if its already been
+                   % inserted.
+                   forcingStringInserted.(cellData{j,2}) = false;
+                end
             end
-            
+                       
             % Convert weighting functions to string.
             modelOptionsArray =  '{';
-            cellData  = this.weightingFunctions.tbl.Data;
-            for i=1:size(cellData ,1);                 
-               modelOptionsArray = strcat(modelOptionsArray, sprintf(' ''%s'', ''weightingfunction'',  ''%s'';',cellData{i,2},cellData{i,3} ));
-               
-               % Convert forcing data to a cell array
-               try
-                   forcingColNames =  eval(cellData{i,4});
-               catch
-                   forcingColNames =  cellData(i,4);
-               end
-                              
-               % Loop through each forcing data input.
-               for j=1:length(forcingColNames)
+            
+            for k=1:2
+                if k==1
+                    cellData  = this.weightingFunctions.tbl.Data;
+                else
+                    cellData  = this.derivedWeightingFunctions.tbl.Data;
+                end
+                    
+                % Loop through each row of weighting table data
+                for i=1:size(cellData ,1);        
+                    
+                   % Add weighting function name. 
+                   modelOptionsArray = strcat(modelOptionsArray, sprintf(' ''%s'', ''weightingfunction'',  ''%s'';',cellData{i,2},cellData{i,3} ));
 
-                   % Insert input data.                     
-                   if ~isempty(strfind(forcingColNames{j}, 'Input Data : '))
-                       [ind_start, ind_end] = regexp(forcingColNames{j}, 'Input Data : ');
-                       forcingColNames_tmp =  forcingColNames{j}(ind_end+1:end);
-                       ind_start = regexp(forcingColNames_tmp, '''');
-                       if ~isempty(ind_start)
-                            forcingColNames_tmp =  forcingColNames_tmp(1:ind_start-1);
-                       end
-                   else
-                       % Find function name
-                       forcingFunc_Ind = regexp(forcingColNames{j}, ' : ');  
-                       forcingFuncName = forcingColNames{j}(1:forcingFunc_Ind-1);
-
-                       % Insert cell array string for required function name.
-                       % If the forcing function has already been inserted then
-                       % just build a string for the forcing to be extracted
-                       % from it.
-                       if ~forcingStringInserted.(forcingFuncName) 
-                            % Get just output name from string
-                           [ind_start, ind_end] = regexp(forcingColNames{j}, [forcingFuncName,' : ']);
-                           forcingColNames_tmp =  forcingColNames{j}(ind_end+1:end);
-                            
-                            % Add required output from weighting function to forcing function cell array
-                            forcingString.(forcingFuncName) = forcingString.(forcingFuncName)(1:end-1);
-                            forcingString.(forcingFuncName) = strcat(forcingString.(forcingFuncName), ...
-                                 sprintf(' ''outputdata'' , ''%s'' };', forcingColNames_tmp ) );
-                            forcingColNames_tmp = forcingString.(forcingFuncName);
-                            forcingStringInserted.(forcingFuncName) = true;
-                       else
-                           
-                           % Create cell array for an already created
-                           % forcing transform function but only declare
-                           % the forcing to be taken from the function.
-                           forcingColNames_tmp = { 'transformfunction', forcingFuncName; 'outputdata', forcingColNames{j}};
-                           
-                           % Convert to a string
-                           className = metaclass(this);
-                           colnames = {'component','property','value'};
-                           forcingColNames_tmp =  eval([className,'.cell2string(forcingColNames_tmp, colnames)']);                           
-                       end
-
+                   % Add source componant name. 
+                   if k==2
+                        modelOptionsArray = strcat(modelOptionsArray, sprintf(' ''%s'', ''inputcomponent'',  ''%s'';',cellData{i,2},cellData{i,4} ));
                    end
-                   
-                   % Add forcing string to the model options string
-                   if length(forcingColNames)==1
-                        modelOptionsArray = strcat(modelOptionsArray, sprintf(' ''%s'', ''forcingdata'', ''%s'';',cellData{i,2}, forcingColNames_tmp ));                            
-                   elseif length(forcingColNames)>1 && j==1
-                        modelOptionsArray = strcat(modelOptionsArray, sprintf(' ''%s'', ''forcingdata'', { ''%s'';',cellData{i,2}, forcingColNames_tmp ));                            
-                   elseif length(forcingColNames)>1 && j==length(forcingColNames)
-                        modelOptionsArray = strcat(modelOptionsArray, sprintf(' ''%s'' };',forcingColNames_tmp ));                                                    
-                   else                           
-                        modelOptionsArray = strcat(modelOptionsArray, sprintf(' ''%s'';',forcingColNames_tmp ));
-                   end                       
-               end
+                                      
+                   % Convert forcing data to a cell array
+                   try
+                       forcingColNames =  eval(cellData{i,3+k});
+                   catch
+                       forcingColNames =  cellData(i,3+k);
+                   end
 
-               
-               % Add model options 
-               if ~isempty(cellData{i,5})
-                    modelOptionsArray = strcat(modelOptionsArray, sprintf(' ''%s'', ''options'', ''%s'';',cellData{i,2},cellData{i,5} )); 
-               end
-                              
+                   % Loop through each forcing data input.
+                   for j=1:length(forcingColNames)
+
+                       % Insert input data.                     
+                       if ~isempty(strfind(forcingColNames{j}, 'Input Data : '))
+                           [ind_start, ind_end] = regexp(forcingColNames{j}, 'Input Data : ');
+                           forcingColNames_tmp =  forcingColNames{j}(ind_end+1:end);
+                           ind_start = regexp(forcingColNames_tmp, '''');
+                           if ~isempty(ind_start)
+                                forcingColNames_tmp =  forcingColNames_tmp(1:ind_start-1);
+                           end
+                       else
+                           % Find function name
+                           forcingFunc_Ind = regexp(forcingColNames{j}, ' : ');  
+                           forcingFuncName = forcingColNames{j}(1:forcingFunc_Ind-1);
+
+                           % Insert cell array string for required function name.
+                           % If the forcing function has already been inserted then
+                           % just build a string for the forcing to be extracted
+                           % from it.
+                           if ~forcingStringInserted.(forcingFuncName) 
+                                % Get just output name from string
+                               [ind_start, ind_end] = regexp(forcingColNames{j}, [forcingFuncName,' : ']);
+                               forcingColNames_tmp =  forcingColNames{j}(ind_end+1:end);
+
+                                % Add required output from weighting function to forcing function cell array
+                                forcingString.(forcingFuncName) = forcingString.(forcingFuncName)(1:end-1);
+                                forcingString.(forcingFuncName) = strcat(forcingString.(forcingFuncName), ...
+                                     sprintf(' ''outputdata'' , ''%s'' };', forcingColNames_tmp ) );
+                                forcingColNames_tmp = forcingString.(forcingFuncName);
+                                forcingStringInserted.(forcingFuncName) = true;
+                           else
+
+                                % Get just output name from string
+                               [ind_start, ind_end] = regexp(forcingColNames{j}, [forcingFuncName,' : ']);
+                               forcingColNames_tmp =  forcingColNames{j}(ind_end+1:end);                           
+
+                               % Create cell array for an already created
+                               % forcing transform function but only declare
+                               % the forcing to be taken from the function.
+                               forcingColNames_tmp = { 'transformfunction', forcingFuncName; 'outputdata', forcingColNames_tmp};
+
+                               % Convert to a string
+                               className = metaclass(this);
+                               className = className.Name;
+                               colnames = {'component','property','value'};
+                               forcingColNames_tmp =  eval([className,'.cell2string(forcingColNames_tmp, colnames)']);                           
+                           end
+
+                       end
+
+                       % Add forcing string to the model options string
+                       if length(forcingColNames)==1
+                            modelOptionsArray = strcat(modelOptionsArray, sprintf(' ''%s'', ''forcingdata'', ''%s'';',cellData{i,2}, forcingColNames_tmp ));                            
+                       elseif length(forcingColNames)>1 && j==1
+                            modelOptionsArray = strcat(modelOptionsArray, sprintf(' ''%s'', ''forcingdata'', { ''%s'';',cellData{i,2}, forcingColNames_tmp ));                            
+                       elseif length(forcingColNames)>1 && j==length(forcingColNames)
+                            modelOptionsArray = strcat(modelOptionsArray, sprintf(' ''%s'' };',forcingColNames_tmp ));                                                    
+                       else                           
+                            modelOptionsArray = strcat(modelOptionsArray, sprintf(' ''%s'';',forcingColNames_tmp ));
+                       end                       
+                   end
+
+
+                   % Add model options 
+                   if ~isempty(cellData{i,5})
+                        modelOptionsArray = strcat(modelOptionsArray, sprintf(' ''%s'', ''options'', ''%s'';',cellData{i,2},cellData{i,4+k} )); 
+                   end
+
+                end
             end
+
             modelOptionsArray= strcat(modelOptionsArray, '}'); 
 
             % Remove any ' symbols for cell arrays internal to the larger
@@ -656,35 +907,46 @@ classdef model_TFN_gui < model_gui_abstract
                     irow=eventdata.Indices(:,1);  
                 end
             end
-            
-            if size(get(hObject,'Data'),1)==0
-                return
+                            
+            % Record the current table, row, col if the inputs are
+            % not empty. Else, extract the exiting values from
+            % this.currentSelection                    
+            if ~isempty(irow) && ~isempty(icol)
+                this.currentSelection.row = irow;
+                this.currentSelection.col= icol;
+                this.currentSelection.table = eventdata.Source.Tag;
+            else
+                irow = this.currentSelection.row;
+                icol = this.currentSelection.col;                                                
             end
-            
-            % Get the data cell array of the table
-            data=get(hObject,'Data'); 
-            
+
             % Undertake table/list specific operations.
             switch eventdata.Source.Tag;
                 case 'Forcing Transform'
-                    % Record the current table, row, col if the inputs are
-                    % not empty. Else, extract the exiting values from
-                    % this.currentSelection                    
-                    if ~isempty(irow) && ~isempty(icol)
-                        this.currentSelection.row = irow;
-                        this.currentSelection.col= icol;
-                        this.currentSelection.table = eventdata.Source.Tag;
-                    else
-                        irow = this.currentSelection.row;
-                        icol = this.currentSelection.col;                                                
+                    
+                    % Add a row if the table is empty
+                    if size(get(hObject,'Data'),1)==0
+                        this.forcingTranforms.tbl.Data = cell(1,size(this.forcingTranforms.tbl.Data,2));
                     end
 
                     % Get the forcing function name.
-                    funName = data{irow, 2};
+                    if irow > size(this.forcingTranforms.tbl.Data,1)
+                        return;
+                    end
+                    funName = this.forcingTranforms.tbl.Data{irow, 2};
 
                     switch eventdata.Source.ColumnName{icol};
                         case 'Forcing Transform Function'
-                            % Do nothing.
+                        
+                            % Get description of the function.
+                            functionName = this.forcingTranforms.tbl.Data{this.currentSelection.row, 2};
+                            if isempty(functionName)
+                                return;
+                            end
+                            modelDescription = eval([functionName,'.modelDescription']);
+                            set(this.modelOptions.options{10,1}.lbl,'HorizontalAlignment','left');
+                            this.modelOptions.options{10,1}.lbl.String = {'1. Forcing Transform - Function description','',modelDescription{:}};
+                            this.modelOptions.grid.Widths = [0 0 0 0 0 0 0 0 0 -1];   
 
                         case 'Input Data'
                            % Call function method giving required
@@ -704,7 +966,7 @@ classdef model_TFN_gui < model_gui_abstract
                                         this.modelOptions.options{1, 1}.tbl.RowName{i}= num2str(i);
                                    end
                                catch
-                                   warning('The input string appears to have a syntax error. It should be an Nx2 cell array.');                                       
+                                   warndlg('The input string appears to have a syntax error. It should be an Nx2 cell array.');                                       
                                end
                            end
 
@@ -734,7 +996,8 @@ classdef model_TFN_gui < model_gui_abstract
                                this.modelOptions.options{2,1}.tbl.Tag = 'Forcing Transform - Model Settings';                                                              
 
                                if isempty(this.forcingTranforms.tbl.Data{this.currentSelection.row ,4})
-                                    this.modelOptions.options{2,1}.tbl.Data = modelSettings;
+                                   this.forcingTranforms.tbl.Data{this.currentSelection.row ,4} = model_TFN_gui.cell2string(modelSettings,colNames);
+                                   this.modelOptions.options{2,1}.tbl.Data = modelSettings;
                                else
                                    try                                       
                                        data = eval(this.forcingTranforms.tbl.Data{irow,4});
@@ -744,7 +1007,7 @@ classdef model_TFN_gui < model_gui_abstract
 
                                        this.modelOptions.options{2, 1}.tbl.Data = data;
                                    catch
-                                       warning('The function options string appears to have a sytax error. It should be an Nx4 cell array.');                                       
+                                       warndlg('The function options string appears to have a sytax error. It should be an Nx4 cell array.');                                       
                                    end
                                end
 
@@ -772,18 +1035,12 @@ classdef model_TFN_gui < model_gui_abstract
                     end
                 case 'Weighting Functions'
 
-                    % Record the current table, row, col if the inputs are
-                    % not empty. Else, extract the exiting values from
-                    % this.currentSelection                    
-                    if ~isempty(irow) && ~isempty(icol)
-                        this.currentSelection.row = irow;
-                        this.currentSelection.col= icol;
-                        this.currentSelection.table = eventdata.Source.Tag;
-                    else
-                        irow = this.currentSelection.row;
-                        icol = this.currentSelection.col;                                                
-                    end
 
+                    % Add a row if the table is empty
+                    if size(get(hObject,'Data'),1)==0
+                        this.weightingFunctions.tbl.Data = cell(1,size(this.weightingFunctions.tbl.Data,2));
+                    end               
+                    
                     switch eventdata.Source.ColumnName{icol};
                         case 'Input Data'
                            % Get the list of input forcing data.
@@ -830,14 +1087,35 @@ classdef model_TFN_gui < model_gui_abstract
                            this.modelOptions.options{3,1}.lst.Min = 1;
                            this.modelOptions.options{3,1}.lst.Max = length(lstOptions);
                            
+                           % Highlight the previosuly selected option
+                           userSelections = this.weightingFunctions.tbl.Data{this.currentSelection.row, 4};
+                           rowInd= [];
+                           if ~iscell(userSelections)
+                               userSelections_tmp{1} =userSelections;
+                               userSelections = userSelections_tmp;
+                               clear userSelections_tmp
+                           end
+                           for i=1:size(userSelections,1)
+                                ind = find(cellfun( @(x) strcmp(x, userSelections{i}), lstOptions ));
+                                rowInd = [rowInd; ind];
+                           end
+                           this.modelOptions.options{3,1}.lst.Value = rowInd;
+                           
                            % Show the list box
                            this.modelOptions.grid.Widths = [0 0 -1 0 0 0 0 0 0 0];
 
+                        case 'Weighting Function'   
+                            % Get description of the function.
+                            functionName = this.weightingFunctions.tbl.Data{this.currentSelection.row, 3};
+                            modelDescription = eval([functionName,'.modelDescription']);
+                            set(this.modelOptions.options{10,1}.lbl,'HorizontalAlignment','left');
+                            this.modelOptions.options{10,1}.lbl.String = {'2. Weighting Functions - Function description','',modelDescription{:}};
+                            this.modelOptions.grid.Widths = [0 0 0 0 0 0 0 0 0 -1];                           
                         case 'Options'
                             % Check that the weigthing function and forcing
                             % data have been defined
                             if any(isempty(this.weightingFunctions.tbl.Data(this.currentSelection.row,2:4)))
-                                warning('The component name, weighting function ands input data must be specified before setting the options.');
+                                warndlg('The component name, weighting function ands input data must be specified before setting the options.');
                                 return;
                             end
                             
@@ -846,10 +1124,29 @@ classdef model_TFN_gui < model_gui_abstract
                             
                             % Convert input data to a cell array if it is a
                             % list of multiple inputs.
-                            inputDataNames = eval(inputDataNames)';
+                            try
+                                inputDataNames = eval(inputDataNames)';
+                            catch
+                                % do nothing
+                            end
                             
-                            % Get the list of input forcing data.
-                            funName = this.weightingFunctions.tbl.Data{this.currentSelection.row, 3};
+                           % Remove source name for input data.     
+                           if ischar(inputDataNames)
+                               inputDataNames_tmp{1}=inputDataNames;
+                               inputDataNames = inputDataNames_tmp;
+                               clear inputDataNames_tmp
+                           end
+                           for j=1: size(inputDataNames,1)
+                               if ~isempty(strfind(inputDataNames{j}, 'Input Data : '))
+                                   ind = regexp(inputDataNames{j}, 'Input Data : ');
+                               else
+                                   ind = regexp(inputDataNames{j}, ' : ');  
+                               end                                                   
+                               inputDataNames{j} =  inputDataNames{j}(ind+3:end);
+                           end
+                           
+                           % Get the list of input forcing data.
+                           funName = this.weightingFunctions.tbl.Data{this.currentSelection.row, 3};
 
                            % Get the weighting function options.
                            [modelSettings, colNames, colFormats, colEdits] = feval(strcat(funName,'.modelOptions'), ...
@@ -858,7 +1155,8 @@ classdef model_TFN_gui < model_gui_abstract
                            % If the function has any options the
                            % display the options else display a message
                            % in box stating no options are available.
-                           if isempty(colNames)                          
+                           if isempty(colNames)  
+                               set(this.modelOptions.options{10,1}.lbl,'HorizontalAlignment','center');
                                 this.modelOptions.options{10,1}.lbl.String = {'2. Weighting Functions - Options',['(No options are available for the following weighting function: ',funName,')']};                                    
                                 this.modelOptions.grid.Widths = [0 0 0 0 0 0 0 0 0 -1];
                            else
@@ -886,7 +1184,7 @@ classdef model_TFN_gui < model_gui_abstract
 
                                        this.modelOptions.options{4, 1}.tbl.Data = data;
                                    catch
-                                       warning('The function options string appears to have a sytax error. It should be an Nx4 cell array.');                                       
+                                       warndlg('The function options string appears to have a sytax error. It should be an Nx4 cell array.');                                       
                                    end
                                end                                 
                                % Assign context menu if the first column is
@@ -913,27 +1211,33 @@ classdef model_TFN_gui < model_gui_abstract
                             this.modelOptions.grid.Widths = zeros(size(this.modelOptions.grid.Widths));
                     end
 
-                case 'Derived Forcing Transform'
-
-                    % Record the current table, row, col if the inputs are
-                    % not empty. Else, extract the exiting values from
-                    % this.currentSelection                    
-                    if ~isempty(irow) && ~isempty(icol)
-                        this.currentSelection.row = irow;
-                        this.currentSelection.col= icol;
-                        this.currentSelection.table = eventdata.Source.Tag;
-                    else
-                        irow = this.currentSelection.row;
-                        icol = this.currentSelection.col;                                                
-                    end                      
+                case 'Derived Forcing Transform'                
+                    
+                    % Add a row if the table is empty
+                    if size(get(hObject,'Data'),1)==0
+                        this.derivedForcingTranforms.tbl.Data = cell(1,size(this.derivedForcingTranforms.tbl.Data,2));
+                        return;
+                    end                    
                     
                     % Get the derived forcing function name.
-                    funName = data{irow, 2};
+                    funName = this.derivedForcingTranforms.tbl.Data{irow, 2};
 
                     % Get the source forcing function name.
-                    sourceFunName = data{irow, 3};
+                    sourceFunName = this.derivedForcingTranforms.tbl.Data{irow, 3};
 
                     switch eventdata.Source.ColumnName{icol};
+                        case 'Forcing Transform Function'
+                        
+                            % Get description of the function.
+                            functionName = this.derivedForcingTranforms.tbl.Data{this.currentSelection.row, 2};
+                            if isempty(functionName)
+                                return;
+                            end
+                            modelDescription = eval([functionName,'.modelDescription']);
+                            set(this.modelOptions.options{10,1}.lbl,'HorizontalAlignment','left');
+                            this.modelOptions.options{10,1}.lbl.String = {'3. Derived Forcing Transform - Function description','',modelDescription{:}};
+                            this.modelOptions.grid.Widths = [0 0 0 0 0 0 0 0 0 -1];          
+                            
                         case 'Source Forcing Function' 
                             derivedForcingFunctionsListed = this.forcingTranforms.tbl.Data(:,2);
                             this.derivedForcingTranforms.tbl.ColumnFormat{3} = derivedForcingFunctionsListed;
@@ -956,13 +1260,12 @@ classdef model_TFN_gui < model_gui_abstract
                                         this.modelOptions.options{6, 1}.tbl.RowName{i}= num2str(i);
                                    end
                                catch
-                                   warning('The input string appears to have a syntax error. It should be an Nx2 cell array.');                                       
+                                   warndlg('The input string appears to have a syntax error. It should be an Nx2 cell array.');                                       
                                end
                            end
                            
                            % Get the list of input forcing data and add source name
                            lstOptions = reshape(this.forcingData.colnames(4:end),[1, length(this.forcingData.colnames(4:end))]);
-                           lstOptions = strcat('Input Data :',{' '}, lstOptions);
 
                            % Add input list to drop down
                            this.modelOptions.options{6, 1}.tbl.ColumnFormat = {'char',lstOptions};
@@ -976,7 +1279,8 @@ classdef model_TFN_gui < model_gui_abstract
 
                            % Check if options are available.
                            if isempty(colNames)                          
-                                this.modelOptions.options{10,1}.lbl.String = {'3. Derived Forcing Transform - Model Settings',['(No options are available for the following function: ',funName,')']};
+                                set(this.modelOptions.options{10,1}.lbl,'HorizontalAlignment','left');
+                                this.modelOptions.options{10,1}.lbl.String = {'3. Derived Forcing Transform - Model Settings','',['(No options are available for the following function: ',funName,')']};
                                 this.modelOptions.grid.Widths = [0 0 0 0 0 0 0 0 0 -1];
                            else
 
@@ -998,7 +1302,7 @@ classdef model_TFN_gui < model_gui_abstract
 
                                        this.modelOptions.options{7, 1}.tbl.Data = data;
                                    catch
-                                       warning('The function options string appears to have a sytax error. It should be an Nx4 cell array.');                                       
+                                       warndlg('The function options string appears to have a sytax error. It should be an Nx4 cell array.');                                       
                                    end
                                end
 
@@ -1027,22 +1331,27 @@ classdef model_TFN_gui < model_gui_abstract
 
                 case 'Derived Weighting Functions'
 
-                    % Record the current table, row, col if the inputs are
-                    % not empty. Else, extract the exiting values from
-                    % this.currentSelection                    
-                    if ~isempty(irow) && ~isempty(icol)
-                        this.currentSelection.row = irow;
-                        this.currentSelection.col= icol;
-                        this.currentSelection.table = eventdata.Source.Tag;
-                    else
-                        irow = this.currentSelection.row;
-                        icol = this.currentSelection.col;                                                
-                    end
-
+                    % Add a row if the table is empty
+                    if size(get(hObject,'Data'),1)==0
+                        this.derivedWeightingFunctions.tbl.Data = cell(1,size(this.derivedWeightingFunctions.tbl.Data,2));
+                        return;
+                    end                    
+                    
+                    
                     switch eventdata.Source.ColumnName{icol};
+                        case 'Weighting Function'   
+                            % Get description of the function.
+                            functionName = this.derivedWeightingFunctions.tbl.Data{this.currentSelection.row, 3};
+                            if isempty(functionName)
+                                return;
+                            end
+                            modelDescription = eval([functionName,'.modelDescription']);
+                            set(this.modelOptions.options{10,1}.lbl,'HorizontalAlignment','left');
+                            this.modelOptions.options{10,1}.lbl.String = {'4. Derived Weighting Functions - Function description','',modelDescription{:}};
+                            this.modelOptions.grid.Widths = [0 0 0 0 0 0 0 0 0 -1];                              
                         case 'Source Component'
                             derivedWeightingFunctionsListed = this.weightingFunctions.tbl.Data(:,2);
-                            this.derivedWeightingFunctions.tbl.ColumnFormat{4} = derivedWeightingFunctionsListed;
+                            this.derivedWeightingFunctions.tbl.ColumnFormat{4} = derivedWeightingFunctionsListed';
                             this.modelOptions.grid.Widths = zeros(size(this.modelOptions.grid.Widths));
                         case 'Input Data'
                             
@@ -1089,7 +1398,21 @@ classdef model_TFN_gui < model_gui_abstract
                            % Allow multipple-selection.
                            this.modelOptions.options{8,1}.lst.Min = 1;
                            this.modelOptions.options{8,1}.lst.Max = length(lstOptions);
-                            
+
+                           % Highlight the previosuly selected option
+                           userSelections = this.derivedWeightingFunctions.tbl.Data{this.currentSelection.row, 5};
+                           rowInd= [];
+                           if ~iscell(userSelections)
+                               userSelections_tmp{1} =userSelections;
+                               userSelections = userSelections_tmp;
+                               clear userSelections_tmp
+                           end
+                           for i=1:size(userSelections,1)
+                                ind = find(cellfun( @(x) strcmp(x, userSelections{i}), lstOptions ));
+                                rowInd = [rowInd; ind];
+                           end
+                           this.modelOptions.options{8,1}.lst.Value = rowInd;                           
+                           
                            % Show list box 
                            this.modelOptions.grid.Widths = [0 0 0 0 0 0 0 -1 0 0];
                            
@@ -1097,7 +1420,7 @@ classdef model_TFN_gui < model_gui_abstract
                             % Check that the weigthing function and forcing
                             % data have been defined
                             if any(isempty(this.derivedWeightingFunctions.tbl.Data(this.currentSelection.row,2:5)))
-                                warning('The component name, derived weighting function, source function and input data must be specified before setting the options.');
+                                warndlg('The component name, derived weighting function, source function and input data must be specified before setting the options.');
                                 return;
                             end
                             
@@ -1106,7 +1429,26 @@ classdef model_TFN_gui < model_gui_abstract
                             
                             % Convert input data to a cell array if it is a
                             % list of multiple inputs.
-                            inputDataNames = eval(inputDataNames)';
+                            try
+                                inputDataNames = eval(inputDataNames)';
+                            catch
+                                % do nothing
+                            end
+                            
+                           % Remove source name for input data.     
+                           if ischar(inputDataNames)
+                               inputDataNames_tmp{1}=inputDataNames;
+                               inputDataNames = inputDataNames_tmp;
+                               clear inputDataNames_tmp
+                           end
+                           for j=1: size(inputDataNames,1)
+                               if ~isempty(strfind(inputDataNames{j}, 'Input Data : '))
+                                   ind = regexp(inputDataNames{j}, 'Input Data : ');
+                               else
+                                   ind = regexp(inputDataNames{j}, ' : ');  
+                               end                                                   
+                               inputDataNames{j} =  inputDataNames{j}(ind+3:end);
+                           end                            
                             
                             % Get the list of input forcing data.
                             funName = this.derivedWeightingFunctions.tbl.Data{this.currentSelection.row, 3};
@@ -1119,7 +1461,8 @@ classdef model_TFN_gui < model_gui_abstract
                            % display the options else display a message
                            % in box stating no options are available.
                            if isempty(colNames)                          
-                                this.modelOptions.options{10,1}.lbl.String = {'4. Derived Weighting Functions - Options',['(No options are available for the following weighting function: ',funName,')']};                                    
+                                set(this.modelOptions.options{10,1}.lbl,'HorizontalAlignment','center');
+                                this.modelOptions.options{10,1}.lbl.String = {'4. Derived Weighting Functions - Options','',['(No options are available for the following weighting function: ',funName,')']};                                    
                                 this.modelOptions.grid.Widths = [0 0 0 0 0 0 0 0 0 -1];
                            else
                                this.modelOptions.options{9,1}.lbl.String = '4. Derived Weighting Functions - Options';
@@ -1146,7 +1489,7 @@ classdef model_TFN_gui < model_gui_abstract
 
                                        this.modelOptions.options{9, 1}.tbl.Data = data;
                                    catch
-                                       warning('The function options string appears to have a sytax error.');                                       
+                                       warndlg('The function options string appears to have a sytax error.');                                       
                                    end
                                end                                 
                                % Assign context menu if the first column is
@@ -1254,9 +1597,9 @@ classdef model_TFN_gui < model_gui_abstract
             end
         end
         
-    end
+    %end
     
-    methods(Access=private)  
+    %methods(Access=private)  
         
         function tableEdit(this, hObject, eventdata)
             icol=[];
@@ -1274,6 +1617,18 @@ classdef model_TFN_gui < model_gui_abstract
             % Undertake table/list specific operations.
             switch eventdata.Source.Tag;
                 case 'Forcing Transform'
+                   % Check the function name is unique
+                   nrows  = size(this.forcingTranforms.tbl.Data,1);                   
+                   otherFunctionNames_ind = [1:irow-1, irow+1:nrows];
+                   if nrows>1          
+                       otherFunctionNames = this.forcingTranforms.tbl.Data(otherFunctionNames_ind ,3);
+                       if any(cellfun(@(x) strcmp(eventdata.NewData,x), otherFunctionNames))                           
+                           this.forcingTranforms.tbl.Data{irow ,2} = eventdata.PreviousData;
+                           warndlg('Each function name must be unique within the model - i.e you can use it only once.');
+                           return;
+                       end
+                   end
+                   
                    % Reset other fields of the model name changes
                    if icol==2 && ~isempty(eventdata.PreviousData) && ~strcmp(eventdata.PreviousData, eventdata.NewData)
                         this.forcingTranforms.tbl.Data{irow ,3} = '';
@@ -1281,7 +1636,32 @@ classdef model_TFN_gui < model_gui_abstract
                         this.modelOptions.grid.Widths = zeros(size(this.modelOptions.grid.Widths));
                         
                    end
+                   
                 case 'Weighting Functions'
+                   
+                   % Check the function name is unique
+                   nrows  = size(this.weightingFunctions.tbl.Data,1);                   
+                   otherFunctionNames_ind = [1:irow-1, irow+1:nrows];
+                   if nrows>1          
+                       otherFunctionNames = this.weightingFunctions.tbl.Data(otherFunctionNames_ind ,2);
+                       if any(cellfun(@(x) strcmp(eventdata.NewData,x), otherFunctionNames))                           
+                           this.weightingFunctions.tbl.Data{irow ,2} = eventdata.PreviousData;
+                           warndlg('Each component name must be unique within the model.');
+                           return;
+                       end
+                   end  
+                   
+                   % Check that the compent name is a valid fiewd name
+                   try
+                       componentName = eventdata.NewData;               
+                       a.(componentName) = 1;
+                       clear a
+                   catch
+                       this.weightingFunctions.tbl.Data{irow ,2} = eventdata.PreviousData;
+                       warndlg('The component name is invalid. It must contain only letters, numbers and under-scores and cannot start with a number.');
+                       return;
+                   end
+                    
                    % Reset other fields of the model name changes
                    if icol==3 && ~isempty(eventdata.PreviousData) && ~strcmp(eventdata.PreviousData, eventdata.NewData)
                         this.weightingFunctions.tbl.Data{irow ,4} = '';
@@ -1289,6 +1669,19 @@ classdef model_TFN_gui < model_gui_abstract
                         this.modelOptions.grid.Widths = zeros(size(this.modelOptions.grid.Widths));                        
                    end                   
                 case 'Derived Forcing Transform'
+                    
+                   % Check the function name is unique
+                   nrows  = size(this.derivedForcingTranforms.tbl.Data,1);                   
+                   otherFunctionNames_ind = [1:irow-1, irow+1:nrows];
+                   if nrows>1          
+                       otherFunctionNames = this.derivedForcingTranforms.tbl.Data(otherFunctionNames_ind ,2);
+                       if any(cellfun(@(x) strcmp(eventdata.NewData,x), otherFunctionNames))                           
+                           this.derivedForcingTranforms.tbl.Data{irow ,2} = eventdata.PreviousData;
+                           warndlg('Each function name must be unique within the model - i.e you can use it only once.');
+                           return;
+                       end
+                   end
+                   
                    % Reset other fields of the model name changes
                    if icol==2 && ~isempty(eventdata.PreviousData) && ~strcmp(eventdata.PreviousData, eventdata.NewData)
                         this.derivedForcingTranforms.tbl.Data{irow ,3} = '';
@@ -1297,6 +1690,30 @@ classdef model_TFN_gui < model_gui_abstract
                         this.modelOptions.grid.Widths = zeros(size(this.modelOptions.grid.Widths));                        
                    end                   
                 case 'Derived Weighting Functions'
+                    
+                   % Check the function name is unique
+                   nrows  = size(this.derivedWeightingFunctions.tbl.Data,1);                   
+                   otherFunctionNames_ind = [1:irow-1, irow+1:nrows];
+                   if nrows>1          
+                       otherFunctionNames = this.derivedWeightingFunctions.tbl.Data(otherFunctionNames_ind ,3);
+                       if any(cellfun(@(x) strcmp(eventdata.NewData,x), otherFunctionNames))                           
+                           this.derivedWeightingFunctions.tbl.Data{irow ,2} = eventdata.PreviousData;
+                           warndlg('Each component name must be unique within the model.');
+                           return;
+                       end
+                   end      
+                   
+                   % Check that the compent name is a valid fiewd name
+                   try
+                       componentName = eventdata.NewData;               
+                       a.(componentName) = 1;
+                       clear a
+                   catch
+                       this.derivedWeightingFunctions.tbl.Data{irow ,2} = eventdata.PreviousData;
+                       warndlg('The component name is invalid. It must contain only letters, numbers and under-scores and cannot start with a number.');
+                       return;
+                   end                   
+                   
                    % Reset other fields of the model name changes
                    if icol==3 && ~isempty(eventdata.PreviousData) && ~strcmp(eventdata.PreviousData, eventdata.NewData)
                         this.derivedWeightingFunctions.tbl.Data{irow ,4} = '';
@@ -1315,10 +1732,15 @@ classdef model_TFN_gui < model_gui_abstract
             tableObj = eval(eventdata.Source.Parent.UserData);
             
             % Get selected rows
-            selectedRow = cell2mat(tableObj.Data(:,1));
+            selectedRow = false(size(tableObj.Data(:,1),1),1);
+            for i=1:size(tableObj.Data(:,1),1)
+                if tableObj.Data{i,1}
+                    selectedRow(i) = true;
+                end
+            end
             
             if size(tableObj.Data(:,1),1)>0 &&  sum(selectedRow) == 0                             
-                warning('No rows are selected for the requested operation.');
+                warndlg('No rows are selected for the requested operation.');
                 return;
             elseif size(tableObj.Data(:,1),1)==0 ...
             &&  (strcmp(hObject.Label, 'Copy selected rows') || strcmp(hObject.Label, 'Delete selected rows'))                
@@ -1337,7 +1759,7 @@ classdef model_TFN_gui < model_gui_abstract
                     if strcmp(this.copiedData.tableName, tableObj.Tag)
                        tableObj.Data = [tableObj.Data; this.copiedData.data];
                     else
-                        warning('The copied row data was sourced froma different table.');
+                        warndlg('The copied row data was sourced froma different table.');
                         return;
                     end    
                     
@@ -1361,7 +1783,7 @@ classdef model_TFN_gui < model_gui_abstract
                         end
                     end
                     % Update row numbers.
-                    nrows = size(tableObj,1);
+                    nrows = size(tableObj.Data,1);
                     tableObj.RowName = mat2cell([1:nrows]',ones(1, nrows));
                         
                 case 'Insert row below selection'    
@@ -1381,7 +1803,7 @@ classdef model_TFN_gui < model_gui_abstract
                         end
                     end
                     % Update row numbers.
-                    nrows = size(tableObj,1);
+                    nrows = size(tableObj.Data,1);
                     tableObj.RowName = mat2cell([1:nrows]',ones(1, nrows));
 
                 case 'Delete selected rows'    
@@ -1397,7 +1819,9 @@ classdef model_TFN_gui < model_gui_abstract
     methods(Static, Access=private)  
         function stringCell = cell2string(cellData, colnames) 
                 % Ignore first column of it is for row selection
-                if strcmpi(colnames(1),'Select')
+                if isempty(colnames)
+                    startCol = 1; 
+                elseif strcmpi(colnames(1),'Select')
                     startCol = 2;                    
                 else
                     startCol = 1;

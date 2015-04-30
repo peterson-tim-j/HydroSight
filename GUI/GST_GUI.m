@@ -105,7 +105,7 @@ classdef GST_GUI < handle
             this.figure_Layout.SelectedChild = 1;
            
             % Create Default object for a model;
-            this.models{1} = GST_GUI_data();
+            %this.models{1} = GST_GUI_data();
 
 %%          Layout Tab1 - Project description
             %------------------------------------------------------------------
@@ -313,7 +313,7 @@ classdef GST_GUI < handle
                 'String',{'Data & residuals', 'Simulation time series plot','Residuals time series plot','Histogram of calib. residuals','Histogram of eval. residuals','Scatter plot of obs. vs model','Scatter plot of residuals vs obs','Variogram of residuals','(none)'}, ...
                 'Value',3,'Callback', @this.modelCalibration_onResultsSelection);         
             this.tab_ModelCalibration.resultsOptions.box = vbox2t3;
-            this.tab_ModelCalibration.resultsOptions.plots.panel = uiextras.BoxPanel('Parent', vbox2t3 );
+            this.tab_ModelCalibration.resultsOptions.plots.panel = uiextras.BoxPanel('Parent', vbox2t3 );            
             
             this.tab_ModelCalibration.resultsOptions.dataTable.box = uiextras.Grid('Parent', vbox2t3,'Padding', 3, 'Spacing', 3);
             this.tab_ModelCalibration.resultsOptions.dataTable.table = uitable('Parent',this.tab_ModelCalibration.resultsOptions.dataTable.box, ...
@@ -413,8 +413,7 @@ classdef GST_GUI < handle
                 'TooltipString', 'Results data from the model simulation.');  
             
             this.tab_ModelSimulation.resultsOptions.box = vbox2t4;
-            this.tab_ModelSimulation.resultsOptions.plots.panel = uiextras.BoxPanel('Parent', vbox2t4);                                  
-            this.tab_ModelSimulation.resultsOptions.legend.panel = uiextras.BoxPanel('Parent', vbox2t4);                                  
+            this.tab_ModelSimulation.resultsOptions.plots.panel = uiextras.BoxPanel('Parent', vbox2t4);                                              
             
             % Set box sizes
             set(hbox1t4, 'Sizes', [-2 -1]);
@@ -663,6 +662,8 @@ classdef GST_GUI < handle
                                 warndlg('Unknown model type selected.');
                         end
 
+                        % Set the previouslt input model oprions
+                        setModelOptions(this.tab_ModelConstruction.modelTypes.model_TFN.obj, data{irow,8})
                         
                          % Show model type options.
                          this.tab_ModelConstruction.modelOptions.vbox.Heights = [0; 0;  -1];
@@ -892,11 +893,20 @@ classdef GST_GUI < handle
                         
                         % Add data to the table.
                         this.tab_ModelCalibration.resultsOptions.dataTable.table.Data = tableData;                    
-                    case {2, 3, 4, 5, 6, 7, 8, 9}
+                    case {2, 3, 4, 5, 6, 7, 8}
                         % Create an axis handle for the figure.
-                        axisHandle = axes( 'Parent', this.tab_ModelCalibration.resultsOptions.plots.panel);
-                        % Show the calibration plots
-                        calibrateModelPlotResults(this.models{modelInd,1}, axisHandle , results_item-1);
+                        delete( findobj(this.tab_ModelCalibration.resultsOptions.plots.panel.Children,'type','axes'));
+                        delete( findobj(this.tab_ModelCalibration.resultsOptions.plots.panel.Children,'type','legend'));     
+                        delete( findobj(this.tab_ModelCalibration.resultsOptions.plots.panel.Children,'type','uipanel'));     
+                        h = uipanel('Parent', this.tab_ModelCalibration.resultsOptions.plots.panel );
+                        axisHandle = axes( 'Parent', h);
+                        % Show the calibration plots. NOTE: QQ plot type
+                        % fails so is skipped
+                        if results_item<=5
+                            calibrateModelPlotResults(this.models{modelInd,1}, results_item-1, axisHandle);
+                        else
+                            calibrateModelPlotResults(this.models{modelInd,1}, results_item, axisHandle);
+                        end
 
                     case 9
                         % do nothing
@@ -1194,28 +1204,27 @@ classdef GST_GUI < handle
                         % Determine the number of plots to create.
                         nsubPlots = size(this.models{modelInd,1}.simulationResults{simInd,1}.head,2) - 1;
                         
-                        % Delete existing uipanels                        
-                        
+                        % Delete existing panels
+                        delete( findobj(this.tab_ModelSimulation.resultsOptions.plots.panel.Children,'type','panel'));
+                        delete(findobj(this.tab_ModelSimulation.resultsOptions.plots.panel.Children,'type','uipanel'))
+                                                
                         % Add uipanel and axes for each plot
-                        panelHeights = [];
-                        for i=1: nsubPlots
-                            
-                            h = uipanel('Parent',this.tab_ModelSimulation.resultsOptions.plots.panel);
-                            axisHandles{i} = axes( 'Parent', h);
-                            
-                            h = uipanel('Parent',this.tab_ModelSimulation.resultsOptions.plots.panel);
-                            legendHandles{i} = axes( 'Parent', h);
-                            
-                            panelHeights  = [panelHeights -1 30];
+                        for i=1:nsubPlots
+                            h = uipanel('Parent',this.tab_ModelSimulation.resultsOptions.plots.panel, 'Visible','off');
+                            axisHandles{i} = axes( 'Parent',h);
                         end
                         
-                        % Create an axis handle for the figure.
-                        %plotaxisHandle = axes( 'Parent', this.tab_ModelSimulation.resultsOptions.plots.panel);
-                        %legendAxisHandle = axes( 'Parent', this.tab_ModelSimulation.resultsOptions.legend.panel);
-                        % Show the simulation plots
-                        solveModelPlotResults(this.models{irow,1}, simLabel, axisHandles);
+                        % Edit position and visibility of each panel
+                        for i=1:nsubPlots                            
+                            set(this.tab_ModelSimulation.resultsOptions.plots.panel.Children(nsubPlots-i+1), 'BorderType','none');
+                            set(this.tab_ModelSimulation.resultsOptions.plots.panel.Children(nsubPlots-i+1), 'Units','normalized');
+                            set(this.tab_ModelSimulation.resultsOptions.plots.panel.Children(nsubPlots-i+1), 'Position',[0.01, 1-i/nsubPlots, 0.99, 1/nsubPlots - 0.01]);
+                            set(this.tab_ModelSimulation.resultsOptions.plots.panel.Children(nsubPlots-i+1), 'Visible','on');
+                        end
+                            
+                        % Plot the simulation data using the axis handles
+                        solveModelPlotResults(this.models{modelInd,1}, simLabel, axisHandles, []);
                         
-                        this.tab_ModelSimulation.resultsOptions.plots.panel.Heights = panelHeights;
                     case 3
                         % do nothing
                 end
@@ -1232,9 +1241,9 @@ classdef GST_GUI < handle
                          
             switch listSelection
                 case 1 %Data 
-                    this.tab_ModelSimulation.resultsOptions.box.Heights = [30 20 0 -1];
-                case 2 %Summary plots
                     this.tab_ModelSimulation.resultsOptions.box.Heights = [30 20 -1 0];
+                case 2 %Summary plots
+                    this.tab_ModelSimulation.resultsOptions.box.Heights = [30 20 0 -1];
                 case 3 %None
                     this.tab_ModelSimulation.resultsOptions.box.Heights = [30 20 0 0];
             end
@@ -1394,14 +1403,21 @@ classdef GST_GUI < handle
                 
                 % Find index to the model to be built has already been
                 % built. If so, find the index. Else increment the index.
-                if iscell(this.models)
-                    ind = cellfun(@(x) strcmp(model_label, x.model_label), this.models);
+                if isempty(this.models)
+                    this.models = cell(1,1);
+                    ind = 1;                    
+                elseif iscell(this.models)
+                    ind = false(size(this.models));
+                    for j=1: length(this.models)   
+                        try
+                            ind(j,1) = strcmp(model_label, this.models{j}.model_label);
+                        catch
+                            % do nothing
+                        end
+                    end
                     if all(~ind)
                         ind = size(this.models,1)+1;
                     end    
-                else
-                    this.models = cell(1,1);
-                    ind = 1;
                 end
 
                 
@@ -1577,14 +1593,14 @@ classdef GST_GUI < handle
                 ind = cellfun(@(x) strcmp(calibLabel, x), calibLabel_all);
                 if all(~ind)
                    nModelsSimFailed = nModelsSimFailed +1;
-                   hObject.Data{i,11} = ['<html><font color = "#FF0000">Sim. failed - Model could not be found. Please rebuild and calibrate it.</font></html>'];
+                   this.tab_ModelSimulation.Table.Data{i,11} = ['<html><font color = "#FF0000">Sim. failed - Model could not be found. Please rebuild and calibrate it.</font></html>'];
                    continue;
                 end                
                 
                 % Check there is a simulation label.
                 if isempty(simLabel)
                    nModelsSimFailed = nModelsSimFailed +1;
-                   hObject.Data{i,11} = ['<html><font color = "#FF0000">Sim. failed - No simulation label.</font></html>'];
+                   this.tab_ModelSimulation.Table.Data{i,11} = ['<html><font color = "#FF0000">Sim. failed - No simulation label.</font></html>'];
                    continue;
                 end                      
                 
@@ -1595,7 +1611,7 @@ classdef GST_GUI < handle
                     %-----------------------
                     % Check fname file exists.                    
                     if exist(forcingdata_fname,'file') ~= 2;                   
-                        hObject.Data{i,11} = '<html><font color = "#FF0000">Sim. failed - The new forcing date file could not be open.</font></html>';
+                        this.tab_ModelSimulation.Table.Data{i,11} = '<html><font color = "#FF0000">Sim. failed - The new forcing date file could not be open.</font></html>';
                         nModelsSimFailed = nModelsSimFailed +1;
                         continue;
                     end
@@ -1604,7 +1620,7 @@ classdef GST_GUI < handle
                     try
                        forcingData = readtable(forcingdata_fname);
                     catch                   
-                        hObject.Data{i,11} = '<html><font color = "#FF0000">Sim. failed - The new forcing date file could not be imported.</font></html>';
+                        this.tab_ModelSimulation.Table.Data{i,11} = '<html><font color = "#FF0000">Sim. failed - The new forcing date file could not be imported.</font></html>';
                         nModelsSimFailed = nModelsSimFailed +1;
                         continue;                        
                     end                    
@@ -1629,7 +1645,7 @@ classdef GST_GUI < handle
 
                % Check the date timestep
                if isempty(simTimeStep) && (simStartDate <obsHeadStartDate || simEndDate > obsHeadEndDate)
-                    hObject.Data{i,11} = '<html><font color = "#FF0000">Sim. failed - The time step must be specified when the simulation dates are outside of the observed head period.</font></html>';
+                    this.tab_ModelSimulation.Table.Data{i,11} = '<html><font color = "#FF0000">Sim. failed - The time step must be specified when the simulation dates are outside of the observed head period.</font></html>';
                     nModelsSimFailed = nModelsSimFailed +1;
                     continue;                        
                end               

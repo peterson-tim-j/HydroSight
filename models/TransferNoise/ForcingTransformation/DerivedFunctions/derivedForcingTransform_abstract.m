@@ -13,6 +13,8 @@ classdef derivedForcingTransform_abstract < handle
     methods(Static, Abstract=true)
         [variable_names] = inputForcingData_required()
         [variable_names] = outputForcingdata_options()
+        [options, colNames, colFormats, colEdits, toolTip] = modelOptions(sourceForcingTransformName)
+        modelDescription = modelDescription()
     end
     
     methods(Abstract)
@@ -21,8 +23,14 @@ classdef derivedForcingTransform_abstract < handle
         
         % Get model parameters
         [params, param_names] = getParameters(obj)
-
-        %% Assess if matrix of parameters is valid. This is used by the calibration ansl allows for 
+        
+        % Return pre-set physical limits to the function parameters.
+        [params_upperLimit, params_lowerLimit] = getParameters_physicalLimit(obj)
+        
+        % Return pre-set plausible limits to the function parameters.
+        [params_upperLimit, params_lowerLimit] = getParameters_plausibleLimit(obj)        
+        
+        % Assess if matrix of parameters is valid. This is used by the calibration ansl allows for 
         % complex parameter constraints to be met.
         isValidParameter = getParameterValidity(obj, params, param_names)
 
@@ -34,10 +42,9 @@ classdef derivedForcingTransform_abstract < handle
         setTransformedForcing(obj, t, forceRecalculation)        
         
         % Get tranformed forcing data
-        [forcingData, isDailyIntegralFlux] = getTransformedForcing(obj, t)        
+        [forcingData, isDailyIntegralFlux] = getTransformedForcing(obj, outputVariableName)        
+
         
-        % Return pre-set physical limits to the function parameters.
-        [params_upperLimit, params_lowerLimit] = getParameters_physicalLimit(obj, param_name)
     end
     
 end
