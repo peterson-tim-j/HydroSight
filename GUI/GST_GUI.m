@@ -1446,17 +1446,19 @@ classdef GST_GUI < handle
                         this.tab_ModelCalibration.Table.Data = [this.tab_ModelCalibration.Table.Data; ...
                         cell(1,13)];
                         isModelListed = size(this.tab_ModelCalibration.Table.Data,1);
+                        
+                        this.tab_ModelCalibration.Table.Data{isModelListed,2} = ['<html><font color = "#808080">',model_label,'</font></html>'];
+                        this.tab_ModelCalibration.Table.Data{isModelListed,3} = ['<html><font color = "#808080">',boreID,'</font></html>'];
+                        this.tab_ModelCalibration.Table.Data{isModelListed,4} = ['<html><font color = "#808080">',datestr(obshead_start,'dd-mmm-yyyy'),'</font></html>'];
+                        this.tab_ModelCalibration.Table.Data{isModelListed,5} = ['<html><font color = "#808080">',datestr(obshead_end,'dd-mmm-yyyy'),'</font></html>'];
+                        this.tab_ModelCalibration.Table.Data{isModelListed,6} = datestr(obshead_start,'dd-mmm-yyyy');
+                        this.tab_ModelCalibration.Table.Data{isModelListed,7} = datestr(obshead_end,'dd-mmm-yyyy');
+                        this.tab_ModelCalibration.Table.Data{isModelListed,8} = 1;
                     else
-                        this.tab_ModelCalibration.Table.Data(isModelListed,:) = '';
+                        this.tab_ModelCalibration.Table.Data{isModelListed,3} = ['<html><font color = "#808080">',boreID,'</font></html>'];
+                        this.tab_ModelCalibration.Table.Data{isModelListed,4} = ['<html><font color = "#808080">',datestr(obshead_start,'dd-mmm-yyyy'),'</font></html>'];
+                        this.tab_ModelCalibration.Table.Data{isModelListed,5} = ['<html><font color = "#808080">',datestr(obshead_end,'dd-mmm-yyyy'),'</font></html>'];
                     end
-                    this.tab_ModelCalibration.Table.Data{isModelListed,2} = ['<html><font color = "#808080">',model_label,'</font></html>'];
-                    this.tab_ModelCalibration.Table.Data{isModelListed,3} = ['<html><font color = "#808080">',boreID,'</font></html>'];
-                    this.tab_ModelCalibration.Table.Data{isModelListed,4} = ['<html><font color = "#808080">',datestr(obshead_start,'dd-mmm-yyyy'),'</font></html>'];
-                    this.tab_ModelCalibration.Table.Data{isModelListed,5} = ['<html><font color = "#808080">',datestr(obshead_end,'dd-mmm-yyyy'),'</font></html>'];
-                    this.tab_ModelCalibration.Table.Data{isModelListed,6} = datestr(obshead_start,'dd-mmm-yyyy');
-                    this.tab_ModelCalibration.Table.Data{isModelListed,7} = datestr(obshead_end,'dd-mmm-yyyy');
-                    this.tab_ModelCalibration.Table.Data{isModelListed,8} = 1;
-                    this.tab_ModelCalibration.Table.Data{isModelListed,9} = '<html><font color = "#FF0000">Not calibrated.</font></html>';
                                
                     this.tab_ModelConstruction.Table.Data{i, 9} = '<html><font color = "#008000">Model built.</font></html>';
                     nModelsBuilt = nModelsBuilt + 1; 

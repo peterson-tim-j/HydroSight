@@ -567,6 +567,7 @@ classdef model_TFN_gui < model_gui_abstract
                 transformForcingdata = '';
                 transformOutputdata = '';
                 transformInputcomponent = '';
+                transformOptions = '';
                 
                 % Get each term for the component
                 weightingFunctionName_filt = cellfun( @(x) strcmp(x, 'weightingfunction'), modelOption_tmp(:,2));
