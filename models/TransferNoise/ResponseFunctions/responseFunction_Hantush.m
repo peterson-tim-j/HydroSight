@@ -177,6 +177,15 @@ classdef responseFunction_Hantush < responseFunction_FerrisKnowles
             S= 4 .* 10.^obj.beta .* T;    
             Leakage = 1./(S .* 10.^obj.gamma);            
 
+        end   
+        
+        function [params, param_names] = getParametersDerived(obj)            
+            T= 1./(4.*pi.*10.^obj.alpha);
+            S= 4 .* 10.^obj.beta .* T;    
+            Leakage = 1./(S .* 10.^obj.gamma);       
+            
+            params = [T;S; Leakage];
+            param_names = {'Transmissivity (Head units/day)'; 'Storativity'; 'Leakage Param.'};
         end        
     end
 end

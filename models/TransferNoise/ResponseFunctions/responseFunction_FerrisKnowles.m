@@ -309,9 +309,12 @@ classdef  responseFunction_FerrisKnowles < responseFunction_abstract
         
         % Extract the estimates of aquifer properties from the values of
         % alpha, beta and gamma.
-        function [T,S] = get_AquiferProperties(obj)
+        function [params, param_names] = getParametersDerived(obj)
             T= 1/(4*pi*10^obj.alpha);
             S= 4 * 10^obj.beta * T;            
+            
+            params = [T;S];
+            param_names = {'Transmissivity (Head units/day)'; 'Storativity'};
         end
     end
 end

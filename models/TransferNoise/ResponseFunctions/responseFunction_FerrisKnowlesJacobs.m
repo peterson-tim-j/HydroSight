@@ -87,9 +87,12 @@ classdef  responseFunction_FerrisKnowlesJacobs < responseFunction_FerrisKnowles 
         
         % Extract the estimates of aquifer properties from the values of
         % alpha, beta and zeta.
-        function [T,S, Ksat] = get_AquiferProperties(obj)            
-            [T,S] = get_AquiferProperties@responseFunction_FerrisKnowles(obj);
-            Ksat = T./10.^obj.zeta;          
+        function [params, param_names] = getParametersDerived(obj)            
+            [params, param_names] = getParametersDerived@responseFunction_FerrisKnowles(obj);
+            Ksat = T./10.^obj.zeta;   
+            
+            params = [params(1); params(2); Ksat];
+            param_names = {param_names{1}; param_names{2}; 'Lateral conductivity'};
         end
     end
 end

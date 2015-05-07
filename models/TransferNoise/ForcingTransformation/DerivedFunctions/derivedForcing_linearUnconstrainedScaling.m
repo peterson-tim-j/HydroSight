@@ -140,7 +140,7 @@ classdef derivedForcing_linearUnconstrainedScaling < derivedForcingTransform_abs
         % Calculate and set tranformed forcing from input climate data
         function setTransformedForcing(obj, t, forceRecalculation)
             % Get the source model transformation calculation.
-            [forcingData, obj.variables.isDailyIntegralFlux] = getTransformedForcing(obj.settings.sourceObject, obj.settings.sourceObject_outputvariable);
+            [forcingData, obj.variables.isDailyIntegralFlux] = getTransformedForcing(obj.settings.sourceObject, obj.settings.sourceObject_outputvariable{1});
             
             % Filter the forcing data to input t.
             filt_time = obj.settings.forcingData(:,1) >= t(1) & obj.settings.forcingData(:,1) <= t(end);

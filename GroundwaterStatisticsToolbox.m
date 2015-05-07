@@ -386,8 +386,7 @@ classdef GroundwaterStatisticsToolbox < handle
         end
 
 %% Solve the model        
-%        function h = solveModel(obj, time_points, doClimateLagCalcuations)
-        function h = solveModel(obj, time_points, forcingData, forcingData_colnames, simulationLabel)
+        function h = solveModel(obj, time_points, forcingData, forcingData_colnames, simulationLabel, doKrigingOnResiduals)
 % Solve the model and plot modelled and observed heads.
 %
 % Syntax:
@@ -446,6 +445,10 @@ classdef GroundwaterStatisticsToolbox < handle
            if isempty(simulationLabel)
                simulationLabel = '(No label)';
            end
+           if isempty(doKrigingOnResiduals) || nargin==5
+               doKrigingOnResiduals = false;
+           end
+           
            if iscell(obj.simulationResults)
                
                % Find simulation label
@@ -505,12 +508,40 @@ classdef GroundwaterStatisticsToolbox < handle
                
               error(ME.message); 
            end
-                      
+              
+           
+           % Krige the residuals so that the simulation honours observation
+           % points.
+           krigingVariance=[];
+           if doKrigingOnResiduals && isempty(forcingData)
+              % Call model interpolation
+              maxKrigingObs = min(10,ceil(0.1*length(getObservedHead(obj))));
+              useModel = false;
+              head_estimates = interpolateData(obj, time_points, maxKrigingObs, useModel);
+              
+              % Calculate the contribution from interpolation
+              kriging_contribution = head_estimates(:,2) - obj.simulationResults{simInd,1}.head(:,2);
+              
+              % Add interpolated head into the simulation results.
+              obj.simulationResults{simInd,1}.head(:,2) = head_estimates(:,2);
+              
+              % Store the kriging variance.
+              krigingVariance = head_estimates(:,end);              
+               
+           end
+           
            % Add columns to output for the noise componant.
            if ~isempty(obj.simulationResults{simInd,1}.noise)
                h = [obj.simulationResults{simInd,1}.head(:,1:2), obj.simulationResults{simInd,1}.head(:,2) - obj.simulationResults{simInd,1}.noise(:,2), obj.simulationResults{simInd,1}.head(:,2) + obj.simulationResults{simInd,1}.noise(:,3)];
            else
                h = [obj.simulationResults{simInd,1}.head(:,1:2), zeros(size(obj.simulationResults{simInd,1}.head(:,2),1),2)];
+           end
+           
+           % Add contribution from kriging plus the variance
+           if ~isempty(krigingVariance);               
+               obj.simulationResults{simInd,1}.head = [obj.simulationResults{simInd,1}.head, kriging_contribution, krigingVariance];
+               obj.simulationResults{simInd,1}.colnames = {obj.simulationResults{simInd,1}.colnames{:}, 'Kriging Adjustment','Kriging Variance'};
+               h = obj.simulationResults{simInd,1}.head;
            end
            
            % Add the original forcing back into the model.
@@ -814,7 +845,7 @@ classdef GroundwaterStatisticsToolbox < handle
             % Call model at target date and remove the first column
             % containing the date (it is added back later)
             if useModel                
-                head_estimates= solveModel(obj, targetDates, [], [],'');
+                head_estimates= solveModel(obj, targetDates, [], [],'', false);
                 head_estimates = head_estimates(:,2);
                 krigingData = obj.calibrationResults.data.modelledHead_residuals;
 
@@ -1231,9 +1262,9 @@ classdef GroundwaterStatisticsToolbox < handle
             % Calculate calibration and evaluation heads
             %--------------------------------------------------------------            
             try                
-                head_est = solveModel(obj, obsHead(:,1), [], [], '' );
+                head_est = solveModel(obj, obsHead(:,1), [], [], '', false );
             catch
-                head_est = solveModel(obj, obsHead(:,1), [], [], '');
+                head_est = solveModel(obj, obsHead(:,1));
             end
                 
             % Calib residuals.

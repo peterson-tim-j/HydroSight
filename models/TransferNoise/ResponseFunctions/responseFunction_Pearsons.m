@@ -322,6 +322,36 @@ classdef responseFunction_Pearsons < responseFunction_abstract
            result = h_star_est(:,end);
         end   
         
+        % Return the derived lag time (ie peak of function)
+        function [params, param_names] = getParametersDerived(obj)
+        
+            % Back-transform parameter 'n' from natural log domain to
+            % non-transformed domain. This transformation of n was
+            % undertaken because ocassionally the optimal value of n was
+            % very large eg 200. By transforming it as below, such large
+            % values do not occur in the transformed domain and this allows
+            % for a greater parameter range to be more easily accessed by
+            % the gradient based calibration.
+            n_backTrans = 10^(obj.n);    
+            
+            % Back transform 'b'
+            b_backTrans = 10^(obj.b);
+                        
+            % If n>1, then theta will have a value of 't' at which the
+            % gradient is zero. By putting this value of 't' into theta
+            % then value at the peak can be determined. 
+            if n_backTrans>1
+                t_peak = (n_backTrans - 1)/b_backTrans;
+                theta_peak =  t_peak^(n_backTrans-1) * exp( -b_backTrans * t_peak );
+            else
+                theta_peak  = 0;
+            end
+            
+            params = theta_peak;
+            param_names = {'Lag time (days)'};
+            
+        end
+        
     end
 
 end

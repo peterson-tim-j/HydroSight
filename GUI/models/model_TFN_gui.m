@@ -797,6 +797,11 @@ classdef model_TFN_gui < model_gui_abstract
                    if k==2
                         modelOptionsArray = strcat(modelOptionsArray, sprintf(' ''%s'', ''inputcomponent'',  ''%s'';',cellData{i,2},cellData{i,4} ));
                    end
+
+                   % Add model options 
+                   if ~isempty(cellData{i,5})
+                        modelOptionsArray = strcat(modelOptionsArray, sprintf(' ''%s'', ''options'', ''%s'';',cellData{i,2},cellData{i,4+k} )); 
+                   end                   
                                       
                    % Convert forcing data to a cell array
                    try
@@ -805,6 +810,11 @@ classdef model_TFN_gui < model_gui_abstract
                        forcingColNames =  cellData(i,3+k);
                    end
 
+                   %Check if there is any focring data.
+                   if isempty(forcingColNames{1})
+                       continue;
+                   end
+                   
                    % Loop through each forcing data input.
                    for j=1:length(forcingColNames)
 
@@ -866,12 +876,6 @@ classdef model_TFN_gui < model_gui_abstract
                        else                           
                             modelOptionsArray = strcat(modelOptionsArray, sprintf(' ''%s'';',forcingColNames_tmp ));
                        end                       
-                   end
-
-
-                   % Add model options 
-                   if ~isempty(cellData{i,5})
-                        modelOptionsArray = strcat(modelOptionsArray, sprintf(' ''%s'', ''options'', ''%s'';',cellData{i,2},cellData{i,4+k} )); 
                    end
 
                 end
@@ -1614,6 +1618,11 @@ classdef model_TFN_gui < model_gui_abstract
             if size(get(hObject,'Data'),1)==0
                 return
             end
+            
+            % Return if the select column is the corrent column
+            if icol==1
+                return;
+            end
            
             % Undertake table/list specific operations.
             switch eventdata.Source.Tag;
@@ -1657,7 +1666,7 @@ classdef model_TFN_gui < model_gui_abstract
                        componentName = eventdata.NewData;               
                        a.(componentName) = 1;
                        clear a
-                   catch
+                   catch ME
                        this.weightingFunctions.tbl.Data{irow ,2} = eventdata.PreviousData;
                        warndlg('The component name is invalid. It must contain only letters, numbers and under-scores and cannot start with a number.');
                        return;
