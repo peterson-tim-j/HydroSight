@@ -36,7 +36,6 @@ classdef model_TFN_gui < model_gui_abstract
             %--------------------------------------------------------------
             % Get the types of weighting function and derived weighting function
             if ~isdeployed
-                display('DBG: App is not deployed');
                 warning('off');
                 forcingFunctions = findClassDefsUsingAbstractName( 'forcingTransform_abstract', 'model_TFN');
                 derivedForcingFunctions = findClassDefsUsingAbstractName( 'derivedForcingTransform_abstract', 'model_TFN');
@@ -52,6 +51,7 @@ classdef model_TFN_gui < model_gui_abstract
                 forcingFunctions = {'climateTransform_soilMoistureModels'};                
                 derivedForcingFunctions = {'derivedForcing_linearUnconstrainedScaling'};                
                 derivedWeightFunctions = {  'derivedResponseFunction_abstract', ...
+                                            'derivedweighting_UnconstrainedRescaled', ...
                                             'derivedweighting_PearsonsNegativeRescaled', ...
                                             'derivedweighting_PearsonsPositiveRescaled'};
                 weightFunctions = {         'responseFunction_abstract', ...
@@ -72,7 +72,16 @@ classdef model_TFN_gui < model_gui_abstract
             rnames_forcing = {'1'};
             cdata_forcing = cell(1,4);
             toolTip_forcing = ['<html>This table (optional) allows the transformation of the input forcing data (e.g. rainfall to recharge). <br>', ...
-                          'Below are tips for the table:<br>', ... 
+                          'To build a transformation function, you''ll need to select a function and define the input forcing data <br>', ...                 
+                          'that is to be transformed. Below are steps to get started transforming rainfall and PET: <br>', ...
+                          '<ol type="1">', ...
+                          '<li> select the function "climateTransform_soilMoistureModels". <br>', ...
+                          '<li> place the cursor into the column "Input Data". This should show a new window at the bottom right. <br>', ... 
+                          '<li> use the new window to defined the input forcing data (right column) for the required input data (left column). <br>', ...
+                          '<li> place the cursor into column "Options" to display the window for seeing the form of the soil moisture function. <br>', ...
+                          '<li> in selecting the model form, trials have found that al least SMSC and beta should be calibrated. <br> <br>', ...
+                          '</ol>', ...
+                          'Below are additional tips for the table:<br>', ... 
                           '<ul type="bullet type">', ...
                           '<li>Different functions can be selected for the transformation.', ...
                           '<li>The transformed forcing data is selected in step 2 or 4 (not in this step).', ...
@@ -94,10 +103,21 @@ classdef model_TFN_gui < model_gui_abstract
             cedit_forcingDerived = logical([1 1 1 1 1]);
             rnames_forcingDerived = {'1'};
             cdata_forcingDerived = cell(1,5);
-            toolTip_forcingDerived = ['<html>This table (optional) allows the transformation of transformed forcing data <br>', ...
-                          'using a previously defined transformation function output as an input to this function. This allows,<br>', ...
-                          'for example, the simulation of landuse change altering the recharge or phreatic ET.<br>', ...
-                          'Below are tips for the table:<br>', ... 
+            toolTip_forcingDerived = ['<html>This table (optional) allows the transformation of derived forcing data (e.g. recharge) <br>', ...
+                          'and can be used to estimate the impacts from, say, land use change on the head.  To build such a transformation <br>', ...
+                          'function, you''ll need to first build a transformation function (step 1) and then within this window select a <br>', ...
+                          'derived transformation forcing function, the source transformation function (i.e. from step 1), the input forcing <br>', ...                 
+                          'data to be used and then the data to be taken from the source transformation fucntion. Below are steps to get started <br>', ...
+                          'simulating the reduction in normalised free-drainage from revegetation: <br>', ...
+                          '<ol type="1">', ...
+                          '<li> select the derived transformation function "derivedForcing_linearUnconstrainedScaling". <br>', ...
+                          '<li> select the source transformation function "climateTransform_soilMoistureModels". <br>', ...
+                          '<li> place the cursor into the column "Input Data". This should show a new window at the bottom right. <br>', ... 
+                          '<li> use the new window to select a fractional vegetation change input forcing data (right column) for the required input data (left column). <br>', ...
+                          '<li> place the cursor into column "Options" to display the window for selecting the source function forcing data. <br>', ...
+                          '<li> use the new window to select "normalised free-drainage". <br> <br>', ...
+                          '</ol>', ...
+                          'Below are additional tips for the table:<br>', ... 
                           '<ul type="bullet type">', ...
                           '<li>Different functions can be selected for the transformation.', ...
                           '<li>The transformed forcing data is selected in step 2 or 4 (not in this step).', ...
@@ -120,7 +140,17 @@ classdef model_TFN_gui < model_gui_abstract
             rnames_weighting = {'1'};
             cdata_weighting = cell(1,5);
             toolTip_weighting = ['<html>This table (required) allows the weighting of forcing data (e.g. rainfall, recharge or pumping). <br>', ...
-                          'into a groundwater head change. Below are tips for the table:<br>', ... 
+                          'into a groundwater head change. To build a weighting function, you''ll need to define the name of the model <br>', ...
+                          'componant, select a function type and then define the data to be weighted.  Below are steps to get started <br>', ...
+                          '<ol type="1">', ...
+                          '<li> input a name for the componant, e.g.  "Rainfall". <br>', ...
+                          '<li> select the weighting function "responseFunction_Pearsons". <br>', ...
+                          '<li> place the cursor into the column "Input Data". This should show a new window at the bottom right. <br>', ... 
+                          '<li> use the new window to select the data to be weighted. Importantly, this can be input data or transformed forcing data. <br>', ...
+                          '<li> If you select transformed data from "climateTransform_soilMoistureModels", consider selecting normalised free drainage. <br>', ...
+                          '</ol>', ...
+                          ' <br> ', ...
+                          'Below are additional tips for the table:<br>', ... 
                           '<ul type="bullet type">', ...
                           '<li>Each component must be given a name e.g. pumping.',...
                           '<li>A range of weighting functions can be selected.', ...
@@ -147,7 +177,16 @@ classdef model_TFN_gui < model_gui_abstract
             toolTip_weightingDerived = ['<html>This table (optional) allows weighting of forcing data (e.g. rainfall, recharge or pumping). <br>', ...
                           'using a previously defined weighting function. This allows, for example, the simulation of<br>', ...
                           'evaporative drawdown or landuse change by only the re-scaling of a previously defined weighting<br>', ...
-                          'function (such the Pearsons Function). Below are tips for the table:<br>', ... 
+                          'function (such the Pearsons Function). Below are steps to get started <br>', ...
+                          '<ol type="1">', ...
+                          '<li> input a name for the derived componant, e.g.  "Recharge_LandChange". <br>', ...                          
+                          '<li> select the derived weighting function "derivedweighting_PearsonsNegativeRescaled". <br>', ...
+                          '<li> select the source weighting componant, i.e. a Pearsons function from step 2. <br>', ...
+                          '<li> place the cursor into the column "Input Data". This should show a new window at the bottom right. <br>', ... 
+                          '<li> use the new window to select the scaled forcing data "XXX" (derived instep 3). <br>', ...
+                          '</ol>', ...
+                          ' <br> ', ...
+                          'Below are additional tips for the table:<br>', ...                                                     
                           '<ul type="bullet type">', ...
                           '<li>Each derived weighting function component must be given a name e.g. Phreatic_ET.', ...
                           '<li>A range of derived weighting functions can be selected.', ...
@@ -529,7 +568,11 @@ classdef model_TFN_gui < model_gui_abstract
         function setModelOptions(this, modelOptionsStr)
             
             % Convert model options string to a cell array
-            modelOptions = eval(modelOptionsStr);                  
+            if isempty(modelOptionsStr)
+                modelOptions = cell(0,3);
+            else
+                modelOptions = eval(modelOptionsStr);                  
+            end
             
             % Get the name of all model components
             componentNames = unique( modelOptions(:,1));
@@ -537,15 +580,15 @@ classdef model_TFN_gui < model_gui_abstract
             % Initialise some variables            
             transformFunctionName = [];
             transformForcingdata = [];
-            transformOutputdata = [];
+            forcingDataforWeighting = [];
             transformOptions = [];
             transformInputcomponent = [];
             
             % Clear GUI tables
-            this.weightingFunctions.tbl.Data = cell(0, size(this.weightingFunctions.tbl.Data,2));
-            this.derivedWeightingFunctions.tbl.Data = cell(0, size(this.derivedWeightingFunctions.tbl.Data,2));
-            this.forcingTranforms.tbl.Data = cell(0, size(this.weightingFunctions.tbl.Data,2));
-            this.derivedForcingTranforms.tbl.Data = cell(0, size(this.weightingFunctions.tbl.Data,2));
+            this.weightingFunctions.tbl.Data = cell(0, 5);
+            this.derivedWeightingFunctions.tbl.Data = cell(0, 6);
+            this.forcingTranforms.tbl.Data = cell(0, 4);
+            this.derivedForcingTranforms.tbl.Data = cell(0, 5);
             
             % Loop through each weighting function and add the data to the
             % GUI table. Also, get the cell arrays for the transformation
@@ -565,7 +608,7 @@ classdef model_TFN_gui < model_gui_abstract
                 optionsName = '';
                 transformFunctionName = '';
                 transformForcingdata = '';
-                transformOutputdata = '';
+                forcingDataforWeighting = '';
                 transformInputcomponent = '';
                 transformOptions = '';
                 
@@ -595,7 +638,8 @@ classdef model_TFN_gui < model_gui_abstract
                 
                 % Check if the forcing data uses a transformation function.
                 % If so, extract the data and get the output required for
-                % the weighting function.
+                % the weighting function. Else if the forcing data is not
+                % empty, then assign the required input data.
                 hasTransformFunction = false;
                 isFullTransformationFunction = false;
                 if ~isempty(forcingdataName) && iscell(forcingdataName) && size(forcingdataName,2)==2
@@ -611,9 +655,9 @@ classdef model_TFN_gui < model_gui_abstract
                         transformForcingdata = forcingdataName{transformForcingdata_filt,2};
                     end
                 
-                    transformOutputdata_filt = cellfun( @(x) strcmp(x, 'outputdata'), forcingdataName(:,1));
-                    if any(transformOutputdata_filt )
-                        transformOutputdata = forcingdataName{transformOutputdata_filt,2};
+                    forcingDataforWeighting_filt = cellfun( @(x) strcmp(x, 'outputdata'), forcingdataName(:,1));
+                    if any(forcingDataforWeighting_filt )
+                        forcingDataforWeighting = forcingdataName{forcingDataforWeighting_filt,2};
                     end
                                         
                     transformOptions_filt = cellfun( @(x) strcmp(x, 'options'), forcingdataName(:,1));
@@ -630,10 +674,13 @@ classdef model_TFN_gui < model_gui_abstract
                     % is it just the output data for a tranformation model
                     % modle defined for another weighting function.
                     isFullTransformationFunction = true;
-                    if ~isempty(transformFunctionName) && ~isempty(transformOutputdata) && ...
+                    if ~isempty(transformFunctionName) && ~isempty(forcingDataforWeighting) && ...
                        isempty(transformForcingdata) && isempty(transformInputcomponent) && isempty(transformOptions)
                         isFullTransformationFunction = false;
                     end
+                elseif ~isempty(forcingdataName)
+                    % Data is assumed to be name of an input data column.
+                    forcingDataforWeighting = forcingdataName;                    
                 end
                 
                 % Add the weight function data to the GUI table. In doing
@@ -644,7 +691,7 @@ classdef model_TFN_gui < model_gui_abstract
                    if ind==1
                         this.weightingFunctions.tbl.Data = cell(1,size(this.weightingFunctions.tbl.Data,2)); 
                    else
-                       this.weightingFunctions.tbl.Data = [this.weightingFunctions.tbl.Data, cell(1,size(this.weightingFunctions.tbl.Data,2))]; 
+                       this.weightingFunctions.tbl.Data = [this.weightingFunctions.tbl.Data; cell(1,size(this.weightingFunctions.tbl.Data,2))]; 
                    end
                    this.weightingFunctions.tbl.Data{ind,2} = componentNames{i};
                    this.weightingFunctions.tbl.Data{ind,3} = weightingFunctionName;
@@ -653,16 +700,79 @@ classdef model_TFN_gui < model_gui_abstract
                    % Check if the input comes from the output of a
                    % transformation function.                   
                    if hasTransformFunction
-                       if iscell(transformOutputdata)
-                            this.weightingFunctions.tbl.Data{ind,4} = strcat( [transformFunctionName, ' : '], transformOutputdata);
+                       if iscell(forcingDataforWeighting)
+                           
+                            nForcingInputs = size(forcingDataforWeighting,1);
+                            LHS = cellstr(repmat([transformFunctionName, ' :'],nForcingInputs,1));
+                            switch nForcingInputs
+                                case 1;
+                                    LHS  = strcat(LHS, {' '});
+                                case 2;
+                                    LHS  = strcat(LHS, {' ';' '});
+                                case 3;
+                                    LHS  = strcat(LHS, {' ';' ';' '});
+                                case 4;
+                                    LHS  = strcat(LHS, {' ';' ';' ';' '});
+                                case 5;
+                                    LHS  = strcat(LHS, {' ';' ';' ';' ';' '});
+                                case 6;
+                                    LHS  = strcat(LHS, {' ';' ';' ';' ';' ';' '});
+                                case 7;
+                                    LHS  = strcat(LHS, {' ';' ';' ';' ';' ';' ';' '});
+                                case 8;
+                                    LHS  = strcat(LHS, {' ';' ';' ';' ';' ';' ';' ';' '});
+                                case 9;
+                                    LHS  = strcat(LHS, {' ';' ';' ';' ';' ';' ';' ';' ';' '});
+                                case 10;
+                                    LHS  = strcat(LHS, {' ';' ';' ';' ';' ';' ';' ';' ';' ';' '});
+                                otherwise
+                                    warndlg('A maximum of 10 forcing data inputs can be assigned to a weighting function')
+                                    nForcingInputs = 10;
+                            end
+
+                            forcingDataforWeighting = strcat( LHS, forcingDataforWeighting(1:nForcingInputs));
+                            forcingDataforWeighting = model_TFN_gui.cell2string(forcingDataforWeighting,'');
+                            this.weightingFunctions.tbl.Data{ind,4} = forcingDataforWeighting;
+                                                                                    
                        else
-                            this.weightingFunctions.tbl.Data{ind,4} = [transformFunctionName, ' : ', transformOutputdata];
+                            this.weightingFunctions.tbl.Data{ind,4} = [transformFunctionName, ' : ', forcingDataforWeighting];
                        end
                    else
-                       if iscell(transformOutputdata)
-                            this.weightingFunctions.tbl.Data{ind,4} = strcat( ['Input Data : ', transformOutputdata]);
+                       if iscell(forcingDataforWeighting)
+                           
+                            nForcingInputs = size(forcingDataforWeighting,1);
+                            LHS = cellstr(repmat('Input Data : ',nForcingInputs,1));
+                            switch nForcingInputs
+                                case 1;
+                                    LHS  = strcat(LHS, {' '});
+                                case 2;
+                                    LHS  = strcat(LHS, {' ';' '});
+                                case 3;
+                                    LHS  = strcat(LHS, {' ';' ';' '});
+                                case 4;
+                                    LHS  = strcat(LHS, {' ';' ';' ';' '});
+                                case 5;
+                                    LHS  = strcat(LHS, {' ';' ';' ';' ';' '});
+                                case 6;
+                                    LHS  = strcat(LHS, {' ';' ';' ';' ';' ';' '});
+                                case 7;
+                                    LHS  = strcat(LHS, {' ';' ';' ';' ';' ';' ';' '});
+                                case 8;
+                                    LHS  = strcat(LHS, {' ';' ';' ';' ';' ';' ';' ';' '});
+                                case 9;
+                                    LHS  = strcat(LHS, {' ';' ';' ';' ';' ';' ';' ';' ';' '});
+                                case 10;
+                                    LHS  = strcat(LHS, {' ';' ';' ';' ';' ';' ';' ';' ';' ';' '});
+                                otherwise
+                                    warndlg('A maximum of 10 forcing data inputs can be assigned to a weighting function')
+                                    nForcingInputs = 10;
+                            end
+                            forcingDataforWeighting = strcat( LHS, forcingDataforWeighting(1:nForcingInputs));
+                            forcingDataforWeighting = model_TFN_gui.cell2string(forcingDataforWeighting,'');
+                            this.weightingFunctions.tbl.Data{ind,4} = forcingDataforWeighting;
+                            
                        else
-                           this.weightingFunctions.tbl.Data{ind,4} = ['Input Data : ', transformOutputdata];
+                           this.weightingFunctions.tbl.Data{ind,4} = ['Input Data : ', forcingDataforWeighting];
                        end
                    end
                     
@@ -673,7 +783,7 @@ classdef model_TFN_gui < model_gui_abstract
                    if ind==1
                         this.derivedWeightingFunctions.tbl.Data = cell(1,size(this.derivedWeightingFunctions.tbl.Data,2)); 
                    else
-                       this.derivedWeightingFunctions.tbl.Data = [this.derivedWeightingFunctions.tbl.Data, cell(1,size(this.derivedWeightingFunctions.tbl.Data,2))]; 
+                       this.derivedWeightingFunctions.tbl.Data = [this.derivedWeightingFunctions.tbl.Data; cell(1,size(this.derivedWeightingFunctions.tbl.Data,2))]; 
                    end                   
                    this.derivedWeightingFunctions.tbl.Data{ind,2} = componentNames{i};
                    this.derivedWeightingFunctions.tbl.Data{ind,3} = weightingFunctionName;
@@ -683,16 +793,16 @@ classdef model_TFN_gui < model_gui_abstract
                    % Check if the input comes from the output of a
                    % transformation function.
                    if hasTransformFunction
-                       if iscell(transformOutputdata)
-                            this.derivedWeightingFunctions.tbl.Data{ind,5} = strcat( [transformFunctionName, ' : '], transformOutputdata);
+                       if iscell(forcingDataforWeighting)
+                            this.derivedWeightingFunctions.tbl.Data{ind,5} = strcat( [transformFunctionName, ' : '], forcingDataforWeighting);
                        else
-                            this.derivedWeightingFunctions.tbl.Data{ind,5} = [transformFunctionName, ' : ', transformOutputdata];
+                            this.derivedWeightingFunctions.tbl.Data{ind,5} = [transformFunctionName, ' : ', forcingDataforWeighting];
                        end
                    else
-                       if iscell(transformOutputdata)
-                            this.derivedWeightingFunctions.tbl.Data{ind,5} = strcat( ['Input Data : ', transformOutputdata]);
+                       if iscell(forcingDataforWeighting)
+                            this.derivedWeightingFunctions.tbl.Data{ind,5} = strcat( ['Input Data : ', forcingDataforWeighting]);
                        else
-                           this.derivedWeightingFunctions.tbl.Data{ind,5} = ['Input Data : ', transformOutputdata];
+                           this.derivedWeightingFunctions.tbl.Data{ind,5} = ['Input Data : ', forcingDataforWeighting];
                        end
                    end
                     
@@ -707,7 +817,7 @@ classdef model_TFN_gui < model_gui_abstract
                         if ind==1
                             this.forcingTranforms.tbl.Data = cell(1,size(this.forcingTranforms.tbl.Data,2)); 
                         else
-                            this.forcingTranforms.tbl.Data = [this.forcingTranforms.tbl.Data, cell(1,size(this.forcingTranforms.tbl.Data,2))]; 
+                            this.forcingTranforms.tbl.Data = [this.forcingTranforms.tbl.Data; cell(1,size(this.forcingTranforms.tbl.Data,2))]; 
                         end                             
                         this.forcingTranforms.tbl.Data{ind,2} = transformFunctionName;
                         
@@ -726,7 +836,7 @@ classdef model_TFN_gui < model_gui_abstract
                         if ind==1
                             this.derivedForcingTranforms.tbl.Data = cell(1,size(this.derivedForcingTranforms.tbl.Data,2)); 
                         else
-                            this.derivedForcingTranforms.tbl.Data = [this.derivedForcingTranforms.tbl.Data, cell(1,size(this.derivedForcingTranforms.tbl.Data,2))]; 
+                            this.derivedForcingTranforms.tbl.Data = [this.derivedForcingTranforms.tbl.Data; cell(1,size(this.derivedForcingTranforms.tbl.Data,2))]; 
                         end                            
                         this.derivedForcingTranforms.tbl.Data{ind,2} = transformFunctionName;
                         this.derivedForcingTranforms.tbl.Data{ind,3} = transformInputcomponent;                        
@@ -754,10 +864,17 @@ classdef model_TFN_gui < model_gui_abstract
             % Convert forcing tranformation and derived forcing tranformation functions to strings.
             for k=1:2
                 if k==1
-                    cellData  = this.forcingTranforms.tbl.Data;
+                    cellData  = this.forcingTranforms.tbl.Data;                    
                 else
                     cellData  = this.derivedForcingTranforms.tbl.Data;
                 end
+                
+                % Goto next loop if all of cell data is empty
+                if size(cellData ,1)==1 && all(cellfun(@(x) isempty(x),cellData))
+                    continue;
+                end
+                
+                % Loop though each row of cell data
                 for j=1:size(cellData ,1);
                    stringCell = '{';           
                    stringCell = strcat(stringCell, sprintf(' ''transformfunction'',  ''%s'';',cellData{j,2} ));
@@ -787,6 +904,11 @@ classdef model_TFN_gui < model_gui_abstract
                     cellData  = this.derivedWeightingFunctions.tbl.Data;
                 end
                     
+                % Goto next loop if all of cell data is empty
+                if size(cellData ,1)==1 && all(cellfun(@(x) isempty(x),cellData))
+                    continue;
+                end
+                
                 % Loop through each row of weighting table data
                 for i=1:size(cellData ,1);        
                     
@@ -1092,8 +1214,13 @@ classdef model_TFN_gui < model_gui_abstract
                            this.modelOptions.options{3,1}.lst.Min = 1;
                            this.modelOptions.options{3,1}.lst.Max = length(lstOptions);
                            
-                           % Highlight the previosuly selected option
+                           % Highlight the previosuly selected option. If
+                           % it looks like a string expression for a
+                           % cell, evaluate it.
                            userSelections = this.weightingFunctions.tbl.Data{this.currentSelection.row, 4};
+                           if strcmp(userSelections(1) ,'{') && strcmp(userSelections(end) ,'}')
+                                userSelections = eval(this.weightingFunctions.tbl.Data{this.currentSelection.row, 4});
+                           end
                            rowInd= [];
                            if ~iscell(userSelections)
                                userSelections_tmp{1} =userSelections;
@@ -1112,9 +1239,11 @@ classdef model_TFN_gui < model_gui_abstract
                         case 'Weighting Function'   
                             % Get description of the function.
                             functionName = this.weightingFunctions.tbl.Data{this.currentSelection.row, 3};
-                            modelDescription = eval([functionName,'.modelDescription']);
-                            set(this.modelOptions.options{10,1}.lbl,'HorizontalAlignment','left');
-                            this.modelOptions.options{10,1}.lbl.String = {'2. Weighting Functions - Function description','',modelDescription{:}};
+                            if ~isempty(functionName)
+                                modelDescription = eval([functionName,'.modelDescription']);
+                                set(this.modelOptions.options{10,1}.lbl,'HorizontalAlignment','left');
+                                this.modelOptions.options{10,1}.lbl.String = {'2. Weighting Functions - Function description','',modelDescription{:}};
+                            end
                             this.modelOptions.grid.Widths = [0 0 0 0 0 0 0 0 0 -1];                           
                         case 'Options'
                             % Check that the weigthing function and forcing
@@ -1130,7 +1259,7 @@ classdef model_TFN_gui < model_gui_abstract
                             % Convert input data to a cell array if it is a
                             % list of multiple inputs.
                             try
-                                inputDataNames = eval(inputDataNames)';
+                                inputDataNames = eval(inputDataNames);
                             catch
                                 % do nothing
                             end
@@ -1143,11 +1272,17 @@ classdef model_TFN_gui < model_gui_abstract
                            end
                            for j=1: size(inputDataNames,1)
                                if ~isempty(strfind(inputDataNames{j}, 'Input Data : '))
-                                   ind = regexp(inputDataNames{j}, 'Input Data : ');
+                                   [~,ind] = regexp(inputDataNames{j}, 'Input Data : ');
                                else
-                                   ind = regexp(inputDataNames{j}, ' : ');  
+                                   [~,ind] = regexp(inputDataNames{j}, ' : ');  
                                end                                                   
-                               inputDataNames{j} =  inputDataNames{j}(ind+3:end);
+                               %inputDataNames{j} =  inputDataNames{j}(ind+3:end);
+                               inputDataNames{j} =  inputDataNames{j}(ind+1:end);
+                           end
+                           
+                           if isempty(inputDataNames) || (iscell(inputDataNames) && isempty(inputDataNames{1,1}))
+                               warndlg('The input data does not appear to have been input for this model compnenent.','Input data error ...');
+                               return;
                            end
                            
                            % Get the list of input forcing data.
@@ -1188,14 +1323,15 @@ classdef model_TFN_gui < model_gui_abstract
                                        end
 
                                        this.modelOptions.options{4, 1}.tbl.Data = data;
-                                   catch
+                                   catch ME
                                        warndlg('The function options string appears to have a sytax error. It should be an Nx4 cell array.');                                       
+                                       %this.modelOptions.options{4, 1}.tbl.Data = '';
                                    end
                                end                                 
                                % Assign context menu if the first column is
                                % named 'Select' and is a tick box.
                                if strcmp(colNames{1},'Select') && strcmp(colFormats{1},'logical')
-                                    contextMenu = uicontextmenu(this.Figure.Parent.Parent.Parent.Parent.Parent,'Visible','on');
+                                    contextMenu = uicontextmenu(this.Figure.Parent.Parent.Parent.Parent.Parent.Parent,'Visible','on');
                                     uimenu(contextMenu,'Label','Copy selected rows','Callback',@this.rowAddDelete);
                                     uimenu(contextMenu,'Label','Paste rows','Callback',@this.rowAddDelete);
                                     uimenu(contextMenu,'Separator','on');

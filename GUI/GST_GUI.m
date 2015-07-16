@@ -8,27 +8,32 @@ classdef GST_GUI < handle
         % Version number
         versionNumber = 0.1;
         
+        % Model types supported
+        modelTypes = {'model_TFN', 'ExpSmooth'};
+        
         % GUI properies for the overall figure.
         FigureSplash
         Figure;        
         figure_Menu
         figure_contextMenu
-        figure_Prefs
+        figure_examples
         figure_Help
         figure_Layout 
         
         % GUI properties for the individual tabs.
         tab_Project
+        tab_DataPrep;
         tab_ModelConstruction;
         tab_ModelCalibration;        
-        tab_ParamUncertainty;
-        tab_ModelInterp;
         tab_ModelSimulation;
         
         % Store model data
         models
         
-        % Copies data
+        % Store the data preparation analysis results;
+        dataPrep
+        
+        % Copies of data
         copiedData
         
         % File name for the current set of models
@@ -38,12 +43,18 @@ classdef GST_GUI < handle
     methods
         
         function this = GST_GUI
-            
-            % Show splash (is code not deployed)
-            %if ~isdeployed
-               onAbout(this, [],[]);
-            %end
-           
+
+            % Check that the date is prior to end of 2015. If so, don't
+            % continue. This is required because university legal requested
+            % that the code not be distributed beyond the ARC POs until a
+            % legal statement is provided.
+            if now >= datenum(2015,10,1) && now <= datenum(2015,12,31)
+                warndlg({'This beta version of the toolkit will expire on Jan. 1 2016.','','Contact Tim Peterson (timjp@unimelb.edu.au) for a new version.'},'Software soon to expire ...');
+            elseif now > datenum(2015,12,31)
+                warndlg({'This beta version of the toolkit has expired.','','Contact Tim Peterson (timjp@unimelb.edu.au) for a new version.'},'Software soon to expire ...');
+                return;
+            end
+                            
             %--------------------------------------------------------------
             % Open a window and add some menus
             this.Figure = figure( ...
@@ -55,13 +66,19 @@ classdef GST_GUI < handle
                 'Visible','off', ...
                 'CloseRequestFcn',@this.onExit); 
             
+            % Show splash (if code not deployed)
+            if ~isdeployed
+               onAbout(this, [],[]);
+            end
+            
             % Set window Size
-            windowHeight = this.FigureSplash.Parent.ScreenSize(4);
-            windowWidth = this.FigureSplash.Parent.ScreenSize(3);
-            splashWidth = 0.8*windowWidth;
-            splashHeight = 0.6*windowHeight;            
-            this.Figure.Position = [(windowWidth - splashWidth)/2 (windowHeight - splashHeight)/2 splashWidth splashHeight];
+            windowHeight = this.Figure.Parent.ScreenSize(4);
+            windowWidth = this.Figure.Parent.ScreenSize(3);
+            figWidth = 0.8*windowWidth;
+            figHeight = 0.6*windowHeight;            
+            this.Figure.Position = [(windowWidth - figWidth)/2 (windowHeight - figHeight)/2 figWidth figHeight];
             this.Figure.Visible = 'off';
+            
             
             % Set default panel color
             warning('off');
@@ -76,13 +93,23 @@ classdef GST_GUI < handle
             uimenu(this.figure_Menu,'Separator','on');
             uimenu( this.figure_Menu, 'Label', 'Exit', 'Callback', @this.onExit );
 
-            % + Preferences menu
-            this.figure_Prefs = uimenu( this.Figure, 'Label', 'Preferences' );
-            uimenu( this.figure_Prefs, 'Label', 'Cores', 'Callback', @onCores );
+            % + Examples menu
+            this.figure_examples = uimenu( this.Figure, 'Label', 'Examples' );
+            uimenu( this.figure_examples, 'Label', 'TFN model - Landuse change', 'Tag','TFN - LUC','Callback', @this.onExamples );
+            uimenu( this.figure_examples, 'Label', 'TFN model - Pumping and climate', 'Tag','TFN - Pumping','Callback', @this.onExamples );
 
             % + Help menu
             this.figure_Help = uimenu( this.Figure, 'Label', 'Help' );
-            uimenu(this.figure_Help, 'Label', 'Documentation', 'Callback', @this.onDocumentation);
+            uimenu(this.figure_Help, 'Label', 'Overview', 'Tag','doc_Overview','Callback', @this.onDocumentation);
+            uimenu(this.figure_Help, 'Label', 'User Interface', 'Tag','doc_GUI','Callback', @this.onDocumentation);
+            uimenu(this.figure_Help, 'Label', 'Programmatic Use', 'Tag','doc_Programmatically','Callback', @this.onDocumentation);
+            uimenu(this.figure_Help, 'Label', 'Calibration Fundementals','Tag','doc_Calibration','Callback', @this.onDocumentation);            
+            if ~isdeployed
+                uimenu(this.figure_Help, 'Label', 'Algorithm Documentation', 'Tag','Algorithms','Callback', @this.onDocumentation);                
+            end
+            uimenu(this.figure_Help,'Separator','on');            
+            uimenu(this.figure_Help, 'Label', 'Publications', 'Tag','doc_Publications','Callback', @this.onDocumentation);
+            uimenu(this.figure_Help,'Separator','on');            
             uimenu(this.figure_Help, 'Label', 'About', 'Callback', @this.onAbout );
 
             %Create Panels for different windows       
@@ -90,23 +117,17 @@ classdef GST_GUI < handle
                 5, 'TabSize',127,'FontSize',8);
             this.tab_Project.Panel = uiextras.Panel( 'Parent', this.figure_Layout, 'Padding', 5, ...
                 'Title', 'Project Description', 'Tag','ProjectDescription');            
+            this.tab_DataPrep.Panel = uiextras.Panel( 'Parent', this.figure_Layout, 'Padding', 5, ...
+                'Title', 'Data Preparation', 'Tag','DataPreparation');
             this.tab_ModelConstruction.Panel = uiextras.Panel( 'Parent', this.figure_Layout, 'Padding', 5, ...
                 'Title', 'Model Construction', 'Tag','ModelConstruction');
             this.tab_ModelCalibration.Panel = uiextras.Panel( 'Parent', this.figure_Layout, 'Padding', 5, ...
                 'Title', 'Model Calibration', 'Tag','ModelCalibration');
-%            this.tab_ParamUncertainty.Panel = uiextras.Panel( 'Parent', this.figure_Layout, 'Padding', 5, ...
-%                'Title', 'Parameter Uncertainty', 'Tag','Tab4');
-            this.tab_ModelInterp.Panel = uiextras.Panel( 'Parent', this.figure_Layout, 'Padding', 5,  ...
-                'Title', 'Model Interpolation', 'Tag','ModelInterpolation');
             this.tab_ModelSimulation.Panel = uiextras.Panel( 'Parent', this.figure_Layout, 'Padding', 5, ...
                 'Title', 'Model Simulation', 'Tag','ModelSimulation');
-            this.figure_Layout.TabNames = {'Project Description', 'Model Construction', 'Model Calibration', ...
-                'Model Interpolation','Model Simulation'};
+            this.figure_Layout.TabNames = {'Project Description', 'Data Preparation','Model Construction', 'Model Calibration','Model Simulation'};
             this.figure_Layout.SelectedChild = 1;
            
-            % Create Default object for a model;
-            %this.models{1} = GST_GUI_data();
-
 %%          Layout Tab1 - Project description
             %------------------------------------------------------------------
             % Project title
@@ -119,27 +140,165 @@ classdef GST_GUI < handle
                         
             % Project description
             uicontrol( 'Parent', hbox1t1,'Style','text','String','Project Description: ','HorizontalAlignment','left', 'Units','normalized');                      
-            this.tab_Project.project_description = uicontrol( 'Parent', hbox1t1,'Style','edit','HorizontalAlignment','left', 'Units','normalized','Min',1,'Max',10,'TooltipString','Input an extended project description. This is an optional input to assist project management.');            
+            this.tab_Project.project_description = uicontrol( 'Parent', hbox1t1,'Style','edit','HorizontalAlignment','left', 'Units','normalized','Min',1,'Max',100,'TooltipString','Input an extended project description. This is an optional input to assist project management.');            
             
             % Set sizes
             set(hbox1t1, 'Sizes', [20 20 20 20 -1]);
-                        
-%%          Layout Tab2 - Model Construction
-            %------------------------------------------------------------------
+
+%%          Layout Tab2 - Data Preparation
+            % -----------------------------------------------------------------
             % Declare panels        
-            hbox1t2 = uiextras.HBoxFlex('Parent', this.tab_ModelConstruction.Panel,'Padding', 3, 'Spacing', 3);
+            hbox1t2 = uiextras.HBoxFlex('Parent', this.tab_DataPrep.Panel,'Padding', 3, 'Spacing', 3);
             vbox1t2 = uiextras.VBoxFlex('Parent',hbox1t2,'Padding', 3, 'Spacing', 3);
-            vbox3t2 = uiextras.HButtonBox('Parent',vbox1t2,'Padding', 3, 'Spacing', 3);  
-            
-        
-            % Get the model types
-            [modTypes,modRec] = GroundwaterStatisticsToolbox.model_types();
-            modTypeCode = modTypes(:,1)';  
-            this.tab_ModelConstruction.modelOptions.types.names = modTypes;
-            this.tab_ModelConstruction.modelOptions.types.descriptions = modRec;
+            vbox3t2 = uiextras.HButtonBox('Parent',vbox1t2,'Padding', 3, 'Spacing', 3);             
             
             % Create table for model construction
-            cnames1t2 ={'<html><center>Select<br />Model</center></html>', ... 
+            cnames1t2 ={'<html><center>Select<br />Bore</center></html>', ...                                                 
+                        '<html><center>Obs. Head<br />File</center></html>', ...   
+                        '<html><center>Bore<br />ID</center></html>', ...   
+                        '<html><center>Bore Depth<br />(Below Surface)</center></html>', ...   
+                        '<html><center>Surface<br />Elevation</center></html>', ...   
+                        '<html><center>Casing Length<br />(above surface)</center></html>', ...   
+                        '<html><center>Construction<br />Date (dd/mm/yy)</center></html>', ...   
+                        '<html><center>Check<br />Start Date?</center></html>', ...                           
+                        '<html><center>Check<br />End Date?</center></html>', ...                                                   
+                        '<html><center>Check Head<br />Above Bore Depth?</center></html>', ...                      
+                        '<html><center>Check Head<br />Below Casing?</center></html>', ...                      
+                        '<html><center>Threshold for Max. Daily abs(Head)<br />Change</center></html>', ...
+                        '<html><center>Threshold Duration for<br />Constant Head (days)?</center></html>', ...
+                        '<html><center>Auto-Outlier<br />Num. St. dev?</center></html>', ...                        
+                        '<html><center>Analysis<br />Status</center></html>', ...
+                        '<html><center>No. Erroneous<br />Obs.</center></html>', ...
+                        '<html><center>No. Outlier<br />Obs.</center></html>', ...
+                        };
+            cformats1t2 = {'logical', 'char', 'char','numeric','numeric','numeric','char','logical','logical','logical','logical','numeric','numeric','numeric','char','char','char'};
+            cedit1t2 = logical([1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0]);            
+            rnames1t2 = {[1]};
+            toolTipStr = ['<html>Use this table to detect and remove erroneous groundwater level observations. This step is provided to ensure <br>' ...
+                  'groundwater time-series models are built using reliable data. However, it is not required for building time-series models and <br>', ...
+                  'is independent from the model construction, calibaration and simulation steps.<br>', ...
+                  'Below are tips for undertaking the analysis:<br>', ... 
+                  '<ul type="bullet type">', ...
+                  '<li>Observation resulting from known problems (eg pump tests, failed bores) must be removed from the input data prior to this analysis.<br>', ...
+                  '<li>The observation start and end date can be check to be within the construction date and today''s date.<br>', ...
+                  '<li>The water level can be checked to ensure it is above the bottom of the bore.<br>', ...
+                  '<li>The water level can be checked to ensure it is below the bore casing.<br>', ...
+                  '<li>The daily absolute rate of water level change can be checked to ensure it is below a user set threshold.<br>', ...
+                  '<li>Periods of constant water level beyond a user set threshold can be identified.<br>', ...
+                  '<li>Outlier observations can be identified using the double-exponential smoothing model.<br>', ...
+                  '<li>The outlier analysis estimates the standard deviation of the noise & observations beyond a user set number of standard deviations are omitted.<br>', ...
+                  '<li><b>Right-click</b> displays a menu for copying, pasting, inserting and deleting rows. Use the <br>', ...
+                  'left tick-box to define the rows for copying, deleting etc.<br>', ...
+                  '<li>Use the window to the right for selecting the bore ID and to view and edit results.<br>', ...
+                  '<li>To view the analysis results place the cursor in any table grid-cell except the head file or bore ID cells.<br>', ...
+                  '<li>Sort the rows by clicking on the column headings. Below are more complex sorting options:<ul>', ...
+                  '      <li><b>Click</b> to sort in ascending order.<br>', ...
+                  '      <li><b>Shift-click</b> to sort in descending order.<br>', ...    
+                  '      <li><b>Ctrl-click</b> to sort secondary in ascending order.<b>Shift-Ctrl-click</b> for descending order.<br>', ...    
+                  '      <li><b>Click again</b> again to change sort direction.<br>', ...
+                  '      <li><b>Click a third time </b> to return to the unsorted view.', ...
+                  ' </ul></ul>'];
+            
+            % Assign column headings to the top-left panel
+            data = {false, '', '',0, 0, 0, '01/01/1900',true, true, true, true, 10, 120, 3, ...
+                '<html><font color = "#FF0000">Bore not analysed.</font></html>', ...
+                ['<html><font color = "#808080">','(NA)','</font></html>'], ...
+                ['<html><font color = "#808080">','(NA)','</font></html>']};
+            this.tab_DataPrep.Table = uitable('Parent',vbox1t2,'ColumnName',cnames1t2,...
+                'ColumnEditable',cedit1t2,'ColumnFormat',cformats1t2,'RowName', rnames1t2, ...
+                'CellSelectionCallback', @this.dataPrep_tableSelection,...
+                'Data',data,'Tag','Data Preparation', ...
+                'TooltipString', toolTipStr);
+
+            % Find java sorting object in table
+            try
+                this.figure_Layout.Selection = 2;
+                drawnow();
+                jscrollpane = findjobj(this.tab_DataPrep.Table);
+                jtable = jscrollpane.getViewport.getView;
+
+                % Turn the JIDE sorting on
+                jtable.setSortable(true);
+                jtable.setAutoResort(true);
+                jtable.setMultiColumnSortable(true);
+                jtable.setPreserveSelectionsAfterSorting(true);            
+            catch
+                warndlg('Creating of the GUI row-sorting module failed for the data preparation table.');
+            end
+            
+                        
+            % Add buttons to top left panel               
+            uicontrol('Parent',vbox3t2,'String','Append Table Data','Callback', @this.onImportTable, 'Tag','Data Preparation', 'TooltipString', sprintf('Append a .csv file of table data to the table below. \n Use this feature to efficiently analyse a large number of bores.') );
+            uicontrol('Parent',vbox3t2,'String','Export Table Data','Callback', @this.onExportTable, 'Tag','Data Preparation', 'TooltipString', sprintf('Export a .csv file of the table below.') );
+            uicontrol('Parent',vbox3t2,'String','Analyse Selected Bores','Callback', @this.onAnalyseBores, 'Tag','Data Preparation', 'TooltipString', sprintf('Use the tick-box below to select the models to analyse then click here. \n After analysing, the status is given in the right most column.') );            
+            uicontrol('Parent',vbox3t2,'String','Export Results','Callback', @this.onExportResults, 'Tag','Data Preparation', 'TooltipString', sprintf('Export a .csv file of the analyses results. \n After analysing, the .csv file can be used in the time-series modelling.') );            
+            vbox3t2.ButtonSize(1) = 225;            
+            
+            % Create vbox for the various model options
+            this.tab_DataPrep.modelOptions.vbox = uiextras.VBoxFlex('Parent',hbox1t2,'Padding', 3, 'Spacing', 3, 'DividerMarkings','off');
+            
+            % Add model options panel for bore IDs
+            dynList = [];
+            vbox4t2 = uiextras.VBox('Parent',this.tab_DataPrep.modelOptions.vbox, 'Padding', 3, 'Spacing', 3, 'Visible','on');
+            uicontrol( 'Parent', vbox4t2,'Style','text','String',sprintf('%s\n%s%s','Please select the Bore ID(s) for the analysis:'), 'Units','normalized');            
+            this.tab_DataPrep.modelOptions.boreIDList = uicontrol('Parent',vbox4t2,'Style','list','BackgroundColor','w', ...
+                'String',dynList(:),'Value',1,'Callback',...
+                @this.dataPrep_optionsSelection, 'Units','normalized');     
+            
+             % Create vbox for showing a table of results and plotting hydrographs
+            this.tab_DataPrep.modelOptions.resultsOptions.box = uiextras.VBoxFlex('Parent', this.tab_DataPrep.modelOptions.vbox,'Padding', 3, 'Spacing', 3, 'DividerMarkings','off');
+            panelt2 = uipanel('Parent',this.tab_DataPrep.modelOptions.resultsOptions.box);
+            this.tab_DataPrep.modelOptions.resultsOptions.plots = axes( 'Parent', panelt2); 
+            
+            this.tab_DataPrep.modelOptions.resultsOptions.table = uitable('Parent',this.tab_DataPrep.modelOptions.resultsOptions.box, ...
+                'ColumnName',{'Year', 'Month', 'Day', 'Hour', 'Minute', 'Head', 'Date_Error', 'Duplicate_Date_Error', 'Min_Head_Error','Max_Head_Error','Rate_of_Change_Error','Const_Hear_Error','Outlier_Obs'}, ... 
+                'ColumnFormat', {'numeric','numeric','numeric','numeric', 'numeric','numeric','logical','logical','logical','logical','logical','logical','logical'}, ...
+                'ColumnEditable', [false(1,6) true(1,7)], ...
+                'Tag','Data Preparation - results table', ...
+                'CellEditCallback', @this.dataPrep_resultsTableEdit, ...,
+                'TooltipString', 'Results data from the bore data analysis for erroneous observations and outliers.');
+                        
+            
+            % Resize the panels            
+            set(vbox1t2, 'Sizes', [30 -1]);
+            set(vbox4t2, 'Sizes', [30 -1]);            
+            set(this.tab_DataPrep.modelOptions.resultsOptions.box, 'Sizes',[-1 -1]);
+            set(this.tab_DataPrep.modelOptions.vbox, 'Sizes',[0 0]);
+            
+            
+            % Hide the panel for the analysis opens and results
+            set(this.tab_DataPrep.modelOptions.vbox,'Heights',[0 0]);
+            
+%           Add context menu
+            this.Figure.UIContextMenu = uicontextmenu(this.Figure,'Visible','on');
+            
+            % Add items
+            uimenu(this.Figure.UIContextMenu,'Label','Copy selected row','Callback',@this.rowAddDelete);
+            uimenu(this.Figure.UIContextMenu,'Label','Paste rows','Callback',@this.rowAddDelete);
+            uimenu(this.Figure.UIContextMenu,'Separator','on');
+            uimenu(this.Figure.UIContextMenu,'Label','Insert row above selection','Callback',@this.rowAddDelete);
+            uimenu(this.Figure.UIContextMenu,'Label','Insert row below selection','Callback',@this.rowAddDelete);            
+            uimenu(this.Figure.UIContextMenu,'Label','Delete selected rows','Callback',@this.rowAddDelete);
+            uimenu(this.Figure.UIContextMenu,'Separator','on');
+            uimenu(this.Figure.UIContextMenu,'Label','Select all','Callback',@this.rowSelection);
+            uimenu(this.Figure.UIContextMenu,'Label','Select none','Callback',@this.rowSelection);
+            uimenu(this.Figure.UIContextMenu,'Label','Invert selection','Callback',@this.rowSelection);
+
+            % Attach menu to the construction table
+            set(this.tab_DataPrep.Table,'UIContextMenu',this.Figure.UIContextMenu);
+                        
+            % Add table name to .UserData
+            set(this.tab_DataPrep.Table.UIContextMenu,'UserData','this.tab_DataPrep.Table');            
+            
+%%          Layout Tab3 - Model Construction
+            %------------------------------------------------------------------
+            % Declare panels        
+            hbox1t3 = uiextras.HBoxFlex('Parent', this.tab_ModelConstruction.Panel,'Padding', 3, 'Spacing', 3);
+            vbox1t3 = uiextras.VBoxFlex('Parent',hbox1t3,'Padding', 3, 'Spacing', 3);
+            vbox3t3 = uiextras.HButtonBox('Parent',vbox1t3,'Padding', 3, 'Spacing', 3);             
+            
+            % Create table for model construction
+            cnames1t3 ={'<html><center>Select<br />Model</center></html>', ... 
                         '<html><center>Model<br />Label</center></html>', ...   
                         '<html><center>Obs. Head<br />File</center></html>', ...   
                         '<html><center>Forcing Data<br />File</center></html>', ...   
@@ -148,9 +307,9 @@ classdef GST_GUI < handle
                         '<html><center>Model<br />Type</center></html>', ...                           
                         '<html><center>Model<br />Options</center></html>', ...                           
                         '<html><center>Build<br />Status</center></html>'};
-            cformats1t2 = {'logical', 'char', 'char','char','char','char',modTypeCode,'char','char'};
-            cedit1t2 = logical([1 1 1 1 1 1 1 1 0]);            
-            rnames1t2 = {[1]};
+            cformats1t3 = {'logical', 'char', 'char','char','char','char',this.modelTypes,'char','char'};
+            cedit1t3 = logical([1 1 1 1 1 1 1 1 0]);            
+            rnames1t3 = {[1]};
             toolTipStr = ['<html>Use this table to define the model label, input data, bore ID and model structure for each model. <br> <br>' ...
                   'Once all inputs are defined, use the button above to build the model, after which the selected models can be calibrated.<br>', ...
                   'Below are tips for building models:<br>', ... 
@@ -170,61 +329,90 @@ classdef GST_GUI < handle
             % Assign column headings to the top-left panel
             data = cell(1,9);
             data{1,9} = '<html><font color = "#FF0000">Model not built.</font></html>';
-            this.tab_ModelConstruction.Table = uitable('Parent',vbox1t2,'ColumnName',cnames1t2,...
-                'ColumnEditable',cedit1t2,'ColumnFormat',cformats1t2,'RowName', rnames1t2, ...
+            this.tab_ModelConstruction.Table = uitable('Parent',vbox1t3,'ColumnName',cnames1t3,...
+                'ColumnEditable',cedit1t3,'ColumnFormat',cformats1t3,'RowName', rnames1t3, ...
                 'CellSelectionCallback', @this.modelConstruction_tableSelection,...
                 'CellEditCallback', @this.modelConstruction_tableEdit,...
                 'Data',data,'Tag','Model Construction', ...
                 'TooltipString', toolTipStr);
 
             % Find java sorting object in table
-            this.figure_Layout.Selection = 2;
-            drawnow();
-            jscrollpane = findjobj(this.tab_ModelConstruction.Table);
-            jtable = jscrollpane.getViewport.getView;
+            try
+                this.figure_Layout.Selection = 3;
+                drawnow();
+                jscrollpane = findjobj(this.tab_ModelConstruction.Table);
+                jtable = jscrollpane.getViewport.getView;
 
-            % Turn the JIDE sorting on
-            jtable.setSortable(true);
-            jtable.setAutoResort(true);
-            jtable.setMultiColumnSortable(true);
-            jtable.setPreserveSelectionsAfterSorting(true);            
+                % Turn the JIDE sorting on
+                jtable.setSortable(true);
+                jtable.setAutoResort(true);
+                jtable.setMultiColumnSortable(true);
+                jtable.setPreserveSelectionsAfterSorting(true);            
+            catch
+                warndlg('Creating of the GUI row-sorting module failed for the model construction table.');
+            end
                         
             % Add buttons to top left panel               
-            uicontrol('Parent',vbox3t2,'String','Append Table Data','Callback', @this.onImportTable, 'Tag','Model Construction', 'TooltipString', sprintf('Append a .csv file of table data to the table below. \n Use this feature to efficiently build a large number of models.') );
-            uicontrol('Parent',vbox3t2,'String','Export Table Data','Callback', @this.onExportTable, 'Tag','Model Construction', 'TooltipString', sprintf('Export a .csv file of the table below.') );
-            uicontrol('Parent',vbox3t2,'String','Build Selected Models','Callback', @this.onBuildModels, 'Tag','Model Construction', 'TooltipString', sprintf('Use the tick-box below to select the models to build then click here. \n After building, the status is given in the right most column.') );            
-            vbox3t2.ButtonSize(1) = 225;
+            uicontrol('Parent',vbox3t3,'String','Append Table Data','Callback', @this.onImportTable, 'Tag','Model Construction', 'TooltipString', sprintf('Append a .csv file of table data to the table below. \n Use this feature to efficiently build a large number of models.') );
+            uicontrol('Parent',vbox3t3,'String','Export Table Data','Callback', @this.onExportTable, 'Tag','Model Construction', 'TooltipString', sprintf('Export a .csv file of the table below.') );
+            uicontrol('Parent',vbox3t3,'String','Build Selected Models','Callback', @this.onBuildModels, 'Tag','Model Construction', 'TooltipString', sprintf('Use the tick-box below to select the models to build then click here. \n After building, the status is given in the right most column.') );            
+            vbox3t3.ButtonSize(1) = 225;
             
             % Create vbox for the various model options
-            this.tab_ModelConstruction.modelOptions.vbox = uiextras.VBoxFlex('Parent',hbox1t2,'Padding', 3, 'Spacing', 3, 'DividerMarkings','off');
+            this.tab_ModelConstruction.modelOptions.vbox = uiextras.VBoxFlex('Parent',hbox1t3,'Padding', 3, 'Spacing', 3, 'DividerMarkings','off');
             
             % Add model options panel for bore IDs
             dynList = [];
-            vbox4t2 = uiextras.VBox('Parent',this.tab_ModelConstruction.modelOptions.vbox, 'Padding', 3, 'Spacing', 3, 'Visible','on');
-            uicontrol( 'Parent', vbox4t2,'Style','text','String',sprintf('%s\n%s%s','Please Bore ID(s) for the model:'), 'Units','normalized');            
-            this.tab_ModelConstruction.boreIDList = uicontrol('Parent',vbox4t2,'Style','list','BackgroundColor','w', ...
+            vbox4t3 = uiextras.VBox('Parent',this.tab_ModelConstruction.modelOptions.vbox, 'Padding', 3, 'Spacing', 3, 'Visible','on');
+            uicontrol( 'Parent', vbox4t3,'Style','text','String',sprintf('%s\n%s%s','Please select the Bore ID(s) for the model:'), 'Units','normalized');            
+            this.tab_ModelConstruction.boreIDList = uicontrol('Parent',vbox4t3,'Style','list','BackgroundColor','w', ...
                 'String',dynList(:),'Value',1,'Callback',...
                 @this.modelConstruction_optionsSelection, 'Units','normalized');            
 
             % Add model options panel for decriptions of each model type
             dynList = [];
-            vbox5t2 = uiextras.VBox('Parent',this.tab_ModelConstruction.modelOptions.vbox, 'Padding', 3, 'Spacing', 3, 'Visible','on');
-            uicontrol( 'Parent', vbox5t2,'Style','text','String',sprintf('%s\n%s%s','Below is a decsription of the selected model type:'), 'Units','normalized');            
-            this.tab_ModelConstruction.modelDescriptions = uicontrol( 'Parent', vbox5t2,'Style','text','String','(No model type selected.)', 'HorizontalAlignment','left','Units','normalized');                        
-            set(vbox5t2, 'Sizes', [30 -1]);
+            vbox5t3 = uiextras.VBox('Parent',this.tab_ModelConstruction.modelOptions.vbox, 'Padding', 3, 'Spacing', 3, 'Visible','on');
+            uicontrol( 'Parent', vbox5t3,'Style','text','String',sprintf('%s\n%s%s','Below is a decsription of the selected model type:'), 'Units','normalized');            
+            this.tab_ModelConstruction.modelDescriptions = uicontrol( 'Parent', vbox5t3,'Style','text','String','(No model type selected.)', 'HorizontalAlignment','left','Units','normalized');                        
+            set(vbox5t3, 'Sizes', [30 -1]);
             
             % Resize the panels
-            set(vbox1t2, 'Sizes', [30 -1]);
-            set(hbox1t2, 'Sizes', [-3 -1]);
-            set(vbox4t2, 'Sizes', [30 -1]);            
+            set(vbox1t3, 'Sizes', [30 -1]);
+            set(hbox1t3, 'Sizes', [-3 -1]);
+            set(vbox4t3, 'Sizes', [30 -1]);            
             
-            % Build model options for each model type                        
-            this.tab_ModelConstruction.modelTypes.model_TFN.hbox = uiextras.HBox('Parent',this.tab_ModelConstruction.modelOptions.vbox,'Padding', 3, 'Spacing', 3);
-            this.tab_ModelConstruction.modelTypes.model_TFN.buttons = uiextras.VButtonBox('Parent',this.tab_ModelConstruction.modelTypes.model_TFN.hbox,'Padding', 3, 'Spacing', 3);
-            uicontrol('Parent',this.tab_ModelConstruction.modelTypes.model_TFN.buttons,'String','<','Callback', @this.onApplyModelOptions, 'TooltipString','Copy model option to current model.');
-            uicontrol('Parent',this.tab_ModelConstruction.modelTypes.model_TFN.buttons,'String','<<','Callback', @this.onApplyModelOptions_selectedBores, 'TooltipString','Copy model option to selected models (of the current model type).');
-            this.tab_ModelConstruction.modelTypes.model_TFN.obj = model_TFN_gui( this.tab_ModelConstruction.modelTypes.model_TFN.hbox);
-            this.tab_ModelConstruction.modelTypes.model_TFN.hbox.Widths=[40 -1];
+            % Build model options for each model type                
+            includeModelOption = false(length(this.modelTypes),1);
+            for i=1:length(this.modelTypes);
+                switch this.modelTypes{i}
+                    case 'model_TFN'
+                        this.tab_ModelConstruction.modelTypes.model_TFN.hbox = uiextras.HBox('Parent',this.tab_ModelConstruction.modelOptions.vbox,'Padding', 3, 'Spacing', 3);
+                        this.tab_ModelConstruction.modelTypes.model_TFN.buttons = uiextras.VButtonBox('Parent',this.tab_ModelConstruction.modelTypes.model_TFN.hbox,'Padding', 3, 'Spacing', 3);
+                        uicontrol('Parent',this.tab_ModelConstruction.modelTypes.model_TFN.buttons,'String','<','Callback', @this.onApplyModelOptions, 'TooltipString','Copy model option to current model.');
+                        uicontrol('Parent',this.tab_ModelConstruction.modelTypes.model_TFN.buttons,'String','<<','Callback', @this.onApplyModelOptions_selectedBores, 'TooltipString','Copy model option to selected models (of the current model type).');
+                        this.tab_ModelConstruction.modelTypes.model_TFN.obj = model_TFN_gui( this.tab_ModelConstruction.modelTypes.model_TFN.hbox);
+                        this.tab_ModelConstruction.modelTypes.model_TFN.hbox.Widths=[40 -1];
+                        includeModelOption(i) = true;
+                    case 'ExpSmooth'  
+                        this.tab_ModelConstruction.modelTypes.ExpSmooth.hbox = uiextras.HBox('Parent',this.tab_ModelConstruction.modelOptions.vbox,'Padding', 3, 'Spacing', 3);                        
+                        uicontrol( 'Parent', this.tab_ModelConstruction.modelTypes.ExpSmooth.hbox,'Style','text', ...
+                        'String','The exponential smoothing model does not have any model option.','HorizontalAlignment','center', 'Units','normalized');            
+                    
+                        % Setup GUI.
+                        this.tab_ModelConstruction.modelTypes.ExpSmooth.obj = ExpSmooth_gui( this.tab_ModelConstruction.modelTypes.ExpSmooth.hbox);
+                        
+                        includeModelOption(i) = true;
+                        
+                    otherwise
+                        warndlg({['The following model type is not integrated into the user interface: ', this.modelTypes{i}], ...
+                            '', 'It could not be included in the user interface.'},'Model type unavailable ...');
+                        includeModelOption(i) = false;
+                end                
+            end
+            
+            % Redefine model options to include only those that are
+            % established in the user interface.
+            this.tab_ModelConstruction.Table.ColumnFormat{7} = this.modelTypes(includeModelOption);
             
             % Hide all modle option vboxes 
             this.tab_ModelConstruction.modelOptions.vbox.Heights = zeros(size(this.tab_ModelConstruction.modelOptions.vbox.Heights));
@@ -244,8 +432,7 @@ classdef GST_GUI < handle
             uimenu(this.Figure.UIContextMenu,'Label','Select all','Callback',@this.rowSelection);
             uimenu(this.Figure.UIContextMenu,'Label','Select none','Callback',@this.rowSelection);
             uimenu(this.Figure.UIContextMenu,'Label','Invert selection','Callback',@this.rowSelection);
-            
-            
+                        
             % Attach menu to the construction table
             set(this.tab_ModelConstruction.Table,'UIContextMenu',this.Figure.UIContextMenu);
                         
@@ -253,47 +440,54 @@ classdef GST_GUI < handle
             set(this.tab_ModelConstruction.Table.UIContextMenu,'UserData','this.tab_ModelConstruction.Table');
             
             
-%%          Layout Tab3 - Calibrate models
+%%          Layout Tab4 - Calibrate models
             %------------------------------------------------------------------
-            hbox1t3 = uiextras.HBoxFlex('Parent', this.tab_ModelCalibration.Panel,'Padding', 3, 'Spacing', 3);
-            vbox1t3 = uiextras.VBox('Parent',hbox1t3,'Padding', 3, 'Spacing', 3);
-            vbox2t3 = uiextras.VBox('Parent',hbox1t3,'Padding', 3, 'Spacing', 3);
-            hbox3t3 = uiextras.HButtonBox('Parent',vbox1t3,'Padding', 3, 'Spacing', 3);  
+            hbox1t4 = uiextras.HBoxFlex('Parent', this.tab_ModelCalibration.Panel,'Padding', 3, 'Spacing', 3);
+            vbox1t4 = uiextras.VBox('Parent',hbox1t4,'Padding', 3, 'Spacing', 3);
+            vbox2t4 = uiextras.VBox('Parent',hbox1t4,'Padding', 3, 'Spacing', 3);
+            hbox3t4 = uiextras.HButtonBox('Parent',vbox1t4,'Padding', 3, 'Spacing', 3);  
                         
             % Add button for calibration
-            uicontrol('Parent',hbox3t3,'String','Import Table Data','Callback', @this.onImportTable, 'Tag','Model Calibration', 'TooltipString', sprintf('Import a .csv file of table data to the table below. \n Only rows with a model label and bore ID matching a row within the table will be imported.') );
-            uicontrol('Parent',hbox3t3,'String','Export Table Data','Callback', @this.onExportTable, 'Tag','Model Calibration', 'TooltipString', sprintf('Export a .csv file of the table below.') );            
-            uicontrol('Parent',hbox3t3,'String','Calibrate Selected Models','Callback', @this.onCalibModels, 'TooltipString', sprintf('Use the tick-box below to select the models to calibrate then click here. \n During and after calibration, the status is given in the 9th column.') );            
-            uicontrol('Parent',hbox3t3,'String','Export Results','Callback', @this.onExportResults, 'Tag','Model Calibration', 'TooltipString', sprintf('Export a .csv file of the calibration results from all models.') );            
-            hbox3t3.ButtonSize(1) = 225;
+            uicontrol('Parent',hbox3t4,'String','Import Table Data','Callback', @this.onImportTable, 'Tag','Model Calibration', 'TooltipString', sprintf('Import a .csv file of table data to the table below. \n Only rows with a model label and bore ID matching a row within the table will be imported.') );
+            uicontrol('Parent',hbox3t4,'String','Export Table Data','Callback', @this.onExportTable, 'Tag','Model Calibration', 'TooltipString', sprintf('Export a .csv file of the table below.') );            
+            uicontrol('Parent',hbox3t4,'String','Calibrate Selected Models','Callback', @this.onCalibModels, 'TooltipString', sprintf('Use the tick-box below to select the models to calibrate then click here. \n During and after calibration, the status is given in the 9th column.') );            
+            uicontrol('Parent',hbox3t4,'String','Export Results','Callback', @this.onExportResults, 'Tag','Model Calibration', 'TooltipString', sprintf('Export a .csv file of the calibration results from all models.') );            
+            hbox3t4.ButtonSize(1) = 225;
             
             % Add table
-            cnames1t3 = {   '<html><center>Select<br />Model</center></html>', ...   
+            cnames1t4 = {   '<html><center>Select<br />Model</center></html>', ...   
                             '<html><center>Model<br />Label</center></html>', ...   
                             '<html><center>Bore<br />ID</center></html>', ...   
                             '<html><center>Head<br />Start Date</center></html>', ...
                             '<html><center>Head<br />End Date</center></html>', ...
                             '<html><center>Calib.<br />Start Date</center></html>', ...
                             '<html><center>Calib.<br />End Date</center></html>', ...
-                            '<html><center>No. Calib.<br />Restarts</center></html>', ...
+                            '<html><center>Calib.<br />Method</center></html>', ...
+                            '<html><center>Method<br />Setting</center></html>', ...
                             '<html><center>Calib.<br />Status</center></html>', ...
                             '<html><center>Calib.<br />Period CoE</center></html>', ...
                             '<html><center>Eval. Period<br />Unbiased CoE</center></html>', ...
                             '<html><center>Calib.<br />Period AIC</center></html>', ...
                             '<html><center>Eval.<br />Period AIC</center></html>'};
-            data = cell(0,13);            
-            rnames1t3 = {[1]};
-            cedit1t3 = logical([1 0 0 0 0 1 1 1 0 0 0 0 0]);            
-            cformats1t3 = {'logical', 'char', 'char','char','char','char','char', 'numeric','char','numeric','numeric','numeric','numeric'};
+            data = cell(0,14);            
+            rnames1t4 = {[1]};
+            cedit1t4 = logical([1 0 0 0 0 1 1 1 1 0 0 0 0 0]);            
+            cformats1t4 = {'logical', 'char', 'char','char','char','char','char', {'SP-UCI' 'CMA-ES'},'numeric','char','numeric','numeric','numeric','numeric'};
             toolTipStr = ['<html>Use this table to calibrate the models that have been successfully built. <br>' ...
-                  'To calibrate a model, first input the start and end dates for the calibration and the <br>' ...
-                  'number of CMA-ES re-starts. Note, more restarts result in a more robust estimate of the <br>' ...
-                  'global optima. Once all inputs are defined, use the button above to calibrate the model, ' ... 
-                  'after which the selected models can be calibrated.<br>', ...
+                  'To calibrate a model, first input the start and end dates for the calibration and then select <br>' ...
+                  'a calibration method and a setting for the method. The available methods are: (i) Shuffled Complex <br>' ...
+                  'Evolution with Principle Components Analysis and Gaussian Resampling (SP-UCI) and (ii)  Covariance <br>' ...
+                  'Matrix Adaptation Evolution Strategy (CMA-ES). The default is  SP-UCI. For each method a setting can <br>' ...
+                  'be input to increase the rebustness of the calibration. For SP-UCI the setting is the number of complexes <br>' ...
+                  'per model parameters and must be >=1. For CMA-ES the setting is the number of times the approach is re-ran, <br>' ...
+                  'each time with double the population size and a different mean multi-variate distribution for the sampling. <br>' ...
+                  'Once all inputs are defined, use the button above to calibrate the models, after which the selected <br>' ... 
+                  'models can be used in simulations.<br>', ...
+                  '<br>' ...
                   'Below are tips for calibrating models:<br>', ... 
                   '<ul type="bullet type">', ...
                   '<li>The model calibration results are summarised in the right four columns. <br>', ...
-                  '      <li><b>CoE</b> is the coefficient of efficiency where 1 is a perfect fit, <0 worse then using the mean.<br>' ...
+                  '      <li><b>CoE</b> is the coefficient of efficiency where 1 is a perfect fit, <0 worse than using the mean.<br>' ...
                   '      <li><b>AIC</b> is the Akaike information criterion & is used to compare models of differing number of parameters. Lower is better.<br>' ,...                  
                   '<li>Sort the rows by clicking on the column headings. Below are more complex sorting options:<ul>', ...
                   '      <li><b>Click</b> to sort in ascending order.<br>', ...
@@ -303,41 +497,66 @@ classdef GST_GUI < handle
                   '      <li><b>Click a third time </b> to return to the unsorted view.', ...
                   ' </ul></ul>'];
               
-            this.tab_ModelCalibration.Table = uitable('Parent',vbox1t3,'ColumnName',cnames1t3, ... 
-                'ColumnFormat', cformats1t3, 'ColumnEditable', cedit1t3, ...
-                'RowName', rnames1t3, 'Tag','Model Calibration', ...
+            this.tab_ModelCalibration.Table = uitable('Parent',vbox1t4,'ColumnName',cnames1t4, ... 
+                'ColumnFormat', cformats1t4, 'ColumnEditable', cedit1t4, ...
+                'RowName', rnames1t4, 'Tag','Model Calibration', ...
                 'CellSelectionCallback', @this.modelCalibration_tableSelection,...
                 'CellEditCallback', @this.modelCalibration_tableEdit,...
                 'Data', data, ...
                 'TooltipString', toolTipStr);
 
-            % Add drop-down for the results box
-            uicontrol('Parent',vbox2t3,'Style','text','String','Select calibration results to display:' );
-            this.tab_ModelCalibration.resultsOptions.popup = uicontrol('Parent',vbox2t3,'Style','popupmenu', ...
-                'String',{'Data & residuals', 'Parameter values','Simulation time series plot','Residuals time series plot','Histogram of calib. residuals','Histogram of eval. residuals','Scatter plot of obs. vs model','Scatter plot of residuals vs obs','Variogram of residuals','(none)'}, ...
-                'Value',3,'Callback', @this.modelCalibration_onResultsSelection);         
-            this.tab_ModelCalibration.resultsOptions.box = vbox2t3;
-            this.tab_ModelCalibration.resultsOptions.plots.panel = uiextras.BoxPanel('Parent', vbox2t3 );            
+            % Find java sorting object in table
+            try
+                this.figure_Layout.Selection = 4;
+                drawnow();
+                jscrollpane = findjobj(this.tab_ModelCalibration.Table);
+                jtable = jscrollpane.getViewport.getView;
+
+                % Turn the JIDE sorting on
+                jtable.setSortable(true);
+                jtable.setAutoResort(true);
+                jtable.setMultiColumnSortable(true);
+                jtable.setPreserveSelectionsAfterSorting(true);            
+            catch
+                warndlg('Creating of the GUI row-sorting module failed for the model calibration table.');
+            end                
             
-            this.tab_ModelCalibration.resultsOptions.dataTable.box = uiextras.Grid('Parent', vbox2t3,'Padding', 3, 'Spacing', 3);
+            % Add drop-down for the results box
+            uicontrol('Parent',vbox2t4,'Style','text','String','Select calibration results to display:' );
+            this.tab_ModelCalibration.resultsOptions.popup = uicontrol('Parent',vbox2t4,'Style','popupmenu', ...
+                'String',{'Data & residuals', 'Parameter values','Derived Variables', 'Simulation time series plot','Residuals time series plot','Histogram of calib. residuals','Histogram of eval. residuals','Scatter plot of obs. vs model','Scatter plot of residuals vs obs','Variogram of residuals','(none)'}, ...
+                'Value',3,'Callback', @this.modelCalibration_onResultsSelection);         
+            this.tab_ModelCalibration.resultsOptions.box = vbox2t4;
+            this.tab_ModelCalibration.resultsOptions.plots.panel = uiextras.BoxPanel('Parent', vbox2t4 );            
+            
+            this.tab_ModelCalibration.resultsOptions.dataTable.box = uiextras.Grid('Parent', vbox2t4,'Padding', 3, 'Spacing', 3);
             this.tab_ModelCalibration.resultsOptions.dataTable.table = uitable('Parent',this.tab_ModelCalibration.resultsOptions.dataTable.box, ...
                 'ColumnName',{'Year','Month', 'Day','Hour','Minute', 'Obs. Head','Is Calib. Point?','Calib. Head','Eval. Head','Model Err.','Noise Lower','Noise Upper'}, ... 
                 'ColumnFormat', {'numeric','numeric','numeric','numeric', 'numeric','numeric','logical','numeric','numeric','numeric','numeric','numeric'}, ...
                 'ColumnEditable', true(1,12), ...
                 'Tag','Model Calibration - results table', ...
                 'TooltipString', 'Results data from the model calibration and evaluation.');
-            this.tab_ModelCalibration.resultsOptions.paramTable.box = uiextras.Grid('Parent', vbox2t3,'Padding', 3, 'Spacing', 3);
+            
+            this.tab_ModelCalibration.resultsOptions.paramTable.box = uiextras.Grid('Parent', vbox2t4,'Padding', 3, 'Spacing', 3);
             this.tab_ModelCalibration.resultsOptions.paramTable.table = uitable('Parent',this.tab_ModelCalibration.resultsOptions.paramTable.box, ...
                 'ColumnName',{'Component Name','Parameter Name','Value'}, ... 
                 'ColumnFormat', {'char','char','numeric'}, ...
                 'ColumnEditable', true(1,3), ...
                 'Tag','Model Calibration - parameter table', ...
                 'TooltipString', 'Model parameter estimates from the calibration.');            
+            
+            this.tab_ModelCalibration.resultsOptions.derivedVariableTable.box = uiextras.Grid('Parent', vbox2t4,'Padding', 3, 'Spacing', 3);
+            this.tab_ModelCalibration.resultsOptions.derivedVariableTable.table = uitable('Parent',this.tab_ModelCalibration.resultsOptions.derivedVariableTable.box, ...
+                'ColumnName',{'Component Name','Variable Name','Derived Value'}, ... 
+                'ColumnFormat', {'char','char','numeric'}, ...
+                'ColumnEditable', true(1,3), ...
+                'Tag','Model Calibration - parameter table', ...
+                'TooltipString', 'Derived variables from the calibrated model parameter.');                  
 
             % Set box sizes
-            set(hbox1t3, 'Sizes', [-2 -1]);
-            set(vbox1t3, 'Sizes', [30 -1]);
-            set(vbox2t3, 'Sizes', [30 20 0 0 0]);
+            set(hbox1t4, 'Sizes', [-2 -1]);
+            set(vbox1t4, 'Sizes', [30 -1]);
+            set(vbox2t4, 'Sizes', [30 20 0 0 0 0]);
                         
 %           Add context menu
             this.Figure.UIContextMenu = uicontextmenu(this.Figure,'Visible','on');
@@ -356,23 +575,23 @@ classdef GST_GUI < handle
 
             
 
-%%          Layout Tab4 - Model Simulation
+%%          Layout Tab5 - Model Simulation
             %------------------------------------------------------------------            
-            hbox1t4 = uiextras.HBoxFlex('Parent', this.tab_ModelSimulation.Panel,'Padding', 3, 'Spacing', 3);
-            vbox1t4 = uiextras.VBox('Parent',hbox1t4,'Padding', 3, 'Spacing', 3);
-            vbox2t4 = uiextras.VBox('Parent',hbox1t4,'Padding', 3, 'Spacing', 3);
-            hbox3t4 = uiextras.HButtonBox('Parent',vbox1t4,'Padding', 3, 'Spacing', 3);  
+            hbox1t5 = uiextras.HBoxFlex('Parent', this.tab_ModelSimulation.Panel,'Padding', 3, 'Spacing', 3);
+            vbox1t5 = uiextras.VBox('Parent',hbox1t5,'Padding', 3, 'Spacing', 3);
+            vbox2t5 = uiextras.VBox('Parent',hbox1t5,'Padding', 3, 'Spacing', 3);
+            hbox3t5 = uiextras.HButtonBox('Parent',vbox1t5,'Padding', 3, 'Spacing', 3);  
                         
             % Add button for calibration
             % Add buttons to top left panel               
-            uicontrol('Parent',hbox3t4,'String','Append Table Data','Callback', @this.onImportTable, 'Tag','Model Simulation', 'TooltipString', sprintf('Append a .csv file of table data to the table below. \n Only rows where the model label is for a model that have been calibrated will be imported.') );
-            uicontrol('Parent',hbox3t4,'String','Export Table Data','Callback', @this.onExportTable, 'Tag','Model Simulation', 'TooltipString', sprintf('Export a .csv file of the table below.') );                        
-            uicontrol('Parent',hbox3t4,'String','Simulate Selected Models','Callback', @this.onSimModels, 'TooltipString', sprintf('Use the tick-box below to select the models to simulate then click here. \n During and after simulation, the status is given in the 9th column.') );            
-            uicontrol('Parent',hbox3t4,'String','Export Results','Callback', @this.onExportResults, 'Tag','Model Simulation', 'TooltipString', sprintf('Export a .csv file of the simulation results from all models.') );            
-            hbox3t4.ButtonSize(1) = 225;
+            uicontrol('Parent',hbox3t5,'String','Append Table Data','Callback', @this.onImportTable, 'Tag','Model Simulation', 'TooltipString', sprintf('Append a .csv file of table data to the table below. \n Only rows where the model label is for a model that have been calibrated will be imported.') );
+            uicontrol('Parent',hbox3t5,'String','Export Table Data','Callback', @this.onExportTable, 'Tag','Model Simulation', 'TooltipString', sprintf('Export a .csv file of the table below.') );                        
+            uicontrol('Parent',hbox3t5,'String','Simulate Selected Models','Callback', @this.onSimModels, 'TooltipString', sprintf('Use the tick-box below to select the models to simulate then click here. \n During and after simulation, the status is given in the 9th column.') );            
+            uicontrol('Parent',hbox3t5,'String','Export Results','Callback', @this.onExportResults, 'Tag','Model Simulation', 'TooltipString', sprintf('Export a .csv file of the simulation results from all models.') );            
+            hbox3t5.ButtonSize(1) = 225;
             
             % Add table
-            cnames1t4 = {   '<html><center>Select<br />Model</center></html>', ...   
+            cnames1t5 = {   '<html><center>Select<br />Model</center></html>', ...   
                             '<html><center>Model<br />Label</center></html>', ...                               
                             '<html><center>Bore<br />ID</center></html>', ...   
                             '<html><center>Head<br />Start Date</center></html>', ...
@@ -382,12 +601,12 @@ classdef GST_GUI < handle
                             '<html><center>Simulation<br />Start Date</center></html>', ...
                             '<html><center>Simulation<br />End Date</center></html>', ...
                             '<html><center>Simulation<br />Time step</center></html>', ...                            
-                            '<html><center>Krig<br />Sim. Residual?</center></html>', ... 
+                            '<html><center>Krig<br />Sim. Residuals?</center></html>', ... 
                             '<html><center>Simulation<br />Status</center></html>'};
             data = cell(1,12);            
-            rnames1t4 = {[1]};
-            cedit1t4 = logical([1 1 0 0 0 1 1 1 1 1 1 0]);            
-            cformats1t4 = {'logical', {'(none calibrated)'}', 'char','char','char','char','char','char', 'char',{'Daily' 'Weekly' 'Monthly' 'Yearly'}, 'logical','char' };
+            rnames1t5 = {[1]};
+            cedit1t5 = logical([1 1 0 0 0 1 1 1 1 1 1 0]);            
+            cformats1t5 = {'logical', {'(none calibrated)'}', 'char','char','char','char','char','char', 'char',{'Daily' 'Weekly' 'Monthly' 'Yearly'}, 'logical','char' };
             toolTipStr = ['<html>Use this table to undertake simulation using the models that have been calibrated. <br>' ...
                   'Below are tips for undertaking simulations:<br>', ... 
                   '<ul type="bullet type">', ...
@@ -404,22 +623,38 @@ classdef GST_GUI < handle
                   '      <li><b>Click a third time </b> to return to the unsorted view.', ...
                   ' </ul></ul>'];
               
-            this.tab_ModelSimulation.Table = uitable('Parent',vbox1t4,'ColumnName',cnames1t4, ... 
-                'ColumnFormat', cformats1t4, 'ColumnEditable', cedit1t4, ...
-                'RowName', rnames1t4, 'Tag','Model Simulation', ...
+            this.tab_ModelSimulation.Table = uitable('Parent',vbox1t5,'ColumnName',cnames1t5, ... 
+                'ColumnFormat', cformats1t5, 'ColumnEditable', cedit1t5, ...
+                'RowName', rnames1t5, 'Tag','Model Simulation', ...
                 'Data', data, ...
                 'CellSelectionCallback', @this.modelSimulation_tableSelection,...
                 'CellEditCallback', @this.modelSimulation_tableEdit,...
                 'TooltipString', toolTipStr);
 
 
+            % Find java sorting object in table
+            try
+                this.figure_Layout.Selection = 5;
+                drawnow();
+                jscrollpane = findjobj(this.tab_ModelSimulation.Table);
+                jtable = jscrollpane.getViewport.getView;
+
+                % Turn the JIDE sorting on
+                jtable.setSortable(true);
+                jtable.setAutoResort(true);
+                jtable.setMultiColumnSortable(true);
+                jtable.setPreserveSelectionsAfterSorting(true);            
+            catch
+                warndlg('Creating of the GUI row-sorting module failed for the model simulation table.');
+            end                         
+                        
             % Add drop-down for the results box
-            uicontrol('Parent',vbox2t4,'Style','text','String','Select simulation results to display:' );
-            this.tab_ModelSimulation.resultsOptions.popup = uicontrol('Parent',vbox2t4,'Style','popupmenu', ...
+            uicontrol('Parent',vbox2t5,'Style','text','String','Select simulation results to display:' );
+            this.tab_ModelSimulation.resultsOptions.popup = uicontrol('Parent',vbox2t5,'Style','popupmenu', ...
                 'String',{'Simulation data', 'Simulation & decomposition plots','(none)'}, ...
                 'Value',3,'Callback', @this.modelSimulation_onResultsSelection);         
             
-            this.tab_ModelSimulation.resultsOptions.dataTable.box = uiextras.Grid('Parent', vbox2t4,'Padding', 3, 'Spacing', 3);
+            this.tab_ModelSimulation.resultsOptions.dataTable.box = uiextras.Grid('Parent', vbox2t5,'Padding', 3, 'Spacing', 3);
             this.tab_ModelSimulation.resultsOptions.dataTable.table = uitable('Parent',this.tab_ModelSimulation.resultsOptions.dataTable.box, ...
                 'ColumnName',{'Year','Month', 'Day','Hour','Minute', 'Sim. Head','Noise Lower','Noise Upper'}, ... 
                 'ColumnFormat', {'numeric','numeric','numeric','numeric', 'numeric','numeric','numeric','numeric'}, ...
@@ -427,13 +662,13 @@ classdef GST_GUI < handle
                 'Tag','Model Simulation - results table', ...
                 'TooltipString', 'Results data from the model simulation.');  
             
-            this.tab_ModelSimulation.resultsOptions.box = vbox2t4;
-            this.tab_ModelSimulation.resultsOptions.plots.panel = uiextras.BoxPanel('Parent', vbox2t4);                                              
+            this.tab_ModelSimulation.resultsOptions.box = vbox2t5;
+            this.tab_ModelSimulation.resultsOptions.plots.panel = uiextras.BoxPanel('Parent', vbox2t5);                                              
             
             % Set box sizes
-            set(hbox1t4, 'Sizes', [-2 -1]);
-            set(vbox1t4, 'Sizes', [30 -1]);
-            set(vbox2t4, 'Sizes', [30 20 0 0]);
+            set(hbox1t5, 'Sizes', [-2 -1]);
+            set(vbox1t5, 'Sizes', [30 -1]);
+            set(vbox2t5, 'Sizes', [30 20 0 0]);
                         
 %           Add context menu
             this.Figure.UIContextMenu = uicontextmenu(this.Figure,'Visible','on');
@@ -459,6 +694,7 @@ classdef GST_GUI < handle
             if ~isdeployed
                close(this.FigureSplash);
             end                        
+            this.figure_Layout.Selection = 1;
             set(this.Figure,'Visible','on');
         end
         
@@ -466,36 +702,96 @@ classdef GST_GUI < handle
         % Open saved model
         function onOpen(this,hObject,eventdata)
             [fName,pName] = uigetfile({'*.mat'},'Select saved groundwater statistical model.');    
+
             if fName~=0;
                 % Assign the file name 
                 this.project_fileName = fullfile(pName,fName);
+
+                % Change cursor
+                set(this.Figure, 'pointer', 'watch');                
                 
                 % Load file
                 try
                     savedData = load(this.project_fileName,'-mat');
                 catch ME
-                    warndlg('File could not be loaded','File error');
+                    set(this.Figure, 'pointer', 'arrow');
+                    warndlg('Project file could not be loaded.','File error');
+                    return;
                 end
                 
                 % Assign loaded data to the tables and models.
                 try
                     this.tab_Project.project_name.String = savedData.tableData.tab_Project.title;
                     this.tab_Project.project_description.String = savedData.tableData.tab_Project.description;
-                    this.tab_ModelConstruction.Table.Data = savedData.tableData.tab_ModelConstruction;
-                    this.tab_ModelCalibration.Table.Data = savedData.tableData.tab_ModelCalibration;
-                    %this.tab_ParamUncertainty.Table.Data = savedData.tableData.tab_ParamUncertainty;
-                    %this.tab_ModelInterp.Table.Data = savedData.tableData.tab_ModelInterp;
-                    %this.tab_ModelSimulation.Table.Data = savedData.tableData.tab_ModelSimulation;
                 catch ME
-                    warndlg('Loaded data could not be assigned to the user interface tables.','File table data error');
+                    set(this.Figure, 'pointer', 'arrow');
+                    warndlg('Data could not be assigned to the user interface table: Project Description','File table data error');
+                     set(this.Figure, 'pointer', 'watch');
                 end
-                
+                try
+                    this.tab_DataPrep.Table.Data = savedData.tableData.tab_DataPrep;
+                    
+                    % Update row numbers
+                    nrows = size(this.tab_DataPrep.Table.Data,1);
+                    this.tab_DataPrep.Table.RowName = mat2cell([1:nrows]',ones(1, nrows));                    
+                catch ME
+                    set(this.Figure, 'pointer', 'arrow');
+                    warndlg('Data could not be assigned to the user interface table: Data Preparation','File table data error');
+                     set(this.Figure, 'pointer', 'watch');
+                end               
+                try
+                    this.tab_ModelConstruction.Table.Data = savedData.tableData.tab_ModelConstruction;
+                    
+                    % Update row numbers
+                    nrows = size(this.tab_ModelConstruction.Table.Data,1);
+                    this.tab_ModelConstruction.Table.RowName = mat2cell([1:nrows]',ones(1, nrows));     
+                catch ME
+                    set(this.Figure, 'pointer', 'arrow');
+                    warndlg('Data could not be assigned to the user interface table: Model Construction','File table data error');
+                     set(this.Figure, 'pointer', 'watch');
+                end                
+                try                    
+                    this.tab_ModelCalibration.Table.Data = savedData.tableData.tab_ModelCalibration;
+
+                    % Update row numbers
+                    nrows = size(this.tab_ModelCalibration.Table.Data,1);
+                    this.tab_ModelCalibration.Table.RowName = mat2cell([1:nrows]',ones(1, nrows));                      
+                catch ME
+                    set(this.Figure, 'pointer', 'arrow');
+                    warndlg('Data could not be assigned to the user interface table: Model Calibration','File table data error');
+                     set(this.Figure, 'pointer', 'watch');
+                end                
+                try
+                    this.tab_ModelSimulation.Table.Data = savedData.tableData.tab_ModelSimulation;
+                    
+                    % Update row numbers
+                    nrows = size(this.tab_ModelSimulation.Table.Data,1);
+                    this.tab_ModelSimulation.Table.RowName = mat2cell([1:nrows]',ones(1, nrows));                       
+                catch ME
+                    set(this.Figure, 'pointer', 'arrow');
+                    warndlg('Data could not be assigned to the user interface table: Model Simulation','File table data error');
+                    set(this.Figure, 'pointer', 'watch');
+                end                
+
+                                
                 % Assign built models.
                 try
                     this.models = savedData.models;
                 catch ME
+                    set(this.Figure, 'pointer', 'arrow');
                     warndlg('Loaded models could not be assigned to the user interface.','File model data error');
-                end   
+                    set(this.Figure, 'pointer', 'watch');
+                end  
+                
+                % Assign analysed bores.
+                try
+                    this.dataPrep = savedData.dataPrep;
+                catch ME
+                    set(this.Figure, 'pointer', 'arrow');
+                    warndlg('Loaded data analysis results could not be assigned to the user interface.','File model data error');
+                    set(this.Figure, 'pointer', 'watch');
+                end  
+                set(this.Figure, 'pointer', 'arrow');
             end
         end
         
@@ -503,23 +799,38 @@ classdef GST_GUI < handle
         function onSaveAs(this,hObject,eventdata)
             [fName,pName] = uiputfile({'*.mat'},'Save models as...');    
             if fName~=0;
+
+                % Change cursor
+                set(this.Figure, 'pointer', 'watch');                   
+                
                 % Assign file name to date cell array
                 this.project_fileName = fullfile(pName,fName);
                 
                 % Collate the tables of data to a temp variable.
                 tableData.tab_Project.title = this.tab_Project.project_name.String;
                 tableData.tab_Project.description = this.tab_Project.project_description.String;
+                tableData.tab_DataPrep = this.tab_DataPrep.Table.Data;
                 tableData.tab_ModelConstruction = this.tab_ModelConstruction.Table.Data;
                 tableData.tab_ModelCalibration = this.tab_ModelCalibration.Table.Data;
-                %tableData.tab_ParamUncertainty = this.tab_ParamUncertainty.Table.Data;
-                %tableData.tab_ModelInterp = this.tab_ModelInterp.Table.Data;
-                %tableData.tab_ModelSimulation = this.tab_ModelSimulation.Table.Data;
+                tableData.tab_ModelSimulation = this.tab_ModelSimulation.Table.Data;
                                 
+                % Get the data preparation results
+                dataPrep = this.dataPrep;
+                
                 % Get built models.
                 models = this.models;
                 
                 % Save the GUI tables to the file.
-                save(this.project_fileName, 'tableData',  'models','-v7.3');
+                try
+                    save(this.project_fileName, 'tableData',  'models', 'dataPrep', '-v7.3');  
+
+                    % Change cursor
+                    set(this.Figure, 'pointer', 'arrow');                
+                catch ME
+                    set(this.Figure, 'pointer', 'arrow');
+                    warndlg('The project could not be saved. Please check you have write access to the directory.','Project not saved ...');
+                    return;
+                end                      
             end
         end
         
@@ -529,21 +840,34 @@ classdef GST_GUI < handle
             if isempty(this.project_fileName) || exist(this.project_fileName,'file') ~= 2;
                 onSaveAs(this,hObject,eventdata);
             else               
+                % Change cursor
+                set(this.Figure, 'pointer', 'watch');   
+                
                 % Collate the tables of data to a temp variable.
                 tableData.tab_Project.title = this.tab_Project.project_name.String;
                 tableData.tab_Project.description = this.tab_Project.project_description.String;
+                tableData.tab_DataPrep = this.tab_DataPrep.Table.Data;
                 tableData.tab_ModelConstruction = this.tab_ModelConstruction.Table.Data;
                 tableData.tab_ModelCalibration = this.tab_ModelCalibration.Table.Data;
-                %tableData.tab_ParamUncertainty = this.tab_ParamUncertainty.Table.Data;
-                %tableData.tab_ModelInterp = this.tab_ModelInterp.Table.Data;
-                %tableData.tab_ModelSimulation = this.tab_ModelSimulation.Table.Data;
+                tableData.tab_ModelSimulation = this.tab_ModelSimulation.Table.Data;
                                 
+                % Get the data preparation results
+                dataPrep = this.dataPrep;
+                
                 % Get built models.
                 models = this.models;
                 
                 % Save the GUI tables to the file.
-                save(this.project_fileName, 'tableData',  'models','-v7.3');                
-            end
+                try
+                    save(this.project_fileName, 'tableData',  'models', 'dataPrep', '-v7.3');         
+                    % Change cursor
+                    set(this.Figure, 'pointer', 'arrow');                
+                catch ME
+                    set(this.Figure, 'pointer', 'arrow');
+                    warndlg('The project could not be saved. Please check you have write access to the directory.','Project not saved ...');
+                    return;
+                end                  
+            end            
             
         end    
         
@@ -552,6 +876,328 @@ classdef GST_GUI < handle
             delete(this.Figure);
         end
 
+        function dataPrep_tableSelection(this, hObject, eventdata)
+            icol=eventdata.Indices(:,2);
+            irow=eventdata.Indices(:,1);            
+            data=get(hObject,'Data'); % get the data cell array of the table
+            
+            % Undertake column specific operations.
+            if ~isempty(icol) && ~isempty(irow)
+                
+                % Record the current row and column numbers
+                this.tab_DataPrep.currentRow = irow;
+                this.tab_DataPrep.currentCol = icol;
+            
+                % Remove HTML tags from the column name
+                columnName = GST_GUI.removeHTMLTags(eventdata.Source.ColumnName{icol});
+                
+                switch columnName;
+                    case 'Obs. Head File'
+                        this.tab_DataPrep.modelOptions.vbox.Heights = [0; 0];
+                        
+                        [fName,pName] = uigetfile({'*.*'},'Select the Observed Head file'); 
+                        if fName~=0;
+                            % Assign file name to date cell array
+                            data{eventdata.Indices(1),eventdata.Indices(2)} = fullfile(pName,fName);
+                            % Input file name to the table
+                            set(hObject,'Data',data);
+                        end
+                        
+                    case 'Bore ID'
+                         % Check the obs. head file is listed
+                         fname = data{eventdata.Indices(1),2};
+                         if isempty(fname)
+                            warndlg('The observed head file name must be input before selecting the bore ID');
+                            return;
+                         end
+                         
+                         % Check the bore ID file exists.
+                         if exist(fname,'file') ~= 2;
+                            warndlg('The observed head file does not exist.');
+                            return;
+                         end
+                         
+                         % Read in the observed head file.
+                         try
+                            tbl = readtable(fname);
+                         catch
+                            warndlg('The observed head file could not be read in. It must a .csv file of 6 columns');
+                            return;
+                         end
+                        
+                         % Check there are the correct number of columns
+                         if length(tbl.Properties.VariableNames) ~= 6
+                            warndlg('The observed head file must contain 6 columns in the following order: boreID, year, month, day, hour, head');
+                            return;
+                         end
+                             
+                         % Check columns 2 to 6 are numeric.
+                         if any(any(~isnumeric(tbl{:,2:6})))
+                            warndlg('Columns 2 to 6 within the observed head file must contain only numeric data.');
+                            return;
+                         end
+                            
+                         % Find the unique bore IDs   
+                         boreIDs = unique(tbl{:,1});
+                         
+                         % Free up memory
+                         clear tbl;
+                         
+                         % Input the unique bore IDs to the list box.
+                         set(this.tab_DataPrep.modelOptions.boreIDList,'String',boreIDs);  
+                         
+                         % Show the list box.
+                         this.tab_DataPrep.modelOptions.vbox.Heights = [-1; 0];                        
+                    otherwise
+                        % Show the results if the bore has been analysed.
+                        
+                        boreID = data{eventdata.Indices(1),3};
+                        modelStatus = GST_GUI.removeHTMLTags(data{eventdata.Indices(1),15});
+                        
+                        if ~isempty(this.dataPrep) && ~isempty(boreID) && ...
+                        isfield(this.dataPrep,boreID) && ~isempty(this.dataPrep.(boreID)) && ...
+                        strcmp(modelStatus,'Bore analysed.')
+                            this.tab_DataPrep.modelOptions.vbox.Heights = [0; -1];                    
+                            set(this.tab_DataPrep.modelOptions.resultsOptions.box, 'Sizes',[-1 -1]);
+                            
+                            % Get the analysis results.
+                            headData = this.dataPrep.(boreID);
+                            
+                            % Add head data to the uitable                            
+                            nrows = size(headData,1);
+                            ncols = size(headData,2);
+                            this.tab_DataPrep.modelOptions.resultsOptions.table.Data = table2cell(headData);
+
+                            % Convert to a matrix
+                            headData = table2array(headData);                            
+                            
+                            % Create a time vector form head data.
+                            dateVec = datenum(headData(:,1),headData(:,2),headData(:,3),headData(:,4),headData(:,5),zeros(size(headData,1),1));
+                            
+                            % Plot the hydrograph and the errors and outliers
+                            isError = any(headData(:,7:end)==1,2);
+                            h= plot(this.tab_DataPrep.modelOptions.resultsOptions.plots, dateVec(~isError), headData(~isError,6),'b.-');
+                            legendstring{1} = 'Obs. head';
+                            hold(this.tab_DataPrep.modelOptions.resultsOptions.plots,'on');
+                            
+                            % Date errors
+                            col = 7;
+                            isError = headData(:,col)==1;
+                            if any(isError)
+                                scatter(this.tab_DataPrep.modelOptions.resultsOptions.plots, dateVec(isError), headData(isError,6),'o');
+                                legendstring = {legendstring{:} 'Date error'};
+                            end
+                            
+                            col = 8;
+                            isError = headData(:,col)==1;
+                            if any(isError)
+                                scatter(this.tab_DataPrep.modelOptions.resultsOptions.plots, dateVec(isError), headData(isError,6),'o');
+                                legendstring = {legendstring{:} 'Duplicate error'};
+                            end
+
+                            col = 9;
+                            isError = headData(:,col)==1;
+                            if any(isError)
+                                scatter(this.tab_DataPrep.modelOptions.resultsOptions.plots, dateVec(isError), headData(isError,6),'o');
+                                legendstring = {legendstring{:} 'Min head error'};
+                            end   
+                            
+                            col = 10;
+                            isError = headData(:,col)==1;
+                            if any(isError)
+                                scatter(this.tab_DataPrep.modelOptions.resultsOptions.plots, dateVec(isError), headData(isError,6),'o');
+                                legendstring = {legendstring{:} 'Max head error'};
+                            end  
+                            
+                            col = 11;
+                            isError = headData(:,col)==1;
+                            if any(isError)
+                                scatter(this.tab_DataPrep.modelOptions.resultsOptions.plots, dateVec(isError), headData(isError,6),'o');
+                                legendstring = {legendstring{:} '|dh/dt| error'};
+                            end                              
+                            
+                            col = 12;
+                            isError = headData(:,col)==1;
+                            if any(isError)
+                                scatter(this.tab_DataPrep.modelOptions.resultsOptions.plots, dateVec(isError), headData(isError,6),'o');
+                                legendstring = {legendstring{:} 'dh/dt=0 error'};
+                            end                              
+                            
+                            col = 13;
+                            isError = headData(:,col)==1;
+                            if any(isError)
+                                scatter(this.tab_DataPrep.modelOptions.resultsOptions.plots, dateVec(isError), headData(isError,6),'o');
+                                legendstring = {legendstring{:} 'Outlier obs.'};
+                            end  
+                            
+                            % Format plot
+                            datetick(this.tab_DataPrep.modelOptions.resultsOptions.plots,'x','YY');
+                            xlabel(this.tab_DataPrep.modelOptions.resultsOptions.plots,'Year');
+                            ylabel(this.tab_DataPrep.modelOptions.resultsOptions.plots,'Head');
+                            hold(this.tab_DataPrep.modelOptions.resultsOptions.plots,'off');
+                            box(this.tab_DataPrep.modelOptions.resultsOptions.plots,'on');
+                            axis(this.tab_DataPrep.modelOptions.resultsOptions.plots,'tight');
+                            legend(this.tab_DataPrep.modelOptions.resultsOptions.plots, legendstring,'Location','eastoutside');
+                            
+                            % SHow results
+                            this.tab_DataPrep.modelOptions.resultsOptions.box.Heights = [-1 -1];
+                        else
+                            this.tab_DataPrep.modelOptions.vbox.Heights = [0; 0];
+                        end
+                end
+            end
+        end
+        
+        % Data preparation results table edit.
+        function dataPrep_resultsTableEdit(this, hObject, eventdata)
+
+            % Check the row was found.
+            if ~isfield(this.tab_DataPrep,'currentRow') || isempty(this.tab_DataPrep.currentRow)
+                warndlg('An unexpected system error has occured. Please try re-selecting a grid cell from the main to replot the results.','System error ...');
+                returnd;
+            end            
+            
+            % Get the current row from the main data preparation table.
+            irow = this.tab_DataPrep.currentRow;
+            boreID = this.tab_DataPrep.Table.Data{irow, 3};
+                
+            % Check the row was found.
+            if isempty(boreID)
+                warndlg('An unexpected system error has occured. Please try re-selecting a grid cell from the main to replot the results.','System error ...');
+                returnd;
+            end
+
+            % Get the new table of data.
+            headData=get(hObject,'Data');            
+            
+            % Check the number of rows in the data strcuture equal that of
+            % the results table.
+            if size(this.dataPrep.(boreID),1) ~= size(headData,1)
+                warndlg('An unexpected system error has occured. Please try re-selecting a grid cell from the main to replot the results.','System error ...');
+                return;
+            end
+                        
+            % Update the data analysis data structure.
+            this.dataPrep.(boreID)(:,:) = headData;
+            
+            %Convert to matrix.
+            headData = table2array(this.dataPrep.(boreID)(:,:));
+            
+            % Update table statistics
+            numErroneouObs = sum(any(headData(:,7:12),2));
+            numOutlierObs = sum(headData(:,13));                    
+            this.tab_DataPrep.Table.Data{irow,16} = ['<html><font color = "#808080">',num2str(numErroneouObs),'</font></html>'];
+            this.tab_DataPrep.Table.Data{irow,17} = ['<html><font color = "#808080">',num2str(numOutlierObs),'</font></html>'];            
+            
+            % Redraw the plot.
+            %--------------------------------------------------------------
+
+            
+            % Create a time vector form head data.
+            dateVec = datenum(headData(:,1),headData(:,2),headData(:,3),headData(:,4),headData(:,5),zeros(size(headData,1),1));
+
+            % Plot the hydrograph and the errors and outliers
+            isError = any(headData(:,7:end)==1,2);
+            h= plot(this.tab_DataPrep.modelOptions.resultsOptions.plots, dateVec(~isError), headData(~isError,6),'b.-');
+            legendstring{1} = 'Obs. head';
+            hold(this.tab_DataPrep.modelOptions.resultsOptions.plots,'on');
+
+            % Date errors
+            col = 7;
+            isError = headData(:,col)==1;
+            if any(isError)
+                scatter(this.tab_DataPrep.modelOptions.resultsOptions.plots, dateVec(isError), headData(isError,6),'o');
+                legendstring = {legendstring{:} 'Date error'};
+            end
+
+            col = 8;
+            isError = headData(:,col)==1;
+            if any(isError)
+                scatter(this.tab_DataPrep.modelOptions.resultsOptions.plots, dateVec(isError), headData(isError,6),'o');
+                legendstring = {legendstring{:} 'Duplicate error'};
+            end
+
+            col = 9;
+            isError = headData(:,col)==1;
+            if any(isError)
+                scatter(this.tab_DataPrep.modelOptions.resultsOptions.plots, dateVec(isError), headData(isError,6),'o');
+                legendstring = {legendstring{:} 'Min head error'};
+            end   
+
+            col = 10;
+            isError = headData(:,col)==1;
+            if any(isError)
+                scatter(this.tab_DataPrep.modelOptions.resultsOptions.plots, dateVec(isError), headData(isError,6),'o');
+                legendstring = {legendstring{:} 'Max head error'};
+            end  
+
+            col = 11;
+            isError = headData(:,col)==1;
+            if any(isError)
+                scatter(this.tab_DataPrep.modelOptions.resultsOptions.plots, dateVec(isError), headData(isError,6),'o');
+                legendstring = {legendstring{:} '|dh/dt| error'};
+            end                              
+
+            col = 12;
+            isError = headData(:,col)==1;
+            if any(isError)
+                scatter(this.tab_DataPrep.modelOptions.resultsOptions.plots, dateVec(isError), headData(isError,6),'o');
+                legendstring = {legendstring{:} 'dh/dt=0 error'};
+            end                              
+
+            col = 13;
+            isError = headData(:,col)==1;
+            if any(isError)
+                scatter(this.tab_DataPrep.modelOptions.resultsOptions.plots, dateVec(isError), headData(isError,6),'o');
+                legendstring = {legendstring{:} 'Outlier obs.'};
+            end  
+
+            % Format plot
+            datetick(this.tab_DataPrep.modelOptions.resultsOptions.plots,'x','YY');
+            xlabel(this.tab_DataPrep.modelOptions.resultsOptions.plots,'Year');
+            ylabel(this.tab_DataPrep.modelOptions.resultsOptions.plots,'Head');
+            hold(this.tab_DataPrep.modelOptions.resultsOptions.plots,'off');
+            box(this.tab_DataPrep.modelOptions.resultsOptions.plots,'on');
+            axis(this.tab_DataPrep.modelOptions.resultsOptions.plots,'tight');
+            legend(this.tab_DataPrep.modelOptions.resultsOptions.plots, legendstring,'Location','eastoutside');            
+            
+            
+            
+        end
+        
+        function dataPrep_optionsSelection(this, hObject, eventdata)
+            try                         
+                switch this.tab_DataPrep.currentCol
+                    case 3 % Bore ID column
+                        
+                         % Get selected bores
+                         listSelection = get(hObject,'Value');
+
+                         % Get data from model construction table
+                         data=get(this.tab_DataPrep.Table,'Data'); 
+
+                         % Get the selected bore row index.
+                         index_selected = this.tab_DataPrep.currentRow;
+
+                         % Check if the nwe bore ID is unique.
+                         newBoreID = hObject.String(listSelection,1);
+                         if any(strcmp( data(:,3) , newBoreID) & index_selected~=[1:size(data,1)]')
+                             warndlg('The bore ID must be unique.','Bore ID error...');
+                             return;
+                         end
+                         
+                         % Add selected bore ID is cell array at the currently
+                         % selected bore.
+                         data(index_selected,3) =  hObject.String(listSelection,1);
+
+                         % Set bore ID 
+                         set(this.tab_DataPrep.Table,'Data', data); 
+                end
+            catch ME
+                return;
+            end        
+        end        
+        
         %Cell selection response for tab 1 - model construction
         function modelConstruction_tableSelection(this, hObject, eventdata)
             icol=eventdata.Indices(:,2);
@@ -578,6 +1224,9 @@ classdef GST_GUI < handle
                             set(hObject,'Data',data);
                         end
                         
+                         % Hide the panels.
+                         this.tab_ModelConstruction.modelOptions.vbox.Heights = [0; 0 ; 0; 0];                        
+                        
                     case 'Forcing Data File'
                         [fName,pName] = uigetfile({'*.*'},'Select the Forcing Data file');
                         if fName~=0;
@@ -586,6 +1235,10 @@ classdef GST_GUI < handle
                             % Input file name to the table
                             set(hObject,'Data',data);
                         end
+
+                         % Hide the panels.
+                         this.tab_ModelConstruction.modelOptions.vbox.Heights = [0; 0 ; 0; 0];                        
+                        
                     case 'Coordinates File'
                         [fName,pName] = uigetfile({'*.*'},'Select the Coordinates file');    
                         if fName~=0;
@@ -594,11 +1247,15 @@ classdef GST_GUI < handle
                             % Input file name to the table
                             set(hObject,'Data',data);
                         end
+                        
+                         % Hide the panels.
+                         this.tab_ModelConstruction.modelOptions.vbox.Heights = [0; 0 ; 0; 0];
+                        
                     case 'Bore ID'
                          % Check the obs. head file is listed
                          fname = data{eventdata.Indices(1),3};
                          if isempty(fname)
-                            warndlg('The observed head file name bust be input before selecting the bore ID');
+                            warndlg('The observed head file name must be input before selecting the bore ID');
                             return;
                          end
                          
@@ -638,7 +1295,7 @@ classdef GST_GUI < handle
                          set(this.tab_ModelConstruction.boreIDList,'String',boreIDs);  
                          
                          % Show the list box.
-                         this.tab_ModelConstruction.modelOptions.vbox.Heights = [-1; 0 ; 0];
+                         this.tab_ModelConstruction.modelOptions.vbox.Heights = [-1; 0 ; 0; 0];
                     case 'Model Type'                        
                          % Get the current model type.
                          modelType = data{irow,7};
@@ -655,7 +1312,7 @@ classdef GST_GUI < handle
                          this.tab_ModelConstruction.modelDescriptions.String = modelDecription; 
                          
                          % Show the description.
-                         this.tab_ModelConstruction.modelOptions.vbox.Heights = [0; -1 ; 0];
+                         this.tab_ModelConstruction.modelOptions.vbox.Heights = [0; -1 ; 0; 0];
                          
                     case 'Model Options'
                         % Check the preceeding inputs have been defined.
@@ -664,26 +1321,41 @@ classdef GST_GUI < handle
                             return;
                         end
                                                 
-                        % Set the forcing data, bore ID, coordinates for
-                        % the given model type.
-                        switch eventdata.Source.Data{irow,7};
-                            case 'model_TFN'
+                        % Set the forcing data, bore ID, coordinates and options
+                        % for the given model type.
+                        try          
+                            modelType = eventdata.Source.Data{irow,7};
+                            setForcingData(this.tab_ModelConstruction.modelTypes.(modelType).obj, data{irow,4});
+                            setCoordinatesData(this.tab_ModelConstruction.modelTypes.(modelType).obj, data{irow,5});
+                            setBoreID(this.tab_ModelConstruction.modelTypes.(modelType).obj, data{irow,6});
+                            
+                            % If the model options are empty, then add a
+                            % default empty cell, else set the existing
+                            % options into the model type GUI RHS panel.
+                            if isempty(eventdata.Source.Data{irow,8}) || strcmp(eventdata.Source.Data{irow,8},'{}')
+                                eventdata.Source.Data{irow,8} = '{}';
+                            else
+                                setModelOptions(this.tab_ModelConstruction.modelTypes.(modelType).obj, data{irow,8})
+                            end
                                 
-                                setForcingData(this.tab_ModelConstruction.modelTypes.model_TFN.obj, data{irow,4});
-                                setCoordinatesData(this.tab_ModelConstruction.modelTypes.model_TFN.obj, data{irow,5});
-                                setBoreID(this.tab_ModelConstruction.modelTypes.model_TFN.obj, data{irow,6});
-                                
-                            otherwise
-                                warndlg('Unknown model type selected.');
+                        catch ME
+                            warndlg('Unknown model type selected or the GUI for the selected model crashed.');
+                            this.tab_ModelConstruction.modelOptions.vbox.Heights = [0; 0;  0; 0];
                         end
-
-                        % Set the previouslt input model oprions
-                        setModelOptions(this.tab_ModelConstruction.modelTypes.model_TFN.obj, data{irow,8})
                         
                          % Show model type options.
-                         this.tab_ModelConstruction.modelOptions.vbox.Heights = [0; 0;  -1];
+                         switch modelType
+                             case 'model_TFN'
+                                this.tab_ModelConstruction.modelOptions.vbox.Heights = [0; 0;  -1; 0];
+                             case 'ExpSmooth'
+                                this.tab_ModelConstruction.modelOptions.vbox.Heights = [0; 0;  0; -1];
+                             otherwise
+                                 this.tab_ModelConstruction.modelOptions.vbox.Heights = [0; 0;  0; 0];
+                         end
+                         
                     otherwise
-                            % Do nothing
+                         % Hide the panels.
+                         this.tab_ModelConstruction.modelOptions.vbox.Heights = [0; 0 ; 0; 0];
                     end
                 end
         end
@@ -730,7 +1402,7 @@ classdef GST_GUI < handle
                 % Warn the user if the model is already built and the
                 % inputs are to change - reuiring the model object to be
                 % removed.
-                if ~strcmp(eventdata.PreviousData, eventdata.NewData) && icol~=1
+                if ~isempty(this.models) && ~strcmp(eventdata.PreviousData, eventdata.NewData) && icol~=1 && ~isempty(eventdata.PreviousData)
                     
                     % Get original model label
                     if strcmp(columnName, 'Model Label')
@@ -741,7 +1413,7 @@ classdef GST_GUI < handle
                     
                     % Check if the model object exists
                     ind = cellfun( @(x) strcmp(x.model_label,modelLabel), this.models);
-                    if ~isempty(ind)
+                    if any(ind)
                        
                         % Check if the model is calibrated
                         isCalibrated = false;
@@ -780,12 +1452,19 @@ classdef GST_GUI < handle
                         ind = cellfun( @(x) strcmp(x,modelLabel), modelLabels_calibTable);
                         this.tab_ModelCalibration.Table.Data = this.tab_ModelCalibration.Table.Data(~ind,:);
 
+                        % Update row numbers
+                        nrows = size(this.tab_ModelCalibration.Table.Data,1);
+                        this.tab_ModelCalibration.Table.RowName = mat2cell([1:nrows]',ones(1, nrows));                                     
+                        
                         % Delete models from simulations table.
                         modelLabels_simTable =  this.tab_ModelSimulation.Table.Data(:,2);                            
                         modelLabels_simTable = GST_GUI.removeHTMLTags(modelLabels_simTable);
                         ind = cellfun( @(x) strcmp(x,modelLabel), modelLabels_simTable);
                         this.tab_ModelSimulation.Table.Data = this.tab_ModelSimulation.Table.Data(~ind,:);                        
                         
+                        % Update row numbers
+                        nrows = size(this.tab_ModelSimulation.Table.Data,1);
+                        this.tab_ModelSimulation.Table.RowName = mat2cell([1:nrows]',ones(1, nrows));                                     
                     end
                     
                 end
@@ -824,7 +1503,7 @@ classdef GST_GUI < handle
                          this.tab_ModelConstruction.modelDescriptions.String = modelDecription; 
                          
                          % Show the description.
-                         this.tab_ModelConstruction.modelOptions.vbox.Heights = [0; -1 ; 0];                        
+                         this.tab_ModelConstruction.modelOptions.vbox.Heights = [0; -1 ; 0; 0];                        
                     otherwise
                             % Do nothing                                             
                 end
@@ -918,6 +1597,11 @@ classdef GST_GUI < handle
                 end
             end
             
+            % Check there is any table data
+            if isempty(data)
+                return;
+            end            
+            
             % Find index to the calibrated model label within the
             % list of constructed models.
             if isempty(irow)
@@ -979,16 +1663,25 @@ classdef GST_GUI < handle
                         %Get parameters and names 
                         [paramValues, paramsNames] = getParameters(this.models{modelInd,1}.model);  
                         
-                        % Combine names and values into a cell array;
-                        %tableData = {paramsNames(:,1), paramsNames(:,2), paramValues};
-                        
                         % Add to the table
                         this.tab_ModelCalibration.resultsOptions.paramTable.table.Data = cell(length(paramValues),3);
                         this.tab_ModelCalibration.resultsOptions.paramTable.table.Data(:,1) = paramsNames(:,1);
                         this.tab_ModelCalibration.resultsOptions.paramTable.table.Data(:,2) = paramsNames(:,2);
                         this.tab_ModelCalibration.resultsOptions.paramTable.table.Data(:,3) = num2cell(paramValues);
-                                    
-                    case {3, 4, 5, 6, 7, 8, 9}
+                        
+                    case 3
+                        % Show derived model variables
+                        
+                        %Get parameters and names 
+                        [paramValues, paramsNames] = getDerivedParameters(this.models{modelInd,1}.model);  
+                        
+                        % Add to the table
+                        this.tab_ModelCalibration.resultsOptions.derivedVariableTable.table.Data = cell(length(paramValues),3);
+                        this.tab_ModelCalibration.resultsOptions.derivedVariableTable.table.Data(:,1) = paramsNames(:,1);
+                        this.tab_ModelCalibration.resultsOptions.derivedVariableTable.table.Data(:,2) = paramsNames(:,2);
+                        this.tab_ModelCalibration.resultsOptions.derivedVariableTable.table.Data(:,3) = num2cell(paramValues);                        
+                        
+                    case {4, 5, 6, 7, 8, 9, 10}
                         % Create an axis handle for the figure.
                         delete( findobj(this.tab_ModelCalibration.resultsOptions.plots.panel.Children,'type','axes'));
                         delete( findobj(this.tab_ModelCalibration.resultsOptions.plots.panel.Children,'type','legend'));     
@@ -997,19 +1690,19 @@ classdef GST_GUI < handle
                         axisHandle = axes( 'Parent', h);
                         % Show the calibration plots. NOTE: QQ plot type
                         % fails so is skipped
-                        if results_item<=5
-                            calibrateModelPlotResults(this.models{modelInd,1}, results_item-2, axisHandle);
+                        if results_item<=7
+                            calibrateModelPlotResults(this.models{modelInd,1}, results_item-3, axisHandle);
                         else
-                            calibrateModelPlotResults(this.models{modelInd,1}, results_item-1, axisHandle);
+                            calibrateModelPlotResults(this.models{modelInd,1}, results_item-2, axisHandle);
                         end
 
-                    case 9
+                    case 11
                         % do nothing
                 end
             else
-                this.tab_ModelCalibration.resultsOptions.box.Heights = [30 20 0 0];
+                this.tab_ModelCalibration.resultsOptions.box.Heights = [30 20 0 0 0 0];
             end
-        end
+        end                
         
         function modelCalibration_onResultsSelection(this, hObject, eventdata)
             
@@ -1018,13 +1711,15 @@ classdef GST_GUI < handle
                          
             switch listSelection
                 case 1 %Data & residuals
-                    this.tab_ModelCalibration.resultsOptions.box.Heights = [30 20 0 -1 0];
+                    this.tab_ModelCalibration.resultsOptions.box.Heights = [30 20 0 -1 0 0];
                 case 2 %Parameters
-                    this.tab_ModelCalibration.resultsOptions.box.Heights = [30 20 0 0 -1];                    
-                case { 3, 4, 5, 6, 7, 8, 9} %Summary plots
-                    this.tab_ModelCalibration.resultsOptions.box.Heights = [30 20 -1 0 0];
+                    this.tab_ModelCalibration.resultsOptions.box.Heights = [30 20 0 0 -1 0];                    
+                case 3 %Derived variables
+                    this.tab_ModelCalibration.resultsOptions.box.Heights = [30 20 0 0 0 -1];                                                           
+                case {4, 5, 6, 7, 8, 9, 10} %Summary plots
+                    this.tab_ModelCalibration.resultsOptions.box.Heights = [30 20 -1 0 0 0];
                 otherwise %None
-                    this.tab_ModelCalibration.resultsOptions.box.Heights = [30 20 0 0];
+                    this.tab_ModelCalibration.resultsOptions.box.Heights = [30 20 0 0 0 0];
             end
 
         end
@@ -1060,9 +1755,19 @@ classdef GST_GUI < handle
                         % Get the selected model for simulation
                         calibLabel = eventdata.EditData;
 
+                        % Get list of calibrated model
+                        model_label = cell(1,0);
+                        j=0;
+                        for i=1:size(this.models,1)
+                           if isfield(this.models{i,1}.calibrationResults,'isCalibrated') && ...
+                           this.models{i,1}.calibrationResults.isCalibrated
+                                j=j+1;
+                                calibLabel_all{j,1} = this.models{i,1}.model_label;
+                           end
+                        end
+                        
                         % Find index to the calibrated model label within the list of calibrated
-                        % models.
-                        calibLabel_all = GST_GUI.removeHTMLTags(this.tab_ModelCalibration.Table.Data(:,2));
+                        % models.                        
                         ind = cellfun(@(x) strcmp(calibLabel, x), calibLabel_all);
                         if all(~ind)
                             return
@@ -1130,14 +1835,24 @@ classdef GST_GUI < handle
                         calibModels = cellfun( @(x) x.calibrationResults.isCalibrated, this.models);
 
                         % Get list of model labels
-                        calibLabels = this.tab_ModelCalibration.Table.Data(calibModels,2);
+                        calibLabels = cell(size(this.models,1),1);
+                        for i=1:size(this.models,1)
+                            props = properties(this.models{i});
+                            if any(strcmp(props,'model_label'))
+                                calibLabels{i,1} = this.models{i}.model_label;
+                            end
+                        end
+                        calibLabels = calibLabels(calibModels);
 
                         % Remove HTML tags from each model label
                         calibLabels = GST_GUI.removeHTMLTags(calibLabels);
 
                         % Assign calib model labels to drop down
-                        hObject.ColumnFormat{2} = calibLabels;   
+                        hObject.ColumnFormat{2} = calibLabels';   
                         
+                        % Update status in GUI
+                        drawnow
+                                                
                     case 'Forcing Data File'
                         [fName,pName] = uigetfile({'*.*'},'Select the Forcing Data file');
                         if fName~=0;
@@ -1278,7 +1993,8 @@ classdef GST_GUI < handle
             
             % Display the requested simulation results if the model object
             % exists and there are simulation results.
-            if ~isempty(simInd) && ~isempty(this.models{modelInd,1}.simulationResults{simInd,1}.head )               
+            if ~isempty(simInd) && isfield(this.models{modelInd,1}.simulationResults{simInd,1},'head') && ...
+            ~isempty(this.models{modelInd,1}.simulationResults{simInd,1}.head )               
                 
                 % Get pop up menu item for the selection of results to
                 % display.
@@ -1321,7 +2037,7 @@ classdef GST_GUI < handle
                         end
                             
                         % Plot the simulation data using the axis handles
-                        solveModelPlotResults(this.models{modelInd,1}, simLabel, axisHandles, []);
+                        solveModelPlotResults(this.models{modelInd,1}, simLabel, axisHandles);
                         
                     case 3
                         % do nothing
@@ -1357,13 +2073,17 @@ classdef GST_GUI < handle
             % inputs are to change - reuiring the model object to be
             % removed.            
             irow = this.tab_ModelConstruction.currentRow;
-            if ~strcmp(modelOptionsArray, this.tab_ModelConstruction.Table.Data{irow,8} )
+            if ~isempty(this.tab_ModelConstruction.Table.Data{irow,8}) && ...
+            ~strcmp(modelOptionsArray, this.tab_ModelConstruction.Table.Data{irow,8} )
 
                 % Get original model label
                 modelLabel = this.tab_ModelConstruction.Table.Data{irow,2};
 
                 % Check if the model object exists
-                ind = cellfun( @(x) strcmp(x.model_label,modelLabel), this.models);
+                ind=[];
+                if size(this.models,1)>0 && isfield(this.models{1},'model_label')
+                    ind = cellfun( @(x) strcmp(x.model_label,modelLabel), this.models);
+                end
                 if ~isempty(ind)
 
                     % Check if the model is calibrated
@@ -1403,11 +2123,19 @@ classdef GST_GUI < handle
                     ind = cellfun( @(x) strcmp(x,modelLabel), modelLabels_calibTable);
                     this.tab_ModelCalibration.Table.Data = this.tab_ModelCalibration.Table.Data(~ind,:);
 
+                    % Update row numbers
+                    nrows = size(this.tab_ModelCalibration.Table.Data,1);
+                    this.tab_ModelCalibration.Table.RowName = mat2cell([1:nrows]',ones(1, nrows));                     
+                    
                     % Delete models from simulations table.
                     modelLabels_simTable =  this.tab_ModelSimulation.Table.Data(:,2);                            
                     modelLabels_simTable = GST_GUI.removeHTMLTags(modelLabels_simTable);
                     ind = cellfun( @(x) strcmp(x,modelLabel), modelLabels_simTable);
-                    this.tab_ModelSimulation.Table.Data = this.tab_ModelSimulation.Table.Data(~ind,:);                    
+                    this.tab_ModelSimulation.Table.Data = this.tab_ModelSimulation.Table.Data(~ind,:);   
+                    
+                    % Update row numbers
+                    nrows = size(this.tab_ModelSimulation.Table.Data,1);
+                    this.tab_ModelSimulation.Table.RowName = mat2cell([1:nrows]',ones(1, nrows));                     
                 end
             end
             
@@ -1444,7 +2172,8 @@ classdef GST_GUI < handle
                     % Warn the user if the model is already built and the
                     % inputs are to change - reuiring the model object to be
                     % removed.            
-                    if ~strcmp(modelOptionsArray, this.tab_ModelConstruction.Table.Data{i,8} )
+                    if ~isempty(this.tab_ModelConstruction.Table.Data{i,8}) && ...
+                    ~strcmp(modelOptionsArray, this.tab_ModelConstruction.Table.Data{i,8} )
 
                         % Get original model label
                         modelLabel = this.tab_ModelConstruction.Table.Data{i,2};
@@ -1497,11 +2226,19 @@ classdef GST_GUI < handle
                             ind = cellfun( @(x) strcmp(x,modelLabel), modelLabels_calibTable);
                             this.tab_ModelCalibration.Table.Data = this.tab_ModelCalibration.Table.Data(~ind,:);
 
+                            % Update row numbers
+                            nrows = size(this.tab_ModelCalibration.Table.Data,1);
+                            this.tab_ModelCalibration.Table.RowName = mat2cell([1:nrows]',ones(1, nrows));                                   
+                            
                             % Delete models from simulations table.
                             modelLabels_simTable =  this.tab_ModelSimulation.Table.Data(:,2);                            
                             modelLabels_simTable = GST_GUI.removeHTMLTags(modelLabels_simTable);
                             ind = cellfun( @(x) strcmp(x,modelLabel), modelLabels_simTable);
                             this.tab_ModelSimulation.Table.Data = this.tab_ModelSimulation.Table.Data(~ind,:);
+                            
+                            % Update row numbers
+                            nrows = size(this.tab_ModelSimulation.Table.Data,1);
+                            this.tab_ModelSimulation.Table.RowName = mat2cell([1:nrows]',ones(1, nrows));                              
                             
                         end
                     end                    
@@ -1515,28 +2252,325 @@ classdef GST_GUI < handle
             msgbox(['The model options were copied to ',num2str(nOptionsCopied), ' "', currentModelType ,'" models.'], 'Summary of model options applied to bores...');
         end
 
+        function onAnalyseBores(this, hObject, eventdata)
+           
+                        % Get table data
+            data = this.tab_DataPrep.Table.Data;
+            
+            % Get list of selected bores.
+            selectedBores = data(:,1);
+
+            % Change cursor to arrow
+            set(this.Figure, 'pointer', 'watch');
+            drawnow
+
+            % Check that the user wants to save the projct after each
+            % calib.
+            response = questdlg('Do you want to save the project after each bore is analysed?','Auto-save analysis results?','Yes','No','Cancel','Yes');
+            if strcmp(response,'Cancel')
+                return;
+            end
+            if strcmp(response,'Yes') && (isempty(this.project_fileName) || exist(this.project_fileName,'file') ~= 2);
+                msgbox('The project has not yet been saved. Please save it and re-run the analysis.','Project not yet saved ...','error');
+                return;
+            end
+            saveModels=false;
+            if strcmp(response,'Yes')
+                saveModels=true;
+            end            
+            
+            % Loop  through the list of selected bore and apply the modle
+            % options.
+            nBoresAnalysed = 0;
+            nAnalysisFailed = 0;
+            nBoreNotInHeadFile=0;
+            nBoreInputsError = 0;
+            nBoreIDLabelError = 0;
+            for i=1:length(selectedBores);
+                % Check if the model is to be built.
+                if isempty(selectedBores{i}) ||  ~selectedBores{i}
+                    continue;
+                end
+
+                % Update table with progress'
+                this.tab_DataPrep.Table.Data{i, 15} = '<html><font color = "#FFA500">Analysing bore ...</font></html>';
+                this.tab_DataPrep.Table.Data{i,16} = ['<html><font color = "#808080">','(NA)','</font></html>'];
+                this.tab_DataPrep.Table.Data{i,17} = ['<html><font color = "#808080">','(NA)','</font></html>'];
+                    
+                % Update status in GUI
+                drawnow
+                
+                % Import head data
+                %----------------------------------------------------------
+                % Check the obs. head file is listed
+                fname = data{i,2};
+                if isempty(fname)                    
+                    this.tab_DataPrep.Table.Data{i, 15} = '<html><font color = "#FF0000">Head data file error - file name empty.</font></html>';
+                    nAnalysisFailed = nAnalysisFailed + 1;
+                    continue;
+                end
+
+                % Check the bore ID file exists.
+                if exist(fname,'file') ~= 2;                    
+                    this.tab_DataPrep.Table.Data{i, 15} = '<html><font color = "#FF0000">Head data file error - file does not exist.</font></html>';
+                    nAnalysisFailed = nAnalysisFailed + 1;
+                    continue;
+                end
+
+                % Read in the observed head file.
+                try
+                    tbl = readtable(fname);
+                catch                    
+                    this.tab_DataPrep.Table.Data{i, 15} = '<html><font color = "#FF0000">Head data file error -  read in failed.</font></html>';
+                    nAnalysisFailed = nAnalysisFailed + 1;
+                    continue;
+                end                
+                
+                % Filter for the required bore.
+                boreID = data{i,3};
+                filt =  strcmp(tbl{:,1},boreID);
+                if sum(filt)<=0
+                    this.tab_DataPrep.Table.Data{i, 15} = '<html><font color = "#FF0000">Bore not found in head data file -  data error.</font></html>';
+                    nBoreNotInHeadFile = nBoreNotInHeadFile +1;
+                    continue
+                end
+                headData = tbl(filt,2:end);
+                headData = headData{:,:};                
+                %----------------------------------------------------------
+                                
+                % Get required inputs for analysis
+                %----------------------------------------------------------
+                boreDepth = inf;
+                dataCol=4;
+                if ~isnumeric(this.tab_DataPrep.Table.Data{i, dataCol})
+                    this.tab_DataPrep.Table.Data{i, 15} = ['<html><font color = "#FF0000">Input for column ', num2str(dataCol), ' must be a number. </font></html>'];
+                    nBoreInputsError = nBoreInputsError +1;
+                    continue
+                end
+                if ~isempty(this.tab_DataPrep.Table.Data{i, dataCol}) && this.tab_DataPrep.Table.Data{i, dataCol}>0
+                    boreDepth = this.tab_DataPrep.Table.Data{i, dataCol};
+                end
+                
+                surfaceElevation = inf;
+                dataCol = 5;
+                if ~isnumeric(this.tab_DataPrep.Table.Data{i, dataCol})
+                    this.tab_DataPrep.Table.Data{i, 15} = ['<html><font color = "#FF0000">Input for column ', num2str(dataCol), ' must be a number. </font></html>'];
+                    nBoreInputsError = nBoreInputsError +1;
+                    continue
+                end                
+                if ~isempty(this.tab_DataPrep.Table.Data{i, dataCol})
+                    surfaceElevation = this.tab_DataPrep.Table.Data{i, dataCol};
+                end
+                
+                caseLength = inf;
+                dataCol = 6;
+                if ~isnumeric(this.tab_DataPrep.Table.Data{i, dataCol})
+                    this.tab_DataPrep.Table.Data{i, 15} = ['<html><font color = "#FF0000">Input for column ', num2str(dataCol), ' must be a number. </font></html>'];
+                    nBoreInputsError = nBoreInputsError +1;
+                    continue
+                end                
+                if ~isempty(this.tab_DataPrep.Table.Data{i, dataCol}) && this.tab_DataPrep.Table.Data{i, dataCol}>0
+                    caseLength = this.tab_DataPrep.Table.Data{i, dataCol};
+                end
+                
+                constructionDate = datenum(0,0,0);
+                dataCol = 7;
+                if ~isempty(this.tab_DataPrep.Table.Data{i, dataCol})
+                    try
+                        constructionDate = datenum(this.tab_DataPrep.Table.Data{i, dataCol});
+                    catch
+                        this.tab_DataPrep.Table.Data{i, 15} = '<html><font color = "#FF0000">Bore not found in head data file -  data error.</font></html>';
+                        nBoreInputsError = nBoreInputsError +1;
+                        continue
+                    end
+                end   
+                
+                checkStartDate = false;
+                dataCol = 8;               
+                if ~isempty(this.tab_DataPrep.Table.Data{i, dataCol})
+                    checkStartDate = this.tab_DataPrep.Table.Data{i, dataCol};
+                end                
+                
+                checkEndDate = false;
+                dataCol = 9;               
+                if ~isempty(this.tab_DataPrep.Table.Data{i, dataCol})
+                    checkEndDate = this.tab_DataPrep.Table.Data{i, dataCol};
+                end       
+                
+                checkMinHead = false;
+                dataCol = 10;               
+                if ~isempty(this.tab_DataPrep.Table.Data{i, dataCol})
+                    checkMinHead = this.tab_DataPrep.Table.Data{i, dataCol};
+                end       
+
+                
+                checkMaxHead = false;
+                dataCol = 11;               
+                if ~isempty(this.tab_DataPrep.Table.Data{i, dataCol})
+                    checkMaxHead = this.tab_DataPrep.Table.Data{i, dataCol};
+                end         
+                
+                
+                rateOfChangeThreshold = inf;
+                dataCol = 12;
+                if ~isnumeric(this.tab_DataPrep.Table.Data{i, dataCol})
+                    this.tab_DataPrep.Table.Data{i, 15} = ['<html><font color = "#FF0000">Input for column ', num2str(dataCol), ' must be a number. </font></html>'];
+                    nBoreInputsError = nBoreInputsError +1;
+                    continue
+                end                
+                if ~isempty(this.tab_DataPrep.Table.Data{i, dataCol}) && this.tab_DataPrep.Table.Data{i, dataCol}>0
+                    rateOfChangeThreshold = this.tab_DataPrep.Table.Data{i, dataCol};
+                end      
+                
+                constHeadDuration = inf;
+                dataCol = 13;
+                if ~isnumeric(this.tab_DataPrep.Table.Data{i, dataCol})
+                    this.tab_DataPrep.Table.Data{i, 15} = ['<html><font color = "#FF0000">Input for column ', num2str(dataCol), ' must be a number. </font></html>'];
+                    nBoreInputsError = nBoreInputsError +1;
+                    continue
+                end                
+                if ~isempty(this.tab_DataPrep.Table.Data{i, dataCol}) && this.tab_DataPrep.Table.Data{i, dataCol}>0
+                    constHeadDuration = this.tab_DataPrep.Table.Data{i, dataCol};
+                end
+                
+                numNoiseStdDev = inf;
+                dataCol = 14;
+                if ~isnumeric(this.tab_DataPrep.Table.Data{i, dataCol})
+                    this.tab_DataPrep.Table.Data{i, 15} = ['<html><font color = "#FF0000">Input for column ', num2str(dataCol), ' must be a number. </font></html>'];
+                    nBoreInputsError = nBoreInputsError +1;
+                    continue
+                end                
+                if ~isempty(this.tab_DataPrep.Table.Data{i, dataCol}) && this.tab_DataPrep.Table.Data{i, dataCol}>0
+                    numNoiseStdDev = this.tab_DataPrep.Table.Data{i, dataCol};
+                end                      
+                %----------------------------------------------------------
+                                
+                % Convert boreID string to appropriate field name and test
+                % if is can be converted to a field name
+                boreID = strrep(boreID,' ','_');
+                boreID = strrep(boreID,'-','_');
+                boreID = strrep(boreID,'?','');
+                boreID = strrep(boreID,'\','_');
+                boreID = strrep(boreID,'/','_');
+                try 
+                    tmp.(boreID) = [1 2 3];
+                    clear tmp;
+                catch ME
+                    this.tab_DataPrep.Table.Data{i, 15} = '<html><font color = "#FF0000">Bore ID label error - must start with letters and have only letters and numbers.</font></html>';
+                    nBoreIDLabelError = nBoreIDLabelError+1;
+                end
+                    
+                % Convert head date/time columns to a vector.
+                switch size(headData,2)-1
+                    case 3
+                        dateVec = datenum(headData(:,1), headData(:,2), headData(:,3));
+                    case 4
+                        dateVec = datenum(headData(:,1), headData(:,2), headData(:,3),headData(:,4), zeros(size(headData,1),1), zeros(size(headData,1),1));
+                    case 5
+                        dateVec = datenum(headData(:,1), headData(:,2), headData(:,3),headData(:,4),headData(:,5), zeros(size(headData,1),1));
+                    case 6
+                        dateVec = datenum(headData(:,1), headData(:,2), headData(:,3),headData(:,4),headData(:,5),headData(:,6));
+                    otherwise
+                        error('The input observed head must be 4 to 7 columns with right hand column being the head and the left columns: year; month; day; hour (optional), minute (options), second (optional).');
+                end                
+                
+                % Call analysis function                
+                try
+                    % Do the analysis and add to the object
+                    chechDuplicateDates = true;
+                    this.dataPrep.(boreID) = doDataQualityAnalysis( [dateVec, headData(:,end)], boreDepth, surfaceElevation, caseLength, constructionDate, ...
+                    checkStartDate, checkEndDate, chechDuplicateDates, checkMinHead, checkMaxHead, rateOfChangeThreshold, ...
+                    constHeadDuration, numNoiseStdDev );                                                       
+                    
+                    % Add summary stats
+                    numErroneouObs = sum(any(table2array(this.dataPrep.(boreID)(:,7:12)),2));
+                    numOutlierObs = sum(table2array(this.dataPrep.(boreID)(:,13)));                    
+                    this.tab_DataPrep.Table.Data{i,16} = ['<html><font color = "#808080">',num2str(numErroneouObs),'</font></html>'];
+                    this.tab_DataPrep.Table.Data{i,17} = ['<html><font color = "#808080">',num2str(numOutlierObs),'</font></html>'];
+                                  
+                    nBoresAnalysed = nBoresAnalysed +1;
+                    
+                    if saveModels
+                        this.tab_DataPrep.Table.Data{i,15} = '<html><font color = "#FFA500">Saving project. </font></html>';
+
+                        % Update status in GUI
+                        drawnow                        
+                        
+                        % Save project.
+                        onSave(this,hObject,eventdata);
+                    end
+                    
+                    this.tab_DataPrep.Table.Data{i, 15} = '<html><font color = "#008000">Bore analysed.</font></html>';
+                    
+                catch ME
+                    this.tab_DataPrep.Table.Data{i, 15} = ['<html><font color = "#FF0000">Analysis failed - ', ME.message,'</font></html>'];   
+                    this.tab_DataPrep.Table.Data{i,16} = ['<html><font color = "#808080">','(NA)','</font></html>'];
+                    this.tab_DataPrep.Table.Data{i,17} = ['<html><font color = "#808080">','(NA)','</font></html>'];
+                    
+                    nAnalysisFailed = nAnalysisFailed +1;
+                    continue                    
+                end
+          
+                % Update status in GUI
+                drawnow
+            end
+            
+            % Change cursor to arrow
+            set(this.Figure, 'pointer', 'arrow');
+            drawnow
+            
+            % Report Summary
+            msgbox({['The data analysis was successfully for ',num2str(nBoresAnalysed), ' bores.'], ...
+                    '', ...
+                    ['Below is a summary of the failures:'], ...
+                    ['   - Head data file errors: ', num2str(nBoreNotInHeadFile)] ...
+                    ['   - Input table data errors: ', num2str(nBoreInputsError)] ...
+                    ['   - Data analysis algorithm failures: ', num2str(nAnalysisFailed)] ...
+                    ['   - Bore IDs not starting with a letter and having only letters & numbers: ', num2str(nBoreIDLabelError)]}, ...                    
+                    'Summary of data analysis ...');
+                           
+            
+        end
         
         function onBuildModels(this, hObject, eventdata)
+            
+            % Delete any empty model objects
+            if ~isempty(this.models)
+                keepModelObject = true(size(this.models,1),1);
+                for i=1:size(this.models,1)
+                    if isempty(this.models{i})
+                        keepModelObject(i,1) = false;
+                    end
+                end
+                this.models = this.models(keepModelObject,1);
+            end
             
             % Get table data
             data = this.tab_ModelConstruction.Table.Data;
             
             % Get list of selected bores.
             selectedBores = data(:,1);
-                                        
+
+            % Change cursor to arrow
+            set(this.Figure, 'pointer', 'watch');
+            drawnow
+                        
             % Loop  through the list of selected bore and apply the modle
             % options.
             nModelsBuilt = 0;
             nModelsBuiltFailed = 0;
             for i=1:length(selectedBores);
                 % Check if the model is to be built.
-                if ~selectedBores{i}
+                if isempty(selectedBores{i}) || ~selectedBores{i}
                     continue;
                 end
 
                 % Update table with progress'
                 this.tab_ModelConstruction.Table.Data{i, 9} = '<html><font color = "#FFA500">Building model ...</font></html>';
-                
+
+                % Update status in GUI
+                drawnow
+                                
                 % Import head data
                 %----------------------------------------------------------
                 % Check the obs. head file is listed
@@ -1567,6 +2601,13 @@ classdef GST_GUI < handle
                 filt =  strcmp(tbl{:,1},data{i,6});
                 headData = tbl(filt,2:end);
                 headData = headData{:,:};
+                
+                % Check theer is some obs data
+                if size(headData,1)<=1
+                    this.tab_ModelConstruction.Table.Data{i, 9} = '<html><font color = "#FF0000">Head data file error - <=1 observation.</font></html>';
+                    nModelsBuiltFailed = nModelsBuiltFailed + 1;
+                    continue;
+                end
                 
                 %----------------------------------------------------------
                 
@@ -1621,6 +2662,12 @@ classdef GST_GUI < handle
                 % Get model type
                 modelType = data{i,7};
                 
+                % If the modle options are empty, try and add an empty cell
+                % in case the model does not need options.
+                if isempty(data{i,8})
+                    data{i,8} = '{}';
+                end
+                
                 % Get model options
                 try
                     modelOptions= eval(data{i,8});
@@ -1632,7 +2679,7 @@ classdef GST_GUI < handle
                 
                 % Find index to the model to be built has already been
                 % built. If so, find the index. Else increment the index.
-                if isempty(this.models)
+                if isempty(this.models) || (size(this.models,1)==1 && isfield(this.models{1},'model_label'))
                     this.models = cell(1,1);
                     ind = 1;                    
                 elseif iscell(this.models)
@@ -1673,7 +2720,7 @@ classdef GST_GUI < handle
                     % Add the model to the calibration table.
                     if ~any(isModelListed)
                         this.tab_ModelCalibration.Table.Data = [this.tab_ModelCalibration.Table.Data; ...
-                        cell(1,13)];
+                        cell(1,14)];
                         isModelListed = size(this.tab_ModelCalibration.Table.Data,1);
                         
                         this.tab_ModelCalibration.Table.Data{isModelListed,2} = ['<html><font color = "#808080">',model_label,'</font></html>'];
@@ -1682,13 +2729,19 @@ classdef GST_GUI < handle
                         this.tab_ModelCalibration.Table.Data{isModelListed,5} = ['<html><font color = "#808080">',datestr(obshead_end,'dd-mmm-yyyy'),'</font></html>'];
                         this.tab_ModelCalibration.Table.Data{isModelListed,6} = datestr(obshead_start,'dd-mmm-yyyy');
                         this.tab_ModelCalibration.Table.Data{isModelListed,7} = datestr(obshead_end,'dd-mmm-yyyy');
-                        this.tab_ModelCalibration.Table.Data{isModelListed,8} = 1;
+                        this.tab_ModelCalibration.Table.Data{isModelListed,8} = 'SP-UCI';
+                        this.tab_ModelCalibration.Table.Data{isModelListed,9} = 2;
+                        
+                        % Update row numbers
+                        nrows = size(this.tab_ModelCalibration.Table.Data,1);
+                        this.tab_ModelCalibration.Table.RowName = mat2cell([1:nrows]',ones(1, nrows));                        
+                        
                     else
                         this.tab_ModelCalibration.Table.Data{isModelListed,3} = ['<html><font color = "#808080">',boreID,'</font></html>'];
                         this.tab_ModelCalibration.Table.Data{isModelListed,4} = ['<html><font color = "#808080">',datestr(obshead_start,'dd-mmm-yyyy'),'</font></html>'];
                         this.tab_ModelCalibration.Table.Data{isModelListed,5} = ['<html><font color = "#808080">',datestr(obshead_end,'dd-mmm-yyyy'),'</font></html>'];
                     end
-                    this.tab_ModelCalibration.Table.Data{isModelListed,9} = '<html><font color = "#FF0000">Not calibrated.</font></html>';
+                    this.tab_ModelCalibration.Table.Data{isModelListed,10} = '<html><font color = "#FF0000">Not calibrated.</font></html>';
                     
                     
                     this.tab_ModelConstruction.Table.Data{i, 9} = '<html><font color = "#008000">Model built.</font></html>';
@@ -1698,21 +2751,103 @@ classdef GST_GUI < handle
                     nModelsBuiltFailed = nModelsBuiltFailed + 1;
                     this.tab_ModelConstruction.Table.Data{i, 9} = ['<html><font color = "#FF0000">Model build failed - ', ME.message,'</font></html>'];
                 end
+                
+                % Update status in GUI
+                drawnow
+
             end
             
+            % Change cursor to arrow
+            set(this.Figure, 'pointer', 'arrow');
+            drawnow
+                        
             % Report Summary
             msgbox(['The model was successfully built for ',num2str(nModelsBuilt), ' models and failed for ',num2str(nModelsBuiltFailed), ' models.'], 'Summary of model builds ...');
-            
+                        
         end
         
         function onCalibModels(this, hObject, eventdata)
             
+            % Delete any empty modle objects
+            if ~isempty(this.models)
+                keepModelObject = true(size(this.models,1),1);
+                for i=1:size(this.models,1)
+                    if isempty(this.models{i})
+                        keepModelObject(i,1) = false;
+                    end
+                end
+                this.models = this.models(keepModelObject,1);            
+            else
+                warndlg('Not models appear to have been built. Please build the models then calibrate them.','Model Calibration Error ...')
+                return;
+            end
+            
             % Get table data
             data = this.tab_ModelCalibration.Table.Data;
             
+            % Delete any models listed in the calibration table that are
+            % not listed in the model construction table            
+            if ~isempty(data)
+                constructModelLabels = this.tab_ModelConstruction.Table.Data(:,2);
+                deleteCalibRow = false(size(data,1),1);
+                for i=1:size(data,1)
+                    % Get model label
+                    calibModelLabelsHTML = data(i,2);
+                    % Remove HTML tags
+                    calibModelLabels = GST_GUI.removeHTMLTags(calibModelLabelsHTML);
+
+                    % Add index for row if it is to be deleted                    
+                    if ~any(cellfun( @(x) strcmp( calibModelLabels, x), constructModelLabels))
+                        deleteCalibRow(i) = true;
+                    end
+                end
+                
+                if any(deleteCalibRow)
+                    warndlg('Some models listed in the calibration table are not listed in the model construction table and will be deleted. Please re-run the calibration','Unexpected table error...');
+                    this.tab_ModelCalibration.Table.Data = this.tab_ModelCalibration.Table.Data(~deleteCalibRow,:);
+                    
+
+                    % Update row numbers
+                    nrows = size(this.tab_ModelCalibration.Table.Data,1);
+                    this.tab_ModelCalibration.Table.RowName = mat2cell([1:nrows]',ones(1, nrows));                            
+                    
+                    return;
+                end
+                
+            end            
+            
+            % Check that the user wants to save the projct after each
+            % calib.
+            response = questdlg('Do you want to save the project after each model is calibrated?','Auto-save models?','Yes','No','Cancel','Yes');
+            if strcmp(response,'Cancel')
+                return;
+            end
+            if strcmp(response,'Yes') && (isempty(this.project_fileName) || exist(this.project_fileName,'file') ~= 2);
+                msgbox('The project has not yet been saved. Please save it and re-run the calibration.','Project not yet saved ...','error');
+                return;
+            end
+            saveModels=false;
+            if strcmp(response,'Yes')
+                saveModels=true;
+            end            
+            
             % Get list of selected bores.
             selectedBores = data(:,1);
-                                        
+
+            % Change cursor
+            set(this.Figure, 'pointer', 'watch');
+            drawnow
+            
+            % Open parrallel engine for calibration
+            try
+                %nCores=str2double(getenv('NUMBER_OF_PROCESSORS'));
+                parpool('local');
+            catch ME
+                % Do nothing. An error is probably that parpool is already
+                % open
+            end
+                
+            
             % Loop  through the list of selected bore and apply the modle
             % options.
             nModelsCalib = 0;
@@ -1720,7 +2855,7 @@ classdef GST_GUI < handle
             for i=1:length(selectedBores);
                 
                 % Check if the model is to be calibrated.
-                if ~selectedBores{i}
+                if isempty(selectedBores{i}) || ~selectedBores{i}
                     continue;
                 end
 
@@ -1733,57 +2868,86 @@ classdef GST_GUI < handle
                 ind = cellfun(@(x) strcmp(calibLabel, x.model_label), this.models);
                 if all(~ind)
                     nModelsCalibFailed = nModelsCalibFailed +1;
-                    this.tab_ModelCalibration.Table.Data{i,9} = '<html><font color = "#FF0000">Calib. failed - Model appears not to have been built.</font></html>';
+                    this.tab_ModelCalibration.Table.Data{i,10} = '<html><font color = "#FF0000">Calib. failed - Model appears not to have been built.</font></html>';
                     continue;
                 end    
+                               
+                % Update status to starting calib.
+                this.tab_ModelCalibration.Table.Data{i,10} = '<html><font color = "#FFA500">Calibrating ... </font></html>';
 
+                % Update status in GUI
+                drawnow
                 
                 % Get start and end date. Note, start date is at the start
                 % of the day and end date is shifted to the end of the day.
                 calibStartDate = datenum( data{i,6},'dd-mmm-yyyy');
                 calibEndDate = datenum( data{i,7},'dd-mmm-yyyy') + datenum(0,0,0,23,59,59);
-                CMAES_restarts = data{i,8};
+                calibMethod = data{i,8};
+                calibMethodSetting = data{i,9};
                 try
+                    calibrateModel( this.models{ind,1}, calibStartDate, calibEndDate, calibMethod,  calibMethodSetting);
                     
-                    this.tab_ModelCalibration.Table.Data{i,9} = '<html><font color = "#FFA500">Calibrating ... </font></html>';
+                    if saveModels
+                        this.tab_ModelCalibration.Table.Data{i,10} = '<html><font color = "#FFA500">Saving project. </font></html>';
+
+                        % Update status in GUI
+                        drawnow                        
+                        
+                        % Save project.
+                        onSave(this,hObject,eventdata);
+                    end
                     
+                    % Delete CMAES working files
+                    switch calibMethod
+                        case {'CMA ES','CMA_ES','CMAES','CMA-ES'}
+                            delete('*.dat');
+                        otherwise
+                            % do nothing
+                    end
+                    
+                    this.tab_ModelCalibration.Table.Data{i,10} = '<html><font color = "#008000">Calibrated. </font></html>';
+
                     % Update status in GUI
                     drawnow
-                    
-                    calibrateModel( this.models{ind,1}, calibStartDate, calibEndDate, CMAES_restarts);
-                    
-                    this.tab_ModelCalibration.Table.Data{i,9} = '<html><font color = "#008000">Calibrated. </font></html>';
-
+                
                     % Set calib performance stats.
                     calibAIC = this.models{ind, 1}.calibrationResults.performance.AIC;
                     calibCoE = this.models{ind, 1}.calibrationResults.performance.CoeffOfEfficiency_mean.CoE;
-                    this.tab_ModelCalibration.Table.Data{i,10} = ['<html><font color = "#808080">',num2str(calibCoE),'</font></html>'];
-                    this.tab_ModelCalibration.Table.Data{i,12} = ['<html><font color = "#808080">',num2str(calibAIC),'</font></html>'];
+                    this.tab_ModelCalibration.Table.Data{i,11} = ['<html><font color = "#808080">',num2str(calibCoE),'</font></html>'];
+                    this.tab_ModelCalibration.Table.Data{i,13} = ['<html><font color = "#808080">',num2str(calibAIC),'</font></html>'];
 
                     % Set eval performance stats
                     if isfield(this.models{1, 1}.evaluationResults,'performance')
                         evalAIC = this.models{ind, 1}.evaluationResults.performance.AIC;
                         evalCoE = this.models{ind, 1}.evaluationResults.performance.CoeffOfEfficiency_mean.CoE_unbias;                    
                         
-                        this.tab_ModelCalibration.Table.Data{i,11} = ['<html><font color = "#808080">',num2str(evalCoE),'</font></html>'];
-                        this.tab_ModelCalibration.Table.Data{i,13} = ['<html><font color = "#808080">',num2str(evalAIC),'</font></html>'];
+                        this.tab_ModelCalibration.Table.Data{i,12} = ['<html><font color = "#808080">',num2str(evalCoE),'</font></html>'];
+                        this.tab_ModelCalibration.Table.Data{i,14} = ['<html><font color = "#808080">',num2str(evalAIC),'</font></html>'];
                     else
                         evalCoE = '(NA)';
                         evalAIC = '(NA)';
                         
-                        this.tab_ModelCalibration.Table.Data{i,11} = ['<html><font color = "#808080">',evalCoE,'</font></html>'];
-                        this.tab_ModelCalibration.Table.Data{i,13} = ['<html><font color = "#808080">',evalAIC,'</font></html>'];
+                        this.tab_ModelCalibration.Table.Data{i,12} = ['<html><font color = "#808080">',evalCoE,'</font></html>'];
+                        this.tab_ModelCalibration.Table.Data{i,14} = ['<html><font color = "#808080">',evalAIC,'</font></html>'];
                     end
                     nModelsCalib = nModelsCalib +1;
                     
-                    % Update status in GUI
-                    drawnow
-                    
                 catch ME
+                    
+                    warndlg( getReport(ME));
+                    
                     nModelsCalibFailed = nModelsCalibFailed +1;
-                    this.tab_ModelCalibration.Table.Data{i,9} = ['<html><font color = "#FF0000">Calib. failed - ', ME.message,'</font></html>'];
+                    this.tab_ModelCalibration.Table.Data{i,10} = ['<html><font color = "#FF0000">Calib. failed - ', ME.message,'</font></html>'];
                 end
+                
+                % Update status in GUI
+                drawnow
+                
             end
+            
+            % Change cursor to arrow
+            set(this.Figure, 'pointer', 'arrow');
+            drawnow
             
             % Report Summary
             msgbox(['The model was successfully calibrated for ',num2str(nModelsCalib), ' models and failed for ',num2str(nModelsCalibFailed), ' models.'], 'Summary of model calibration ...');
@@ -1800,6 +2964,10 @@ classdef GST_GUI < handle
             if length(selectedBores)==0
                 warndlg('No models selected for simulation.');
             end
+
+            % Change cursor
+            set(this.Figure, 'pointer', 'watch');
+            drawnow            
             
             % Loop  through the list of selected bore and apply the model
             % options.
@@ -1808,35 +2976,50 @@ classdef GST_GUI < handle
             for i=1:length(selectedBores);                                
                 
                 % Check if the model is to be simulated.
-                if ~selectedBores{i}
+                if isempty(selectedBores{i}) || ~selectedBores{i}
                     continue;
                 end
                 
                 this.tab_ModelSimulation.Table.Data{i,end} = '<html><font color = "#FFA500">Simulating ... </font></html>';
-                
-                % Get the simulation options
-                obsHeadStartDate = GST_GUI.removeHTMLTags( data{i,4} );
-                obsHeadStartDate = datenum( obsHeadStartDate,'dd-mmm-yyyy');
-                obsHeadEndDate = GST_GUI.removeHTMLTags( data{i,5} );
-                obsHeadEndDate = datenum( obsHeadEndDate,'dd-mmm-yyyy') + datenum(0,0,0,23,59,59);                
-                simLabel = data{i,6};
-                forcingdata_fname = data{i,7};
-                simStartDate = datenum( data{i,8},'dd-mmm-yyyy');
-                simEndDate = datenum( data{i,9},'dd-mmm-yyyy') + datenum(0,0,0,23,59,59);
-                simTimeStep = data{i,10};
-
+                        
+                % Update status in GUI
+                drawnow
+        
                 % Get the selected model for simulation
                 calibLabel = data{i,2};
 
                 % Find index to the calibrated model label within the list of calibrated
                 % models.
-                calibLabel_all = GST_GUI.removeHTMLTags(this.tab_ModelCalibration.Table.Data(:,2));
+                model_label = cell(1,0);
+                j=0;
+                for ind=1:size(this.models,1)
+                   if isfield(this.models{ind,1}.calibrationResults,'isCalibrated') && ...
+                   this.models{ind,1}.calibrationResults.isCalibrated
+                        j=j+1;
+                        calibLabel_all{j,1} = this.models{ind,1}.model_label;
+                   end
+                end
+
+                % Find index to the calibrated model label within the list of calibrated
+                % models.                        
                 ind = cellfun(@(x) strcmp(calibLabel, x), calibLabel_all);
                 if all(~ind)
                    nModelsSimFailed = nModelsSimFailed +1;
                    this.tab_ModelSimulation.Table.Data{i,end} = ['<html><font color = "#FF0000">Sim. failed - Model could not be found. Please rebuild and calibrate it.</font></html>'];
                    continue;
                 end                
+                
+                % Get the exact start and end dates of the obs head.
+                obsHead = getObservedHead(this.models{ind});
+                
+                % Get the simulation options
+                obsHeadStartDate = min(obsHead(:,1));
+                obsHeadEndDate = max(obsHead(:,1));               
+                simLabel = data{i,6};
+                forcingdata_fname = data{i,7};
+                simStartDate = datenum( data{i,8},'dd-mmm-yyyy');
+                simEndDate = datenum( data{i,9},'dd-mmm-yyyy') + datenum(0,0,0,23,59,59);                
+                simTimeStep = data{i,10};
                 
                 % Check there is a simulation label.
                 if isempty(simLabel)
@@ -1859,21 +3042,25 @@ classdef GST_GUI < handle
 
                     % Read in the file.
                     try
-                       forcingData = readtable(forcingdata_fname);
+                       forcingData= readtable(forcingdata_fname);
                     catch                   
                         this.tab_ModelSimulation.Table.Data{i,end} = '<html><font color = "#FF0000">Sim. failed - The new forcing date file could not be imported.</font></html>';
                         nModelsSimFailed = nModelsSimFailed +1;
                         continue;                        
                     end                    
-                    
-                    % Convert data to matrix
-                    forcingData_colnames = forcingData.Properties.VariableNames;
-                    forcingData = table2array(forcingData);
+                   
+                    % Convert year, month, day to date vector
+                    forcingData_data = table2array(forcingData);
+                    forcingDates = datenum(forcingData_data(:,1), forcingData_data(:,2), forcingData_data(:,3));
+                    forcingData_data = [forcingDates, forcingData_data(:,4:end)];
+                    forcingData_colnames = forcingData.Properties.VariableNames(4:end);
+                    forcingData_colnames = {'time', forcingData_colnames{:}};
+                    forcingData = array2table(forcingData_data,'VariableNames',forcingData_colnames);
+                    clear forcingData_data forcingDates
                 else
                     % Set forcing used to empty. This will cause the
                     % calibration data to be used.
                     forcingData = [];
-                    forcingData_colnames = [];
                 end
                                     
                % Get the start and end dates for the simulation.
@@ -1907,18 +3094,18 @@ classdef GST_GUI < handle
                        iyear = startYear;
                        imonth = startMonth;
                        iday = startDay;
-                       i=1;
-                       simTimePoints(i,1:3) = [iyear, imonth, iday];
-                       while iyear <= endYear || imonth <= endMonth || iday <= endDay
+                       j=1;
+                       simTimePoints(j,1:3) = [iyear, imonth, iday];
+                       while datenum(iyear,imonth,iday) < simEndDate
                           
                            if imonth == 12
-                               imonth = 1;
+                               imonth = j;
                                iyear = iyear + 1;
                            else
                                imonth = imonth + 1;
                            end
-                           i=i+1;
-                           simTimePoints(i,1:3) = [iyear, imonth, iday];                           
+                           j=j+1;
+                           simTimePoints(j,1:3) = [iyear, imonth, iday];                           
                        end
                        if iyear ~= endYear && imonth ~= endMonth && iday ~= endDay
                            simTimePoints(i+1,1:3) = [endYear, endMonth, endDay];
@@ -1952,8 +3139,8 @@ classdef GST_GUI < handle
                % Undertake the simulation.
                try                   
                    
-                   solveModel(this.models{ind}, simTimePoints, forcingData, forcingData_colnames, simLabel, doKrigingOfResiduals);                   
-                    
+                   solveModel(this.models{ind}, simTimePoints, forcingData, simLabel, doKrigingOfResiduals);                   
+                            
                    this.tab_ModelSimulation.Table.Data{i,end} = '<html><font color = "#008000">Simulated. </font></html>';
                    
                    nModelsSim = nModelsSim + 1;
@@ -1966,6 +3153,10 @@ classdef GST_GUI < handle
                
             end
             
+            % Change cursor
+            set(this.Figure, 'pointer', 'arrow');
+            drawnow            
+            
             % Report Summary
             msgbox(['The simulations were successfull for ',num2str(nModelsSim), ' models and failed for ',num2str(nModelsSimFailed), ' models.'], 'Summary of model simulaions...');
 
@@ -1976,6 +3167,8 @@ classdef GST_GUI < handle
             
             % Create the label for each type of inport
             switch hObject.Tag
+                case 'Data Preparation'
+                    windowString = 'Select a .csv file containing the data for the data preparation table.';                                    
                 case 'Model Construction'
                     windowString = 'Select a .csv file containing the data for the model construction.';                    
                 case 'Model Calibration'
@@ -2002,10 +3195,76 @@ classdef GST_GUI < handle
             catch ME
                 warndlg('The table datafile could not be read in. Please check it is a CSV file with column headings in the first row.');
                 return;
-            end
+            end            
 
             % Check the table format and append to the required table
             switch hObject.Tag
+                case 'Data Preparation'
+                    if size(tbl,2) ~=17
+                        warndlg('The table datafile must have 17 columns. That is, all columns shown in the model construction table.');
+                        return;
+                    end                    
+                    
+                    % Get column formats
+                    colFormat = this.tab_DataPrep.Table.ColumnFormat;                    
+
+                    % Convert table to cell array
+                    tableAsCell = table2cell(tbl);                    
+                    
+                    % Loop through each row in tbl, check the data and add
+                    % the user data to the columns of the row.
+                    nRowsNotImported= 0;
+                    nImportedRows = 0;
+                    for i=1: size(tbl,1)
+                        
+                        try                                      
+
+                            % Convert any columns of string data to '' if read
+                            % in as NaN.
+                            for j=1:length(colFormat)                       
+                                if ischar(colFormat{j}) && strcmp(colFormat{j},'char') && ...
+                                isnumeric( tableAsCell{i,j} ) && isnan( tableAsCell{i,j} )
+                                    tableAsCell{i,j} = '';
+                                elseif iscell(colFormat{j}) && ~ischar(tableAsCell{i,j}) && isnan( tableAsCell{i,j} )
+                                    tableAsCell{i,j} = '';
+                                end
+                            end
+
+                            % Add results text.
+                            tableAsCell{i,15} = '<html><font color = "#FF0000">Bore not analysed.</font></html>'; 
+                            tableAsCell{i,16} = ['<html><font color = "#808080">','(NA)','</font></html>'];
+                            tableAsCell{i,17} = ['<html><font color = "#808080">','(NA)','</font></html>'];
+                            
+                            % Convert integer 0/1 to logicals
+                            for j=find(strcmp(colFormat,'logical'))
+                               if tableAsCell{i,j}==1;
+                                   tableAsCell{i,j} = true;
+                               else
+                                   tableAsCell{i,j} = false;
+                               end                                       
+                            end
+                            
+                            % Append data
+                            this.tab_DataPrep.Table.Data = [this.tab_DataPrep.Table.Data; tableAsCell];
+                            
+                            nImportedRows = nImportedRows + 1;
+                        catch ME
+                            nRowsNotImported = nRowsNotImported + 1;
+                        end
+                        
+                    end
+                    
+
+                    % Update row numbers.
+                    nrows = size(this.tab_DataPrep.Table.Data,1);
+                    this.tab_DataPrep.Table.RowName = mat2cell([1:nrows]',ones(1, nrows));                           
+                    
+                    % Output Summary.
+                    msgbox({['Data preparation table data was imported to ',num2str(nImportedRows), ' rows.'], ...
+                            '', ...
+                            ['Number of rows not imported because of data format errors: ',num2str(nRowsNotImported) ]}, 'Summary of data preparation table importing ...');
+                    
+                    
                 case 'Model Construction'
                     if size(tbl,2) ~=9
                         warndlg('The table datafile must have 9 columns. That is, all columns shown in the model construction table.');
@@ -2132,6 +3391,11 @@ classdef GST_GUI < handle
                         
                         nImportedRows = nImportedRows +1;
                     end
+
+                    % Update row numbers.
+                    nrows = size(this.tab_ModelCalibration.Table.Data,1);
+                    this.tab_ModelCalibration.Table.RowName = mat2cell([1:nrows]',ones(1, nrows));                            
+                                            
                     
                     % Output Summary.
                     msgbox({['Calibration data was imported to ',num2str(nImportedRows), ' rows.'], ...
@@ -2141,16 +3405,21 @@ classdef GST_GUI < handle
                     
                 case 'Model Simulation'
                     
-
-                    if size(tbl,2) ~=11
-                        warndlg('The table datafile must have 11 columns. That is, all columns shown in the table.');
+                    % Check the number of columns
+                    if size(tbl,2) ~=12
+                        warndlg('The table datafile must have 12 columns. That is, all columns shown in the table.');
                         return;
                     end
+                    
+                    % Get column formats
+                    colFormat = this.tab_ModelSimulation.Table.ColumnFormat;
+
+                    % Convert table to cell array
+                    tableAsCell = table2cell(tbl);                    
                     
                     % Loop through each row in tbl and find the
                     % corresponding model within the GUI table and the add
                     % the user data to the columns of the row.
-                    nModelsNotCalib = 0;
                     nSimLabelsNotUnique = 0;
                     nImportedRows = 0;
                     for i=1: size(tbl,1)
@@ -2170,13 +3439,33 @@ classdef GST_GUI < handle
                             nSimLabelsNotUnique = nSimLabelsNotUnique + 1;
                             continue;                        
                         end
+
+                        
+                        % Convert any columns of string data to '' if read
+                        % in as NaN.
+                        for j=1:length(colFormat)                       
+                            if ischar(colFormat{j}) && strcmp(colFormat{j},'char')&& ...
+                            isnumeric( tableAsCell{i,j} ) && isnan( tableAsCell{i,j} )
+                                tableAsCell{i,j} = '';
+                            elseif iscell(colFormat{j}) && ~ischar(tableAsCell{i,j}) && isnan( tableAsCell{i,j} )
+                                tableAsCell{i,j} = '';
+                            end
+                        end
                         
                         % Append table. Note: the select column is input as a logical 
                         tbl{i,end} = {'<html><font color = "#FF0000">Not simulated.</font></html>'};   
-                        if tbl{i,1}==1
-                            this.tab_ModelSimulation.Table.Data = [this.tab_ModelSimulation.Table.Data; true, table2cell(tbl(i,2:end))];
-                        else
-                            this.tab_ModelSimulation.Table.Data = [this.tab_ModelSimulation.Table.Data; false, table2cell(tbl(i,2:end))];
+                        if size(this.tab_ModelSimulation.Table.Data,1)==0
+                            if tbl{i,1}==1
+                                this.tab_ModelSimulation.Table.Data = [true, tableAsCell(i,2:end)];
+                            else
+                                this.tab_ModelSimulation.Table.Data = [false, tableAsCell(i,2:end)];
+                            end                            
+                        else                            
+                            if tbl{i,1}==1
+                                this.tab_ModelSimulation.Table.Data = [this.tab_ModelSimulation.Table.Data; true, tableAsCell(i,2:end)];
+                            else
+                                this.tab_ModelSimulation.Table.Data = [this.tab_ModelSimulation.Table.Data; false, tableAsCell(i,2:end)];
+                            end
                         end
                         nImportedRows = nImportedRows + 1;
                     end
@@ -2184,16 +3473,26 @@ classdef GST_GUI < handle
                     % Update row numbers.
                     nrows = size(this.tab_ModelSimulation.Table.Data,1);
                     this.tab_ModelSimulation.Table.RowName = mat2cell([1:nrows]',ones(1, nrows));                            
-                                            
-            end
-             
-
+                                  
                     
+                    % Output Summary.
+                    msgbox({['Simulation data was imported to ',num2str(nImportedRows), ' rows.'], ...
+                            '', ...
+                            ['Number of rows not imported because the model label is not unique: ',num2str(nModelsNotUnique) ]}, ...
+                            'Summary of model calibration importing ...');
+                                   
+            end
         end
         
         function onExportTable(this, hObject, eventdata)
             % Create the label for each type of inport
             switch hObject.Tag
+                case 'Data Preparation'
+                    windowString = 'Input the .csv file name for exporting the data preparation table.';
+                    tbl = this.tab_DataPrep.Table.Data;
+                    colnames = this.tab_DataPrep.Table.ColumnName;
+                    colFormat = this.tab_DataPrep.Table.ColumnFormat;
+                    
                 case 'Model Construction'
                     windowString = 'Input the .csv file name for exporting the model construction table.';
                     tbl = this.tab_ModelConstruction.Table.Data;
@@ -2229,12 +3528,18 @@ classdef GST_GUI < handle
             % Replace spaces within column names with "_"
             colnames = strrep(colnames,' ','_');
             colnames = strrep(colnames,'.','');
-              
+            colnames = strrep(colnames,'?','');
+            colnames = strrep(colnames,'(','');
+            colnames = strrep(colnames,')','');
+            colnames = strrep(colnames,'/','_');
+            colnames = strrep(colnames,'-','_');
+            colnames = strrep(colnames,'__','_');
+            
             %If the model constuction table, then remove possible ',' from
             %the bore ID and model options columns.
             if strcmp(hObject.Tag,'Model Construction')
                 tbl(:,6) = strrep(tbl(:,6),',',' ');
-                tbl(:,8) = strrep(tbl(:,8),',',' ');
+                tbl(:,8) = strrep(tbl(:,8),',',' ');   
             end
             
             % Remove HTML tags from each row
@@ -2257,25 +3562,126 @@ classdef GST_GUI < handle
         
         function onExportResults(this, hObject, eventdata)
 
-            % Get output file name
-            'Input the .csv file name for results file.';
-            [fName,pName] = uiputfile({'*.csv'},windowString); 
-            if fName~=0;
-                % Assign file name to date cell array
-                filename = fullfile(pName,fName);
-            else
-                return;
-            end                       
-            
-
             % Export results
             switch hObject.Tag
-                case 'Model Calibration'
+                    
+                       
+                case 'Data Preparation'
 
+                    % Check there is data to export.
+                    if isempty(this.dataPrep) || size(this.dataPrep,1)<1;
+                        warndlg('There is no data analysis results to export.','No data.');
+                        return;
+                    end
+                                            
+                    % Ask the user if they want to export all analysis data
+                    % (ie logical data reporting on the analysis
+                    % undertaken) or just the data not assessed an errerous
+                    % or an outlier.
+                    response = questdlg('Do you want to export the analysis results or just the observations not assessed as being erroneous or outliers?','Data to export?','Export Analysis Results','Export non-erroneous obs.','Cancel','Export non-erroneous obs.');
+                    
+                    if strcmp(response,'Cancel')
+                        return;
+                    end
+                    
+                    if strcmp(response, 'Export Analysis Results')
+                        exportAllData = true;
+                    else
+                        exportAllData = false;
+                    end
+                    
+                    % Get output file name
+                    [fName,pName] = uiputfile({'*.csv'},'Input the .csv file name for results file.'); 
+                    if fName~=0;
+                        % Assign file name to date cell array
+                        filename = fullfile(pName,fName);
+                    else
+                        return;
+                    end                     
+                    
                     % Open file and write headers
                     fileID = fopen(filename,'w');
-                    fprintf(fileID,'Year,Month,Day,Hour,Minute,Obs_Head,Is_Calib_Point?,Calib_Head,Eval_Head,Model_Err,Noise_Lower,Noise_Upper');                    
+                    if exportAllData
+                        fprintf(fileID,'BoreID,Year,Month,Day,Hour,Minute,Head,Date_Error,Duplicate_Date_Error,Min_Head_Error,Max_Head_Error,Rate_of_Change_Error,Const_Hear_Error,Outlier_Obs \n');
+                    else
+                        fprintf(fileID,'BoreID,Year,Month,Day,Hour,Minute,Obs_Head \n');                    
+                    end                    
+                    
+                    % Get a list of bore IDs
+                    boreIDs = fieldnames(this.dataPrep);
+                    
+                    % Export each bore analysed.
+                    nResultsWritten = 0;
+                    nResultsNotWritten = 0;
+                    for i = 1:size(boreIDs,1)
+                       
+                        % Get the analysis results.
+                        tableData = this.dataPrep.(boreIDs{i});
+
+                        % Check there is some data
+                        if isempty(tableData) || size(tableData,1)==0
+                            nResultsNotWritten = nResultsNotWritten +1;
+                            continue;                                
+                        end
+
+                        % Convert to matrix.
+                        tableData = table2array(tableData);
+
+                        % Export data
+                        try
+                            if exportAllData                                                   
+    
+                                %Write each row.
+                                for j=1:size(tableData,1)
+                                    fprintf(fileID,'%s,%i,%i,%i,%i,%i,%12.3f,%i,%i,%i,%i,%i,%i,%i \n', boreIDs{i} , tableData(j,:));                                    
+                                end
+                            
+                                nResultsWritten = nResultsWritten + 1;
+                            else
+
+                                isError = any(tableData(:,7:end)==1,2);
+                                if size(tableData,1) > sum(isError)
+    
+                                    % Filter data
+                                    tableData = tableData(~isError,:);
+                                                                        
+                                    %Write each row.
+                                    for j=1:size(tableData,1)
+                                        fprintf(fileID,'%s,%i,%i,%i,%i,%i,%12.3f \n', boreIDs{i} , tableData(j,1:6));
+                                    end
+                                
+                                    nResultsWritten = nResultsWritten + 1;
+                                else
+                                    nResultsNotWritten = nResultsNotWritten +1;
+                                end
+                            end
+                        catch
+                            nResultsNotWritten = nResultsNotWritten +1;
+                        end
+                    end
                     fclose(fileID);
+                    
+                    % Show summary
+                    msgbox({'Export of results finished.','', ...
+                           ['Number of bore results exported =',num2str(nResultsWritten)], ...
+                           ['Number of bore results not exported =',num2str(nResultsNotWritten)]}, ...
+                           'Export Summary');
+
+                    
+                case 'Model Calibration'
+                    
+                    % Get output file name
+                    [fName,pName] = uiputfile({'*.csv'},'Input the .csv file name for results file.'); 
+                    if fName~=0;
+                        % Assign file name to date cell array
+                        filename = fullfile(pName,fName);
+                    else
+                        return;
+                    end 
+                    
+                    % Open file and write headers
+                    fileID = fopen(filename,'w');
+                    fprintf(fileID,'Model_Label,BoreID,Year,Month,Day,Hour,Minute,Obs_Head,Is_Calib_Point?,Calib_Head,Eval_Head,Model_Err,Noise_Lower,Noise_Upper \n');
                     
                     % Loop through each row of the calibration table and
                     % export the calibration results (if calibrated)
@@ -2285,12 +3691,13 @@ classdef GST_GUI < handle
                        
                         % get model label.
                         modelLabel = this.tab_ModelConstruction.Table.Data{i,2};
+                        boreID = this.tab_ModelConstruction.Table.Data{i,6};
                         
                         % Find object for the model.
-                        ind = cellfun( @(x) strcmp(x.model_label,modelLabel), this.models);
-                        if ~isempty(ind) && ...
-                        ~isempty(this.models{ind}.calibrationResults) && ...
-                        this.models{ind}.calibrationResults.isCalibrated                        
+                        modelInd = cellfun( @(x) strcmp(x.model_label,modelLabel), this.models);
+                        if ~isempty(modelInd) && ...
+                        ~isempty(this.models{modelInd}.calibrationResults) && ...
+                        this.models{modelInd}.calibrationResults.isCalibrated                        
                                                    
                             % Get the model calibration data.
                             tableData = this.models{modelInd,1}.calibrationResults.data.obsHead;
@@ -2315,18 +3722,132 @@ classdef GST_GUI < handle
                             % Calculate year, month, day etc
                             tableData = [year(tableData(:,1)), month(tableData(:,1)), day(tableData(:,1)), hour(tableData(:,1)), minute(tableData(:,1)), tableData(:,2:end)];                    
                    
+                            % Build write format string
+                            fmt = '%s,%s,%i,%i,%i,%i,%i,%12.3f';
+                            for j=1:size(tableData,2)-6
+                               fmt = strcat(fmt,',%12.3f'); 
+                            end
+                            fmt = strcat(fmt,'  \n'); 
+                            
+                            %Write each row.
+                            for j=1:size(tableData,1)
+                                fprintf(fileID,fmt, modelLabel, boreID, tableData(j,:));
+                            end
+                            
                             % write data to the file
-                            dlmwrite(filename,tableData,'-append');          
+                            %dlmwrite(filename,tableData,'-append');          
                             nResultsWritten = nResultsWritten + 1;
                             
                         end        
                     end
+                    fclose(fileID);
                     
                     % Show summary
-                    msgbox({'Export of results finished.','',['Number of model resulted exported =',num2str(nResultsWritten)]},'Export Summary');
+                    msgbox({'Export of results finished.','',['Number of model results exported =',num2str(nResultsWritten)]},'Export Summary');
                     
                     
                 case 'Model Simulation'
+
+                    % Get output file name
+                    folderName = uigetdir(folderName ,'Select where the .csv simulation files saved (one file per simulation).');    
+                    if isempty(folderName)
+                        return;
+                    end
+                    
+                    % Loop through each row of the simulation table and
+                    % export the calibration results (if calibrated)
+                    nrows = size(this.tab_ModelSimulation.Table.Data,1);
+                    nResultsWritten=0;
+                    nModelsNotFound=0;
+                    nSimsNotUndertaken = 0;
+                    nSimsNotUnique = 0;
+                    nTableConstFailed = 0;
+                    nWritteError = 0;
+                    for i=1:nrows
+                        
+                        % get model label and simulation label.
+                        modelLabel = this.tab_ModelSimulation.Table.Data{i,2};
+                        simLabel = this.tab_ModelSimulation.Table.Data{i,6};
+                        
+                        % Find object for the model.
+                        ind = cellfun( @(x) strcmp(x.model_label,modelLabel), this.models);
+                        if isempty(ind) || isempty(this.models{ind}.simulationResults)                       
+                            nModelsNotFound = nModelsNotFound +1;
+                            continue;
+                        end
+                        
+                        % Check if any simulations have been undertaken.
+                        if isempty(this.models{modelInd,1}.simulationResults)
+                            nSimsNotUndertaken = nSimsNotUndertaken +1;
+                            continue;
+                        end
+                        
+                        % Find the simulation.    
+                        if isempty(simLabel)
+                            nSimsNotUndertaken = nSimsNotUndertaken +1;
+                            continue;
+                        end
+                        simInd = cellfun(@(x) strcmp(simLabel, x.simulationLabel), this.models{modelInd,1}.simulationResults);
+                        if all(~simInd)    % Exit if model not found.
+                            nSimsNotUndertaken = nSimsNotUndertaken +1;
+                            continue;
+                        end          
+                        simInd = find(simInd);
+            
+                        % Check only one simulation found
+                        if length(simInd)>1
+                            nSimsNotUnique = nSimsNotUnique +1;
+                            continue;
+                        end
+                        
+
+                        % Get the simulation data and create the output
+                        % table.
+                        try
+                            % Get the model simulation data.
+                            tableData = this.models{modelInd,1}.simulationResults{simInd,1}.head;                        
+                            
+                            % Calculate year, month, day etc
+                            tableData = [year(tableData(:,1)), month(tableData(:,1)), day(tableData(:,1)), hour(tableData(:,1)), minute(tableData(:,1)), tableData(:,2:end)];
+
+                            % Create column names.                        
+                            columnName = {'Year','Month','Day','Hour','Minute',this.models{modelInd,1}.simulationResults{simInd,1}.colnames{2:end}};
+
+                            % Create table and add variable names
+                            tableData = array2table(tableData);
+                            tableData.Properties.VariableNames = columnName;
+                        catch
+                            nTableConstFailed = nTableConstFailed + 1;
+                        end
+                        
+                        % Create file name
+                        filename_tmp = fullfile(filename,[modelLabel,'_',simLabel,'.csv']);
+                                                
+                        % write data to the file
+                        try
+                            writetable(tableData,filename_tmp);          
+                            nResultsWritten = nResultsWritten + 1;
+                        catch
+                            nWritteError = nWritteError + 1;
+                        end
+                                                    
+                    end
+                    
+                    % Show summary
+                    nResultsWritten=0;
+                    nModelsNotFound=0;
+                    nSimsNotUndertaken = 0;
+                    nSimsNotUnique = 0;
+                    nTableConstFailed = 0;
+                    nWritteError = 0;                    
+                    msgbox({'Export of results finished.','', ...
+                           ['Number of simulations exported =',num2str(nResultsWritten)], ...
+                           ['Number of models not found =',num2str(nModelsNotFound)], ...
+                           ['Number of simulations not undertaken =',num2str(nSimsNotUndertaken)], ...
+                           ['Number of simulations labels not unique =',num2str(nSimsNotUnique)], ...
+                           ['Number of simulations where the construction of results table failed=',num2str(nTableConstFailed)], ...
+                           ['Number of simulations where the file could not be written =',num2str(nWritteError)]}, ...
+                           'Export Summary');                    
 
                     
                     
@@ -2339,8 +3860,12 @@ classdef GST_GUI < handle
         end
         
         function onDocumentation(this, hObject, eventdata)
-           doc model_TFN 
-        end
+           if strcmp(hObject.Tag,'Algorithms') 
+                doc GroundwaterStatisticsToolbox
+           else
+               web([hObject.Tag,'.html']);
+           end
+        end                
         
         % Show splash 
         function onAbout(this, hObject, eventdata)
@@ -2373,6 +3898,150 @@ classdef GST_GUI < handle
              
         end        
         
+        % Load example models
+        function onExamples(this, hObject, eventdata)
+            
+            % Check if all of the GUI tables are empty. If not, warn the
+            % user the opening the example will delete the existing data.
+            if ~isempty(this.tab_Project.project_name.String) || ...
+            ~isempty(this.tab_Project.project_description.String) || ...
+            (size(this.tab_ModelCalibration.Table.Data,1)~=0 && any(~any(cellfun( @(x) isempty(x), this.tab_ModelConstruction.Table.Data(:,1:8))))) || ...
+            (size(this.tab_ModelCalibration.Table.Data,1)~=0 && any(~any(cellfun( @(x) isempty(x), this.tab_ModelCalibration.Table.Data)))) || ...
+            (size(this.tab_ModelSimulation.Table.Data,1)~=0 && any(~any(cellfun( @(x) isempty(x), this.tab_ModelSimulation.Table.Data))))
+                response = questdlg({'Opening an example project will overwrite the existing project.','','Do you want to continue?'}, ...
+                 'Overwrite the existing project?','Yes','No','No');
+             
+                if strcmp(response,'No')
+                    return;
+                end
+            end
+            
+            % Ask user the locations where the input data is to be saved.          
+            if ~isempty(this.project_fileName)
+                folderName = fileparts(this.project_fileName);
+            else
+                folderName = fileparts(pwd); 
+            end
+            folderName = uigetdir(folderName ,'Select where the project .csv files and project are to be created.');    
+            if isempty(folderName)
+                return;
+            end
+
+            % Change cursor
+            set(this.Figure, 'pointer', 'watch');                  
+            
+            % Build .csv file names and add to the GUI construction table.
+            display('Saving .csv files ...');
+            forcingFileName = fullfile(folderName,'forcing.csv');
+            coordsFileName = fullfile(folderName,'coordinates.csv');
+            headFileName = fullfile(folderName,'obsHead.csv');
+                        
+            % Open example .mat data file for the required example.
+            display('Opening data files ...');
+            switch eventdata.Source.Tag
+                case 'TFN - LUC'
+                    exampleData = load('BourkesFlat_data.mat');
+                case 'TFN - Pumping'
+                    exampleData = load('Clydebank_data.mat');
+                otherwise
+                    set(this.Figure, 'pointer', 'arrow');   
+                    warndlg('The requested example model could not be found.','Example Model Error ...');
+                    return;
+            end
+            
+            % Check there is the required data
+            if ~isfield(exampleData,'forcing') || ~isfield(exampleData,'coordinates') || ~isfield(exampleData,'obsHead')
+                set(this.Figure, 'pointer', 'arrow');   
+                warndlg('The example data for the model does not exist. It must contain the following Matlab tables: forcing, coordinates, obsHead.','Example Model Data Error ...');                
+                return;                
+            end
+            
+            % Check that the data is a table. 
+            if ~istable(exampleData.forcing) || ~istable(exampleData.coordinates) || ~istable(exampleData.obsHead) 
+                set(this.Figure, 'pointer', 'arrow');   
+                warndlg('The example models could not be loaded because the source data is not of the correct format. It must be a Matlab table variable.','Example Model Error ...');                
+                return;
+            end
+            
+            % Export the csv file names.
+            display('Saving .csv files ...');
+            writetable(exampleData.forcing,forcingFileName);
+            writetable(exampleData.coordinates,coordsFileName);
+            writetable(exampleData.obsHead,headFileName);
+            
+            
+            % Load the GUI table data and model.
+            display('Opening model files ...');
+            try                
+                switch eventdata.Source.Tag
+                    case 'TFN - LUC'                    
+                        exampleModel = load('BourkesFlat_model.mat');
+                    case 'TFN - Pumping'
+                        exampleModel = load('Clydebank_model.mat');
+                    otherwise
+                        set(this.Figure, 'pointer', 'arrow');                          
+                        warndlg('The requested example model could not be found.','Example Model Error ...');
+                        return;
+                end            
+                
+            catch ME
+                set(this.Figure, 'pointer', 'arrow');
+                warndlg('Project file could not be loaded.','File error');                
+                return;
+            end
+            
+            
+            % Assign data to the GUI
+            %------------------------------          
+            display('Updating file names in GUI ...');
+            % Assign loaded data to the tables and models.
+            this.tab_Project.project_name.String = exampleModel.tableData.tab_Project.title;
+            this.tab_Project.project_description.String = exampleModel.tableData.tab_Project.description;
+
+            % Data prep data.
+            this.tab_DataPrep.Table.Data = exampleModel.tableData.tab_DataPrep;
+            nrows = size(this.tab_DataPrep.Table.Data,1);
+            this.tab_DataPrep.Table.RowName = mat2cell([1:nrows]',ones(1, nrows));                    
+
+            % Model constrcuion data
+            this.tab_ModelConstruction.Table.Data = exampleModel.tableData.tab_ModelConstruction;
+            nrows = size(this.tab_ModelConstruction.Table.Data,1);
+            this.tab_ModelConstruction.Table.RowName = mat2cell([1:nrows]',ones(1, nrows));     
+
+            % Model Calib data
+            this.tab_ModelCalibration.Table.Data = exampleModel.tableData.tab_ModelCalibration;
+            nrows = size(this.tab_ModelCalibration.Table.Data,1);
+            this.tab_ModelCalibration.Table.RowName = mat2cell([1:nrows]',ones(1, nrows));                      
+
+            % Model Simulation
+            this.tab_ModelSimulation.Table.Data = exampleModel.tableData.tab_ModelSimulation;
+            nrows = size(this.tab_ModelSimulation.Table.Data,1);
+            this.tab_ModelSimulation.Table.RowName = mat2cell([1:nrows]',ones(1, nrows));                       
+
+            % Assign built models.
+            this.models = exampleModel.models;
+
+            % Assign analysed bores.
+            this.dataPrep = exampleModel.dataPrep;            
+            
+            % Update file paths within GUI construction table.
+            for i=1:size(this.tab_ModelConstruction.Table.Data,1)               
+                this.tab_ModelConstruction.Table.Data{i,3} = headFileName;
+                this.tab_ModelConstruction.Table.Data{i,4} = forcingFileName;
+                this.tab_ModelConstruction.Table.Data{i,5} = coordsFileName;                
+            end
+            
+            % Update file paths within GUI construction table.
+            for i=1:size(this.tab_DataPrep.Table.Data,1)               
+                this.tab_DataPrep.Table.Data{i,2} = headFileName;
+            end            
+            
+            % Change pointer
+            set(this.Figure, 'pointer', 'arrow');              
+            
+        end
+        
+        
         function rowAddDelete(this, hObject, eventdata)
            
             % Get the table object from UserData
@@ -2385,18 +4054,26 @@ classdef GST_GUI < handle
             % rows will be added (for all but the calibration
             % table).
             anySelected = any(selectedRows);
-            indSelected = find(selectedRows);
+            indSelected = find(selectedRows)';
             
             if size(tableObj.Data(:,1),1)>0 &&  ~anySelected && ~strcmp(hObject.Label,'Paste rows')
-                warning('No rows are selected for the requested operation.');
+                warndlg('No rows are selected for the requested operation.');
                 return;
             elseif size(tableObj.Data(:,1),1)==0 ...
             &&  (strcmp(hObject.Label, 'Copy selected row') || strcmp(hObject.Label, 'Delete selected rows'))                
                 return;
             end               
             
-            % Define the input for the status column
+            % Define the input for the status column and default data for
+            % inserting new rows.
+            defaultData = cell(1,size(tableObj.Data,2));
             switch tableObj.Tag
+                case 'Data Preparation'
+                    modelStatus = '<html><font color = "#FF0000">Bore not analysed.</font></html>';
+                    modelStatus_col = 15;
+                    defaultData = {false, '', '',0, 0, 0, '01/01/1900',true, true, true, true, 10, 120, 3,modelStatus, ...
+                    '<html><font color = "#808080">','(NA)','</font></html>', ...
+                    '<html><font color = "#808080">','(NA)','</font></html>'};
                 case 'Model Construction'
                     modelStatus = '<html><font color = "#FF0000">Model not built.</font></html>';
                     modelStatus_col = 9;
@@ -2418,17 +4095,46 @@ classdef GST_GUI < handle
                     % Check that name of the table is same as that from the
                     % copied data. 
                     if ~strcmp(this.copiedData.tableName, tableObj.Tag)
-                        warning('The copied row data was sourced from a different table.');
+                        warndlg('The copied row data was sourced from a different table.');
                         return;
                     end    
                     
                     if sum(selectedRows)>1
-                        warning('When pasting to selected rows, only one row can be copied.');
+                        warndlg('When pasting to selected rows, only one row can be copied.');
                         return;
                     end
                     
                     % Paste data and update model build status
                     switch this.copiedData.tableName
+                        case 'Data Preparation'
+                            if anySelected
+                                j=1;
+                                for i=indSelected
+                                    
+                                    % Paste data
+                                    tableObj.Data{i,2} = this.copiedData.data{1,2};
+                                    tableObj.Data{i,3} = this.copiedData.data{1,3};
+                                    tableObj.Data{i,4} = this.copiedData.data{1,4};
+                                    tableObj.Data{i,5} = this.copiedData.data{1,5};
+                                    tableObj.Data{i,6} = this.copiedData.data{1,6};
+                                    tableObj.Data{i,7} = this.copiedData.data{1,7};
+                                    tableObj.Data{i,8} = this.copiedData.data{1,8};
+                                    this.copiedData.data{i,modelStatus_col} = modelStatus;
+                                    j=j+1;
+                                end
+                            else
+                                for i=1: size(this.copiedData.data,1)
+                                   
+                                    % Add a row
+                                    tableObj.Data = [tableObj.Data; this.copiedData.data(i,:)];
+                                
+                                    % Add data to the new row.
+                                    tableObj.Data{irow,modelStatus_col} = modelStatus;                                    
+                                end
+                                % Update row numbers.
+                                nrows = size(tableObj.Data,1);
+                                tableObj.RowName = mat2cell([1:nrows]',ones(1, nrows));                                
+                            end                        
                         case 'Model Construction'
                             if anySelected
                                 j=1;
@@ -2463,6 +4169,9 @@ classdef GST_GUI < handle
                                     tableObj.Data{irow,2} = newModLabel;
                                     tableObj.Data{irow,9} = modelStatus;                                    
                                 end
+                                % Update row numbers.
+                                nrows = size(tableObj.Data,1);
+                                tableObj.RowName = mat2cell([1:nrows]',ones(1, nrows));                                           
                             end
                         case 'Model Calibration'
                             for i=indSelected
@@ -2475,6 +4184,9 @@ classdef GST_GUI < handle
                                 tableObj.Data{i,12} = '';
                                 tableObj.Data{i,13} = '';
                             end
+                            % Update row numbers.
+                            nrows = size(tableObj.Data,1);
+                            tableObj.RowName = mat2cell([1:nrows]',ones(1, nrows));                                        
                         case 'Model Simulation'
                             if anySelected
                                 j=1;
@@ -2493,7 +4205,8 @@ classdef GST_GUI < handle
                                     tableObj.Data{i,8} = this.copiedData.data{1,8};
                                     tableObj.Data{i,9} = this.copiedData.data{1,9};
                                     tableObj.Data{i,10} = this.copiedData.data{1,10};
-                                    this.copiedData.data{i,11} = modelStatus;
+                                    tableObj.Data{i,11} = this.copiedData.data{1,11};
+                                    this.copiedData.data{i,modelStatus_col} = modelStatus;
                                     j=j+1;
                                 end
                             else
@@ -2508,8 +4221,11 @@ classdef GST_GUI < handle
                                     newSimLabel = {this.copiedData.data{i,2}, this.copiedData.data{i,6}};
                                     newSimLabel = GST_GUI.createUniqueLabel(tableObj.Data(:,[2,6]), newSimLabel, irow );
                                     tableObj.Data{irow,6} = newSimLabel{2};
-                                    tableObj.Data{irow,11} = modelStatus;                                    
+                                    tableObj.Data{irow,modelStatus_col} = modelStatus;                                    
                                 end
+                                % Update row numbers.
+                                nrows = size(tableObj.Data,1);
+                                tableObj.RowName = mat2cell([1:nrows]',ones(1, nrows));                                            
                             end                            
                     end
                     
@@ -2527,7 +4243,7 @@ classdef GST_GUI < handle
                             ind = max(0,selectedRows(i) + i-1);
 
                             tableObj.Data = [tableObj.Data(1:ind-1,:); ...
-                                             cell(1,size(tableObj.Data,2)); ...
+                                             defaultData; ...
                                              tableObj.Data(ind:end,:)];
                             tableObj.Data{ind,1} = false; 
                             
@@ -2550,7 +4266,7 @@ classdef GST_GUI < handle
                             ind = selectedRows(i) + i;
 
                             tableObj.Data = [tableObj.Data(1:ind-1,:); ...
-                                             cell(1,size(tableObj.Data,2)); ...
+                                             defaultData; ...
                                              tableObj.Data(ind:end,:)];
                             tableObj.Data{ind,1} = false;                                                              
                             
@@ -2593,7 +4309,12 @@ classdef GST_GUI < handle
             tableObj = eval(eventdata.Source.Parent.UserData);            
                                     
             % Get selected rows
-            selectedRows = cell2mat(tableObj.Data(:,1));
+            selectedRows = false(size(tableObj.Data,1),1);
+            for i=1:size(tableObj.Data,1)
+                if ~isempty(tableObj.Data{i,1}) && tableObj.Data{i,1};
+                    selectedRows(i) = true;
+                end
+            end
             
             % Do the selected action            
             switch hObject.Label
