@@ -1,6 +1,8 @@
 Groundwater-Statistics-Toolbox
 ==============================
 
+NOTE: Until further notice the branch 'Algorithms' should be used. The master branch contains a GUI that is in heavy develpment. Once the GUI is finished it will be merged with the algorithms branch.
+
 The Groundwater Statistics Toolbox (GST) is a highly flexible statistical toolbox for getting more quantitiative value from groundwater monitoring data. Currently, the toolbox contains a highly flexible groundwater hydrograph time-series modeling framework that facilitates the following:
 
 1. Decomposition of hydrographs into individual drivers, such as climate and pumping
