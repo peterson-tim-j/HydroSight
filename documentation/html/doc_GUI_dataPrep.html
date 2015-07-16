@@ -1,0 +1,158 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>Groundwater Statistical Toolbox - Data Preparation GUI Tab</title><meta name="generator" content="MATLAB 8.4"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2015-07-05"><meta name="DC.source" content="doc_GUI_dataPrep.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; } 
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h1>Groundwater Statistical Toolbox - <i>Data Preparation GUI Tab</i></h1><!--introduction--><!--/introduction--><h2>Contents</h2><div><ul><li><a href="#1">Overview</a></li><li><a href="#2">Getting Started</a></li><li><a href="#3">Inputs</a></li><li><a href="#4">Outputs</a></li></ul></div><h2>Overview<a name="1"></a></h2><p>The <i>Data Preparation</i> tab is the second tab from the left within the GUI (see below). It allows an unlimited number of unique bore IDs to be analysed for erroneous observations and outliers and provides summary statistics for each bore. This allows observations resulting from known problems (e.g. pump tests, failed bores) to be removed from the monitoring data prior to time-series modelling. Importantly, no outlier detection algorithm works for all types of data or and can detect all types of outliers. It is essential that the outlier detection algorithm and results be assessed as appropriate for each application.</p><p>The tab allows the following analysis to be undertaken:</p><div><ul><li>The observation start and end date can be checked to be within the construction date and today's date.</li><li>The water level can be checked to ensure it is above the bottom of the bore.</li><li>The water level can be checked to ensure it is below the top of the bore casing.</li><li>The daily absolute rate of water level change can be checked to ensure it is below a user set threshold.</li><li>Periods of constant water level beyond a user set threshold duration can be identified.</li><li>Outlier observations can be identified using a double-exponential smoothing model. The model is used to estimate the standard deviation of the noise &amp; the first observation beyond a user set number of standard deviations is omitted and the model is then re-calibrated and the outlier analysis repeated. The processes is repeated until fewer outlier observations are identified than is expected for the probability at the input number of standard deviations.</li></ul></div><p>The screenshot below illustrates the main features of the tab. Specifically:</p><div><ul><li>The left-hand window tabulates the bores to be analysed.</li><li>Unique analysis settings can be applied to each bore.</li><li>Buttons above the table allow export of the table or appending of a .csv file.</li><li>The results of the analysis can exported or displayed and edited using the right-hand results pane.</li></ul></div><p><img vspace="5" hspace="5" src="diagrams/doc_GUI_dataPrep.png" alt=""> </p><h2>Getting Started<a name="2"></a></h2><p>To analyse a series of bores, complete the following steps:</p><div><ol><li>Input the required settings (see below) for each bore.</li><li>Select the bores to be analysed using the left tick box.</li><li>Click on the button <i>Analyse Selected Bores</i>.</li><li>Review the results for a bore by placing the cursor in one of its cells. This should display the hydrograph, with the outliers denoted, and a table of data. Importantly, the assessment of each water level observation can be manually edited using the table.</li><li>Export the analysed data using the <i>Export Results</i> button and select the desired format.</li></ol></div><h2>Inputs<a name="3"></a></h2><p>The following inputs are available for this tab. The <b>bold</b> inputs are required.</p><div><ol><li><i><b>Obs. Head File</b></i>: a .csv file of the observed head with columns <i>bore ID</i>, <i>year</i>, <i>month</i>, <i>day</i>, <i>head</i>.</li><li><i><b>Bore ID</b></i>: a string for the bore ID to analyse. A pane on the right should be displayed when you place the cursor in this cell that lists the bore IDs within the above file.</li><li><i>Bore Depth (Below Surface)</i>: used for checking if the water level is implausibly deep. Units are assumed to be the same as the the water level observations.</li><li><i>Surface Elevation</i>: used for checking if the water level is implausibly high (i.e. &gt; land elevation + casing length).</li><li><i>Casing Length (above surface)</i>: as for surface elevation input. Units are assumed to be the same as the the water level observations.</li><li><i>Construction Date</i>: used for checking if the observations were recorded before the bore was constructed.</li><li><i>Check Start Date?</i>: option to check the date of observations against the construction date.</li><li><i>Check End Date?</i>: option to check the date of observations against the current date.</li><li><i>Check Head Above Bore Depth?</i>: option to check if the water level is higher than the bottom of the bore.</li><li><i>Check Head Below Casing?</i>: option to check if the water level is shallower than the top of the casing elevation.</li><li><i>Threshold for Max. Daily abs(Head) Change</i>: the maximum absolute water level change per day that is deemed acceptable. Default is 10 m/day.</li><li><i>Threshold Duration for Constant Head (days)</i>: the minimum duration of constant water level that is deemed acceptable. Default is 120 days.</li><li><i>Auto-Outlier Num. St. dev</i>: the number of standard deviations of the noise (estimated from the modelling) for estimation of outliers. The default is 3.</li></ol></div><h2>Outputs<a name="4"></a></h2><p>The following outputs are presented within the table:</p><div><ul><li><i>Analysis Status</i> : the status of the analysis for each bore is displayed within the table. Error messages for the analysis are also displayed in this column.</li><li><i>No. Erroneous Obs.</i> : after successful analysis, the number of erroneous observations are displayed for each bore within the table. This can be used to identify the bore analysis requiring visual review.</li><li><i>No. Outlier Obs.</i> : after successful analysis, the number of outlier observations is also displayed for each bore within the table. Again, this can be used to identify the bore analysis requiring visual review.</li></ul></div><p class="footer"><br><a href="http://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2014b</a><br></p></div><!--
+##### SOURCE BEGIN #####
+%% Groundwater Statistical Toolbox - _Data Preparation GUI Tab_
+
+%% Overview
+% The _Data Preparation_ tab is the second tab from the left within the GUI (see below). 
+% It allows an unlimited number of unique bore IDs to be analysed for 
+% erroneous observations and outliers and provides summary statistics for
+% each bore. This allows observations resulting from known problems 
+% (e.g. pump tests, failed bores) to be removed from the monitoring data 
+% prior to time-series modelling. Importantly, no outlier detection
+% algorithm works for all types of data or and can detect all types of
+% outliers. It is essential that the outlier detection algorithm and results
+% be assessed as appropriate for each application.
+%
+% The tab allows the following analysis to be undertaken:
+%
+% * The observation start and end date can be checked to be within the construction date and today's date.
+% * The water level can be checked to ensure it is above the bottom of the bore.
+% * The water level can be checked to ensure it is below the top of the bore casing.
+% * The daily absolute rate of water level change can be checked to ensure it is below a user set threshold.
+% * Periods of constant water level beyond a user set threshold duration can be identified.
+% * Outlier observations can be identified using a double-exponential
+% smoothing model. The model is used to estimate the standard deviation of the
+% noise & the first observation beyond a user set number of standard
+% deviations is omitted and the model is then re-calibrated and the outlier
+% analysis repeated. The processes is repeated until fewer outlier observations are
+% identified than is expected for the probability at the input number of standard deviations.
+%
+% The screenshot below illustrates the main features of the tab. Specifically:
+%
+% * The left-hand window tabulates the bores to be analysed.
+% * Unique analysis settings can be applied to each bore.
+% * Buttons above the table allow export of the table or appending of a .csv file.
+% * The results of the analysis can exported or displayed and edited using the right-hand results pane.
+%
+% <<diagrams/doc_GUI_dataPrep.png>>
+%
+%% Getting Started
+% To analyse a series of bores, complete the following steps:
+%
+% # Input the required settings (see below) for each bore.
+% # Select the bores to be analysed using the left tick box.
+% # Click on the button _Analyse Selected Bores_.
+% # Review the results for a bore by placing the cursor in one of its
+% cells. This should display the hydrograph, with the outliers denoted, and
+% a table of data. Importantly, the assessment of each water level observation can be manually edited
+% using the table.
+% # Export the analysed data using the _Export Results_ button and select
+% the desired format.
+%
+
+%% Inputs
+%
+% The following inputs are available for this tab. The *bold* inputs are required. 
+%
+% # _*Obs. Head File*_: a .csv file of the observed head with columns _bore ID_, _year_, _month_, _day_, _head_.
+% # _*Bore ID*_: a string for the bore ID to analyse. A pane on the right
+% should be displayed when you place the cursor in this cell that lists the bore IDs within the above file.
+% # _Bore Depth (Below Surface)_: used for checking if the water level is
+% implausibly deep. Units are assumed to be the same as the the water level observations. 
+% # _Surface Elevation_: used for checking if the water level is implausibly high (i.e. > land elevation + casing length).
+% # _Casing Length (above surface)_: as for surface elevation input. Units are assumed to be the same as the the water level observations. 
+% # _Construction Date_: used for checking if the observations were recorded before the bore was constructed.
+% # _Check Start Date?_: option to check the date of observations against the construction date.
+% # _Check End Date?_: option to check the date of observations against the current date.                       
+% # _Check Head Above Bore Depth?_: option to check if the water level is higher than the bottom of the bore.
+% # _Check Head Below Casing?_: option to check if the water level is shallower than the top of the casing elevation.
+% # _Threshold for Max. Daily abs(Head) Change_: the maximum absolute water level change per day that is deemed acceptable. Default is 10 m/day.
+% # _Threshold Duration for Constant Head (days)_: the minimum duration of
+% constant water level that is deemed acceptable. Default is 120 days.
+% # _Auto-Outlier Num. St. dev_: the number of standard deviations of the
+% noise (estimated from the modelling) for estimation of outliers. The default is 3. 
+
+%% Outputs
+%
+% The following outputs are presented within the table:
+%
+% * _Analysis Status_ : the status of the analysis for each bore is
+% displayed within the table. Error messages for the analysis are also
+% displayed in this column.
+% * _No. Erroneous Obs._ : after successful analysis, the number of
+% erroneous observations are displayed for each bore within the table.
+% This can be used to identify the bore analysis requiring visual review.
+% * _No. Outlier Obs._ : after successful analysis, the number of
+% outlier observations is also displayed for each bore within the table.
+% Again, this can be used to identify the bore analysis requiring visual review.
+
+##### SOURCE END #####
+--></body></html>

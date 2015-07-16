@@ -1,0 +1,147 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>Groundwater Statistical Toolbox - User Interface</title><meta name="generator" content="MATLAB 8.4"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2015-07-02"><meta name="DC.source" content="doc_GUI.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; } 
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h1>Groundwater Statistical Toolbox - <i>User Interface</i></h1><!--introduction--><!--/introduction--><h2>Contents</h2><div><ul><li><a href="#1">Overview</a></li><li><a href="#2">System Requirements</a></li><li><a href="#3">Installation</a></li><li><a href="#4">Data Requirements</a></li><li><a href="#5">Getting Started</a></li></ul></div><h2>Overview<a name="1"></a></h2><p>The graphical user interface (GUI) for the Groundwater Statistical Toolbox provides an efficient means to built a wide range of groundwater time-series models without knowledge of MatLab programming or a copy of MatLab. It comprises of two independent modules:</p><div><ul><li>Data Preparation: a data analysis and outlier detection module for detecting and removing erroneous water level observations prior to time-series modelling.</li><li>Time-series Modelling: a time-series modelling module for simulating hydrographs and, for example, decompositing the hydrograph to drivers.</li></ul></div><p>To get started using the GUI, this page details the GUI system requirements, installation, data requirements and details of the key steps modelling.</p><p>The GUI also provide help tips within the GUI. These are summarised below and shown within the following figure.</p><div><ul><li>tool-tips are provided within most sections of the GUI.</li><li>transfer function noise models (TFN) sub-functions show a summary pane describing the function (see bottom-right of screeshot).</li><li>example TFN models can be loaded from the GUI menu.</li></ul></div><p><img vspace="5" hspace="5" src="doc_GUI.PNG" alt=""> </p><h2>System Requirements<a name="2"></a></h2><p>The system requirements to run the GUI as a stand alone application are:</p><div><ul><li>Windows 64 bit operating system</li><li>At least 4GB RAM</li><li>Multiple CPU cores - this is required to reduce the model calibration time.</li></ul></div><h2>Installation<a name="3"></a></h2><p>To install the GUI as a stand alone application, run the installation program called <i>GroundwaterStatisticalToolkit_installed.exe</i>. If you are obtaining the program from the GitHub site, it is in 'Deployment' &gt; 'Windowsx64' &gt; 'TheGST' &gt; 'for_redistribution'. Once installed, the program can be started from your Windows 'Start' icon.</p><h2>Data Requirements<a name="4"></a></h2><p>To get started modelling a groundwater hydrograph, the following data is required in .csv files:</p><div><ul><li>observed groundwater head data with columns <i>bore ID</i>, <i>year</i>, <i>month</i>, <i>day</i>, <i>head</i>. Note, <i>hours</i> and <i>minute</i> can be included after <i>day</i>.</li><li>forcing data with columns <i>year</i>, <i>month</i>, <i>day</i> and the columns for each forcing time series. Importantly, the first row must contain the column names (without spaces in names), the data must have a daily time-step and have no gaps and should extend prior to the first head observation.</li><li>projected coordinates for the bore ID and each forcing data with columns <i>Site ID</i>, <i>Easting</i>, <i>Northing</i>.</li></ul></div><p>Examples of the required data formats can be obtained from the inbuilt model example. Simply select an example model and input where the data files are to be saved.</p><h2>Getting Started<a name="5"></a></h2><p>The modelling steps are defined by the following five tabs within the GUI. For data analysis and preparation, only step two is required. For time-series modelling, steps three to four are requires and five is optional.</p><div><ol><li><a href="href=&#34;doc_GUI_projectDescription.html&#34;">Project Description</a> : optional step to record the project title and description.</li><li><a href="href=&#34;doc_GUI_dataPrep.html&#34;">Data Preparation</a>:  a data analysis and outlier detection module for detecting and removing erroneous water level observation.</li><li><a href="href=&#34;doc_GUI_ModelConstruct.html&#34;">Model Construction</a>: the time-series module for inputting data and defining the model structure.</li><li><a href="href=&#34;doc_GUI_ModelCalib.html&#34;">Model Calibration</a>: the time-series module for calibrating the constructed models to the observed hydrographs.</li><li><a href="href=&#34;doc_GUI_ModelSimulate.html&#34;">Model Simulation</a>: the time-series module to use a calibrated model for simulations of hydrograph interpolation or extrapolation.</li></ol></div><p class="footer"><br><a href="http://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2014b</a><br></p></div><!--
+##### SOURCE BEGIN #####
+%% Groundwater Statistical Toolbox - _User Interface_
+
+%% Overview
+% The graphical user interface (GUI) for the Groundwater Statistical
+% Toolbox provides an efficient means to built a wide range of groundwater
+% time-series models without knowledge of MatLab programming or a copy of
+% MatLab. It comprises of two independent modules:
+%
+% * Data Preparation: a data analysis and outlier detection
+% module for detecting and removing erroneous water level observations
+% prior to time-series modelling.
+% * Time-series Modelling: a time-series modelling module for simulating
+% hydrographs and, for example, decompositing the hydrograph to drivers.
+%
+% To get started using the GUI, this page details the GUI system requirements,
+% installation, data requirements and details of the key steps modelling.
+%
+% The GUI also provide help tips within the GUI. These are summarised below and shown within the following figure. 
+% 
+% * tool-tips are provided within most sections of the GUI. 
+% * transfer function noise models (TFN) sub-functions show a summary pane describing the function (see bottom-right of screeshot).
+% * example TFN models can be loaded from the GUI menu.
+%
+% 
+% <<doc_GUI.PNG>>
+% 
+
+%% System Requirements
+% The system requirements to run the GUI as a stand alone application are:
+%
+% * Windows 64 bit operating system
+% * At least 4GB RAM
+% * Multiple CPU cores - this is required to reduce the model calibration time.
+
+%% Installation
+% To install the GUI as a stand alone application, run the installation
+% program called _GroundwaterStatisticalToolkit_installed.exe_. If you are
+% obtaining the program from the GitHub site, it is in 'Deployment' >
+% 'Windowsx64' > 'TheGST' > 'for_redistribution'. Once installed, the program can be started from your Windows 'Start' icon.
+
+%% Data Requirements
+% To get started modelling a groundwater hydrograph, the following data is
+% required in .csv files:
+%
+% * observed groundwater head data with columns _bore ID_, _year_, _month_, _day_, _head_. Note, _hours_ and _minute_ can be included after _day_.
+% * forcing data with columns _year_, _month_, _day_ and the columns for
+% each forcing time series. Importantly, the first row must contain the column names (without spaces in names), the data must have a daily time-step and have no gaps
+% and should extend prior to the first head observation.
+% * projected coordinates for the bore ID and each forcing data with
+% columns _Site ID_, _Easting_, _Northing_.
+%
+% Examples of the required data formats can be obtained from the inbuilt
+% model example. Simply select an example model and input where the data files
+% are to be saved.
+
+%% Getting Started
+% 
+% The modelling steps are defined by the following five tabs within the
+% GUI. For data analysis and preparation, only step two is required.
+% For time-series modelling, steps three to four are requires and five
+% is optional.
+%
+% # <href="doc_GUI_projectDescription.html" Project Description> : optional
+% step to record the project title and description.
+% # <href="doc_GUI_dataPrep.html" Data Preparation>:  a data analysis and outlier detection
+% module for detecting and removing erroneous water level observation.
+% # <href="doc_GUI_ModelConstruct.html" Model Construction>: the time-series module for inputting data and defining the model structure.
+% # <href="doc_GUI_ModelCalib.html" Model Calibration>: the time-series
+% module for calibrating the constructed models to the observed
+% hydrographs.
+% # <href="doc_GUI_ModelSimulate.html" Model Simulation>: the time-series
+% module to use a calibrated model for simulations of hydrograph
+% interpolation or extrapolation.
+
+
+##### SOURCE END #####
+--></body></html>

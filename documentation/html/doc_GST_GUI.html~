@@ -1,0 +1,154 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>Groundwater Statistical Toolbox</title><meta name="generator" content="MATLAB 8.4"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2015-06-30"><meta name="DC.source" content="doc_GST_GUI.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; } 
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h1>Groundwater Statistical Toolbox</h1><!--introduction--><p><i>A time-series modelling framework for hydrological insights.</i></p><!--/introduction--><h2>Contents</h2><div><ul><li><a href="#1">Overview</a></li><li><a href="#2">Project Description</a></li><li><a href="#3">Data Preparation</a></li><li><a href="#4">Model Construction</a></li><li><a href="#5">Model Calibration</a></li><li><a href="#6">Model Simulation</a></li><li><a href="#7">References</a></li><li><a href="#8">Source Code</a></li><li><a href="#9">Acknowledgements</a></li></ul></div><h2>Overview<a name="1"></a></h2><p>Blah blah Blah blah Blah blah Blah blah Blah blah Blah blah Blah blah Blah blah Blah blah</p><p><img vspace="5" hspace="5" src="/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/documentation/GST_GUI.PNG" alt=""> </p><div><ol><li>Project Description</li><li>Data Preparation</li><li>Model Construction</li><li>Model Calibration</li><li>Model Simulation</li></ol></div><h2>Project Description<a name="2"></a></h2><h2>Data Preparation<a name="3"></a></h2><h2>Model Construction<a name="4"></a></h2><h2>Model Calibration<a name="5"></a></h2><p>Global calibration of the time-series model and derivation of the following: * simulation of the groundwater heads; * evalution of the calibration to the remaining observation data; * calculation of various performance statistics and and a variogram  of the residuals.</p><p>Importantly, the time-series models can be very challenging to calibrate to the global optima, particularly for the nonlinear TFN models. To assist in identifying the global optima, a range of calibration schemes are available (see below for details of the schemes). This allows the reliability of a calibration result to be assessed by re-running the calibration with a different scheme and comparing the results. If each scheme gives near identical results then this supports the conclusion that the gloabl optima has been idenified. Additionally, the reliability of the calibration solution can be assessed by re-running the same calibration scheme multiple times, ideally with increasingly stringent settings. If the very best solution is repeatedly obtained then it is good evidence that the global optima has been located.</p><div><ul><li>Covariance Matrix Adaptation Evolution Strategy (CMA-ES) (Hansen, 2006) from <a href="https://www.lri.fr/~hansen/cmaes_inmatlab.html#matlab">https://www.lri.fr/~hansen/cmaes_inmatlab.html#matlab</a>. Note, the code was modified to account for complex parameter boundaries and efficient sampling of parameter sets within the boundaries.</li></ul></div><div><ul><li>Shuffled complex evolution with principal components analysis&#8211;University of California at Irvine (SP-UCI) method is a global optimization algorithm designed for high-dimensional and complex problems. It is based on the Shuffled Complex Evolution (SCE-UA) Method (Qingyun Duan et al.), but solves a serious problem in searching over high-dimensional spaces - population degeneration. The population degeneration problem refers to the phenomenon that, when searching over the high-dimensional parameter spaces, the population of the searching particles is very likely to collapse into a subspace of the parameter space, therefore losing the capability of exploring the entire parameter space. In addition, the SP-UCI method also combines the strength of shuffled complex, the Nelder-Mead simplex, and mutinormal resampling to achieve efficient and effective high-dimensional optimization. (Code and above description from <a href="http://www.mathworks.com/matlabcentral/fileexchange/37949-shuffled-complex-evolution-with-pca--sp-uci--method">http://www.mathworks.com/matlabcentral/fileexchange/37949-shuffled-complex-evolution-with-pca--sp-uci--method</a>) Note, the SP-CUI code has been edited by Tim Peterson to allow the inclusion of parameter constraints and parrallel calculation of each complex. For details of the algorithm see Chu et al. (2010).</li></ul></div><h2>Model Simulation<a name="6"></a></h2><p>Solves the model using the calibrated parameters and, depending upon the method's inputs, decomposes the groundwater head into the contribution from various periods of climate forcing and plots the results. The simulation results can also be adjusted to honour head observations. This can only be done if the same forcing data is used in the simulation as was used in the model calibration. After the simulation, use 'solveModelPlotResults' to graph the results.</p><h2>References<a name="7"></a></h2><p>Peterson, T. J., and A. W. Western (2014), Nonlinear time-series modeling of unconfined groundwater head, Water Resour. Res., 50, 8330&#8211;8355, doi:10.1002/2013WR014800. <a href="http://onlinelibrary.wiley.com/doi/10.1002/2013WR014800/full">http://onlinelibrary.wiley.com/doi/10.1002/2013WR014800/full</a></p><h2>Source Code<a name="8"></a></h2><h2>Acknowledgements<a name="9"></a></h2><p class="footer"><br><a href="http://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2014b</a><br></p></div><!--
+##### SOURCE BEGIN #####
+%% Groundwater Statistical Toolbox
+% _A time-series modelling framework for hydrological insights._ 
+
+%% Overview
+% Blah blah Blah blah Blah blah Blah blah Blah blah Blah blah Blah blah Blah blah Blah blah
+% 
+% <</home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/documentation/GST_GUI.PNG>>
+%
+% # Project Description
+% # Data Preparation
+% # Model Construction
+% # Model Calibration
+% # Model Simulation
+
+%% Project Description
+
+%% Data Preparation
+
+%% Model Construction
+
+%% Model Calibration
+% Global calibration of the time-series model and derivation of the following: 
+% * simulation of the groundwater heads; 
+% * evalution of the calibration to the remaining observation data;
+% * calculation of various performance statistics and and a variogram
+%  of the residuals.
+% 
+% Importantly, the time-series models can be very challenging to
+% calibrate to the global optima, particularly for the nonlinear TFN models.
+% To assist in identifying the global optima, a range of calibration schemes
+% are available (see below for details of the schemes). This allows
+% the reliability of a calibration result to be assessed by re-running
+% the calibration with a different scheme and comparing the results. If
+% each scheme gives near identical results then this supports the
+% conclusion that the gloabl optima has been idenified. Additionally, the 
+% reliability of the calibration solution can be assessed by re-running
+% the same calibration scheme multiple times, ideally with increasingly
+% stringent settings. If the very best solution is repeatedly obtained
+% then it is good evidence that the global optima has been located.
+% 
+% * Covariance Matrix Adaptation Evolution Strategy (CMA-ES) (Hansen, 2006)
+% from <https://www.lri.fr/~hansen/cmaes_inmatlab.html#matlab>. Note, the 
+% code was modified to account for complex parameter
+% boundaries and efficient sampling of parameter sets within the
+% boundaries.
+% 
+% * Shuffled complex evolution with principal components analysis–University 
+% of California at Irvine (SP-UCI) method is a global optimization algorithm 
+% designed for high-dimensional and complex problems. It is based on the 
+% Shuffled Complex Evolution (SCE-UA) Method (Qingyun Duan et al.), but solves
+% a serious problem in searching over high-dimensional spaces - population
+% degeneration. The population degeneration problem refers to the phenomenon
+% that, when searching over the high-dimensional parameter spaces, the 
+% population of the searching particles is very likely to collapse into a
+% subspace of the parameter space, therefore losing the capability of 
+% exploring the entire parameter space. In addition, the SP-UCI method also
+% combines the strength of shuffled complex, the Nelder-Mead simplex, and
+% mutinormal resampling to achieve efficient and effective high-dimensional 
+% optimization. (Code and above description from <http://www.mathworks.com/matlabcentral/fileexchange/37949-shuffled-complex-evolution-with-pcaREPLACE_WITH_DASH_DASHsp-uciREPLACE_WITH_DASH_DASHmethod>)
+% Note, the SP-CUI code has been edited by Tim Peterson to allow the inclusion of
+% parameter constraints and parrallel calculation of each complex. For
+% details of the algorithm see Chu et al. (2010).
+
+
+%% Model Simulation
+% Solves the model using the calibrated parameters and, depending upon
+% the method's inputs, decomposes the groundwater head into the
+% contribution from various periods of climate forcing and plots the
+% results. The simulation results can also be adjusted to honour head
+% observations. This can only be done if the same forcing data is used in
+% the simulation as was used in the model calibration. After the
+% simulation, use 'solveModelPlotResults' to graph the results.
+
+%% References
+%
+% Peterson, T. J., and A. W. Western (2014), Nonlinear time-series modeling of unconfined groundwater head, Water Resour. Res., 50, 8330–8355,
+% doi:10.1002/2013WR014800. <http://onlinelibrary.wiley.com/doi/10.1002/2013WR014800/full>
+
+%% Source Code
+
+%% Acknowledgements
+
+##### SOURCE END #####
+--></body></html>
