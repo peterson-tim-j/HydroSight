@@ -1,0 +1,162 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>Groundwater Statistical Toolbox - Model Simulation GUI Tab</title><meta name="generator" content="MATLAB 8.4"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2015-07-05"><meta name="DC.source" content="doc_GUI_ModelSimulate.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; } 
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h1>Groundwater Statistical Toolbox - <i>Model Simulation GUI Tab</i></h1><!--introduction--><!--/introduction--><h2>Contents</h2><div><ul><li><a href="#1">Overview</a></li><li><a href="#2">Getting Started</a></li><li><a href="#3">Inputs</a></li><li><a href="#4">Outputs</a></li></ul></div><h2>Overview<a name="1"></a></h2><p>The <i>Model Simulation</i> tab allows calibrated time-series models to be used for the following simulations:</p><div><ul><li>interpolation or extrapolation of the observed hydrograph to, say, a daily time-step.</li><li>decomposition of the hydrograph to individual drivers.</li><li>scenario investigations using different forcing data.</li></ul></div><p>The screenshot below illustrates the main features of the tab. Specifically:</p><div><ul><li>The left-hand table shows the simulations that have been defined. An unlimited number of simulations can be undertaken for each model.</li><li>Unique simulation setting can be defined for each simulation.</li><li>The simulated water level and decomposition to drivers (if available from the chosen model type) can be plotted on the right-hand pane.</li></ul></div><p><img vspace="5" hspace="5" src="diagrams/doc_GUI_ModelSimulate.png" alt=""> </p><h2>Getting Started<a name="2"></a></h2><p>To simulate the water level using a calibrated time-series model, complete the following steps:</p><div><ol><li>Select the required model label from the drop-down menu in the <i>Model Label</i> column (second column).</li><li>Input a label for the simulation in the column <i>Simulation Label</i>. This is a required input and must be unique for the model.</li><li>Consider providing optional inputs, such as new forcing data, a fixed time step or kriging the residuals (observed head minus simulated head) to ensure the simulated head honours the observed head.</li><li>Select the models to be simulated using the left tick boxes.</li><li>Click on the button <i>Simulate Selected Models</i> to simulate the models. The progress is displayed in the column <i>Simulation Status</i>.</li><li>Review the simulation results using the right-hand results pane.</li></ol></div><h2>Inputs<a name="3"></a></h2><p>The following inputs are available for this tab. The <b>bold</b> inputs are required:</p><div><ul><li><b><i>Model Label</i></b> : the calibrated model for simulation. The list of calibrated models is provided in a drop-down menu.</li><li><b><i>Simulation Label</i></b> : a unique label for the selected model label.</li><li><i>Forcing Data File</i> : the full file name of a .csv data file containing different forcing data to that used in the calibration. The new forcing data must have the same column headings as that used in the calibration but can cover different time periods and have different forcing values.</li><li><i>Simulation Start Date</i> : the start date for the simulation. The date must be within the time period of forcing data but can be different to that used in the calibration. This allows extrapolation of the groundwater hydrograph back in time. The default is the start date of observed hydrograph.</li><li><i>Simulation End Date</i> : the end date for the simulation. The date must be within the time period of forcing data but can be different to that used in the calibration. This allows extrapolation of the groundwater hydrograph forward in time. The default is the end date of observed hydrograph.</li><li><i>Simulation Time Step</i> : The time step for the simulation. The options are: daily, weekly, monthly, yearly. This input can be used independently of the above dates. By default simulations are undertaken only at the date of water level observations.</li><li><i>Krig Simulation Residuals?</i> :  Kriging of the simulation residuals can be undertaken (if calibration forcing data is used) to ensure simulations honour the observations. This requires the time-step to be input. The analysis is undertaken by (i) calculating the experimental variogram of the residuals, (ii) fitting an exponential variogram to the experimental data, (iii) undertaking universal local kriging of the residuals and adding the result to the simulated water level, and (iv) scaling the time-series noise estimates by the normalised kriging variance.</li></ul></div><h2>Outputs<a name="4"></a></h2><p>The following outputs are presented within the table:</p><div><ul><li><i>Simulation Status</i> : the status of the model simulation is displayed within the table. Error messages for the simulation are also displayed.</li></ul></div><p>In addition to the above table of outputs, detailed outputs can be shown in the right-hand pane. The available outputs are detailed below. To access these outputs, select the required output from the right-hand drop-down menu and then place the cursor in a cell for the required simulation.</p><div><ul><li><i>Simulation Data</i> : data table of simulated water level and the decomposition to each driver (if available for the model type). The table can be selected and copied and pasted into, say, Excel.</li><li><i>Simulation &amp; Decomposition plots</i> : plot of the simulated water level and plots for the contribution to the hydrograph from each driver (if available from the model type).</li></ul></div><p class="footer"><br><a href="http://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2014b</a><br></p></div><!--
+##### SOURCE BEGIN #####
+%% Groundwater Statistical Toolbox - _Model Simulation GUI Tab_
+
+%% Overview
+% The _Model Simulation_ tab allows calibrated time-series models to be
+% used for the following simulations:
+% 
+% * interpolation or extrapolation of the observed hydrograph to, say, a daily time-step.
+% * decomposition of the hydrograph to individual drivers.
+% * scenario investigations using different forcing data.
+%
+% The screenshot below illustrates the main features of the tab. Specifically:
+%
+% * The left-hand table shows the simulations that have been defined.
+% An unlimited number of simulations can be undertaken for
+% each model. 
+% * Unique simulation setting can be defined for each simulation.
+% * The simulated water level and decomposition to drivers (if available
+% from the chosen model type) can be plotted on the right-hand pane.
+%
+% <<diagrams/doc_GUI_ModelSimulate.png>>
+
+%% Getting Started
+%
+% To simulate the water level using a calibrated time-series model, complete the following steps:
+%
+% # Select the required model label from the drop-down menu in the _Model Label_ column (second column).
+% # Input a label for the simulation in the column _Simulation Label_. This
+% is a required input and must be unique for the model.
+% # Consider providing optional inputs, such as new forcing data, a fixed
+% time step or kriging the residuals (observed head minus simulated head)
+% to ensure the simulated head honours the observed head.
+% # Select the models to be simulated using the left tick boxes.
+% # Click on the button _Simulate Selected Models_ to simulate the
+% models. The progress is displayed in the column _Simulation Status_.
+% # Review the simulation results using the right-hand results pane.
+%
+
+%% Inputs
+%
+% The following inputs are available for this tab. The *bold* inputs are required:
+%
+% * *_Model Label_* : the calibrated model for simulation. The list of
+% calibrated models is provided in a drop-down menu.
+% * *_Simulation Label_* : a unique label for the selected model label.
+% * _Forcing Data File_ : the full file name of a .csv data file
+% containing different forcing data to that used in the calibration. The
+% new forcing data must have the same column headings as that used in the
+% calibration but can cover different time periods and have different forcing values.
+% * _Simulation Start Date_ : the start date for the simulation. The date
+% must be within the time period of forcing data but can be different to
+% that used in the calibration. This allows extrapolation of the
+% groundwater hydrograph back in time. The default is the start date of
+% observed hydrograph.
+% * _Simulation End Date_ : the end date for the simulation. The date
+% must be within the time period of forcing data but can be different to
+% that used in the calibration. This allows extrapolation of the
+% groundwater hydrograph forward in time. The default is the end date of
+% observed hydrograph.
+% * _Simulation Time Step_ : The time step for the simulation. The options
+% are: daily, weekly, monthly, yearly. This input can be used independently
+% of the above dates. By default simulations are undertaken only at the
+% date of water level observations.
+% * _Krig Simulation Residuals?_ :  Kriging of the simulation residuals can 
+% be undertaken (if calibration forcing data is used) to ensure simulations
+% honour the observations. This requires the time-step to be input. The 
+% analysis is undertaken by (i) calculating the experimental
+% variogram of the residuals, (ii) fitting an exponential variogram to the
+% experimental data, (iii) undertaking universal local kriging of the residuals
+% and adding the result to the simulated water level, and (iv) scaling the
+% time-series noise estimates by the normalised kriging variance.
+%
+%% Outputs
+%
+% The following outputs are presented within the table:
+%
+% * _Simulation Status_ : the status of the model simulation is
+% displayed within the table. Error messages for the simulation are also
+% displayed.
+%
+% In addition to the above table of outputs, detailed outputs can be shown
+% in the right-hand pane. The available outputs are detailed below. To access these outputs, 
+% select the required output from the right-hand drop-down menu and then place the cursor 
+% in a cell for the required simulation.
+%
+% * _Simulation Data_ : data table of simulated water level and the decomposition to each driver 
+% (if available for the model type). The table can be selected and copied and pasted into, say, Excel.
+% * _Simulation & Decomposition plots_ : plot of the simulated water level and plots for the contribution 
+% to the hydrograph from each driver (if available from the model type).
+
+
+##### SOURCE END #####
+--></body></html>

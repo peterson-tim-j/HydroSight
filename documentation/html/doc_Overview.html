@@ -1,0 +1,209 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>Groundwater Statistical Toolbox</title><meta name="generator" content="MATLAB 8.4"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2015-07-05"><meta name="DC.source" content="doc_Overview.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; } 
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h1>Groundwater Statistical Toolbox</h1><!--introduction--><p><i>A time-series modelling framework for hydrological insights.</i></p><!--/introduction--><h2>Contents</h2><div><ul><li><a href="#1">Overview</a></li><li><a href="#2">Modelling Fundamentals</a></li><li><a href="#3">Collaborations and Consulation Services</a></li><li><a href="#4">Reporting Bugs and Issues</a></li><li><a href="#5">Source Code</a></li><li><a href="#6">The Developers</a></li><li><a href="#7">Acknowledgements</a></li><li><a href="#8">License</a></li><li><a href="#9">References</a></li></ul></div><h2>Overview<a name="1"></a></h2><p>The Groundwater Statistics Toolbox (GST) is a highly flexible statistical toolbox and user interface for getting more quantitative value from groundwater level monitoring data.  Currently, the toolbox contains a highly flexible groundwater hydrograph time-series modeling framework (Peterson and Western, 2014) that facilitates the following:</p><div><ul><li>decomposition of a groundwater hydrograph into individual drivers, such as climate and pumping or climate (Shapoori et al. 2015a) and landuse change (Peterson and Western, 2014).</li><li>estimation of aquifer hydraulic properties from the hydrograph (Shapoori et al. 2015b)</li><li>statistical identification of the major groundwater processes (Shapoori et al. 2015a).</li><li>interpolation or extrapolation of the observed hydrograph.</li><li>simulation of groundwater head under different climate or, say, pumping scenarios.</li><li>numerical identification of hydrograph monitoring errors and outliers.</li></ul></div><p>The GST can be used in two ways:</p><div><ul><li><a href="doc_Programmatically.html">Programmatically</a> : using a collection Matlab of object-oriented classes that provides enormous flexibility to built time-series models and develop new models and components.</li><li><a href="doc_GUI.html">Graphical User Interface</a> : stand alone application that provides a highly flexible framework for the efficient construction, modelling and simulation of an unlimited number of models within a simple graphical environment.</li></ul></div><p>To get started with the GST, click on the link above for the way in which you'd like to use the GST. Each link provides details of how to install the software, system requirements and how to get started building models.</p><p>For further details on the the fundementals, the project, obtaining code or reporting bugs please see the sections below.</p><h2>Modelling Fundamentals<a name="2"></a></h2><p>The GST allows for different types of time-series models to be built. Below is a summary of the key types of models:</p><div><ul><li><a href="doc_TFN.html">Transfer Function Noise (TFN) models</a>: weight one or multiple time series of forcing data, such as rainfall or pumping, to simulate the observed hydrograph. This is the recommended model for most applications.</li><li><a href="doc_ExpSmooth.html">Exponential Smoothing models</a>: use a double exponential smoothing filter to simulate the smoothed trend of observed the hydrograph and does so without using observed forcing data.</li></ul></div><p>Data requirements for the models differ. While both can use irregularly spaced observed hydrograph head observations, the TFN model requires daily observed forcing data and as a minimum it should use daily rainfall and potential evapotranspiration.</p><p>Once the model has been constructed for a given bore, the parameters of the model must be calibrated; that is, adjusted to achieve a minimum error between the observed and modelled hydrograph. This is achieved by reducing the difference between the observed and modelled hydrograph to a single number, called an objective function value, which is this case is effectively the weighted least squares. To minimise this objective function value, the GST includes global calibration schemes (see <a href="doc_Calibration.html">here</a> for details). This can be very computationally demanding and it is always uncertain if the very best solution (i.e. the global optima) has been located. For tips on how to best undertake the calibration see the above link.</p><h2>Collaborations and Consulation Services<a name="3"></a></h2><p>Some groundwater statistical problems can be particularly challenging to investigate using the Groundwater Statistical Toolkit, or it may not contain the features you require. If so, consider contacting Dr. Tim Peterson (<a href="mailto:timjp@unimelb.edu.au">timjp@unimelb.edu.au</a>) to discuss collaboration or consultation options.</p><h2>Reporting Bugs and Issues<a name="4"></a></h2><p>Bugs and problems with the GST can be reported using the following link. In reporting an issue please provide as much detail and data as possible to allow the bug or issue to be reproduced.</p><p><a href="https://github.com/peterson-tim-j/Groundwater-Statistics-Toolbox/issues">https://github.com/peterson-tim-j/Groundwater-Statistics-Toolbox/issues</a></p><h2>Source Code<a name="5"></a></h2><p>The source code is available from GitHub and the Mathworks File Exchange. If you would like to contribute to the project or add components, please join the project at GitHub.</p><div><ul><li><a href="http://au.mathworks.com/matlabcentral/fileexchange/48546-peterson-tim-j-groundwater-statistics-toolbox">http://au.mathworks.com/matlabcentral/fileexchange/48546-peterson-tim-j-groundwater-statistics-toolbox</a></li><li><a href="https://github.com/peterson-tim-j/Groundwater-Statistics-Toolbox">https://github.com/peterson-tim-j/Groundwater-Statistics-Toolbox</a></li></ul></div><h2>The Developers<a name="6"></a></h2><p>The Groundwater Statistical Toolbox has been developed by the following academics at the University of Melbourne:</p><div><ul><li>Tim Peterson</li><li>Andrew Western</li><li>Eleanor Gee</li><li>Vahid Shapoori</li></ul></div><p>To find out more about the research within the group, or relevant publications, see:</p><div><ul><li>Research group: <a href="http://www.ie.eng.unimelb.edu.au/research/water/index.html">http://www.ie.eng.unimelb.edu.au/research/water/index.html</a></li><li>Research Gate : <a href="https://www.researchgate.net/profile/Tim_Peterson7">https://www.researchgate.net/profile/Tim_Peterson7</a></li><li>Google Scholar: <a href="http://scholar.google.com.au/citations?user=kkYJLF4AAAAJ&amp;hl=en&amp;oi=ao">http://scholar.google.com.au/citations?user=kkYJLF4AAAAJ&amp;hl=en&amp;oi=ao</a></li></ul></div><p>Alternatively, to stay connected with developments and new versions join us at LinkedIn:</p><div><ul><li>LinkedIn: <a href="https://au.linkedin.com/pub/tim-peterson/81/40/739">https://au.linkedin.com/pub/tim-peterson/81/40/739</a></li></ul></div><h2>Acknowledgements<a name="7"></a></h2><p>The Groundwater Statistical Toolbox has been generously supported by the following organisations:</p><div><ul><li>The Australian Research Council grants LP0991280, LP130100958.</li><li>The Bureau of Meteorology (Aust.)</li><li>The Department of Environment, Land, Water and Planning (Vic., Aust.)</li><li>The Department of Economic Development, Jobs, Transport and Resources (Vic., Aus.)</li><li>Power and Water Corporation (N. T., Aus.)</li></ul></div><h2>License<a name="8"></a></h2><p>The  Groundwater Statistical Toolbox toolkit is licensed under the open-source license GPL3.0 (or later). See the following for details: <a href="http://www.gnu.org/licenses/gpl-3.0.en.html">http://www.gnu.org/licenses/gpl-3.0.en.html</a>.</p><p>However, the following components of the Toolbox were developed by others and each has its own license. These components and their licence are within the folder <i>algorithms</i> &gt; <i>calibration</i>.</p><div><ul><li><i>SPUCI.m</i> calibration algorithm and its associated functions.</li><li><i>cmaes.m</i> calibration algorithm.</li><li><i>variogram.m</i>, <i>variogramfit.m</i> and <i>fminsearchbnd.m</i> for estimating and fitting variograms.</li><li><i>ipdm.m</i> for calculating the inter-point distance used in the GST temporal kriging.</li><li><i>GUI Layout Toolbox 2.1</i> for constructing the panels of the GUI</li><li><i>uical.m</i> for displaying a graphical calendar within the GUI.</li></ul></div><h2>References<a name="9"></a></h2><div><ul><li>Peterson, T. J., and A. W. Western (2014). Nonlinear time-series modeling of unconfined groundwater head.  <i>Water Resources Research</i>, 50, 8330-8355, DOI: <a href="http://dx.doi.org/10.1002/2013WR014800">10.1002/2013WR014800</a>. <a href="papers/Peterson_Western_2014.pdf">PDF Copy</a></li><li>Shapoori V., Peterson T.J. , Western A.W. and Costelloe J. F. (2015). Top-down groundwater hydrograph time-series modeling for climate-pumping decomposition, <i>Hydrogeology Journal</i>, 23(4), 819-83, DOI: <a href="http://dx.doi.org/10.1007/s10040-014-1223-0">10.1007/s10040-014-1223-0</a>. <a href="papers/Shapoori_2015B.pdf">PDF Copy</a></li><li>Shapoori V., Peterson T.J. , Western A.W. and Costelloe J. F. (accepted). Estimating aquifer properties using groundwater hydrograph modeling. <i>Hydrological Processes</i>, Accepted June 2015, DOI: <a href="http://dx.doi.org/10.1002/hyp.10583">10.1002/hyp.10583</a>. <a href="papers/Shapoori_2015C.pdf">PDF Copy</a></li></ul></div><p class="footer"><br><a href="http://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2014b</a><br></p></div><!--
+##### SOURCE BEGIN #####
+%% Groundwater Statistical Toolbox
+% _A time-series modelling framework for hydrological insights._ 
+
+%% Overview
+% The Groundwater Statistics Toolbox (GST) is a highly flexible statistical toolbox 
+% and user interface for getting more quantitative value from groundwater
+% level monitoring data.  Currently, the toolbox contains a highly flexible groundwater
+% hydrograph time-series modeling framework (Peterson and Western, 2014) that facilitates the following:
+% 
+% * decomposition of a groundwater hydrograph into individual drivers, such as climate
+% and pumping or climate (Shapoori et al. 2015a) and landuse change (Peterson and Western, 2014).
+% * estimation of aquifer hydraulic properties from the hydrograph (Shapoori et al. 2015b)
+% * statistical identification of the major groundwater processes (Shapoori et al. 2015a).
+% * interpolation or extrapolation of the observed hydrograph.
+% * simulation of groundwater head under different climate or, say, pumping scenarios.
+% * numerical identification of hydrograph monitoring errors and outliers.
+%
+% The GST can be used in two ways:
+%
+% * <doc_Programmatically.html Programmatically> : using a 
+% collection Matlab of object-oriented classes that provides enormous flexibility
+% to built time-series models and develop new models and components.
+% * <doc_GUI.html Graphical User Interface> : stand alone
+% application that provides a highly flexible framework for the efficient construction, 
+% modelling and simulation of an unlimited number of models within a simple
+% graphical environment. 
+%
+% To get started with the GST, click on the link above for the way in which
+% you'd like to use the GST. Each link provides details of how to install the
+% software, system requirements and how to get started building models.
+%
+% For further details on the the fundementals, the project, obtaining code or reporting bugs
+% please see the sections below. 
+
+%% Modelling Fundamentals
+% The GST allows for different types of time-series models to be built.
+% Below is a summary of the key types of models:
+%
+% * <doc_TFN.html Transfer Function Noise (TFN) models>: weight one or multiple time series of
+% forcing data, such as rainfall or pumping, to simulate the observed
+% hydrograph. This is the recommended model for most applications. 
+% * <doc_ExpSmooth.html Exponential Smoothing models>: use a double
+% exponential smoothing filter to simulate the smoothed trend of observed the
+% hydrograph and does so without using observed forcing data.
+%
+% Data requirements for the models differ. While both can use irregularly
+% spaced observed hydrograph head observations, the TFN model requires
+% daily observed forcing data and as a minimum it should use daily rainfall
+% and potential evapotranspiration. 
+%
+% Once the model has been constructed for a given bore, the parameters of
+% the model must be calibrated; that is, adjusted to achieve a minimum
+% error between the observed and modelled hydrograph. This is achieved
+% by reducing the difference between the observed and modelled hydrograph
+% to a single number, called an objective function value, which is this
+% case is effectively the weighted least squares. To minimise this objective
+% function value, the GST includes global calibration schemes (see <doc_Calibration.html here> for details).
+% This can be very computationally demanding and it is always uncertain if
+% the very best solution (i.e. the global optima) has been located. For
+% tips on how to best undertake the calibration see the above link.
+
+%% Collaborations and Consulation Services
+% Some groundwater statistical problems can be particularly challenging to 
+% investigate using the Groundwater Statistical Toolkit, or it may not contain
+% the features you require. If so, consider contacting Dr. Tim Peterson
+% (timjp@unimelb.edu.au) to discuss collaboration or consultation options.
+ 
+%% Reporting Bugs and Issues
+% Bugs and problems with the GST can be reported using the following
+% link. In reporting an issue please provide as much detail and data as possible to
+% allow the bug or issue to be reproduced. 
+%
+% <https://github.com/peterson-tim-j/Groundwater-Statistics-Toolbox/issues>
+
+%% Source Code
+% The source code is available from GitHub and the Mathworks File Exchange. 
+% If you would like to contribute to the project or add components, please join the project at GitHub. 
+%
+% * <http://au.mathworks.com/matlabcentral/fileexchange/48546-peterson-tim-j-groundwater-statistics-toolbox>
+% * <https://github.com/peterson-tim-j/Groundwater-Statistics-Toolbox>
+
+%% The Developers
+% The Groundwater Statistical Toolbox has been developed by the following academics at the University of Melbourne:
+%
+% * Tim Peterson
+% * Andrew Western
+% * Eleanor Gee
+% * Vahid Shapoori
+%
+% To find out more about the research within the group, or relevant publications, see:
+%
+% * Research group: <http://www.ie.eng.unimelb.edu.au/research/water/index.html>
+% * Research Gate : <https://www.researchgate.net/profile/Tim_Peterson7>
+% * Google Scholar: <http://scholar.google.com.au/citations?user=kkYJLF4AAAAJ&hl=en&oi=ao> 
+%
+% Alternatively, to stay connected with developments and new versions join us at LinkedIn:
+%
+% * LinkedIn: <https://au.linkedin.com/pub/tim-peterson/81/40/739>
+% 
+
+%% Acknowledgements
+% The Groundwater Statistical Toolbox has been generously supported by the following organisations:
+%
+% * The Australian Research Council grants LP0991280, LP130100958.
+% * The Bureau of Meteorology (Aust.)
+% * The Department of Environment, Land, Water and Planning (Vic., Aust.)
+% * The Department of Economic Development, Jobs, Transport and Resources (Vic., Aus.)
+% * Power and Water Corporation (N. T., Aus.)
+
+%% License
+% The  Groundwater Statistical Toolbox toolkit is licensed under the
+% open-source license GPL3.0 (or later). See the following for details: <http://www.gnu.org/licenses/gpl-3.0.en.html>.
+%
+% However, the following components of the Toolbox were developed by
+% others and each has its own license. These components and their licence are within the
+% folder _algorithms_ > _calibration_.
+%
+% * _SPUCI.m_ calibration algorithm and its associated functions.
+% * _cmaes.m_ calibration algorithm.
+% * _variogram.m_, _variogramfit.m_ and _fminsearchbnd.m_ for estimating and fitting
+% variograms.
+% * _ipdm.m_ for calculating the inter-point distance used in the GST temporal kriging.
+% * _GUI Layout Toolbox 2.1_ for constructing the panels of the GUI
+% * _uical.m_ for displaying a graphical calendar within the GUI.
+
+%% References
+%
+% * Peterson, T. J., and A. W. Western (2014). Nonlinear time-series modeling of unconfined groundwater head.  _Water
+% Resources Research_, 50, 8330-8355, DOI: <http://dx.doi.org/10.1002/2013WR014800 10.1002/2013WR014800>. <papers/Peterson_Western_2014.pdf PDF Copy>
+% * Shapoori V., Peterson T.J. , Western A.W. and Costelloe J. F. (2015).
+% Top-down groundwater hydrograph time-series modeling for climate-pumping
+% decomposition, _Hydrogeology Journal_, 23(4), 819-83, DOI: <http://dx.doi.org/10.1007/s10040-014-1223-0 10.1007/s10040-014-1223-0>. <papers/Shapoori_2015B.pdf PDF Copy>
+% * Shapoori V., Peterson T.J. , Western A.W. and Costelloe J. F.
+% (accepted). Estimating aquifer properties using groundwater hydrograph
+% modeling. _Hydrological Processes_, Accepted June 2015, DOI:
+% <http://dx.doi.org/10.1002/hyp.10583 10.1002/hyp.10583>. <papers/Shapoori_2015C.pdf PDF Copy>
+
+##### SOURCE END #####
+--></body></html>
