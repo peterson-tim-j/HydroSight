@@ -6,7 +6,7 @@ classdef GST_GUI < handle
     %variables. Useful in different sitionations
     properties
         % Version number
-        versionNumber = 0.1;
+        versionNumber = 1.1;
         
         % Model types supported
         modelTypes = {'model_TFN', 'ExpSmooth'};
@@ -44,16 +44,16 @@ classdef GST_GUI < handle
         
         function this = GST_GUI
 
-            % Check that the date is prior to end of 2015. If so, don't
-            % continue. This is required because university legal requested
-            % that the code not be distributed beyond the ARC POs until a
-            % legal statement is provided.
-            if now >= datenum(2015,10,1) && now <= datenum(2015,12,31)
-                warndlg({'This beta version of the toolkit will expire on Jan. 1 2016.','','Contact Tim Peterson (timjp@unimelb.edu.au) for a new version.'},'Software soon to expire ...');
-            elseif now > datenum(2015,12,31)
-                warndlg({'This beta version of the toolkit has expired.','','Contact Tim Peterson (timjp@unimelb.edu.au) for a new version.'},'Software soon to expire ...');
-                return;
-            end
+%             % Check that the date is prior to end of 2015. If so, don't
+%             % continue. This is required because university legal requested
+%             % that the code not be distributed beyond the ARC POs until a
+%             % legal statement is provided.
+%             if now >= datenum(2015,10,1) && now <= datenum(2015,12,31)
+%                 warndlg({'This beta version of the toolkit will expire on Jan. 1 2016.','','Contact Tim Peterson (timjp@unimelb.edu.au) for a new version.'},'Software soon to expire ...');
+%             elseif now > datenum(2015,12,31)
+%                 warndlg({'This beta version of the toolkit has expired.','','Contact Tim Peterson (timjp@unimelb.edu.au) for a new version.'},'Software soon to expire ...');
+%                 return;
+%             end
                             
             %--------------------------------------------------------------
             % Open a window and add some menus
@@ -87,11 +87,11 @@ classdef GST_GUI < handle
             
             % + File menu
             this.figure_Menu = uimenu( this.Figure, 'Label', 'File' );
-            uimenu( this.figure_Menu, 'Label', 'Open ...', 'Callback', @this.onOpen);
-            uimenu( this.figure_Menu, 'Label', 'Save as ...', 'Callback', @this.onSaveAs );
-            uimenu( this.figure_Menu, 'Label', 'Save', 'Callback', @this.onSave );
-            uimenu(this.figure_Menu,'Separator','on');
-            uimenu( this.figure_Menu, 'Label', 'Exit', 'Callback', @this.onExit );
+            uimenu( this.figure_Menu, 'Label', 'Set Project Folder ...', 'Callback', @this.onSetProjectFolder);
+            uimenu( this.figure_Menu, 'Label', 'Open Project...', 'Callback', @this.onOpen);
+            uimenu( this.figure_Menu, 'Label', 'Save Project as ...', 'Callback', @this.onSaveAs );
+            uimenu( this.figure_Menu, 'Label', 'Save Project', 'Callback', @this.onSave);
+            uimenu( this.figure_Menu, 'Label', 'Exit', 'Callback', @this.onExit,'Separator','on' );
 
             % + Examples menu
             this.figure_examples = uimenu( this.Figure, 'Label', 'Examples' );
@@ -102,14 +102,15 @@ classdef GST_GUI < handle
             this.figure_Help = uimenu( this.Figure, 'Label', 'Help' );
             uimenu(this.figure_Help, 'Label', 'Overview', 'Tag','doc_Overview','Callback', @this.onDocumentation);
             uimenu(this.figure_Help, 'Label', 'User Interface', 'Tag','doc_GUI','Callback', @this.onDocumentation);
-            uimenu(this.figure_Help, 'Label', 'Programmatic Use', 'Tag','doc_Programmatically','Callback', @this.onDocumentation);
-            uimenu(this.figure_Help, 'Label', 'Calibration Fundementals','Tag','doc_Calibration','Callback', @this.onDocumentation);            
-            if ~isdeployed
-                uimenu(this.figure_Help, 'Label', 'Algorithm Documentation', 'Tag','Algorithms','Callback', @this.onDocumentation);                
+            uimenu(this.figure_Help, 'Label', 'Programmatic Use', 'Tag','doc_Programmatically','Callback', @this.onDocumentation);            
+            if isdeployed
+                uimenu(this.figure_Help, 'Label', 'Calibration Fundementals','Tag','doc_Calibration','Callback', @this.onDocumentation, 'Separator','on');            
+            else
+                uimenu(this.figure_Help, 'Label', 'Calibration Fundementals','Tag','doc_Calibration','Callback', @this.onDocumentation);
+                uimenu(this.figure_Help, 'Label', 'Algorithm Documentation', 'Tag','Algorithms','Callback', @this.onDocumentation, 'Separator','on');                
             end
-            uimenu(this.figure_Help,'Separator','on');            
-            uimenu(this.figure_Help, 'Label', 'Publications', 'Tag','doc_Publications','Callback', @this.onDocumentation);
-            uimenu(this.figure_Help,'Separator','on');            
+            uimenu(this.figure_Help, 'Label', 'Publications', 'Tag','doc_Publications','Callback', @this.onDocumentation,'Separator','on');
+            uimenu(this.figure_Help, 'Label', 'License and Disclaimer', 'Tag','doc_Publications','Callback', @this.onLicenseDisclaimer,'Separator','on');
             uimenu(this.figure_Help, 'Label', 'About', 'Callback', @this.onAbout );
 
             %Create Panels for different windows       
@@ -274,12 +275,10 @@ classdef GST_GUI < handle
             
             % Add items
             uimenu(this.Figure.UIContextMenu,'Label','Copy selected row','Callback',@this.rowAddDelete);
-            uimenu(this.Figure.UIContextMenu,'Label','Paste rows','Callback',@this.rowAddDelete);
-            uimenu(this.Figure.UIContextMenu,'Separator','on');
+            uimenu(this.Figure.UIContextMenu,'Label','Paste rows','Callback',@this.rowAddDelete,'Separator','on');
             uimenu(this.Figure.UIContextMenu,'Label','Insert row above selection','Callback',@this.rowAddDelete);
             uimenu(this.Figure.UIContextMenu,'Label','Insert row below selection','Callback',@this.rowAddDelete);            
-            uimenu(this.Figure.UIContextMenu,'Label','Delete selected rows','Callback',@this.rowAddDelete);
-            uimenu(this.Figure.UIContextMenu,'Separator','on');
+            uimenu(this.Figure.UIContextMenu,'Label','Delete selected rows','Callback',@this.rowAddDelete,'Separator','on');
             uimenu(this.Figure.UIContextMenu,'Label','Select all','Callback',@this.rowSelection);
             uimenu(this.Figure.UIContextMenu,'Label','Select none','Callback',@this.rowSelection);
             uimenu(this.Figure.UIContextMenu,'Label','Invert selection','Callback',@this.rowSelection);
@@ -355,7 +354,7 @@ classdef GST_GUI < handle
             % Add buttons to top left panel               
             uicontrol('Parent',vbox3t3,'String','Append Table Data','Callback', @this.onImportTable, 'Tag','Model Construction', 'TooltipString', sprintf('Append a .csv file of table data to the table below. \n Use this feature to efficiently build a large number of models.') );
             uicontrol('Parent',vbox3t3,'String','Export Table Data','Callback', @this.onExportTable, 'Tag','Model Construction', 'TooltipString', sprintf('Export a .csv file of the table below.') );
-            uicontrol('Parent',vbox3t3,'String','Build Selected Models','Callback', @this.onBuildModels, 'Tag','Model Construction', 'TooltipString', sprintf('Use the tick-box below to select the models to build then click here. \n After building, the status is given in the right most column.') );            
+            uicontrol('Parent',vbox3t3,'String','Build Selected Models','Callback', @this.onBuildModels, 'Tag','Model Construction', 'TooltipString', sprintf('Use the tick-box below to select the models to build then click here. \n After building, the status is given in the right most column.') );                        
             vbox3t3.ButtonSize(1) = 225;
             
             % Create vbox for the various model options
@@ -423,12 +422,10 @@ classdef GST_GUI < handle
             
             % Add items
             uimenu(this.Figure.UIContextMenu,'Label','Copy selected row','Callback',@this.rowAddDelete);
-            uimenu(this.Figure.UIContextMenu,'Label','Paste rows','Callback',@this.rowAddDelete);
-            uimenu(this.Figure.UIContextMenu,'Separator','on');
+            uimenu(this.Figure.UIContextMenu,'Label','Paste rows','Callback',@this.rowAddDelete,'Separator','on');
             uimenu(this.Figure.UIContextMenu,'Label','Insert row above selection','Callback',@this.rowAddDelete);
             uimenu(this.Figure.UIContextMenu,'Label','Insert row below selection','Callback',@this.rowAddDelete);            
-            uimenu(this.Figure.UIContextMenu,'Label','Delete selected rows','Callback',@this.rowAddDelete);
-            uimenu(this.Figure.UIContextMenu,'Separator','on');
+            uimenu(this.Figure.UIContextMenu,'Label','Delete selected rows','Callback',@this.rowAddDelete,'Separator','on');
             uimenu(this.Figure.UIContextMenu,'Label','Select all','Callback',@this.rowSelection);
             uimenu(this.Figure.UIContextMenu,'Label','Select none','Callback',@this.rowSelection);
             uimenu(this.Figure.UIContextMenu,'Label','Invert selection','Callback',@this.rowSelection);
@@ -450,6 +447,8 @@ classdef GST_GUI < handle
             % Add button for calibration
             uicontrol('Parent',hbox3t4,'String','Import Table Data','Callback', @this.onImportTable, 'Tag','Model Calibration', 'TooltipString', sprintf('Import a .csv file of table data to the table below. \n Only rows with a model label and bore ID matching a row within the table will be imported.') );
             uicontrol('Parent',hbox3t4,'String','Export Table Data','Callback', @this.onExportTable, 'Tag','Model Calibration', 'TooltipString', sprintf('Export a .csv file of the table below.') );            
+            %uicontrol('Parent',hbox3t4,'String','HPC Export','Callback', @this.onExport4HPC, 'TooltipString', sprintf('Export selected models for calibration on a High Performance Cluster.') );
+            %uicontrol('Parent',hbox3t4,'String','HPC Import','Callback', @this.onImportFromHPC, 'TooltipString', sprintf('Import calibrated models from a High Performance Cluster.') );
             uicontrol('Parent',hbox3t4,'String','Calibrate Selected Models','Callback', @this.onCalibModels, 'TooltipString', sprintf('Use the tick-box below to select the models to calibrate then click here. \n During and after calibration, the status is given in the 9th column.') );            
             uicontrol('Parent',hbox3t4,'String','Export Results','Callback', @this.onExportResults, 'Tag','Model Calibration', 'TooltipString', sprintf('Export a .csv file of the calibration results from all models.') );            
             hbox3t4.ButtonSize(1) = 225;
@@ -561,8 +560,7 @@ classdef GST_GUI < handle
 %           Add context menu
             this.Figure.UIContextMenu = uicontextmenu(this.Figure,'Visible','on');
             uimenu(this.Figure.UIContextMenu,'Label','Copy selected row','Callback',@this.rowAddDelete);
-            uimenu(this.Figure.UIContextMenu,'Label','Paste rows','Callback',@this.rowAddDelete);
-            uimenu(this.Figure.UIContextMenu,'Separator','on');
+            uimenu(this.Figure.UIContextMenu,'Label','Paste rows','Callback',@this.rowAddDelete,'Separator','on');
             uimenu(this.Figure.UIContextMenu,'Label','Select all','Callback',@this.rowSelection);
             uimenu(this.Figure.UIContextMenu,'Label','Select none','Callback',@this.rowSelection);
             uimenu(this.Figure.UIContextMenu,'Label','Invert selection','Callback',@this.rowSelection);
@@ -673,12 +671,10 @@ classdef GST_GUI < handle
 %           Add context menu
             this.Figure.UIContextMenu = uicontextmenu(this.Figure,'Visible','on');
             uimenu(this.Figure.UIContextMenu,'Label','Copy selected row','Callback',@this.rowAddDelete);
-            uimenu(this.Figure.UIContextMenu,'Label','Paste rows','Callback',@this.rowAddDelete);
-            uimenu(this.Figure.UIContextMenu,'Separator','on');
+            uimenu(this.Figure.UIContextMenu,'Label','Paste rows','Callback',@this.rowAddDelete,'Separator','on');
             uimenu(this.Figure.UIContextMenu,'Label','Insert row above selection','Callback',@this.rowAddDelete);
             uimenu(this.Figure.UIContextMenu,'Label','Insert row below selection','Callback',@this.rowAddDelete);            
-            uimenu(this.Figure.UIContextMenu,'Label','Delete selected rows','Callback',@this.rowAddDelete);
-            uimenu(this.Figure.UIContextMenu,'Separator','on');            
+            uimenu(this.Figure.UIContextMenu,'Label','Delete selected rows','Callback',@this.rowAddDelete,'Separator','on');
             uimenu(this.Figure.UIContextMenu,'Label','Select all','Callback',@this.rowSelection);
             uimenu(this.Figure.UIContextMenu,'Label','Select none','Callback',@this.rowSelection);
             uimenu(this.Figure.UIContextMenu,'Label','Invert selection','Callback',@this.rowSelection);
@@ -698,10 +694,80 @@ classdef GST_GUI < handle
             set(this.Figure,'Visible','on');
         end
         
-%Callbacks ~~~~~~~~~~~~~~~~~~~~~~~~~
+        % Set project folder
+        function onSetProjectFolder(this,hObject,eventdata)
+
+            % Initialise project names
+            projectName = '';
+            projectExt = '';
+            
+            % Get project folder
+            if isempty(this.project_fileName)
+                projectPath = uigetdir('Select project folder.');    
+            else
+                % Get project folder and file name (if a dir)
+                if isdir(this.project_fileName)
+                    projectPath = this.project_fileName;
+                else
+                    [projectPath,projectName,projectExt] = fileparts(this.project_fileName);
+                end
+                                
+                if isempty(projectPath)
+                    projectPath = uigetdir('Select project folder.'); 
+                else
+                    projectPath = uigetdir(projectPath, 'Select project folder.'); 
+                end
+                
+            end
+
+            if projectPath~=0;
+
+                % Get the current project folder. If the project folder has
+                % changed then warn the user that all infput file names
+                % must be within the new project folder.
+                if ~isempty(this.project_fileName)
+                    currentProjectFolder = fileparts(this.project_fileName);
+                    
+                    if ~strcmp(currentProjectFolder, projectPath)
+                        warndlg({'The project folder is different to that already set.';''; ...
+                                 'Importantly, all file names in the project are relative'; ...
+                                 'to the project folder and so all input .csv files must be'; ...
+                                 'within the project folder or a sub-folder within it.'},'Input file name validity.','modal');
+                    end
+                end
+                
+                % Update project folder
+                this.project_fileName = projectPath;
+                                
+                % Update GUI title
+                set(this.Figure,'Name',['The Groundwater Statistical Toolbox - ', this.project_fileName]);
+                drawnow;
+            end            
+            
+        end
+            
         % Open saved model
         function onOpen(this,hObject,eventdata)
-            [fName,pName] = uigetfile({'*.mat'},'Select saved groundwater statistical model.');    
+            
+            % Set initial folder to the project folder (if set)
+            currentProjectFolder='';
+            if ~isempty(this.project_fileName)                                
+                try    
+                    if isdir(this.project_fileName)
+                        currentProjectFolder = this.project_fileName;
+                    else
+                        currentProjectFolder = fileparts(this.project_fileName);
+                    end 
+                    
+                    currentProjectFolder = [currentProjectFolder,filesep];
+                    cd(currentProjectFolder);
+                catch
+                    % do nothing
+                end
+            end
+            
+            % Show folder selection dialog
+            [fName,pName] = uigetfile({'*.mat'},'Select project to open.');    
 
             if fName~=0;
                 % Assign the file name 
@@ -709,12 +775,14 @@ classdef GST_GUI < handle
 
                 % Change cursor
                 set(this.Figure, 'pointer', 'watch');                
+                drawnow;
                 
                 % Load file
                 try
                     savedData = load(this.project_fileName,'-mat');
                 catch ME
                     set(this.Figure, 'pointer', 'arrow');
+                    drawnow;
                     warndlg('Project file could not be loaded.','File error');
                     return;
                 end
@@ -725,8 +793,10 @@ classdef GST_GUI < handle
                     this.tab_Project.project_description.String = savedData.tableData.tab_Project.description;
                 catch ME
                     set(this.Figure, 'pointer', 'arrow');
+                    drawnow;
                     warndlg('Data could not be assigned to the user interface table: Project Description','File table data error');
                      set(this.Figure, 'pointer', 'watch');
+                     drawnow;
                 end
                 try
                     this.tab_DataPrep.Table.Data = savedData.tableData.tab_DataPrep;
@@ -736,10 +806,13 @@ classdef GST_GUI < handle
                     this.tab_DataPrep.Table.RowName = mat2cell([1:nrows]',ones(1, nrows));                    
                 catch ME
                     set(this.Figure, 'pointer', 'arrow');
+                    drawnow;
                     warndlg('Data could not be assigned to the user interface table: Data Preparation','File table data error');
                      set(this.Figure, 'pointer', 'watch');
+                     drawnow;
                 end               
                 try
+
                     this.tab_ModelConstruction.Table.Data = savedData.tableData.tab_ModelConstruction;
                     
                     % Update row numbers
@@ -747,8 +820,10 @@ classdef GST_GUI < handle
                     this.tab_ModelConstruction.Table.RowName = mat2cell([1:nrows]',ones(1, nrows));     
                 catch ME
                     set(this.Figure, 'pointer', 'arrow');
+                    drawnow;
                     warndlg('Data could not be assigned to the user interface table: Model Construction','File table data error');
                      set(this.Figure, 'pointer', 'watch');
+                     drawnow;
                 end                
                 try                    
                     this.tab_ModelCalibration.Table.Data = savedData.tableData.tab_ModelCalibration;
@@ -758,8 +833,10 @@ classdef GST_GUI < handle
                     this.tab_ModelCalibration.Table.RowName = mat2cell([1:nrows]',ones(1, nrows));                      
                 catch ME
                     set(this.Figure, 'pointer', 'arrow');
+                    drawnow;
                     warndlg('Data could not be assigned to the user interface table: Model Calibration','File table data error');
                      set(this.Figure, 'pointer', 'watch');
+                     drawnow;
                 end                
                 try
                     this.tab_ModelSimulation.Table.Data = savedData.tableData.tab_ModelSimulation;
@@ -769,8 +846,10 @@ classdef GST_GUI < handle
                     this.tab_ModelSimulation.Table.RowName = mat2cell([1:nrows]',ones(1, nrows));                       
                 catch ME
                     set(this.Figure, 'pointer', 'arrow');
+                    drawnow;
                     warndlg('Data could not be assigned to the user interface table: Model Simulation','File table data error');
                     set(this.Figure, 'pointer', 'watch');
+                    drawnow;
                 end                
 
                                 
@@ -779,8 +858,10 @@ classdef GST_GUI < handle
                     this.models = savedData.models;
                 catch ME
                     set(this.Figure, 'pointer', 'arrow');
+                    drawnow;
                     warndlg('Loaded models could not be assigned to the user interface.','File model data error');
                     set(this.Figure, 'pointer', 'watch');
+                    drawnow;
                 end  
                 
                 % Assign analysed bores.
@@ -788,20 +869,58 @@ classdef GST_GUI < handle
                     this.dataPrep = savedData.dataPrep;
                 catch ME
                     set(this.Figure, 'pointer', 'arrow');
+                    drawnow;
                     warndlg('Loaded data analysis results could not be assigned to the user interface.','File model data error');
                     set(this.Figure, 'pointer', 'watch');
+                    drawnow;
                 end  
                 set(this.Figure, 'pointer', 'arrow');
+                drawnow;
+                
+                % Update GUI title
+                set(this.Figure,'Name',['The Groundwater Statistical Toolbox - ', this.project_fileName]);
+                drawnow;                
             end
         end
         
         % Save as current model        
         function onSaveAs(this,hObject,eventdata)
-            [fName,pName] = uiputfile({'*.mat'},'Save models as...');    
+            
+            % set current folder to the project folder (if set)
+            currentProjectFolder='';
+            if ~isempty(this.project_fileName)                                
+                try    
+                    if isdir(this.project_fileName)
+                        currentProjectFolder = this.project_fileName;
+                    else
+                        currentProjectFolder = fileparts(this.project_fileName);
+                    end 
+                    
+                    currentProjectFolder = [currentProjectFolder,filesep];
+                    cd(currentProjectFolder);
+                catch
+                    % do nothing
+                end
+            end
+            
+            [fName,pName] = uiputfile({'*.mat'},'Save models as ...');    
             if fName~=0;
+                
+                % Get the current project folder. If the project folder has
+                % changed then warn the user that all infput file names
+                % must be within the new project folder.
+                if ~isempty(currentProjectFolder)                    
+                    if ~strcmp(currentProjectFolder, pName)
+                        warndlg({'The project folder is different to that already set.';''; ...
+                                 'Importantly, all file names in the project are relative'; ...
+                                 'to the project folder and so all input .csv files must be'; ...
+                                 'within the project folder or a sub-folder within it.'},'Input file name validity.','modal');
+                    end
+                end
 
                 % Change cursor
-                set(this.Figure, 'pointer', 'watch');                   
+                set(this.Figure, 'pointer', 'watch');    
+                drawnow;
                 
                 % Assign file name to date cell array
                 this.project_fileName = fullfile(pName,fName);
@@ -824,14 +943,20 @@ classdef GST_GUI < handle
                 try
                     save(this.project_fileName, 'tableData',  'models', 'dataPrep', '-v7.3');  
 
-                    % Change cursor
-                    set(this.Figure, 'pointer', 'arrow');                
+                    % Update GUI title
+                    set(this.Figure,'Name',['The Groundwater Statistical Toolbox - ', this.project_fileName]);                                        
                 catch ME
                     set(this.Figure, 'pointer', 'arrow');
+                    drawnow;
                     warndlg('The project could not be saved. Please check you have write access to the directory.','Project not saved ...');
                     return;
                 end                      
             end
+            
+            % Change cursor
+            set(this.Figure, 'pointer', 'arrow');
+            drawnow;
+            
         end
         
         % Save model        
@@ -842,6 +967,7 @@ classdef GST_GUI < handle
             else               
                 % Change cursor
                 set(this.Figure, 'pointer', 'watch');   
+                drawnow;
                 
                 % Collate the tables of data to a temp variable.
                 tableData.tab_Project.title = this.tab_Project.project_name.String;
@@ -861,9 +987,11 @@ classdef GST_GUI < handle
                 try
                     save(this.project_fileName, 'tableData',  'models', 'dataPrep', '-v7.3');         
                     % Change cursor
-                    set(this.Figure, 'pointer', 'arrow');                
+                    set(this.Figure, 'pointer', 'arrow');   
+                    drawnow;
                 catch ME
                     set(this.Figure, 'pointer', 'arrow');
+                    drawnow;
                     warndlg('The project could not be saved. Please check you have write access to the directory.','Project not saved ...');
                     return;
                 end                  
@@ -894,14 +1022,17 @@ classdef GST_GUI < handle
                 switch columnName;
                     case 'Obs. Head File'
                         this.tab_DataPrep.modelOptions.vbox.Heights = [0; 0];
-                        
-                        [fName,pName] = uigetfile({'*.*'},'Select the Observed Head file'); 
+
+                        % Get file name and remove project folder from
+                        % preceeding full path.
+                        fName = getFileName(this, 'Select the Observed Head file.');                                                
                         if fName~=0;
                             % Assign file name to date cell array
-                            data{eventdata.Indices(1),eventdata.Indices(2)} = fullfile(pName,fName);
+                            data{eventdata.Indices(1),eventdata.Indices(2)} = fName;
+                            
                             % Input file name to the table
                             set(hObject,'Data',data);
-                        end
+                        end                        
                         
                     case 'Bore ID'
                          % Check the obs. head file is listed
@@ -911,6 +1042,13 @@ classdef GST_GUI < handle
                             return;
                          end
                          
+                         % Construct full file path name
+                         if isdir(this.project_fileName)                             
+                            fname = fullfile(this.project_fileName,fname); 
+                         else
+                            fname = fullfile(fileparts(this.project_fileName),fname);  
+                         end                         
+                         
                          % Check the bore ID file exists.
                          if exist(fname,'file') ~= 2;
                             warndlg('The observed head file does not exist.');
@@ -918,7 +1056,7 @@ classdef GST_GUI < handle
                          end
                          
                          % Read in the observed head file.
-                         try
+                         try                            
                             tbl = readtable(fname);
                          catch
                             warndlg('The observed head file could not be read in. It must a .csv file of 6 columns');
@@ -1216,10 +1354,13 @@ classdef GST_GUI < handle
                 
                 switch columnName;
                     case 'Obs. Head File'
-                        [fName,pName] = uigetfile({'*.*'},'Select the Observed Head file'); 
+                        % Get file name and remove project folder from
+                        % preceeding full path.
+                        fName = getFileName(this, 'Select the Observed Head file.');                        
                         if fName~=0;
                             % Assign file name to date cell array
-                            data{eventdata.Indices(1),eventdata.Indices(2)} = fullfile(pName,fName);
+                            data{eventdata.Indices(1),eventdata.Indices(2)} = fName;
+                            
                             % Input file name to the table
                             set(hObject,'Data',data);
                         end
@@ -1228,28 +1369,34 @@ classdef GST_GUI < handle
                          this.tab_ModelConstruction.modelOptions.vbox.Heights = [0; 0 ; 0; 0];                        
                         
                     case 'Forcing Data File'
-                        [fName,pName] = uigetfile({'*.*'},'Select the Forcing Data file');
+
+                        % Get file name and remove project folder from
+                        % preceeding full path.
+                        fName = getFileName(this, 'Select the Forcing Data file.');                                                
                         if fName~=0;
                             % Assign file name to date cell array
-                            data{eventdata.Indices(1),eventdata.Indices(2)} = fullfile(pName,fName);
+                            data{eventdata.Indices(1),eventdata.Indices(2)} = fName;
+                            
                             % Input file name to the table
                             set(hObject,'Data',data);
                         end
-
-                         % Hide the panels.
-                         this.tab_ModelConstruction.modelOptions.vbox.Heights = [0; 0 ; 0; 0];                        
+                        % Hide the panels.
+                        this.tab_ModelConstruction.modelOptions.vbox.Heights = [0; 0 ; 0; 0];                        
                         
                     case 'Coordinates File'
-                        [fName,pName] = uigetfile({'*.*'},'Select the Coordinates file');    
+                        % Get file name and remove project folder from
+                        % preceeding full path.
+                        fName = getFileName(this, 'Select the Coordinates file.');                                                
                         if fName~=0;
                             % Assign file name to date cell array
-                            data{eventdata.Indices(1),eventdata.Indices(2)} = fullfile(pName,fName);
+                            data{eventdata.Indices(1),eventdata.Indices(2)} = fName;
+                            
                             % Input file name to the table
                             set(hObject,'Data',data);
                         end
-                        
-                         % Hide the panels.
-                         this.tab_ModelConstruction.modelOptions.vbox.Heights = [0; 0 ; 0; 0];
+                                                
+                        % Hide the panels.
+                        this.tab_ModelConstruction.modelOptions.vbox.Heights = [0; 0 ; 0; 0];
                         
                     case 'Bore ID'
                          % Check the obs. head file is listed
@@ -1257,6 +1404,13 @@ classdef GST_GUI < handle
                          if isempty(fname)
                             warndlg('The observed head file name must be input before selecting the bore ID');
                             return;
+                         end
+
+                         % Construct full file name.
+                         if isdir(this.project_fileName)                             
+                            fname = fullfile(this.project_fileName,fname); 
+                         else
+                            fname = fullfile(fileparts(this.project_fileName),fname);  
                          end
                          
                          % Check the bore ID file exists.
@@ -1306,7 +1460,6 @@ classdef GST_GUI < handle
                          catch
                          	modelDecription = 'No decription is available for the selected model.';
                          end
-                             
                                                                            
                          % Assign model decription to GUI string box                         
                          this.tab_ModelConstruction.modelDescriptions.String = modelDecription; 
@@ -1325,18 +1478,32 @@ classdef GST_GUI < handle
                         % for the given model type.
                         try          
                             modelType = eventdata.Source.Data{irow,7};
-                            setForcingData(this.tab_ModelConstruction.modelTypes.(modelType).obj, data{irow,4});
-                            setCoordinatesData(this.tab_ModelConstruction.modelTypes.(modelType).obj, data{irow,5});
-                            setBoreID(this.tab_ModelConstruction.modelTypes.(modelType).obj, data{irow,6});
+                            
+                            if isempty(this.project_fileName)
+                                warningdlg('The project folder must be set before the model options can be viewed or edited.')
+                                return
+                            end
+                            if isdir(this.project_fileName)
+                                dirname = this.project_fileName;
+                            else
+                                dirname = fileparts(this.project_fileName);
+                            end                            
+                            
+                            fname = fullfile(dirname,data{irow,4}); 
+                            setForcingData(this.tab_ModelConstruction.modelTypes.(modelType).obj, fname);
+                            fname = fullfile(dirname,data{irow,5});
+                            setCoordinatesData(this.tab_ModelConstruction.modelTypes.(modelType).obj, fname);
+                            fname = fullfile(dirname,data{irow,6});
+                            setBoreID(this.tab_ModelConstruction.modelTypes.(modelType).obj, fname);
                             
                             % If the model options are empty, then add a
                             % default empty cell, else set the existing
                             % options into the model type GUI RHS panel.
                             if isempty(eventdata.Source.Data{irow,8}) || strcmp(eventdata.Source.Data{irow,8},'{}')
-                                eventdata.Source.Data{irow,8} = '{}';
-                            else
-                                setModelOptions(this.tab_ModelConstruction.modelTypes.(modelType).obj, data{irow,8})
+                                %eventdata.Source.Data{irow,8} = [];
+                                data{irow,8} = [];
                             end
+                            setModelOptions(this.tab_ModelConstruction.modelTypes.(modelType).obj, data{irow,8})
                                 
                         catch ME
                             warndlg('Unknown model type selected or the GUI for the selected model crashed.');
@@ -1854,10 +2021,14 @@ classdef GST_GUI < handle
                         drawnow
                                                 
                     case 'Forcing Data File'
-                        [fName,pName] = uigetfile({'*.*'},'Select the Forcing Data file');
+                        
+                        % Get file name and remove project folder from
+                        % preceeding full path.
+                        fName = getFileName(this, 'Select the Forcing Data file.');
                         if fName~=0;
                             % Assign file name to date cell array
-                            data{irow,icol} = fullfile(pName,fName);
+                            data{irow,icol} = fName;
+                            
                             % Input file name to the table
                             set(hObject,'Data',data);
                         end
@@ -2303,7 +2474,11 @@ classdef GST_GUI < handle
                 % Import head data
                 %----------------------------------------------------------
                 % Check the obs. head file is listed
-                fname = data{i,2};
+                if isdir(this.project_fileName)                             
+                    fname = fullfile(this.project_fileName,data{i,2}); 
+                else
+                    fname = fullfile(fileparts(this.project_fileName),data{i,2});  
+                end                
                 if isempty(fname)                    
                     this.tab_DataPrep.Table.Data{i, 15} = '<html><font color = "#FF0000">Head data file error - file name empty.</font></html>';
                     nAnalysisFailed = nAnalysisFailed + 1;
@@ -2574,7 +2749,11 @@ classdef GST_GUI < handle
                 % Import head data
                 %----------------------------------------------------------
                 % Check the obs. head file is listed
-                fname = data{i,3};
+                if isdir(this.project_fileName)
+                    fname = fullfile(this.project_fileName,data{i,3});
+                else
+                    fname = fullfile(fileparts(this.project_fileName),data{i,3});
+                end
                 if isempty(fname)                    
                     this.tab_ModelConstruction.Table.Data{i, 9} = '<html><font color = "#FF0000">Head data file error - file name empty.</font></html>';
                     nModelsBuiltFailed = nModelsBuiltFailed + 1;
@@ -2614,7 +2793,11 @@ classdef GST_GUI < handle
                 % Import forcing data
                 %----------------------------------------------------------
                 % Check fname file exists.
-                fname = data{i,4};
+                if isdir(this.project_fileName)
+                    fname = fullfile(this.project_fileName,data{i,4});
+                else
+                    fname = fullfile(fileparts(this.project_fileName),data{i,4});
+                end
                 if exist(fname,'file') ~= 2;                   
                    this.tab_ModelConstruction.Table.Data{i, 9} = '<html><font color = "#FF0000">Forcing data file error - file name empty.</font></html>';
                    nModelsBuiltFailed = nModelsBuiltFailed + 1;
@@ -2635,7 +2818,11 @@ classdef GST_GUI < handle
                 % Import coordintate data
                 %----------------------------------------------------------
                 % Check fname file exists.
-                fname = data{i,5};
+                if isdir(this.project_fileName)
+                    fname = fullfile(this.project_fileName,data{i,5});
+                else
+                    fname = fullfile(fileparts(this.project_fileName),data{i,5});
+                end
                 if exist(fname,'file') ~= 2;                   
                    nModelsBuiltFailed = nModelsBuiltFailed + 1;
                    this.tab_ModelConstruction.Table.Data{i, 9} = '<html><font color = "#FF0000">Coordinate file error - file name empty.</font></html>';
@@ -2917,7 +3104,7 @@ classdef GST_GUI < handle
                     this.tab_ModelCalibration.Table.Data{i,13} = ['<html><font color = "#808080">',num2str(calibAIC),'</font></html>'];
 
                     % Set eval performance stats
-                    if isfield(this.models{1, 1}.evaluationResults,'performance')
+                    if isfield(this.models{ind, 1}.evaluationResults,'performance')
                         evalAIC = this.models{ind, 1}.evaluationResults.performance.AIC;
                         evalCoE = this.models{ind, 1}.evaluationResults.performance.CoeffOfEfficiency_mean.CoE_unbias;                    
                         
@@ -3033,7 +3220,13 @@ classdef GST_GUI < handle
 
                     % Import forcing data
                     %-----------------------
-                    % Check fname file exists.                    
+                    % Check fname file exists.
+                    if isdir(this.project_fileName)
+                        forcingdata_fname = fullfile(this.project_fileName,forcingdata_fname);
+                    else
+                        forcingdata_fname = fullfile(fileparts(this.project_fileName),forcingdata_fname);
+                    end
+                    
                     if exist(forcingdata_fname,'file') ~= 2;                   
                         this.tab_ModelSimulation.Table.Data{i,end} = '<html><font color = "#FF0000">Sim. failed - The new forcing date file could not be open.</font></html>';
                         nModelsSimFailed = nModelsSimFailed +1;
@@ -3099,7 +3292,7 @@ classdef GST_GUI < handle
                        while datenum(iyear,imonth,iday) < simEndDate
                           
                            if imonth == 12
-                               imonth = j;
+                               imonth = 1;
                                iyear = iyear + 1;
                            else
                                imonth = imonth + 1;
@@ -3161,6 +3354,15 @@ classdef GST_GUI < handle
             msgbox(['The simulations were successfull for ',num2str(nModelsSim), ' models and failed for ',num2str(nModelsSimFailed), ' models.'], 'Summary of model simulaions...');
 
         end
+        
+        function onExport4HPC(this, hObject, eventdata)
+           msgbox('This feature is not yet implemented.'); 
+        end
+
+        function onImportFromHPC(this, hObject, eventdata)
+           msgbox('This feature is not yet implemented.'); 
+        end
+        
         
         function onImportTable(this, hObject, eventdata)
         
@@ -3561,11 +3763,25 @@ classdef GST_GUI < handle
         end        
         
         function onExportResults(this, hObject, eventdata)
+            
+            % Set initial folder to the project folder (if set)
+            if ~isempty(this.project_fileName)                                
+                try    
+                    if isdir(this.project_fileName)
+                        currentProjectFolder = this.project_fileName;
+                    else
+                        currentProjectFolder = fileparts(this.project_fileName);
+                    end 
+
+                    currentProjectFolder = [currentProjectFolder,filesep];
+                    cd(currentProjectFolder);
+                catch
+                    % do nothing
+                end
+            end      
 
             % Export results
-            switch hObject.Tag
-                    
-                       
+            switch hObject.Tag                                           
                 case 'Data Preparation'
 
                     % Check there is data to export.
@@ -3747,9 +3963,8 @@ classdef GST_GUI < handle
                     
                     
                 case 'Model Simulation'
-
                     % Get output file name
-                    folderName = uigetdir(folderName ,'Select where the .csv simulation files saved (one file per simulation).');    
+                    folderName = uigetdir('' ,'Select where the .csv simulation files saved (one file per simulation).');    
                     if isempty(folderName)
                         return;
                     end
@@ -3777,7 +3992,7 @@ classdef GST_GUI < handle
                         end
                         
                         % Check if any simulations have been undertaken.
-                        if isempty(this.models{modelInd,1}.simulationResults)
+                        if isempty(this.models{ind,1}.simulationResults)
                             nSimsNotUndertaken = nSimsNotUndertaken +1;
                             continue;
                         end
@@ -3787,7 +4002,7 @@ classdef GST_GUI < handle
                             nSimsNotUndertaken = nSimsNotUndertaken +1;
                             continue;
                         end
-                        simInd = cellfun(@(x) strcmp(simLabel, x.simulationLabel), this.models{modelInd,1}.simulationResults);
+                        simInd = cellfun(@(x) strcmp(simLabel, x.simulationLabel), this.models{ind,1}.simulationResults);
                         if all(~simInd)    % Exit if model not found.
                             nSimsNotUndertaken = nSimsNotUndertaken +1;
                             continue;
@@ -3805,13 +4020,13 @@ classdef GST_GUI < handle
                         % table.
                         try
                             % Get the model simulation data.
-                            tableData = this.models{modelInd,1}.simulationResults{simInd,1}.head;                        
+                            tableData = this.models{ind,1}.simulationResults{simInd,1}.head;                        
                             
                             % Calculate year, month, day etc
                             tableData = [year(tableData(:,1)), month(tableData(:,1)), day(tableData(:,1)), hour(tableData(:,1)), minute(tableData(:,1)), tableData(:,2:end)];
 
                             % Create column names.                        
-                            columnName = {'Year','Month','Day','Hour','Minute',this.models{modelInd,1}.simulationResults{simInd,1}.colnames{2:end}};
+                            columnName = {'Year','Month','Day','Hour','Minute',this.models{ind,1}.simulationResults{simInd,1}.colnames{2:end}};
 
                             % Create table and add variable names
                             tableData = array2table(tableData);
@@ -3821,7 +4036,7 @@ classdef GST_GUI < handle
                         end
                         
                         % Create file name
-                        filename_tmp = fullfile(filename,[modelLabel,'_',simLabel,'.csv']);
+                        filename_tmp = fullfile(folderName,[modelLabel,'_',simLabel,'.csv']);
                                                 
                         % write data to the file
                         try
@@ -3865,7 +4080,12 @@ classdef GST_GUI < handle
            else
                web([hObject.Tag,'.html']);
            end
-        end                
+        end       
+                   
+        function onLicenseDisclaimer(this, hObject, eventdata)
+           web('doc_License_Disclaimer.html');
+        end               
+        
         
         % Show splash 
         function onAbout(this, hObject, eventdata)
@@ -3922,13 +4142,15 @@ classdef GST_GUI < handle
             else
                 folderName = fileparts(pwd); 
             end
-            folderName = uigetdir(folderName ,'Select where the project .csv files and project are to be created.');    
+            folderName = uigetdir(folderName ,'Select folder for example .csv files.');    
             if isempty(folderName)
                 return;
             end
-
+            this.project_fileName = folderName;
+            
             % Change cursor
-            set(this.Figure, 'pointer', 'watch');                  
+            set(this.Figure, 'pointer', 'watch');      
+            drawnow;
             
             % Build .csv file names and add to the GUI construction table.
             display('Saving .csv files ...');
@@ -3945,6 +4167,7 @@ classdef GST_GUI < handle
                     exampleData = load('Clydebank_data.mat');
                 otherwise
                     set(this.Figure, 'pointer', 'arrow');   
+                    drawnow;
                     warndlg('The requested example model could not be found.','Example Model Error ...');
                     return;
             end
@@ -3952,6 +4175,7 @@ classdef GST_GUI < handle
             % Check there is the required data
             if ~isfield(exampleData,'forcing') || ~isfield(exampleData,'coordinates') || ~isfield(exampleData,'obsHead')
                 set(this.Figure, 'pointer', 'arrow');   
+                drawnow;
                 warndlg('The example data for the model does not exist. It must contain the following Matlab tables: forcing, coordinates, obsHead.','Example Model Data Error ...');                
                 return;                
             end
@@ -3959,6 +4183,7 @@ classdef GST_GUI < handle
             % Check that the data is a table. 
             if ~istable(exampleData.forcing) || ~istable(exampleData.coordinates) || ~istable(exampleData.obsHead) 
                 set(this.Figure, 'pointer', 'arrow');   
+                drawnow;
                 warndlg('The example models could not be loaded because the source data is not of the correct format. It must be a Matlab table variable.','Example Model Error ...');                
                 return;
             end
@@ -3979,13 +4204,15 @@ classdef GST_GUI < handle
                     case 'TFN - Pumping'
                         exampleModel = load('Clydebank_model.mat');
                     otherwise
-                        set(this.Figure, 'pointer', 'arrow');                          
+                        set(this.Figure, 'pointer', 'arrow');             
+                        drawnow;
                         warndlg('The requested example model could not be found.','Example Model Error ...');
                         return;
                 end            
                 
             catch ME
                 set(this.Figure, 'pointer', 'arrow');
+                drawnow;
                 warndlg('Project file could not be loaded.','File error');                
                 return;
             end
@@ -4023,21 +4250,15 @@ classdef GST_GUI < handle
 
             % Assign analysed bores.
             this.dataPrep = exampleModel.dataPrep;            
-            
-            % Update file paths within GUI construction table.
-            for i=1:size(this.tab_ModelConstruction.Table.Data,1)               
-                this.tab_ModelConstruction.Table.Data{i,3} = headFileName;
-                this.tab_ModelConstruction.Table.Data{i,4} = forcingFileName;
-                this.tab_ModelConstruction.Table.Data{i,5} = coordsFileName;                
-            end
-            
-            % Update file paths within GUI construction table.
-            for i=1:size(this.tab_DataPrep.Table.Data,1)               
-                this.tab_DataPrep.Table.Data{i,2} = headFileName;
-            end            
+        
+            % Updating project location with title bar
+            set(this.Figure,'Name',['The Groundwater Statistical Toolbox - ', this.project_fileName]);
+            drawnow;                
+
             
             % Change pointer
-            set(this.Figure, 'pointer', 'arrow');              
+            set(this.Figure, 'pointer', 'arrow');  
+            drawnow;
             
         end
         
@@ -4098,11 +4319,6 @@ classdef GST_GUI < handle
                         warndlg('The copied row data was sourced from a different table.');
                         return;
                     end    
-                    
-                    if sum(selectedRows)>1
-                        warndlg('When pasting to selected rows, only one row can be copied.');
-                        return;
-                    end
                     
                     % Paste data and update model build status
                     switch this.copiedData.tableName
@@ -4326,6 +4542,48 @@ classdef GST_GUI < handle
                     tableObj.Data(:,1) = mat2cell(~selectedRows,ones(1, size(selectedRows,1)));
             end
                         
+        end
+        
+        
+        function fName = getFileName(this, dialogString)
+           
+            % If project folder is not set, exit
+            if isempty(this.project_fileName)
+                errordlg('The project folder must be set before files can be input.')
+                return
+            end                        
+
+            % Get the project path
+            if isdir(this.project_fileName)
+                projectPath = this.project_fileName;
+            else
+                [projectPath,projectName,projectExt] = fileparts(this.project_fileName);
+            end
+
+            % Set the current folder to the project folder
+            try
+                cd(projectPath);
+            catch
+                errordlg({'The project folder could not be opened. Try re-inputting the', ...
+                        'project folder and/or check your network access to the folder.'}, 'Project folder access error.');
+                return;
+            end
+            
+            % Get file name
+            [fName,pName] = uigetfile({'*.*'},dialogString); 
+            if fName~=0;
+                % Check if the file name is the same as the
+                % project path.
+                if isempty(strfind(pName,projectPath))
+                    errordlg('The selected file path must be a within the project folder or a sub-folder of it.')
+                    return;
+                end
+
+                % Get the extra part of the file path not
+                % within the project path.
+                fName = fullfile(pName,fName); 
+                fName = fName(length(projectPath)+2:end);
+            end                        
         end
     end
     

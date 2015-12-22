@@ -9,8 +9,9 @@ classdef derivedForcing_linearUnconstrainedScaling < derivedForcingTransform_abs
 % in order to be accessable within the GUI.
     methods(Static)
        
-        function [variable_names] = inputForcingData_required()
+        function [variable_names, isOptionalInput] = inputForcingData_required()
             variable_names = {'scalingData'};
+            isOptionalInput = false;
         end
         
         function [variable_names] = outputForcingdata_options()

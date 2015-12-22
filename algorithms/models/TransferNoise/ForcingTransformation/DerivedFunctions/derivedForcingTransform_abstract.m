@@ -11,7 +11,7 @@ classdef derivedForcingTransform_abstract < handle
     end
     
     methods(Static, Abstract=true)
-        [variable_names] = inputForcingData_required()
+        [variable_names, isOptionalInput] = inputForcingData_required()
         [variable_names] = outputForcingdata_options()
         [options, colNames, colFormats, colEdits, toolTip] = modelOptions(sourceForcingTransformName)
         modelDescription = modelDescription()

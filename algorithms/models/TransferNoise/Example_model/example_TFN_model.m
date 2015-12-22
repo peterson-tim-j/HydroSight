@@ -25,7 +25,7 @@
 %   26 Sept 2014
 %
 
-clear all
+%clear all
 
 % Comment out the one bore ID that you want to model.
 %bore_ID = '124705';
@@ -56,7 +56,7 @@ forcingData.data = forcingData.data(filt,:);
 % Define the bore ID and create sume dummy site coordinates. This must be
 % for the bore and each column in the forcing file.
 maxObsFreq = 7;
-siteCoordinates = {bore_ID, 100, 100; 'PRECIP', 100, 100; 'APT', 100, 100; 'RevegFrac',602, 100};
+siteCoordinates = {bore_ID, 100, 100; 'PRECIP', 100, 100; 'APET', 100, 100; 'RevegFrac',602, 100};
 
 
 % Define the way in which the precipitation is transformed. In this case it
@@ -120,10 +120,13 @@ if run7paramModel
     model_7params = GroundwaterStatisticsToolbox(modelLabel, bore_ID, 'model_TFN', boreDataWL, maxObsFreq, forcingData, siteCoordinates, modelOptions_7params);
 
     % Calibrate the 7 parameter model.
-    calibrateModel(model_7params, 0, inf, nCMAES_restarts);
+    sTime = now;
+    calibrateModel(model_7params, 0, inf, 'SP-UCI', 2);
+    eTime = now;
+    display(['Calibration time = ',num2str((eTime-sTime)*24*3600),'  sec']); 
     
-    % Plot the calibration results.
-    calibrateModelPlotResults(model_7params);
+    % Plot the calibration results.    
+    calibrateModelPlotResults(model_7params,[]);
    
     % Plot the simulation results. 
     time_points = model_7params.model.variables.time_points;
@@ -136,10 +139,14 @@ if run9paramModel
     model_9params = GroundwaterStatisticsToolbox(modelLabel, bore_ID, 'model_TFN', boreDataWL, maxObsFreq, forcingData, siteCoordinates, modelOptions_9params);
 
     % Calibrate the 7 parameter model.
-    calibrateModel(model_9params, 0, inf, nCMAES_restarts);
+    calibrateModel(model_9params, 0, inf, 'SP-UCI', 1);
     
     % Plot the calibration results.
-    calibrateModelPlotResults(model_9params);
+    sTime = tic;
+    calibrateModelPlotResults(model_9params,[]);
+    eTime = tic;
+    eTime = toc(eTime);
+    display(['Calibration time = ',num2str(eTime-sTime),'  sec']); 
    
     % Plot the simulation results. 
     time_points = model_9params.model.variables.time_points;

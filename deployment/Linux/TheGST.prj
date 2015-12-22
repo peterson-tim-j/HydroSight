@@ -1,9 +1,9 @@
 <deployment-project plugin="plugin.ezdeploy" plugin-version="1.0">
-  <configuration build-checksum="2268779802" file="/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/deployment/Linux/TheGST.prj" location="/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/deployment/Linux" name="TheGST" preferred-package-location="/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/deployment/Linux/TheGST/for_redistribution" preferred-package-type="package.type.install" target="target.ezdeploy.standalone" target-name="MATLAB Compiler for Standalone Applications">
+  <configuration build-checksum="507423067" file="/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/deployment/Linux/TheGST.prj" location="/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/deployment/Linux" name="TheGST" preferred-package-location="/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/deployment/Linux/TheGST/for_redistribution" preferred-package-type="package.type.install" target="target.ezdeploy.standalone" target-name="MATLAB Compiler for Standalone Applications">
     <param.appname>TheGST</param.appname>
     <param.icon />
     <param.icons />
-    <param.version>1.0</param.version>
+    <param.version>1.01</param.version>
     <param.authnamewatermark>Tim Peterson</param.authnamewatermark>
     <param.email>timjp@unimelb.edu.au</param.email>
     <param.company>The University of Melbourne</param.company>
@@ -16,9 +16,9 @@
 Details of the time-series framework are avaiable at: Peterson T. J and Western A. W., (2014), Nonlinear Groundwater time-series modeling of unconfined groundwater head, Water Resources Research, DOI: 10.1002/2013WR014800</param.description>
     <param.screenshot />
     <param.guid />
-    <param.installpath.string>/TheGST/</param.installpath.string>
+    <param.installpath.string>/GroundwaterStatisticalToolbox/</param.installpath.string>
     <param.installpath.combo>option.installpath.user</param.installpath.combo>
-    <param.logo />
+    <param.logo>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/GUI/icons/UniMelb.png</param.logo>
     <param.install.notes>On the target computer, append the following to your LD_LIBRARY_PATH environment variable (Where {MCR_ROOT} is the directory the MCR has been installed into):&lt;br&gt; {MCR_ROOT}/runtime/glnxa64&lt;br&gt; {MCR_ROOT}/bin/glnxa64&lt;br&gt; {MCR_ROOT}/sys/os/glnxa64&lt;br&gt;{MCR_ROOT}/sys/opengl/lib/glnxa64&lt;br&gt;</param.install.notes>
     <param.intermediate>${PROJECT_ROOT}/TheGST/for_testing</param.intermediate>
     <param.files.only>${PROJECT_ROOT}/TheGST/for_redistribution_files_only</param.files.only>
@@ -46,11 +46,9 @@ Details of the time-series framework are avaiable at: Peterson T. J and Western 
     <unset>
       <param.icon />
       <param.icons />
-      <param.version />
       <param.screenshot />
       <param.guid />
       <param.installpath.combo />
-      <param.logo />
       <param.install.notes />
       <param.intermediate />
       <param.files.only />
@@ -70,18 +68,14 @@ Details of the time-series framework are avaiable at: Peterson T. J and Western 
       <param.no.mcr.name />
       <param.windows.command.prompt />
       <param.create.log />
-      <param.log.file />
     </unset>
     <fileset.main>
       <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/GST.m</file>
     </fileset.main>
     <fileset.resources>
-      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/GST.m</file>
-      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/GUI/GST_GUI.backup</file>
       <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/GUI/GST_GUI.m</file>
       <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/GUI/GST_GUI_data.m</file>
       <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/GUI/GUI Layout Toolbox 2.1.mltbx FILES/[Content_Types].xml</file>
-      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/GUI/GUI Layout Toolbox 2.1.mltbx FILES/_rels/.rels</file>
       <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/GUI/GUI Layout Toolbox 2.1.mltbx FILES/fsroot/layout/+uiextras/BoxPanel.m</file>
       <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/GUI/GUI Layout Toolbox 2.1.mltbx FILES/fsroot/layout/+uiextras/CardPanel.m</file>
       <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/GUI/GUI Layout Toolbox 2.1.mltbx FILES/fsroot/layout/+uiextras/Empty.m</file>
@@ -147,64 +141,91 @@ Details of the time-series framework are avaiable at: Peterson T. J and Western 
       <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/GUI/GUI Layout Toolbox 2.1.mltbx FILES/fsroot/layout/Contents.m</file>
       <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/GUI/GUI Layout Toolbox 2.1.mltbx FILES/fsroot/layout/layoutRoot.m</file>
       <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/GUI/findjobj/findjobj.m</file>
-      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/GUI/icons/UniMelb.png</file>
       <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/GUI/icons/splash.png</file>
-      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/GUI/icons/splash.xcf</file>
       <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/GUI/models/ExpSmooth_gui.m</file>
       <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/GUI/models/model_TFN_gui.m</file>
       <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/GUI/models/model_gui_abstract.m</file>
       <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/GUI/rdir/rdir.m</file>
       <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/GUI/uical/uical.m</file>
       <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/GUI/uiinspect/uiinspect.m</file>
-      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/GroundwaterStatisticsToolbox.m</file>
-      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/calibration/CMA_ES/cmaes.m</file>
-      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/calibration/CMA_ES/plotcmaesdat.m</file>
-      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/calibration/SP_UCI/Codes/DimRest.m</file>
-      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/calibration/SP_UCI/Codes/GauSamp.m</file>
-      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/calibration/SP_UCI/Codes/MCCE.m</file>
-      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/calibration/SP_UCI/Codes/SPUCI.m</file>
-      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/calibration/Utilities/InterPointDistanceMatrix/demo_ipdm.m</file>
-      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/calibration/Utilities/InterPointDistanceMatrix/html/demo_ipdm.png</file>
-      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/calibration/Utilities/InterPointDistanceMatrix/html/demo_ipdm_01.png</file>
-      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/calibration/Utilities/InterPointDistanceMatrix/ipdm.jpg</file>
-      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/calibration/Utilities/InterPointDistanceMatrix/ipdm.m</file>
-      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/calibration/Utilities/fminsearchbnd.m</file>
-      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/calibration/Utilities/variogram.m</file>
-      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/calibration/Utilities/variogramfit.m</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/algorithms/GroundwaterStatisticsToolbox.m</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/algorithms/calibration/CMA_ES/cmaes.m</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/algorithms/calibration/CMA_ES/plotcmaesdat.m</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/algorithms/calibration/SP_UCI/Codes/DimRest.m</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/algorithms/calibration/SP_UCI/Codes/GauSamp.m</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/algorithms/calibration/SP_UCI/Codes/MCCE.m</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/algorithms/calibration/SP_UCI/Codes/SPUCI.m</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/algorithms/calibration/Utilities/InterPointDistanceMatrix/ipdm.m</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/algorithms/calibration/Utilities/fminsearchbnd.m</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/algorithms/calibration/Utilities/variogram.m</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/algorithms/calibration/Utilities/variogramfit.m</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/algorithms/models/ExpSmooth/ExpSmooth.m</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/algorithms/models/ExpSmooth/doExpSmoothing.c</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/algorithms/models/ExpSmooth/doExpSmoothing.mexa64</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/algorithms/models/TransferNoise/Example_model/example_TFN_model.m</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/algorithms/models/TransferNoise/ForcingTransformation/DerivedFunctions/derivedForcingTransform_abstract.m</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/algorithms/models/TransferNoise/ForcingTransformation/DerivedFunctions/derivedForcing_linearUnconstrainedScaling.m</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/algorithms/models/TransferNoise/ForcingTransformation/DerivedFunctions/derivedForcing_linearUnconstrainedScaling_dup.m</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/algorithms/models/TransferNoise/ForcingTransformation/DerivedFunctions/derivedForcing_linearUnconstrainedScaling_dup.m~</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/algorithms/models/TransferNoise/ForcingTransformation/climateTransform_soilMoistureModels.m</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/algorithms/models/TransferNoise/ForcingTransformation/forcingTransform_abstract.m</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/algorithms/models/TransferNoise/ForcingTransformation/forcingTransform_soilMoisture.c</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/algorithms/models/TransferNoise/ForcingTransformation/forcingTransform_soilMoisture.mexa64</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/algorithms/models/TransferNoise/ForcingTransformation/forcingTransform_soilMoisture.mexw32</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/algorithms/models/TransferNoise/ResponseFunctions/DerivedFunctions/derivedResponseFunction_abstract.m</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/algorithms/models/TransferNoise/ResponseFunctions/DerivedFunctions/derivedweighting_PearsonsNegativeRescaled.m</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/algorithms/models/TransferNoise/ResponseFunctions/DerivedFunctions/derivedweighting_PearsonsPositiveRescaled.m</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/algorithms/models/TransferNoise/ResponseFunctions/DerivedFunctions/derivedweighting_UnconstrainedRescaled.m</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/algorithms/models/TransferNoise/ResponseFunctions/responseFunction_Bruggeman.m</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/algorithms/models/TransferNoise/ResponseFunctions/responseFunction_FerrisKnowles.m</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/algorithms/models/TransferNoise/ResponseFunctions/responseFunction_FerrisKnowlesJacobs.m</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/algorithms/models/TransferNoise/ResponseFunctions/responseFunction_Hantush.m</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/algorithms/models/TransferNoise/ResponseFunctions/responseFunction_JacobsCorrection.m</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/algorithms/models/TransferNoise/ResponseFunctions/responseFunction_Pearsons.m</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/algorithms/models/TransferNoise/ResponseFunctions/responseFunction_PearsonsNegative.m</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/algorithms/models/TransferNoise/ResponseFunctions/responseFunction_abstract.m</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/algorithms/models/TransferNoise/doIRFconvolution.c</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/algorithms/models/TransferNoise/doIRFconvolution.mexa64</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/algorithms/models/TransferNoise/doIRFconvolution.mexw32</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/algorithms/models/TransferNoise/doIRFconvolution.mexw64</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/algorithms/models/TransferNoise/model_TFN.m</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/algorithms/models/model_abstract.m</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/algorithms/utilities/findAbstractName.m</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/algorithms/utilities/findClassDefsUsingAbstractName.m</file>
       <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/dataPreparationAnalysis/doDataQualityAnalysis.m</file>
       <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/dataPreparationAnalysis/outlierDetection.m</file>
-      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/models/ExpSmooth/ExpSmooth.m</file>
-      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/models/ExpSmooth/doExpSmoothing.c</file>
-      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/models/ExpSmooth/doExpSmoothing.mexa64</file>
-      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/models/TransferNoise/Example_model/example_TFN_model.m</file>
-      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/models/TransferNoise/ForcingTransformation/DerivedFunctions/derivedForcingTransform_abstract.m</file>
-      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/models/TransferNoise/ForcingTransformation/DerivedFunctions/derivedForcing_linearUnconstrainedScaling.m</file>
-      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/models/TransferNoise/ForcingTransformation/DerivedFunctions/derivedForcing_linearUnconstrainedScaling_dup.m</file>
-      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/models/TransferNoise/ForcingTransformation/DerivedFunctions/derivedForcing_linearUnconstrainedScaling_dup.m~</file>
-      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/models/TransferNoise/ForcingTransformation/climateTransform_soilMoistureModels.m</file>
-      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/models/TransferNoise/ForcingTransformation/forcingTransform_abstract.m</file>
-      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/models/TransferNoise/ForcingTransformation/forcingTransform_soilMoisture.c</file>
-      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/models/TransferNoise/ForcingTransformation/forcingTransform_soilMoisture.mexa64</file>
-      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/models/TransferNoise/ForcingTransformation/forcingTransform_soilMoisture.mexw32</file>
-      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/models/TransferNoise/ResponseFunctions/DerivedFunctions/derivedResponseFunction_abstract.m</file>
-      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/models/TransferNoise/ResponseFunctions/DerivedFunctions/derivedweighting_PearsonsNegativeRescaled.m</file>
-      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/models/TransferNoise/ResponseFunctions/DerivedFunctions/derivedweighting_PearsonsPositiveRescaled.m</file>
-      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/models/TransferNoise/ResponseFunctions/DerivedFunctions/derivedweighting_UnconstrainedRescaled.m</file>
-      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/models/TransferNoise/ResponseFunctions/responseFunction_Bruggeman.m</file>
-      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/models/TransferNoise/ResponseFunctions/responseFunction_FerrisKnowles.m</file>
-      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/models/TransferNoise/ResponseFunctions/responseFunction_FerrisKnowlesJacobs.m</file>
-      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/models/TransferNoise/ResponseFunctions/responseFunction_Hantush.m</file>
-      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/models/TransferNoise/ResponseFunctions/responseFunction_JacobsCorrection.m</file>
-      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/models/TransferNoise/ResponseFunctions/responseFunction_Pearsons.m</file>
-      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/models/TransferNoise/ResponseFunctions/responseFunction_PearsonsNegative.m</file>
-      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/models/TransferNoise/ResponseFunctions/responseFunction_abstract.m</file>
-      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/models/TransferNoise/doIRFconvolution.c</file>
-      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/models/TransferNoise/doIRFconvolution.mexa64</file>
-      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/models/TransferNoise/doIRFconvolution.mexw32</file>
-      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/models/TransferNoise/model_TFN.m</file>
-      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/models/findAbstractName.m</file>
-      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/models/findClassDefsUsingAbstractName.m</file>
-      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/models/model_abstract.m</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/documentation/documentation_source.zip</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/documentation/html/Estimation_of_Distribution_Algorithm_animation.gif</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/documentation/html/diagrams/Estimation_of_Distribution_Algorithm_animation.gif</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/documentation/html/diagrams/doc_GUI.png</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/documentation/html/diagrams/doc_GUI_ModelCalib.png</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/documentation/html/diagrams/doc_GUI_ModelConstruct.png</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/documentation/html/diagrams/doc_GUI_ModelSimulate.png</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/documentation/html/diagrams/doc_GUI_dataPrep.png</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/documentation/html/diagrams/doc_GUI_projectDescription.png</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/documentation/html/doc_Algorithms.html</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/documentation/html/doc_Calibration.html</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/documentation/html/doc_ExpSmooth.html</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/documentation/html/doc_GUI.html</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/documentation/html/doc_GUI_ModelCalib.html</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/documentation/html/doc_GUI_ModelConstruct.html</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/documentation/html/doc_GUI_ModelSimulate.html</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/documentation/html/doc_GUI_dataPrep.html</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/documentation/html/doc_GUI_projectDescription.html</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/documentation/html/doc_Overview.html</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/documentation/html/doc_Programmatically.html</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/documentation/html/doc_Publications.html</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/documentation/html/doc_TFN.html</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/documentation/html/doc_TFN_eq00073404182362513636.png</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/documentation/html/doc_TFN_eq00675108679613069063.png</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/documentation/html/doc_TFN_eq01708645794036495441.png</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/documentation/html/doc_TFN_eq03172746311882613811.png</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/documentation/html/doc_TFN_eq04070904502869660082.png</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/documentation/html/doc_TFN_eq15682195134482745114.png</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/documentation/html/papers/Peterson_Western_2014.pdf</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/documentation/html/papers/Shapoori_2015A.pdf</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/documentation/html/papers/Shapoori_2015B.pdf</file>
+      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/documentation/html/papers/Shapoori_2015C.pdf</file>
     </fileset.resources>
     <fileset.package>
       <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/Examples/BourkesFlat/BourkesFlat_data.mat</file>
@@ -212,8 +233,6 @@ Details of the time-series framework are avaiable at: Peterson T. J and Western 
       <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/Examples/Clydebank/Clydebank_data.mat</file>
       <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/Examples/Clydebank/Clydebank_model.mat</file>
       <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/GUI/icons/splash.png</file>
-      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/LICENSE</file>
-      <file>/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/README.md</file>
     </fileset.package>
     <build-deliverables>
       <file location="${PROJECT_ROOT}/TheGST/for_testing" name="TheGST" optional="false">/home/WATER/staff/timjp/Research/SRC/GIT-sandbox/GroundwaterStatisticalToolbox/deployment/Linux/TheGST/for_testing/TheGST</file>
@@ -242,7 +261,7 @@ Details of the time-series framework are avaiable at: Peterson T. J and Western 
       <vista>false</vista>
       <linux>true</linux>
       <solaris>false</solaris>
-      <osver>3.13.0-55-generic</osver>
+      <osver>3.13.0-62-generic</osver>
       <os32>false</os32>
       <os64>true</os64>
       <arch>glnxa64</arch>
