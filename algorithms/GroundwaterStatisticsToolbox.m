@@ -595,7 +595,7 @@ classdef GroundwaterStatisticsToolbox < handle
            if doKrigingOnResiduals && isempty(forcingData)
               % Call model interpolation
               maxKrigingObs = min(10,ceil(0.1*length(getObservedHead(obj))));
-              useModel = false;
+              useModel = true;
               head_estimates = interpolateData(obj, time_points, maxKrigingObs, useModel);
               
               % Calculate the contribution from interpolation
@@ -894,7 +894,7 @@ classdef GroundwaterStatisticsToolbox < handle
             % containing the date (it is added back later)
             if useModel                
                 head_estimates= solveModel(obj, targetDates, [], '', false);
-                head_estimates = head_estimates(:,2);
+                head_estimates = head_estimates(:,2:4);
                 krigingData = obj.calibrationResults.data.modelledHead_residuals;
 
                 range = obj.calibrationResults.performance.variogram_residual.range;
@@ -1846,7 +1846,7 @@ classdef GroundwaterStatisticsToolbox < handle
 %   30 June 2015
 %
             objectiveFunctionValue = inf(1,size(params,2));
-            parfor i=1: size(params,2)
+            for i=1: size(params,2)
                 %Calculate the residuals
                 try
                     % Calcule sume of squared errors

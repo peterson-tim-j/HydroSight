@@ -438,8 +438,7 @@ classdef model_TFN_gui < model_gui_abstract
             % Create menu for forcing transforms
             contextMenu = uicontextmenu(this.Figure.Parent.Parent.Parent.Parent.Parent.Parent,'Visible','on');
             uimenu(contextMenu,'Label','Copy selected rows','Callback',@this.rowAddDelete);
-            uimenu(contextMenu,'Label','Paste rows','Callback',@this.rowAddDelete);
-            uimenu(contextMenu,'Separator','on');
+            uimenu(contextMenu,'Label','Paste rows','Callback',@this.rowAddDelete,'Separator','on');
             uimenu(contextMenu,'Label','Insert row above selection','Callback',@this.rowAddDelete);
             uimenu(contextMenu,'Label','Insert row below selection','Callback',@this.rowAddDelete);            
             uimenu(contextMenu,'Label','Delete selected rows','Callback',@this.rowAddDelete);                
@@ -449,8 +448,7 @@ classdef model_TFN_gui < model_gui_abstract
             % Create menu for weighting functions
             contextMenu = uicontextmenu(this.Figure.Parent.Parent.Parent.Parent.Parent.Parent,'Visible','on');
             uimenu(contextMenu,'Label','Copy selected rows','Callback',@this.rowAddDelete);
-            uimenu(contextMenu,'Label','Paste rows','Callback',@this.rowAddDelete);
-            uimenu(contextMenu,'Separator','on');
+            uimenu(contextMenu,'Label','Paste rows','Callback',@this.rowAddDelete,'Separator','on');
             uimenu(contextMenu,'Label','Insert row above selection','Callback',@this.rowAddDelete);
             uimenu(contextMenu,'Label','Insert row below selection','Callback',@this.rowAddDelete);            
             uimenu(contextMenu,'Label','Delete selected rows','Callback',@this.rowAddDelete);            
@@ -460,8 +458,7 @@ classdef model_TFN_gui < model_gui_abstract
             % Create menu for derived forcing transforms
             contextMenu = uicontextmenu(this.Figure.Parent.Parent.Parent.Parent.Parent.Parent,'Visible','on');
             uimenu(contextMenu,'Label','Copy selected rows','Callback',@this.rowAddDelete);
-            uimenu(contextMenu,'Label','Paste rows','Callback',@this.rowAddDelete);
-            uimenu(contextMenu,'Separator','on');
+            uimenu(contextMenu,'Label','Paste rows','Callback',@this.rowAddDelete,'Separator','on');
             uimenu(contextMenu,'Label','Insert row above selection','Callback',@this.rowAddDelete);
             uimenu(contextMenu,'Label','Insert row below selection','Callback',@this.rowAddDelete);            
             uimenu(contextMenu,'Label','Delete selected rows','Callback',@this.rowAddDelete);            
@@ -471,8 +468,7 @@ classdef model_TFN_gui < model_gui_abstract
             % Create menu for derived weighting functions
             contextMenu = uicontextmenu(this.Figure.Parent.Parent.Parent.Parent.Parent.Parent,'Visible','on');
             uimenu(contextMenu,'Label','Copy selected rows','Callback',@this.rowAddDelete);
-            uimenu(contextMenu,'Label','Paste rows','Callback',@this.rowAddDelete);
-            uimenu(contextMenu,'Separator','on');
+            uimenu(contextMenu,'Label','Paste rows','Callback',@this.rowAddDelete,'Separator','on');
             uimenu(contextMenu,'Label','Insert row above selection','Callback',@this.rowAddDelete);
             uimenu(contextMenu,'Label','Insert row below selection','Callback',@this.rowAddDelete);            
             uimenu(contextMenu,'Label','Delete selected rows','Callback',@this.rowAddDelete);            
@@ -1099,7 +1095,7 @@ classdef model_TFN_gui < model_gui_abstract
 
                            % Define the drop down options for the input
                            % data
-                           this.modelOptions.options{1, 1}.tbl.ColumnFormat = {'char',this.forcingData.colnames(4:end)};
+                           this.modelOptions.options{1, 1}.tbl.ColumnFormat = {'char',{'(none)' this.forcingData.colnames{4:end}} };
 
                            % Display table
                            this.modelOptions.grid.Widths = [-1 0 0 0 0 0 0 0 0 0];
@@ -1143,8 +1139,7 @@ classdef model_TFN_gui < model_gui_abstract
                                if strcmp(colNames{1},'Select') && strcmp(colFormats{1},'logical')
                                     contextMenu = uicontextmenu(this.Figure.Parent.Parent.Parent.Parent.Parent,'Visible','on');
                                     uimenu(contextMenu,'Label','Copy selected rows','Callback',@this.rowAddDelete);
-                                    uimenu(contextMenu,'Label','Paste rows','Callback',@this.rowAddDelete);
-                                    uimenu(contextMenu,'Separator','on');
+                                    uimenu(contextMenu,'Label','Paste rows','Callback',@this.rowAddDelete,'Separator','on');
                                     uimenu(contextMenu,'Label','Insert row above selection','Callback',@this.rowAddDelete);
                                     uimenu(contextMenu,'Label','Insert row below selection','Callback',@this.rowAddDelete);            
                                     uimenu(contextMenu,'Label','Delete selected rows','Callback',@this.rowAddDelete);            
@@ -1218,7 +1213,7 @@ classdef model_TFN_gui < model_gui_abstract
                            % it looks like a string expression for a
                            % cell, evaluate it.
                            userSelections = this.weightingFunctions.tbl.Data{this.currentSelection.row, 4};
-                           if strcmp(userSelections(1) ,'{') && strcmp(userSelections(end) ,'}')
+                           if ~isempty(userSelections) && strcmp(userSelections(1) ,'{') && strcmp(userSelections(end) ,'}')
                                 userSelections = eval(this.weightingFunctions.tbl.Data{this.currentSelection.row, 4});
                            end
                            rowInd= [];
@@ -1333,8 +1328,7 @@ classdef model_TFN_gui < model_gui_abstract
                                if strcmp(colNames{1},'Select') && strcmp(colFormats{1},'logical')
                                     contextMenu = uicontextmenu(this.Figure.Parent.Parent.Parent.Parent.Parent.Parent,'Visible','on');
                                     uimenu(contextMenu,'Label','Copy selected rows','Callback',@this.rowAddDelete);
-                                    uimenu(contextMenu,'Label','Paste rows','Callback',@this.rowAddDelete);
-                                    uimenu(contextMenu,'Separator','on');
+                                    uimenu(contextMenu,'Label','Paste rows','Callback',@this.rowAddDelete,'Separator','on');
                                     uimenu(contextMenu,'Label','Insert row above selection','Callback',@this.rowAddDelete);
                                     uimenu(contextMenu,'Label','Insert row below selection','Callback',@this.rowAddDelete);            
                                     uimenu(contextMenu,'Label','Delete selected rows','Callback',@this.rowAddDelete);            
@@ -1452,8 +1446,7 @@ classdef model_TFN_gui < model_gui_abstract
                                if strcmp(colNames{1},'Select') && strcmp(colFormats{1},'logical')
                                     contextMenu = uicontextmenu(this.Figure.Parent.Parent.Parent.Parent.Parent,'Visible','on');
                                     uimenu(contextMenu,'Label','Copy selected rows','Callback',@this.rowAddDelete);
-                                    uimenu(contextMenu,'Label','Paste rows','Callback',@this.rowAddDelete);
-                                    uimenu(contextMenu,'Separator','on');
+                                    uimenu(contextMenu,'Label','Paste rows','Callback',@this.rowAddDelete,'Separator','on');
                                     uimenu(contextMenu,'Label','Insert row above selection','Callback',@this.rowAddDelete);
                                     uimenu(contextMenu,'Label','Insert row below selection','Callback',@this.rowAddDelete);            
                                     uimenu(contextMenu,'Label','Delete selected rows','Callback',@this.rowAddDelete);            
@@ -1638,8 +1631,7 @@ classdef model_TFN_gui < model_gui_abstract
                                if strcmp(colNames{1},'Select') && strcmp(colFormats{1},'logical')
                                     contextMenu = uicontextmenu(this.Figure.Parent.Parent.Parent.Parent.Parent,'Visible','on');
                                     uimenu(contextMenu,'Label','Copy selected rows','Callback',@this.rowAddDelete);
-                                    uimenu(contextMenu,'Label','Paste rows','Callback',@this.rowAddDelete);
-                                    uimenu(contextMenu,'Separator','on');
+                                    uimenu(contextMenu,'Label','Paste rows','Callback',@this.rowAddDelete,'Separator','on');
                                     uimenu(contextMenu,'Label','Insert row above selection','Callback',@this.rowAddDelete);
                                     uimenu(contextMenu,'Label','Insert row below selection','Callback',@this.rowAddDelete);            
                                     uimenu(contextMenu,'Label','Delete selected rows','Callback',@this.rowAddDelete);            
@@ -1884,8 +1876,15 @@ classdef model_TFN_gui < model_gui_abstract
                     selectedRow(i) = true;
                 end
             end
+      
+            % Check if any rows are selected. Note, if not then
+            % rows will be added (for all but the calibration
+            % table).
+            anySelected = any(selectedRow);
+            indSelected = find(selectedRow)';
             
-            if size(tableObj.Data(:,1),1)>0 &&  sum(selectedRow) == 0                             
+            
+            if ~strcmp(hObject.Label,'Paste rows') && size(tableObj.Data(:,1),1)>0 &&  sum(selectedRow) == 0                             
                 warndlg('No rows are selected for the requested operation.');
                 return;
             elseif size(tableObj.Data(:,1),1)==0 ...
@@ -1903,15 +1902,24 @@ classdef model_TFN_gui < model_gui_abstract
                     % Check that name of the table is same as that from the
                     % copied data. If so copy the data.
                     if strcmp(this.copiedData.tableName, tableObj.Tag)
-                       tableObj.Data = [tableObj.Data; this.copiedData.data];
+                        if anySelected
+                            for i=indSelected
+                                tableObj.Data{i,:} = this.copiedData.data(1,:);
+                            end
+                       else
+                          for i=1: size(this.copiedData.data,1)
+                            tableObj.Data = [tableObj.Data; this.copiedData.data(i,:)];
+                          end
+ 
+                        end                        
+                    
+                        % Update row numbers.
+                        nrows = size(tableObj.Data,1);
+                        tableObj.RowName = mat2cell([1:nrows]',ones(1, nrows));
                     else
                         warndlg('The copied row data was sourced froma different table.');
                         return;
                     end    
-                    
-                    % Update row numbers.
-                    nrows = size(tableObj.Data,1);
-                    tableObj.RowName = mat2cell([1:nrows]',ones(1, nrows));
                     
                 case 'Insert row above selection'
                     if size(tableObj.Data,1)==0

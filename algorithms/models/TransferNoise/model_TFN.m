@@ -293,6 +293,11 @@ classdef model_TFN < model_abstract
                error('Invalid model options. The inputs must of three columns in the following order: model_component, property, property_value');
             end            
             
+            % Check the forcing data does not contain nan or infs
+            if any(any( isnan(forcingData_data) | isinf(forcingData_data)))
+                error('The input forcing data to model_TFN cannot contain any nan or inf values.')
+            end            
+            
             % Check that forcing data exists before the first head
             % observation.
             if floor(min(forcingData_data(:,1))) >= floor(min(obsHead(:,1)))
@@ -400,18 +405,22 @@ classdef model_TFN < model_abstract
                             end
                             
                             % Get a list of required forcing inputs.
-                            [requiredFocingInputs] = eval([propertyValue{filt,2},'.inputForcingData_required()']);
+                            [requiredFocingInputs, isOptionalInput] = eval([propertyValue{filt,2},'.inputForcingData_required()']);
                                                         
                             % Check that the input forcing cell array has
                             % the correct dimensions.
                             filt  =  strcmp(propertyValue(:,1), valid_transformProperties{2});                            
                             if any(filt)
-                                if size(propertyValue{filt,2},2) ~=2 || size(propertyValue{filt,2},1) ~= length(requiredFocingInputs)
+                                if size(propertyValue{filt,2},2) ~=2 || ...
+                                (size(propertyValue{filt,2},1) ~= length(requiredFocingInputs(~isOptionalInput)) && size(propertyValue{filt,2},1) ~= length(requiredFocingInputs))
                                     error(['Invalid forcing data for the forcing transform function name for component:', modelComponent,'. It must be a cell array of two columns and ',num2str(length(requiredFocingInputs)), ' rows (one row for each required input forcing).']);
                                 end
                             
                                 % Check that the required inputs are specified.
                                 for j=1:length(requiredFocingInputs)
+                                    if isOptionalInput(j)
+                                        continue
+                                    end
                                     if ~any( strcmp(propertyValue{filt,2}, requiredFocingInputs{j}))
                                         error(['Invalid inputs for transforming the forcing data for component:', modelComponent,'. A forcing data site name must be specified for the following transform function input:',requiredFocingInputs{j} ]);
                                     end
@@ -698,6 +707,10 @@ classdef model_TFN < model_abstract
                             forcingData_inputs = obj.inputData.componentData.(modelComponent).inputForcing(:,2);
                             
                             for j=1:size(forcingData_inputs,1)
+                                % Skip if optional forcing input
+                                if strcmp(forcingData_inputs{j,1},'(none)')
+                                    continue
+                                end
                                 if isnumeric(forcingData_inputs{j,1})
                                     colNum = [colNum; forcingData_inputs{j,1}];             
                                 elseif ischar(forcingData_inputs{j,1})
@@ -832,7 +845,13 @@ classdef model_TFN < model_abstract
                 % Find the required columns in forcing data so that only the
                 % required data is input.
                 colNum=1;
+                rowFilt = true( size(transformObject_inputs,1),1);
                 for j=1:size(transformObject_inputs,1)
+                    % Skip if optional forcing input
+                    if strcmp(transformObject_inputs{j,2},'(none)')
+                        rowFilt(j) = false;
+                        continue                        
+                    end                    
                     if isnumeric(transformObject_inputs{j,2})
                         colNum = [colNum; transformObject_inputs{j,2}-2];                        
                     elseif ischar(transformObject_inputs{j,2})
@@ -847,6 +866,10 @@ classdef model_TFN < model_abstract
                     end
                     transformObject_inputs{j,2} = j+1;
                 end
+                
+                % Filter transformed object input rows to remove those that
+                % are input as options ie '(none)'.
+                transformObject_inputs = transformObject_inputs(rowFilt,:);
                 
                 try
                     obj.parameters.(transformObject_name) = feval(transformObject_name, bore_ID, forcingData_data(:,colNum), forcingData_colnames(colNum), siteCoordinates, transformObject_inputs, transformObject_options);
@@ -944,6 +967,21 @@ classdef model_TFN < model_abstract
         function setForcingData(obj, forcingData, forcingData_colnames)
             obj.inputData.forcingData = forcingData;
             obj.inputData.forcingData_colnames = forcingData_colnames;
+            
+            % Update forcing data in the sub-model objects
+            if ~isempty(obj.parameters)
+                modelnames = fieldnames(obj.parameters);
+                for i=1:length(modelnames)
+                    if isobject(obj.parameters.(modelnames{i}))
+                        try
+                            setForcingData(obj.parameters.(modelnames{i}), forcingData, forcingData_colnames)
+                        catch
+                            % do nothing
+                        end
+                    end
+                end
+            end
+            
         end        
         
 %% Solve the model for the input time points
@@ -2201,15 +2239,49 @@ classdef model_TFN < model_abstract
                 end                
                 
                 % Integrate transfer function over tor.
+                useGPU = false;
                 for j=1: size(theta_est_temp,2)
                     % Increment the output volumn index.
                     iOutputColumns = iOutputColumns + 1;
 
+                    % Trial of GPU integration
+                    if useGPU
+                        for k=1:length(obj.variables.theta_est_indexes_min)
+                            endIndex = obj.variables.theta_est_indexes_max(1)-obj.variables.theta_est_indexes_min(k) + 1;
+                            
+  
+                            m = mod(endIndex-3, 3);
+                            simsponsFactors  = gpuArray([1; repmat( [3;3;2], (endIndex-3-m)/3,1); 1; 0]);
+                            ind_theta = obj.variables.theta_est_indexes_min(k)+m;
+                            ind_forcing = endIndex - m;
+                            
+                            %est = 3/8*gather( sum( prod([simsponsFactors, theta_est_tempGPU(ind_theta: end),forcingGPU(1:ind_forcing,j)],2) )) ...
+                            %    + integralTheta_lowerTail * 0.5 * (obj.variables.(companants{i}).forcingData(endIndex,j) + obj.variables.(companants{i}).forcingData(ind_forcing,j));                             
+                            %est = sum( prod([simsponsFactors, theta_est_tempGPU(ind_theta: end),forcingGPU(1:ind_forcing,j)],2));
+                            est = gpuArray(theta_est_temp(ind_theta: end));
+                            forcingGPU = gpuArray(obj.variables.(companants{i}).forcingData(1:ind_forcing,j));
+                            est = 3/8*gather( dot( simsponsFactors .* est,forcingGPU)) ...
+                                + integralTheta_lowerTail * 0.5 * (obj.variables.(companants{i}).forcingData(endIndex,j) + obj.variables.(companants{i}).forcingData(ind_forcing,j)); 
+                            
+                            ind_theta = obj.variables.theta_est_indexes_max(k);
+                            if (m==1)
+                                est = est + 0.5*(theta_est_temp(ind_theta) * obj.variables.(companants{i}).forcingData(1,j) ...
+                                          + theta_est_temp(ind_theta-1) * obj.variables.(companants{i}).forcingData(2,j));
+                            elseif (m==2)
+                                est = est + 1/3*( theta_est_temp(ind_theta) * obj.variables.(companants{i}).forcingData(3,j) ...
+                                                 + 4.*theta_est_temp(ind_theta-1) * obj.variables.(companants{i}).forcingData(2,j) ...
+                                                 + theta_est_temp(ind_theta-2) * obj.variables.(companants{i}).forcingData(1,j));                                        
+                            end
 
-                    h_star(:,iOutputColumns) = doIRFconvolution(theta_est_temp(:,j), obj.variables.theta_est_indexes_min, obj.variables.theta_est_indexes_max(1), ...
-                        obj.variables.(companants{i}).forcingData(:,j), isForcingADailyIntegral(i), integralTheta_lowerTail(j))' ...
-                        + integralTheta_upperTail(j,:)' .* forcingMean(j);
-
+                            
+                            h_star(:,iOutputColumns) = est;
+                        end
+                    else
+                        h_star(:,iOutputColumns) = doIRFconvolution(theta_est_temp(:,j), obj.variables.theta_est_indexes_min, obj.variables.theta_est_indexes_max(1), ...
+                            obj.variables.(companants{i}).forcingData(:,j), isForcingADailyIntegral(i), integralTheta_lowerTail(j))' ...
+                            + integralTheta_upperTail(j,:)' .* forcingMean(j);
+                    end
+                    
                     % Transform the h_star estimate for the current
                     % componant. This feature was included so that h_star
                     % estimate fro groundwater pumping could be corrected 
