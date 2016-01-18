@@ -48,7 +48,7 @@ classdef model_TFN_gui < model_gui_abstract
                 % Hard code in function names if the code is deployed. This
                 % is required because depfun does not dunction in deployed
                 % code.                
-                forcingFunctions = {'climateTransform_soilMoistureModels'};                
+                forcingFunctions = {'climateTransform_soilMoistureModels', 'climateTransform_soilMoistureModels_2layer'};                
                 derivedForcingFunctions = {'derivedForcing_linearUnconstrainedScaling'};                
                 derivedWeightFunctions = {  'derivedResponseFunction_abstract', ...
                                             'derivedweighting_UnconstrainedRescaled', ...

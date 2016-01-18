@@ -231,10 +231,12 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
                                '', ...
                                'Purpose: nonlinear transformation of rainfall and areal potential evaporation to a range of forcing data (eg free-drainage) ', ...
                                'using a highly flexible two layer soil moisture model. Note, the top layer free-drains into to deeper layer.', ...
+                               'Also, two types of land cover can be simulated using two parrallel soil models.', ...
                                '', ...                               
                                'Number of parameters: 2 to 10', ...
                                '', ...                               
                                'Options: each model parameter (excluding the soil moisture capacity) can be set to a fixed value (ie not calibrated) or calibrated.', ...
+                               'Also, the input forcing data field "TreeFraction" is optional and only required if the soil model is to simulate land cover change.', ...                               
                                '', ...                               
                                'Comments: Below is a summary of the model parameters:' , ...
                                 'SMSC         : log10(Soil moisture capacity as water depth).', ...
@@ -487,7 +489,7 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
             
             % Check the SMSM_trees parameter is active if and only if there
             % is land cover input data.
-            if obj.settings.simulateLandCover
+            if  isfield(obj.settings,'simulateLandCover') && obj.settings.simulateLandCover
                if ~obj.settings.activeParameters.SMSC_deep_trees 
                    error('The trees deep soil moisture model options must include the soil moisture capacity parameter when land cover data is input.');
                end
@@ -838,7 +840,7 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
                 evap_col = obj.settings.forcingData_cols{filt,2};
                 obj.variables.evap = obj.settings.forcingData(filt_time, evap_col );
                 
-                if obj.settings.simulateLandCover
+                if  isfield(obj.settings,'simulateLandCover') && obj.settings.simulateLandCover
                     filt = strcmp(obj.settings.forcingData_cols(:,1),'TreeFraction');
                     tree_col = obj.settings.forcingData_cols{filt,2};
                     obj.variables.treeFrac = obj.settings.forcingData(filt_time, tree_col );                    
@@ -870,7 +872,7 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
                         10^(obj.SMSC), 10.^obj.k_sat, obj.alpha, 10.^obj.beta, obj.gamma);                                
 
                 % Run soil model again if tree cover is to be simulated
-                if obj.settings.simulateLandCover
+                if  isfield(obj.settings,'simulateLandCover') && obj.settings.simulateLandCover
                     if isempty(obj.S_initialfrac)
                         S_initial = 0.5.*10^(obj.SMSC_trees);
                     else
@@ -891,7 +893,7 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
                                 
                 
                 % Run soil model again if tree cover is to be simulated
-                if obj.settings.simulateLandCover
+                if  isfield(obj.settings,'simulateLandCover') && obj.settings.simulateLandCover
                     if isempty(obj.S_initialfrac)
                         S_deep_initial = 0.5.*10^(obj.SMSC_deep_trees);
                     else
@@ -1054,7 +1056,7 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
             
             % Get flixes for tree soil unit (if required) and weight the
             % flux from the two units
-            if obj.settings.simulateLandCover && nargin==2
+            if  isfield(obj.settings,'simulateLandCover') && obj.settings.simulateLandCover && nargin==2
                 % Get flux for tree SMS
                 forcingData_trees = getTransformedForcing(obj, variableName, 2) ;
                 
