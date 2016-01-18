@@ -104,12 +104,18 @@ classdef GST_GUI < handle
             uimenu(this.figure_Help, 'Label', 'User Interface', 'Tag','doc_GUI','Callback', @this.onDocumentation);
             uimenu(this.figure_Help, 'Label', 'Programmatic Use', 'Tag','doc_Programmatically','Callback', @this.onDocumentation);            
             if isdeployed
-                uimenu(this.figure_Help, 'Label', 'Calibration Fundementals','Tag','doc_Calibration','Callback', @this.onDocumentation, 'Separator','on');            
+                uimenu(this.figure_Help, 'Label', 'Calibration Fundementals','Tag','doc_Calibration','Callback', @this.onDocumentation);            
+                uimenu(this.figure_Help, 'Label', 'Publications', 'Tag','doc_Publications','Callback', @this.onDocumentation);
             else
                 uimenu(this.figure_Help, 'Label', 'Calibration Fundementals','Tag','doc_Calibration','Callback', @this.onDocumentation);
-                uimenu(this.figure_Help, 'Label', 'Algorithm Documentation', 'Tag','Algorithms','Callback', @this.onDocumentation, 'Separator','on');                
+                uimenu(this.figure_Help, 'Label', 'Algorithm Documentation', 'Tag','Algorithms','Callback', @this.onDocumentation);                
+                uimenu(this.figure_Help, 'Label', 'Publications', 'Tag','doc_Publications','Callback', @this.onDocumentation);                
             end
-            uimenu(this.figure_Help, 'Label', 'Publications', 'Tag','doc_Publications','Callback', @this.onDocumentation,'Separator','on');
+            
+            uimenu(this.figure_Help, 'Label', 'Check for updates at GitHub', 'Tag','doc_GitHubUpdate','Callback', @this.onGitHub,'Separator','on');
+            uimenu(this.figure_Help, 'Label', 'Submit bug report to GitHub', 'Tag','doc_GitHubIssue','Callback', @this.onGitHub);
+            
+            
             uimenu(this.figure_Help, 'Label', 'License and Disclaimer', 'Tag','doc_Publications','Callback', @this.onLicenseDisclaimer,'Separator','on');
             uimenu(this.figure_Help, 'Label', 'About', 'Callback', @this.onAbout );
 
@@ -2236,191 +2242,199 @@ classdef GST_GUI < handle
         
         % Get the model options cell array (as a string).
         function onApplyModelOptions(this, hObject, eventdata)
-            
-            % get the new model options
-            modelOptionsArray = getModelOptions(this.tab_ModelConstruction.modelTypes.model_TFN.obj);            
-            
-            % Warn the user if the model is already built and the
-            % inputs are to change - reuiring the model object to be
-            % removed.            
-            irow = this.tab_ModelConstruction.currentRow;
-            if ~isempty(this.tab_ModelConstruction.Table.Data{irow,8}) && ...
-            ~strcmp(modelOptionsArray, this.tab_ModelConstruction.Table.Data{irow,8} )
+            try
+                % get the new model options
+                modelOptionsArray = getModelOptions(this.tab_ModelConstruction.modelTypes.model_TFN.obj);            
 
-                % Get original model label
-                modelLabel = this.tab_ModelConstruction.Table.Data{irow,2};
+                % Warn the user if the model is already built and the
+                % inputs are to change - reuiring the model object to be
+                % removed.            
+                irow = this.tab_ModelConstruction.currentRow;
+                if ~isempty(this.tab_ModelConstruction.Table.Data{irow,8}) && ...
+                ~strcmp(modelOptionsArray, this.tab_ModelConstruction.Table.Data{irow,8} )
 
-                % Check if the model object exists
-                ind=[];
-                if size(this.models,1)>0 && isfield(this.models{1},'model_label')
-                    ind = cellfun( @(x) strcmp(x.model_label,modelLabel), this.models);
-                end
-                if ~isempty(ind)
+                    % Get original model label
+                    modelLabel = this.tab_ModelConstruction.Table.Data{irow,2};
 
-                    % Check if the model is calibrated
-                    isCalibrated = false;
-                    if ~isempty(this.models{ind}.calibrationResults) && this.models{ind}.calibrationResults.isCalibrated
-                        isCalibrated = true;
+                    % Check if the model object exists
+                    ind=[];
+                    if size(this.models,1)>0 && isfield(this.models{1},'model_label')
+                        ind = cellfun( @(x) strcmp(x.model_label,modelLabel), this.models);
                     end
+                    if ~isempty(ind)
 
-                    % Create warnign message and display
-                    if isCalibrated
-                        msg = {['Model ',modelLabel, ' has already been built and calibrated. If you change the model construction all calibration and simulation results will be deleted.'], ...
-                                '', ...                                
-                               'Do you want to continue with the changes to the model construction?'};
-                    else
-                        msg = {['Model ',modelLabel, ' has already been built (but not calibrated). If you change the model construction you will need to rebuild the model.'], ...
-                                '', ...
-                               'Do you want to continue with the changes to the model construction?'};
-                    end                            
+                        % Check if the model is calibrated
+                        isCalibrated = false;
+                        if ~isempty(this.models{ind}.calibrationResults) && this.models{ind}.calibrationResults.isCalibrated
+                            isCalibrated = true;
+                        end
 
-                    response = questdlg(msg,'Overwrite exiting model?','Yes','No','No');
+                        % Create warnign message and display
+                        if isCalibrated
+                            msg = {['Model ',modelLabel, ' has already been built and calibrated. If you change the model construction all calibration and simulation results will be deleted.'], ...
+                                    '', ...                                
+                                   'Do you want to continue with the changes to the model construction?'};
+                        else
+                            msg = {['Model ',modelLabel, ' has already been built (but not calibrated). If you change the model construction you will need to rebuild the model.'], ...
+                                    '', ...
+                                   'Do you want to continue with the changes to the model construction?'};
+                        end                            
 
-                    % Check if 'cancel, else delete the model object
-                    if strcmp(response,'No')
-                        return;
-                    else
-                        filt = true(length(this.models),1);
-                        filt(ind) = false;
-                        this.models = this.models(filt);
+                        response = questdlg(msg,'Overwrite exiting model?','Yes','No','No');
+
+                        % Check if 'cancel, else delete the model object
+                        if strcmp(response,'No')
+                            return;
+                        else
+                            filt = true(length(this.models),1);
+                            filt(ind) = false;
+                            this.models = this.models(filt);
+                        end
+
+                        % Change status of the model object.
+                        this.tab_ModelConstruction.Table.Data{irow,end} = '<html><font color = "#FF0000">Model not built.</font></html>';
+
+                        % Delete model from calibration table.
+                        modelLabels_calibTable =  this.tab_ModelCalibration.Table.Data(:,2);                            
+                        modelLabels_calibTable = GST_GUI.removeHTMLTags(modelLabels_calibTable);
+                        ind = cellfun( @(x) strcmp(x,modelLabel), modelLabels_calibTable);
+                        this.tab_ModelCalibration.Table.Data = this.tab_ModelCalibration.Table.Data(~ind,:);
+
+                        % Update row numbers
+                        nrows = size(this.tab_ModelCalibration.Table.Data,1);
+                        this.tab_ModelCalibration.Table.RowName = mat2cell([1:nrows]',ones(1, nrows));                     
+
+                        % Delete models from simulations table.
+                        modelLabels_simTable =  this.tab_ModelSimulation.Table.Data(:,2);                            
+                        modelLabels_simTable = GST_GUI.removeHTMLTags(modelLabels_simTable);
+                        ind = cellfun( @(x) strcmp(x,modelLabel), modelLabels_simTable);
+                        this.tab_ModelSimulation.Table.Data = this.tab_ModelSimulation.Table.Data(~ind,:);   
+
+                        % Update row numbers
+                        nrows = size(this.tab_ModelSimulation.Table.Data,1);
+                        this.tab_ModelSimulation.Table.RowName = mat2cell([1:nrows]',ones(1, nrows));                     
                     end
-
-                    % Change status of the model object.
-                    this.tab_ModelConstruction.Table.Data{irow,end} = '<html><font color = "#FF0000">Model not built.</font></html>';
-
-                    % Delete model from calibration table.
-                    modelLabels_calibTable =  this.tab_ModelCalibration.Table.Data(:,2);                            
-                    modelLabels_calibTable = GST_GUI.removeHTMLTags(modelLabels_calibTable);
-                    ind = cellfun( @(x) strcmp(x,modelLabel), modelLabels_calibTable);
-                    this.tab_ModelCalibration.Table.Data = this.tab_ModelCalibration.Table.Data(~ind,:);
-
-                    % Update row numbers
-                    nrows = size(this.tab_ModelCalibration.Table.Data,1);
-                    this.tab_ModelCalibration.Table.RowName = mat2cell([1:nrows]',ones(1, nrows));                     
-                    
-                    % Delete models from simulations table.
-                    modelLabels_simTable =  this.tab_ModelSimulation.Table.Data(:,2);                            
-                    modelLabels_simTable = GST_GUI.removeHTMLTags(modelLabels_simTable);
-                    ind = cellfun( @(x) strcmp(x,modelLabel), modelLabels_simTable);
-                    this.tab_ModelSimulation.Table.Data = this.tab_ModelSimulation.Table.Data(~ind,:);   
-                    
-                    % Update row numbers
-                    nrows = size(this.tab_ModelSimulation.Table.Data,1);
-                    this.tab_ModelSimulation.Table.RowName = mat2cell([1:nrows]',ones(1, nrows));                     
                 end
+
+                % Apply new model options.
+                this.tab_ModelConstruction.Table.Data{this.tab_ModelConstruction.currentRow,8} = modelOptionsArray;
+            catch
+                errordlg('The model options could not be applied to the model. Please check the model options are sensible.');
             end
-            
-            % Apply new model options.
-            this.tab_ModelConstruction.Table.Data{this.tab_ModelConstruction.currentRow,8} = modelOptionsArray;
 
         end
         
         % Get the model options cell array (as a string).
         function onApplyModelOptions_selectedBores(this, hObject, eventdata)
             
-            % Get the current model type.
-            currentModelType = this.tab_ModelConstruction.Table.Data{this.tab_ModelConstruction.currentRow, 7};
-            
-            % Get list of selected bores.
-            selectedBores = this.tab_ModelConstruction.Table.Data(:,1);
-            
-            % Check some bores have been selected.
-            if ~any(cellfun(@(x) x, selectedBores))
-                warndlg('No models are selected.', 'Summary of model options applied to bores...');
-                return;
-            end
-            
-            % Get the model options.
-            modelOptionsArray = getModelOptions(this.tab_ModelConstruction.modelTypes.model_TFN.obj);
-            
-            % Loop  through the list of selected bore and apply the modle
-            % options.
-            nOptionsCopied = 0;
-            response = '';
-            for i=1:length(selectedBores);
-                if selectedBores{i} && strcmp(this.tab_ModelConstruction.Table.Data{i,7}, currentModelType)
-                    
-                    % Warn the user if the model is already built and the
-                    % inputs are to change - reuiring the model object to be
-                    % removed.            
-                    if ~isempty(this.tab_ModelConstruction.Table.Data{i,8}) && ...
-                    ~strcmp(modelOptionsArray, this.tab_ModelConstruction.Table.Data{i,8} )
+            try
+                % Get the current model type.
+                currentModelType = this.tab_ModelConstruction.Table.Data{this.tab_ModelConstruction.currentRow, 7};
 
-                        % Get original model label
-                        modelLabel = this.tab_ModelConstruction.Table.Data{i,2};
+                % Get list of selected bores.
+                selectedBores = this.tab_ModelConstruction.Table.Data(:,1);
 
-                        % Check if the model object exists
-                        ind = cellfun( @(x) strcmp(x.model_label,modelLabel), this.models);
-                        if ~isempty(ind) 
-                            
-                            if strcmp(response, 'Yes - all models')
-                                filt = true(length(this.models),1);
-                                filt(ind) = false;
-                                this.models = this.models(filt);                                
-                            else
-                                
-                                % Check if the model is calibrated
-                                isCalibrated = false;
-                                if ~isempty(this.models{ind}.calibrationResults) && this.models{ind}.calibrationResults.isCalibrated
-                                    isCalibrated = true;
-                                end
+                % Check some bores have been selected.
+                if ~any(cellfun(@(x) x, selectedBores))
+                    warndlg('No models are selected.', 'Summary of model options applied to bores...');
+                    return;
+                end
 
-                                % Create warnign message and display
-                                if isCalibrated
-                                    msg = {['Model ',modelLabel, ' has already been built and calibrated. If you change the model construction all calibration and simulation results will be deleted.'], ...
-                                            '', ...                                
-                                           'Do you want to continue with the changes to the model construction?'};
-                                else
-                                    msg = {['Model ',modelLabel, ' has already been built (but not calibrated). If you change the model construction you will need to rebuild the model.'], ...
-                                            '', ...
-                                           'Do you want to continue with the changes to the model construction?'};
-                                end                            
+                % Get the model options.
+                modelOptionsArray = getModelOptions(this.tab_ModelConstruction.modelTypes.model_TFN.obj);
 
-                                response = questdlg(msg,'Overwrite exiting model?','Yes','Yes - all models','No','No');
+                % Loop  through the list of selected bore and apply the modle
+                % options.
+                nOptionsCopied = 0;
+                response = '';
+                for i=1:length(selectedBores);
+                    if selectedBores{i} && strcmp(this.tab_ModelConstruction.Table.Data{i,7}, currentModelType)
 
-                                % Check if 'cancel, else delete the model object
-                                if strcmp(response,'No')
-                                    continue;
-                                else
+                        % Warn the user if the model is already built and the
+                        % inputs are to change - reuiring the model object to be
+                        % removed.            
+                        if ~isempty(this.tab_ModelConstruction.Table.Data{i,8}) && ...
+                        ~strcmp(modelOptionsArray, this.tab_ModelConstruction.Table.Data{i,8} )
+
+                            % Get original model label
+                            modelLabel = this.tab_ModelConstruction.Table.Data{i,2};
+
+                            % Check if the model object exists
+                            ind = cellfun( @(x) strcmp(x.model_label,modelLabel), this.models);
+                            if ~isempty(ind) 
+
+                                if strcmp(response, 'Yes - all models')
                                     filt = true(length(this.models),1);
                                     filt(ind) = false;
-                                    this.models = this.models(filt);
+                                    this.models = this.models(filt);                                
+                                else
+
+                                    % Check if the model is calibrated
+                                    isCalibrated = false;
+                                    if ~isempty(this.models{ind}.calibrationResults) && this.models{ind}.calibrationResults.isCalibrated
+                                        isCalibrated = true;
+                                    end
+
+                                    % Create warnign message and display
+                                    if isCalibrated
+                                        msg = {['Model ',modelLabel, ' has already been built and calibrated. If you change the model construction all calibration and simulation results will be deleted.'], ...
+                                                '', ...                                
+                                               'Do you want to continue with the changes to the model construction?'};
+                                    else
+                                        msg = {['Model ',modelLabel, ' has already been built (but not calibrated). If you change the model construction you will need to rebuild the model.'], ...
+                                                '', ...
+                                               'Do you want to continue with the changes to the model construction?'};
+                                    end                            
+
+                                    response = questdlg(msg,'Overwrite exiting model?','Yes','Yes - all models','No','No');
+
+                                    % Check if 'cancel, else delete the model object
+                                    if strcmp(response,'No')
+                                        continue;
+                                    else
+                                        filt = true(length(this.models),1);
+                                        filt(ind) = false;
+                                        this.models = this.models(filt);
+                                    end
                                 end
+
+                                % Change status of the model object.
+                                this.tab_ModelConstruction.Table.Data{i,end} = '<html><font color = "#FF0000">Model not built.</font></html>';
+
+                                % Delete model from calibration table.
+                                modelLabels_calibTable =  this.tab_ModelCalibration.Table.Data(:,2);                            
+                                modelLabels_calibTable = GST_GUI.removeHTMLTags(modelLabels_calibTable);
+                                ind = cellfun( @(x) strcmp(x,modelLabel), modelLabels_calibTable);
+                                this.tab_ModelCalibration.Table.Data = this.tab_ModelCalibration.Table.Data(~ind,:);
+
+                                % Update row numbers
+                                nrows = size(this.tab_ModelCalibration.Table.Data,1);
+                                this.tab_ModelCalibration.Table.RowName = mat2cell([1:nrows]',ones(1, nrows));                                   
+
+                                % Delete models from simulations table.
+                                modelLabels_simTable =  this.tab_ModelSimulation.Table.Data(:,2);                            
+                                modelLabels_simTable = GST_GUI.removeHTMLTags(modelLabels_simTable);
+                                ind = cellfun( @(x) strcmp(x,modelLabel), modelLabels_simTable);
+                                this.tab_ModelSimulation.Table.Data = this.tab_ModelSimulation.Table.Data(~ind,:);
+
+                                % Update row numbers
+                                nrows = size(this.tab_ModelSimulation.Table.Data,1);
+                                this.tab_ModelSimulation.Table.RowName = mat2cell([1:nrows]',ones(1, nrows));                              
+
                             end
+                        end                    
 
-                            % Change status of the model object.
-                            this.tab_ModelConstruction.Table.Data{i,end} = '<html><font color = "#FF0000">Model not built.</font></html>';
-                            
-                            % Delete model from calibration table.
-                            modelLabels_calibTable =  this.tab_ModelCalibration.Table.Data(:,2);                            
-                            modelLabels_calibTable = GST_GUI.removeHTMLTags(modelLabels_calibTable);
-                            ind = cellfun( @(x) strcmp(x,modelLabel), modelLabels_calibTable);
-                            this.tab_ModelCalibration.Table.Data = this.tab_ModelCalibration.Table.Data(~ind,:);
+                        % Apply model option.
+                        this.tab_ModelConstruction.Table.Data{i,8} = modelOptionsArray;            
+                        nOptionsCopied = nOptionsCopied + 1;
+                    end
+                end            
 
-                            % Update row numbers
-                            nrows = size(this.tab_ModelCalibration.Table.Data,1);
-                            this.tab_ModelCalibration.Table.RowName = mat2cell([1:nrows]',ones(1, nrows));                                   
-                            
-                            % Delete models from simulations table.
-                            modelLabels_simTable =  this.tab_ModelSimulation.Table.Data(:,2);                            
-                            modelLabels_simTable = GST_GUI.removeHTMLTags(modelLabels_simTable);
-                            ind = cellfun( @(x) strcmp(x,modelLabel), modelLabels_simTable);
-                            this.tab_ModelSimulation.Table.Data = this.tab_ModelSimulation.Table.Data(~ind,:);
-                            
-                            % Update row numbers
-                            nrows = size(this.tab_ModelSimulation.Table.Data,1);
-                            this.tab_ModelSimulation.Table.RowName = mat2cell([1:nrows]',ones(1, nrows));                              
-                            
-                        end
-                    end                    
-                    
-                    % Apply model option.
-                    this.tab_ModelConstruction.Table.Data{i,8} = modelOptionsArray;            
-                    nOptionsCopied = nOptionsCopied + 1;
-                end
-            end            
-            
-            msgbox(['The model options were copied to ',num2str(nOptionsCopied), ' "', currentModelType ,'" models.'], 'Summary of model options applied to bores...');
+                msgbox(['The model options were copied to ',num2str(nOptionsCopied), ' "', currentModelType ,'" models.'], 'Summary of model options applied to bores...');
+            catch
+                errordlg('The model options could not be applied to the selected models. Please check the model options are sensible.');
+            end
+
         end
 
         function onAnalyseBores(this, hObject, eventdata)
@@ -3203,9 +3217,7 @@ classdef GST_GUI < handle
                 obsHeadStartDate = min(obsHead(:,1));
                 obsHeadEndDate = max(obsHead(:,1));               
                 simLabel = data{i,6};
-                forcingdata_fname = data{i,7};
-                simStartDate = datenum( data{i,8},'dd-mmm-yyyy');
-                simEndDate = datenum( data{i,9},'dd-mmm-yyyy') + datenum(0,0,0,23,59,59);                
+                forcingdata_fname = data{i,7};      
                 simTimeStep = data{i,10};
                 
                 % Check there is a simulation label.
@@ -3256,12 +3268,16 @@ classdef GST_GUI < handle
                     forcingData = [];
                 end
                                     
-               % Get the start and end dates for the simulation.
-               if isempty(simStartDate)
+               % Get the start and end dates for the simulation.                               
+               if isempty(data{i,8})
                    simStartDate = obsHeadStartDate;
+               else
+                   simStartDate = datenum( data{i,8},'dd-mmm-yyyy'); 
                end
-               if isempty(simEndDate)
+               if isempty( data{i,9})
                    simEndDate = obsHeadEndDate;
+               else
+                   simEndDate = datenum( data{i,9},'dd-mmm-yyyy') + datenum(0,0,0,23,59,59);                         
                end
 
                % Check the date timestep
@@ -4081,7 +4097,16 @@ classdef GST_GUI < handle
                web([hObject.Tag,'.html']);
            end
         end       
-                   
+               
+        function onGitHub(this, hObject, eventdata)
+           if strcmp(hObject.Tag,'doc_GitHubUpdate') 
+               web('https://github.com/peterson-tim-j/Groundwater-Statistics-Toolbox/tree/master/standaloneApplication');
+           elseif strcmp(hObject.Tag,'doc_GitHubIssue') 
+               web('https://github.com/peterson-tim-j/Groundwater-Statistics-Toolbox/issues');
+           end            
+                       
+        end
+        
         function onLicenseDisclaimer(this, hObject, eventdata)
            web('doc_License_Disclaimer.html');
         end               
