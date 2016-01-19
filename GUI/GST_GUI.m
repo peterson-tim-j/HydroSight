@@ -4100,7 +4100,7 @@ classdef GST_GUI < handle
                
         function onGitHub(this, hObject, eventdata)
            if strcmp(hObject.Tag,'doc_GitHubUpdate') 
-               web('https://github.com/peterson-tim-j/Groundwater-Statistics-Toolbox/tree/master/standaloneApplication');
+               web('https://github.com/peterson-tim-j/Groundwater-Statistics-Toolbox/releases');
            elseif strcmp(hObject.Tag,'doc_GitHubIssue') 
                web('https://github.com/peterson-tim-j/Groundwater-Statistics-Toolbox/issues');
            end            
