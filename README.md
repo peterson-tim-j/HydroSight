@@ -1,7 +1,7 @@
 Groundwater-Statistics-Toolbox
 ==============================
 
-The Groundwater Statistics Toolbox (GST) is a highly flexible statistical toolbox for deriving greater quantitative value from groundwater monitoring data. The toolbox can be used programmatically from within Matlab 2014b (or later) or using a highly flexible graphical user interface (GUI); which can also be ran as a stand alone Windows 64 bit application (available [here]( standaloneApplication/Windows64bit) )
+The Groundwater Statistics Toolbox (GST) is a highly flexible statistical toolbox for deriving greater quantitative value from groundwater monitoring data. The toolbox can be used programmatically from within Matlab 2014b (or later) or using a highly flexible graphical user interface (GUI); which can also be ran as a stand alone Windows 64 bit application (available [here](https://github.com/peterson-tim-j/Groundwater-Statistics-Toolbox/releases) )
 
 Currently, the toolbox contains a highly flexible groundwater hydrograph time-series modelling framework that facilitates the following:
 
