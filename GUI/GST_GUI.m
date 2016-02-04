@@ -1033,7 +1033,7 @@ classdef GST_GUI < handle
             end
             
             % Check that it was saved (ie if saveas was called from save() )
-            if isempty(this.project_fileName) || exist(this.project_fileName,'file') ~= 2;
+            if ~strcmp(ans,'No') && (isempty(this.project_fileName) || exist(this.project_fileName,'file') ~= 2);
                 warndlg('The GST is not to exit because the project does not appear to have been saved.','Project save error ...');
                 return
             end
