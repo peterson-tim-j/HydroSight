@@ -1,5 +1,5 @@
 <deployment-project plugin="plugin.ezdeploy" plugin-version="1.0">
-  <configuration build-checksum="3905837057" file="W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\deploymentCode\Windows_x64\TheGST.prj" location="W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\deploymentCode\Windows_x64" name="TheGST" preferred-package-location="W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\deploymentCode\Windows_x64\TheGST\for_redistribution" preferred-package-type="package.type.exe" target="target.ezdeploy.standalone" target-name="MATLAB Compiler for Standalone Applications">
+  <configuration build-checksum="1002748929" file="W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\deploymentCode\Windows_x64\TheGST.prj" location="W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\deploymentCode\Windows_x64" name="TheGST" preferred-package-location="W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\deploymentCode\Windows_x64\TheGST\for_redistribution" preferred-package-type="package.type.exe" target="target.ezdeploy.standalone" target-name="MATLAB Compiler for Standalone Applications">
     <param.appname>TheGST</param.appname>
     <param.icon />
     <param.icons />
@@ -120,6 +120,12 @@ Details of the time-series framework are avaiable at: Peterson T. J and Western 
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\utilities\findClassDefsUsingAbstractName.m</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\dataPreparationAnalysis\doDataQualityAnalysis.m</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\dataPreparationAnalysis\outlierDetection.m</file>
+      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\documentation\html\diagrams\doc_GUI.png</file>
+      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\documentation\html\diagrams\doc_GUI_dataPrep.png</file>
+      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\documentation\html\diagrams\doc_GUI_ModelCalib.png</file>
+      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\documentation\html\diagrams\doc_GUI_ModelConstruct.png</file>
+      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\documentation\html\diagrams\doc_GUI_ModelSimulate.png</file>
+      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\documentation\html\diagrams\doc_GUI_projectDescription.png</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\documentation\html\doc_Algorithms.html</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\documentation\html\doc_Calibration.html</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\documentation\html\doc_ExpSmooth.html</file>

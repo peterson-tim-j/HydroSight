@@ -6,7 +6,8 @@ classdef GST_GUI < handle
     %variables. Useful in different sitionations
     properties
         % Version number
-        versionNumber = 1.1;
+        versionNumber = '1.1.1';
+        versionDate= '12 Feb. 2016';
         
         % Model types supported
         modelTypes = {'model_TFN', 'ExpSmooth'};
@@ -117,6 +118,7 @@ classdef GST_GUI < handle
             
             
             uimenu(this.figure_Help, 'Label', 'License and Disclaimer', 'Tag','doc_Publications','Callback', @this.onLicenseDisclaimer,'Separator','on');
+            uimenu(this.figure_Help, 'Label', 'Version', 'Tag','doc_Version','Callback', @this.onVersion);
             uimenu(this.figure_Help, 'Label', 'About', 'Callback', @this.onAbout );
 
             %Create Panels for different windows       
@@ -238,7 +240,7 @@ classdef GST_GUI < handle
             uicontrol('Parent',vbox3t2,'String','Append Table Data','Callback', @this.onImportTable, 'Tag','Data Preparation', 'TooltipString', sprintf('Append a .csv file of table data to the table below. \n Use this feature to efficiently analyse a large number of bores.') );
             uicontrol('Parent',vbox3t2,'String','Export Table Data','Callback', @this.onExportTable, 'Tag','Data Preparation', 'TooltipString', sprintf('Export a .csv file of the table below.') );
             uicontrol('Parent',vbox3t2,'String','Analyse Selected Bores','Callback', @this.onAnalyseBores, 'Tag','Data Preparation', 'TooltipString', sprintf('Use the tick-box below to select the models to analyse then click here. \n After analysing, the status is given in the right most column.') );            
-            uicontrol('Parent',vbox3t2,'String','Export Results','Callback', @this.onExportResults, 'Tag','Data Preparation', 'TooltipString', sprintf('Export a .csv file of the analyses results. \n After analysing, the .csv file can be used in the time-series modelling.') );            
+            uicontrol('Parent',vbox3t2,'String','Export Selected Results','Callback', @this.onExportResults, 'Tag','Data Preparation', 'TooltipString', sprintf('Export a .csv file of the analyses results. \n After analysing, the .csv file can be used in the time-series modelling.') );            
             vbox3t2.ButtonSize(1) = 225;            
             
             % Create vbox for the various model options
@@ -456,7 +458,7 @@ classdef GST_GUI < handle
             %uicontrol('Parent',hbox3t4,'String','HPC Export','Callback', @this.onExport4HPC, 'TooltipString', sprintf('Export selected models for calibration on a High Performance Cluster.') );
             %uicontrol('Parent',hbox3t4,'String','HPC Import','Callback', @this.onImportFromHPC, 'TooltipString', sprintf('Import calibrated models from a High Performance Cluster.') );
             uicontrol('Parent',hbox3t4,'String','Calibrate Selected Models','Callback', @this.onCalibModels, 'TooltipString', sprintf('Use the tick-box below to select the models to calibrate then click here. \n During and after calibration, the status is given in the 9th column.') );            
-            uicontrol('Parent',hbox3t4,'String','Export Results','Callback', @this.onExportResults, 'Tag','Model Calibration', 'TooltipString', sprintf('Export a .csv file of the calibration results from all models.') );            
+            uicontrol('Parent',hbox3t4,'String','Export Selected Results','Callback', @this.onExportResults, 'Tag','Model Calibration', 'TooltipString', sprintf('Export a .csv file of the calibration results from all models.') );            
             hbox3t4.ButtonSize(1) = 225;
             
             % Add table
@@ -591,7 +593,7 @@ classdef GST_GUI < handle
             uicontrol('Parent',hbox3t5,'String','Append Table Data','Callback', @this.onImportTable, 'Tag','Model Simulation', 'TooltipString', sprintf('Append a .csv file of table data to the table below. \n Only rows where the model label is for a model that have been calibrated will be imported.') );
             uicontrol('Parent',hbox3t5,'String','Export Table Data','Callback', @this.onExportTable, 'Tag','Model Simulation', 'TooltipString', sprintf('Export a .csv file of the table below.') );                        
             uicontrol('Parent',hbox3t5,'String','Simulate Selected Models','Callback', @this.onSimModels, 'TooltipString', sprintf('Use the tick-box below to select the models to simulate then click here. \n During and after simulation, the status is given in the 9th column.') );            
-            uicontrol('Parent',hbox3t5,'String','Export Results','Callback', @this.onExportResults, 'Tag','Model Simulation', 'TooltipString', sprintf('Export a .csv file of the simulation results from all models.') );            
+            uicontrol('Parent',hbox3t5,'String','Export Selected Results','Callback', @this.onExportResults, 'Tag','Model Simulation', 'TooltipString', sprintf('Export a .csv file of the simulation results from all models.') );            
             hbox3t5.ButtonSize(1) = 225;
             
             % Add table
@@ -754,6 +756,21 @@ classdef GST_GUI < handle
             
         % Open saved model
         function onOpen(this,hObject,eventdata)
+            
+            % Check if all of the GUI tables are empty. If not, warn the
+            % user the opening the example will delete the existing data.
+            if ~isempty(this.tab_Project.project_name.String) || ...
+            ~isempty(this.tab_Project.project_description.String) || ...
+            (size(this.tab_ModelCalibration.Table.Data,1)~=0 && any(~any(cellfun( @(x) isempty(x), this.tab_ModelConstruction.Table.Data(:,1:8))))) || ...
+            (size(this.tab_ModelCalibration.Table.Data,1)~=0 && any(~any(cellfun( @(x) isempty(x), this.tab_ModelCalibration.Table.Data)))) || ...
+            (size(this.tab_ModelSimulation.Table.Data,1)~=0 && any(~any(cellfun( @(x) isempty(x), this.tab_ModelSimulation.Table.Data))))
+                response = questdlg({'Opening a new project will close the existing project.','','Do you want to continue?'}, ...
+                 'Overwrite the existing project?','Yes','No','No');
+             
+                if strcmp(response,'No')
+                    return;
+                end
+            end            
             
             % Set initial folder to the project folder (if set)
             currentProjectFolder='';
@@ -1006,8 +1023,25 @@ classdef GST_GUI < handle
         end    
         
         % This function runs when the app is closed        
-        function onExit(this,hObject,eventdata)        
-            delete(this.Figure);
+        function onExit(this,hObject,eventdata)    
+            
+            ans = questdlg('Do you want to save the project before exiting?','Save project?','Yes','No','Cancel','Yes');
+            
+            % Save project
+            if strcmp(ans,'Yes')
+                onSave(this,hObject,eventdata);
+            end
+            
+            % Check that it was saved (ie if saveas was called from save() )
+            if isempty(this.project_fileName) || exist(this.project_fileName,'file') ~= 2;
+                warndlg('The GST is not to exit because the project does not appear to have been saved.','Project save error ...');
+                return
+            end
+            
+            % Exit
+            if strcmp(ans,'Yes') || strcmp(ans,'No')
+                delete(this.Figure);
+            end
         end
 
         function dataPrep_tableSelection(this, hObject, eventdata)
@@ -3463,7 +3497,7 @@ classdef GST_GUI < handle
                             end
                             
                             % Append data
-                            this.tab_DataPrep.Table.Data = [this.tab_DataPrep.Table.Data; tableAsCell];
+                            this.tab_DataPrep.Table.Data = [this.tab_DataPrep.Table.Data; tableAsCell(i,:)];
                             
                             nImportedRows = nImportedRows + 1;
                         catch ME
@@ -3805,7 +3839,13 @@ classdef GST_GUI < handle
                         warndlg('There is no data analysis results to export.','No data.');
                         return;
                     end
-                                            
+                                  
+                     % Check if there are any rows selected for export
+                     if ~any( cellfun(@(x) x==1, this.tab_DataPrep.Table.Data(:,1)))
+                         warndlg({'No rows are selected for export.','Please select the models to export using the left-hand tick boxes.'},'No rows selected for export ...')
+                         return;
+                     end                        
+                    
                     % Ask the user if they want to export all analysis data
                     % (ie logical data reporting on the analysis
                     % undertaken) or just the data not assessed an errerous
@@ -3845,8 +3885,17 @@ classdef GST_GUI < handle
                     % Export each bore analysed.
                     nResultsWritten = 0;
                     nResultsNotWritten = 0;
+                    nResultToExport=0;
                     for i = 1:size(boreIDs,1)
                        
+                        % Find the model bore ID is within the GUI
+                        % table and then check if the row is to be
+                        % exported.
+                        tableInd = cellfun( @(x) strcmp( x,boreIDs{i}),  this.tab_DataPrep.Table.Data(:,3));
+                        if ~this.tab_DataPrep.Table.Data{tableInd,1}
+                            continue
+                        end                        
+                        
                         % Get the analysis results.
                         tableData = this.dataPrep.(boreIDs{i});
 
@@ -3855,7 +3904,8 @@ classdef GST_GUI < handle
                             nResultsNotWritten = nResultsNotWritten +1;
                             continue;                                
                         end
-
+                        nResultToExport = nResultToExport + 1;
+                        
                         % Convert to matrix.
                         tableData = table2array(tableData);
 
@@ -3896,11 +3946,18 @@ classdef GST_GUI < handle
                     % Show summary
                     msgbox({'Export of results finished.','', ...
                            ['Number of bore results exported =',num2str(nResultsWritten)], ...
+                           ['Number of rows selected for export =',num2str(nResultToExport)], ...
                            ['Number of bore results not exported =',num2str(nResultsNotWritten)]}, ...
                            'Export Summary');
 
                     
                 case 'Model Calibration'
+                    
+                    % Check if there are any rows selected for export
+                    if ~any( cellfun(@(x) x==1, this.tab_ModelCalibration.Table.Data(:,1)))
+                        warndlg({'No rows are selected for export.','Please select the models to export using the left-hand tick boxes.'},'No rows selected for export ...')
+                        return;
+                    end                    
                     
                     % Get output file name
                     [fName,pName] = uiputfile({'*.csv'},'Input the .csv file name for results file.'); 
@@ -3919,11 +3976,23 @@ classdef GST_GUI < handle
                     % export the calibration results (if calibrated)
                     nrows = size(this.tab_ModelConstruction.Table.Data,1);
                     nResultsWritten=0;
+                    nModelsToExport=0;
                     for i=1:nrows
                        
                         % get model label.
                         modelLabel = this.tab_ModelConstruction.Table.Data{i,2};
                         boreID = this.tab_ModelConstruction.Table.Data{i,6};
+                        
+                        % Find the model label within the calibrtaion GUI
+                        % table and then check if the model is to be
+                        % exported.
+                        calibInd = cellfun( @(x) strcmp( GST_GUI.removeHTMLTags(x),modelLabel), this.tab_ModelCalibration.Table.Data(:,2));
+                        if ~this.tab_ModelCalibration.Table.Data{calibInd,1}
+                            continue
+                        end
+                        
+                        % Incrment number of models selected for export
+                        nModelsToExport = nModelsToExport+1;
                         
                         % Find object for the model.
                         modelInd = cellfun( @(x) strcmp(x.model_label,modelLabel), this.models);
@@ -3975,16 +4044,22 @@ classdef GST_GUI < handle
                     fclose(fileID);
                     
                     % Show summary
-                    msgbox({'Export of results finished.','',['Number of model results exported =',num2str(nResultsWritten)]},'Export Summary');
+                    msgbox({'Export of results finished.','',['Number of model results exported =',num2str(nResultsWritten)],['Number of rows selected for export =',num2str(nModelsToExport)]},'Export Summary');
                     
                     
                 case 'Model Simulation'
+                    % Check if there are any rows selected for export
+                    if ~any( cellfun(@(x) x==1, this.tab_ModelSimulation.Table.Data(:,1)))
+                        warndlg({'No rows are selected for export.','Please select the models to export using the left-hand tick boxes.'},'No rows selected for export ...')
+                        return;
+                    end
+
                     % Get output file name
                     folderName = uigetdir('' ,'Select where the .csv simulation files saved (one file per simulation).');    
                     if isempty(folderName)
                         return;
                     end
-                    
+                                        
                     % Loop through each row of the simulation table and
                     % export the calibration results (if calibrated)
                     nrows = size(this.tab_ModelSimulation.Table.Data,1);
@@ -3994,7 +4069,12 @@ classdef GST_GUI < handle
                     nSimsNotUnique = 0;
                     nTableConstFailed = 0;
                     nWritteError = 0;
-                    for i=1:nrows
+                    for i=1:nrows                        
+                        
+                        % Skip if the model is not sleected for export
+                        if ~this.tab_ModelSimulation.Table.Data{i,1}
+                            continue
+                        end
                         
                         % get model label and simulation label.
                         modelLabel = this.tab_ModelSimulation.Table.Data{i,2};
@@ -4044,10 +4124,13 @@ classdef GST_GUI < handle
                             % Create column names.                        
                             columnName = {'Year','Month','Day','Hour','Minute',this.models{ind,1}.simulationResults{simInd,1}.colnames{2:end}};
 
+                            % Check if there are any invalid column names
+                            columnName = regexprep(columnName,'\W','_');                            
+                            
                             % Create table and add variable names
                             tableData = array2table(tableData);
                             tableData.Properties.VariableNames = columnName;
-                        catch
+                        catch ME
                             nTableConstFailed = nTableConstFailed + 1;
                         end
                         
@@ -4064,13 +4147,7 @@ classdef GST_GUI < handle
                                                     
                     end
                     
-                    % Show summary
-                    nResultsWritten=0;
-                    nModelsNotFound=0;
-                    nSimsNotUndertaken = 0;
-                    nSimsNotUnique = 0;
-                    nTableConstFailed = 0;
-                    nWritteError = 0;                    
+                    % Show summary                
                     msgbox({'Export of results finished.','', ...
                            ['Number of simulations exported =',num2str(nResultsWritten)], ...
                            ['Number of models not found =',num2str(nModelsNotFound)], ...
@@ -4105,6 +4182,10 @@ classdef GST_GUI < handle
                web('https://github.com/peterson-tim-j/Groundwater-Statistics-Toolbox/issues');
            end            
                        
+        end
+        
+        function onVersion(this, hObject, eventdata)           
+            msgbox({['This is version ',this.versionNumber, ' of the Groundwater Statistics Toolbox GUI.'],'',['It was released on ',this.versionDate]},'Groundwater Statistics Toolbox GUI version ...');
         end
         
         function onLicenseDisclaimer(this, hObject, eventdata)
@@ -4153,7 +4234,7 @@ classdef GST_GUI < handle
             (size(this.tab_ModelCalibration.Table.Data,1)~=0 && any(~any(cellfun( @(x) isempty(x), this.tab_ModelConstruction.Table.Data(:,1:8))))) || ...
             (size(this.tab_ModelCalibration.Table.Data,1)~=0 && any(~any(cellfun( @(x) isempty(x), this.tab_ModelCalibration.Table.Data)))) || ...
             (size(this.tab_ModelSimulation.Table.Data,1)~=0 && any(~any(cellfun( @(x) isempty(x), this.tab_ModelSimulation.Table.Data))))
-                response = questdlg({'Opening an example project will overwrite the existing project.','','Do you want to continue?'}, ...
+                response = questdlg({'Opening an example project will close the existing project.','','Do you want to continue?'}, ...
                  'Overwrite the existing project?','Yes','No','No');
              
                 if strcmp(response,'No')

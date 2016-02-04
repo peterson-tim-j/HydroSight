@@ -31,7 +31,7 @@ function [ isOutlier, noise_sigma, x_opt, model_calib ] = outlierDetection( head
         model_calib = GroundwaterStatisticsToolbox('Outlier detection', dummyBoreID, 'ExpSmooth', h_obs_model(~isOutlier,:), -999, forcingData, coordinates, false);
         
         % Calibrate model
-        calibrateModel(model_calib, 0, inf, 0)
+        calibrateModel(model_calib, 0, inf, 'SPUCI',2)
         
         % Get the standard deviation of the noise.
         noise_sigma = model_calib.model.variables.sigma_n;
@@ -84,7 +84,7 @@ function [ isOutlier, noise_sigma, x_opt, model_calib ] = outlierDetection( head
             % model, then it is forecast.
             filt(j) = false;
             time_points_trimExtended =  headData(~filt,1);            
-            h_mod_trim = solveModel(model, time_points_trimExtended, [], '', 'NoLabel',false);            
+            h_mod_trim = solveModel(model, time_points_trimExtended, [], 'NoLabel',false);    
             h_forecast_trim = model.model.variables.h_forecast;            
             
             % Create a filter to remove the current point from the forecast

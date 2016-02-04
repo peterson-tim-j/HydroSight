@@ -66,16 +66,25 @@ function [classNames] = findClassDefsUsingAbstractName( abstractName, model_file
     
     isFileFromAbstract = false(size(allFoldersFiles));
     
+    % Determine which version of depfun to use. Post Matlab 2014b, depfun
+    % was removed.
+    useDepFun = year(version('-date'))<=2014;
+    
     % Loop through each file name and assess if the file is dependent on
     % the specified abstract
     for i=1:size(allFoldersFiles,1)
 
         if ~any(cellfun(@(x) ~isempty(x), strfind( fnames_ignore , all_m_Files{i})))            
-            
-            
-           % Get list of dependent function                  
-           depfunlist = depfun(all_m_Files(i),'-quiet');
 
+           % Get list of dependent function                              
+           if useDepFun
+               depfunlist = depfun(all_m_Files(i),'-quiet');               
+           else
+               depfunlist = matlab.codetools.requiredFilesAndProducts(all_m_Files(i));
+               depfunlist = depfunlist';                
+           end
+
+           % Find if there is dependence upon the required abstract name
            if any(cellfun(@(x) ~isempty(x), strfind( depfunlist, abstractName)))
                isFileFromAbstract(i) = true;               
            end

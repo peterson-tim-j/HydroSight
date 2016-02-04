@@ -216,7 +216,7 @@ classdef  responseFunction_FerrisKnowles < responseFunction_abstract
         % calibration if the user does not input parameter ranges.
         function [params_upperLimit, params_lowerLimit] = getParameters_plausibleLimit(obj)
             params_upperLimit = [1; -1];
-            params_lowerLimit = [-3; -5];
+            params_lowerLimit = [-7; -7];
         end
         
         % Calculate impulse-response function for each pumping bore.
