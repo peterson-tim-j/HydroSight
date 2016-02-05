@@ -59,7 +59,7 @@ classdef GST_GUI < handle
             %--------------------------------------------------------------
             % Open a window and add some menus
             this.Figure = figure( ...
-                'Name', 'The Groundwater Statistical Toolbox', ...
+                'Name', 'The Groundwater Statistics Toolbox', ...
                 'NumberTitle', 'off', ...
                 'MenuBar', 'none', ...
                 'Toolbar', 'none', ...
@@ -748,7 +748,7 @@ classdef GST_GUI < handle
                 this.project_fileName = projectPath;
                                 
                 % Update GUI title
-                set(this.Figure,'Name',['The Groundwater Statistical Toolbox - ', this.project_fileName]);
+                set(this.Figure,'Name',['The Groundwater Statistics Toolbox - ', this.project_fileName]);
                 drawnow;
             end            
             
@@ -764,8 +764,8 @@ classdef GST_GUI < handle
             (size(this.tab_ModelCalibration.Table.Data,1)~=0 && any(~any(cellfun( @(x) isempty(x), this.tab_ModelConstruction.Table.Data(:,1:8))))) || ...
             (size(this.tab_ModelCalibration.Table.Data,1)~=0 && any(~any(cellfun( @(x) isempty(x), this.tab_ModelCalibration.Table.Data)))) || ...
             (size(this.tab_ModelSimulation.Table.Data,1)~=0 && any(~any(cellfun( @(x) isempty(x), this.tab_ModelSimulation.Table.Data))))
-                response = questdlg({'Opening a new project will close the existing project.','','Do you want to continue?'}, ...
-                 'Overwrite the existing project?','Yes','No','No');
+                response = questdlg({'Opening a new project will close the current project.','','Do you want to continue?'}, ...
+                 'Close the current project?','Yes','No','No');
              
                 if strcmp(response,'No')
                     return;
@@ -901,7 +901,7 @@ classdef GST_GUI < handle
                 drawnow;
                 
                 % Update GUI title
-                set(this.Figure,'Name',['The Groundwater Statistical Toolbox - ', this.project_fileName]);
+                set(this.Figure,'Name',['The Groundwater Statistics Toolbox - ', this.project_fileName]);
                 drawnow;                
             end
         end
@@ -967,7 +967,7 @@ classdef GST_GUI < handle
                     save(this.project_fileName, 'tableData',  'models', 'dataPrep', '-v7.3');  
 
                     % Update GUI title
-                    set(this.Figure,'Name',['The Groundwater Statistical Toolbox - ', this.project_fileName]);                                        
+                    set(this.Figure,'Name',['The Groundwater Statistics Toolbox - ', this.project_fileName]);                                        
                 catch ME
                     set(this.Figure, 'pointer', 'arrow');
                     drawnow;
@@ -4234,8 +4234,8 @@ classdef GST_GUI < handle
             (size(this.tab_ModelCalibration.Table.Data,1)~=0 && any(~any(cellfun( @(x) isempty(x), this.tab_ModelConstruction.Table.Data(:,1:8))))) || ...
             (size(this.tab_ModelCalibration.Table.Data,1)~=0 && any(~any(cellfun( @(x) isempty(x), this.tab_ModelCalibration.Table.Data)))) || ...
             (size(this.tab_ModelSimulation.Table.Data,1)~=0 && any(~any(cellfun( @(x) isempty(x), this.tab_ModelSimulation.Table.Data))))
-                response = questdlg({'Opening an example project will close the existing project.','','Do you want to continue?'}, ...
-                 'Overwrite the existing project?','Yes','No','No');
+                response = questdlg({'Opening an example project will close the current project.','','Do you want to continue?'}, ...
+                 'Close the current project?','Yes','No','No');
              
                 if strcmp(response,'No')
                     return;
@@ -4248,7 +4248,7 @@ classdef GST_GUI < handle
             else
                 folderName = fileparts(pwd); 
             end
-            folderName = uigetdir(folderName ,'Select folder for example .csv files.');    
+            folderName = uigetdir(folderName ,'Select folder in which to save the example .csv files.');    
             if isempty(folderName)
                 return;
             end
@@ -4358,7 +4358,7 @@ classdef GST_GUI < handle
             this.dataPrep = exampleModel.dataPrep;            
         
             % Updating project location with title bar
-            set(this.Figure,'Name',['The Groundwater Statistical Toolbox - ', this.project_fileName]);
+            set(this.Figure,'Name',['The Groundwater Statistics Toolbox - ', this.project_fileName]);
             drawnow;                
 
             
