@@ -700,31 +700,35 @@ classdef model_TFN_gui < model_gui_abstract
                            
                             nForcingInputs = size(forcingDataforWeighting,1);
                             LHS = cellstr(repmat([transformFunctionName, ' :'],nForcingInputs,1));
-                            switch nForcingInputs
-                                case 1;
-                                    LHS  = strcat(LHS, {' '});
-                                case 2;
-                                    LHS  = strcat(LHS, {' ';' '});
-                                case 3;
-                                    LHS  = strcat(LHS, {' ';' ';' '});
-                                case 4;
-                                    LHS  = strcat(LHS, {' ';' ';' ';' '});
-                                case 5;
-                                    LHS  = strcat(LHS, {' ';' ';' ';' ';' '});
-                                case 6;
-                                    LHS  = strcat(LHS, {' ';' ';' ';' ';' ';' '});
-                                case 7;
-                                    LHS  = strcat(LHS, {' ';' ';' ';' ';' ';' ';' '});
-                                case 8;
-                                    LHS  = strcat(LHS, {' ';' ';' ';' ';' ';' ';' ';' '});
-                                case 9;
-                                    LHS  = strcat(LHS, {' ';' ';' ';' ';' ';' ';' ';' ';' '});
-                                case 10;
-                                    LHS  = strcat(LHS, {' ';' ';' ';' ';' ';' ';' ';' ';' ';' '});
-                                otherwise
-                                    warndlg('A maximum of 10 forcing data inputs can be assigned to a weighting function')
-                                    nForcingInputs = 10;
-                            end
+                            RHS = cell(nForcingInputs,1);
+                            RHS(:) = {' '};
+                            LHS = strcat(LHS,RHS);
+                            
+%                             switch nForcingInputs
+%                                 case 1;
+%                                     LHS  = strcat(LHS, {' '});
+%                                 case 2;
+%                                     LHS  = strcat(LHS, {' ';' '});
+%                                 case 3;
+%                                     LHS  = strcat(LHS, {' ';' ';' '});
+%                                 case 4;
+%                                     LHS  = strcat(LHS, {' ';' ';' ';' '});
+%                                 case 5;
+%                                     LHS  = strcat(LHS, {' ';' ';' ';' ';' '});
+%                                 case 6;
+%                                     LHS  = strcat(LHS, {' ';' ';' ';' ';' ';' '});
+%                                 case 7;
+%                                     LHS  = strcat(LHS, {' ';' ';' ';' ';' ';' ';' '});
+%                                 case 8;
+%                                     LHS  = strcat(LHS, {' ';' ';' ';' ';' ';' ';' ';' '});
+%                                 case 9;
+%                                     LHS  = strcat(LHS, {' ';' ';' ';' ';' ';' ';' ';' ';' '});
+%                                 case 10;
+%                                     LHS  = strcat(LHS, {' ';' ';' ';' ';' ';' ';' ';' ';' ';' '});
+%                                 otherwise
+%                                     warndlg('A maximum of 10 forcing data inputs can be assigned to a weighting function')
+%                                     nForcingInputs = 10;
+%                             end
 
                             forcingDataforWeighting = strcat( LHS, forcingDataforWeighting(1:nForcingInputs));
                             forcingDataforWeighting = model_TFN_gui.cell2string(forcingDataforWeighting,'');
@@ -738,31 +742,34 @@ classdef model_TFN_gui < model_gui_abstract
                            
                             nForcingInputs = size(forcingDataforWeighting,1);
                             LHS = cellstr(repmat('Input Data : ',nForcingInputs,1));
-                            switch nForcingInputs
-                                case 1;
-                                    LHS  = strcat(LHS, {' '});
-                                case 2;
-                                    LHS  = strcat(LHS, {' ';' '});
-                                case 3;
-                                    LHS  = strcat(LHS, {' ';' ';' '});
-                                case 4;
-                                    LHS  = strcat(LHS, {' ';' ';' ';' '});
-                                case 5;
-                                    LHS  = strcat(LHS, {' ';' ';' ';' ';' '});
-                                case 6;
-                                    LHS  = strcat(LHS, {' ';' ';' ';' ';' ';' '});
-                                case 7;
-                                    LHS  = strcat(LHS, {' ';' ';' ';' ';' ';' ';' '});
-                                case 8;
-                                    LHS  = strcat(LHS, {' ';' ';' ';' ';' ';' ';' ';' '});
-                                case 9;
-                                    LHS  = strcat(LHS, {' ';' ';' ';' ';' ';' ';' ';' ';' '});
-                                case 10;
-                                    LHS  = strcat(LHS, {' ';' ';' ';' ';' ';' ';' ';' ';' ';' '});
-                                otherwise
-                                    warndlg('A maximum of 10 forcing data inputs can be assigned to a weighting function')
-                                    nForcingInputs = 10;
-                            end
+                            RHS = cell(nForcingInputs,1);
+                            RHS(:) = {' '};
+                            LHS = strcat(LHS,RHS);
+%                             switch nForcingInputs
+%                                 case 1;
+%                                     LHS  = strcat(LHS, {' '});
+%                                 case 2;
+%                                     LHS  = strcat(LHS, {' ';' '});
+%                                 case 3;
+%                                     LHS  = strcat(LHS, {' ';' ';' '});
+%                                 case 4;
+%                                     LHS  = strcat(LHS, {' ';' ';' ';' '});
+%                                 case 5;
+%                                     LHS  = strcat(LHS, {' ';' ';' ';' ';' '});
+%                                 case 6;
+%                                     LHS  = strcat(LHS, {' ';' ';' ';' ';' ';' '});
+%                                 case 7;
+%                                     LHS  = strcat(LHS, {' ';' ';' ';' ';' ';' ';' '});
+%                                 case 8;
+%                                     LHS  = strcat(LHS, {' ';' ';' ';' ';' ';' ';' ';' '});
+%                                 case 9;
+%                                     LHS  = strcat(LHS, {' ';' ';' ';' ';' ';' ';' ';' ';' '});
+%                                 case 10;
+%                                     LHS  = strcat(LHS, {' ';' ';' ';' ';' ';' ';' ';' ';' ';' '});
+%                                 otherwise
+%                                     warndlg('A maximum of 10 forcing data inputs can be assigned to a weighting function')
+%                                     nForcingInputs = 10;
+%                             end
                             forcingDataforWeighting = strcat( LHS, forcingDataforWeighting(1:nForcingInputs));
                             forcingDataforWeighting = model_TFN_gui.cell2string(forcingDataforWeighting,'');
                             this.weightingFunctions.tbl.Data{ind,4} = forcingDataforWeighting;

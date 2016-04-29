@@ -54,16 +54,16 @@ classdef responseFunction_Bruggeman < responseFunction_abstract
        
          % Set parameters
         function setParameters(obj, params)
-            obj.alpha = params(1);
-            obj.beta = params(2);
-            obj.gamma = params(3);            
+            obj.alpha = params(1,:);
+            obj.beta = params(2,:);
+            obj.gamma = params(3,:);            
         end
         
         % Get model parameters
         function [params, param_names] = getParameters(obj)
-            params(1,1) = obj.alpha;
-            params(2,1) = obj.beta;
-            params(3,1) = obj.gamma;       
+            params(1,:) = obj.alpha;
+            params(2,:) = obj.beta;
+            params(3,:) = obj.gamma;       
             param_names = {'alpha';'beta';'gamma'};
         end        
         

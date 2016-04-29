@@ -41,8 +41,8 @@ classdef  responseFunction_FerrisKnowlesJacobs < responseFunction_FerrisKnowles 
         % Set parameters
         function setParameters(obj, params)
             if size(params,1)==3
-                setParameters@responseFunction_FerrisKnowles(obj, params(1:2));
-                setParameters@responseFunction_JacobsCorrection(obj, params(3));
+                setParameters@responseFunction_FerrisKnowles(obj, params(1:2,:));
+                setParameters@responseFunction_JacobsCorrection(obj, params(3,:));
             elseif size(params,1)==2
                 setParameters@responseFunction_FerrisKnowles(obj, params);
             elseif size(params,1)==1
@@ -53,7 +53,7 @@ classdef  responseFunction_FerrisKnowlesJacobs < responseFunction_FerrisKnowles 
         % Get model parameters
         function [params, param_names] = getParameters(obj)            
             [params, param_names] = getParameters@responseFunction_FerrisKnowles(obj);
-            [params(3), param_names(3)] = getParameters@responseFunction_JacobsCorrection(obj);            
+            [params(3,:), param_names(3,:)] = getParameters@responseFunction_JacobsCorrection(obj);            
         end        
         
         function isValidParameter = getParameterValidity(obj, params, param_names)                        
@@ -91,7 +91,7 @@ classdef  responseFunction_FerrisKnowlesJacobs < responseFunction_FerrisKnowles 
             [params, param_names] = getDerivedParameters@responseFunction_FerrisKnowles(obj);
             Ksat = T./10.^obj.zeta;   
             
-            params = [params(1); params(2); Ksat];
+            params = [params(1,:); params(2,:); Ksat];
             param_names = {param_names{1}; param_names{2}; 'Lateral conductivity'};
         end
     end

@@ -52,12 +52,12 @@ classdef derivedweighting_UnconstrainedRescaled < derivedResponseFunction_abstra
        
         % Set parameters
         function setParameters(obj, params)
-            obj.k = params(1);
+            obj.k = params(1,:);
         end
         
         % Get model parameters
         function [params, param_names] = getParameters(obj)
-            params(1,1) = obj.k;
+            params(1,:) = obj.k;
             param_names = {'k'};        
         end        
         
@@ -72,8 +72,8 @@ classdef derivedweighting_UnconstrainedRescaled < derivedResponseFunction_abstra
         
         % Return fixed upper and lower bounds to the parameters.
         function [params_upperLimit, params_lowerLimit] = getParameters_physicalLimit(obj)
-            params_upperLimit = inf;
-            params_lowerLimit = -inf;
+            params_upperLimit = 2;
+            params_lowerLimit = -2;
         end        
         
         % Return fixed upper and lower plausible parameter ranges. 

@@ -697,13 +697,13 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                 params_upperLimit(ind,1) = 1;
             end    
             
-            if obj.settings.activeParameters.treeArea_frac
+            if isfield(obj.settings.activeParameters,'treeArea_frac') && obj.settings.activeParameters.treeArea_frac
                 ind = cellfun(@(x)(strcmp(x,'treeArea_frac')),param_names);
                 params_lowerLimit(ind,1) = 0;         
                 params_upperLimit(ind,1) = 1;
             end            
             
-            if obj.settings.activeParameters.interflow_frac
+            if isfield(obj.settings.activeParameters,'interflow_frac') && obj.settings.activeParameters.interflow_frac
                 ind = cellfun(@(x)(strcmp(x,'interflow_frac')),param_names);
                 params_lowerLimit(ind,1) = 0;         
                 params_upperLimit(ind,1) = 1;
@@ -774,13 +774,13 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                 params_upperLimit(ind,1) = 1;
             end              
             
-            if obj.settings.activeParameters.treeArea_frac
+            if isfield(obj.settings.activeParameters,'treeArea_frac') && obj.settings.activeParameters.treeArea_frac
                 ind = cellfun(@(x)(strcmp(x,'treeArea_frac')),param_names);                
                 params_lowerLimit(ind,1) = 0;
                 params_upperLimit(ind,1) = 1;
             end                                                  
             
-            if obj.settings.activeParameters.interflow_frac
+            if  isfield(obj.settings.activeParameters,'interflow_frac') && obj.settings.activeParameters.interflow_frac
                 ind = cellfun(@(x)(strcmp(x,'interflow_frac')),param_names);                
                 params_lowerLimit(ind,1) = 0;
                 params_upperLimit(ind,1) = 1;

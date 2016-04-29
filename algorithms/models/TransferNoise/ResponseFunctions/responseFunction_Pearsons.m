@@ -56,16 +56,16 @@ classdef responseFunction_Pearsons < responseFunction_abstract
        
         % Set parameters
         function setParameters(obj, params)
-            obj.A = params(1);
-            obj.b = params(2);
-            obj.n = params(3);            
+            obj.A = params(1,:);
+            obj.b = params(2,:);
+            obj.n = params(3,:);            
         end
         
         % Get model parameters
         function [params, param_names] = getParameters(obj)
-            params(1,1) = obj.A;
-            params(2,1) = obj.b;
-            params(3,1) = obj.n;       
+            params(1,:) = obj.A;
+            params(2,:) = obj.b;
+            params(3,:) = obj.n;       
             param_names = {'A';'b';'n'};        
         end        
         
@@ -339,21 +339,20 @@ classdef responseFunction_Pearsons < responseFunction_abstract
             % values do not occur in the transformed domain and this allows
             % for a greater parameter range to be more easily accessed by
             % the gradient based calibration.
-            n_backTrans = 10^(obj.n);    
+            n_backTrans = 10.^(obj.n);    
             
             % Back transform 'b'
-            b_backTrans = 10^(obj.b);
+            b_backTrans = 10.^(obj.b);
                         
             % If n>1, then theta will have a value of 't' at which the
             % gradient is zero. By putting this value of 't' into theta
             % then value at the peak can be determined. 
-            if n_backTrans>1
-                t_peak = (n_backTrans - 1)/b_backTrans;
-                theta_peak =  t_peak^(n_backTrans-1) * exp( -b_backTrans * t_peak );
-            else
-                theta_peak  = 0;
-            end
-            
+            t_peak = zeros(size(n_backTrans));
+            theta_peak = zeros(size(n_backTrans));
+            filt = n_backTrans>1;
+            t_peak(filt) = (n_backTrans(filt) - 1)./b_backTrans(filt);
+            theta_peak(filt) =  t_peak(filt).^(n_backTrans(filt)-1) .* exp( -b_backTrans(filt) .* t_peak(filt) );
+                        
             params = theta_peak;
             param_names = {'Lag time from input to head (days)'};
             

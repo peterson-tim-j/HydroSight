@@ -96,25 +96,57 @@ classdef ExpSmooth < model_abstract
             % Convert logical to double for MEX input
             obj.variables.isObsTimePoints = double(obj.variables.isObsTimePoints);
             
+            % Set percentile for noise 
+            Pnoise = 0.95;            
+            
             % Calc deterministic component of the head at 'time_points_all'.
             params = getParameters(obj);
             obj.variables.doingCalibration = false;
-            [~, head, obj.variables.h_forecast] = objectiveFunction(params, time_points_all, obj);            
+            [~, headtmp, obj.variables.h_forecast] = objectiveFunction(params, time_points_all, obj);            
             
             % Filter 'head' to only those time points input to the
             % function.
             [~, ind] = intersect(time_points_all,time_points);            
-            head = [time_points, head(ind,:)];
-            
+            headtmp = [time_points, head(ind,:)];            
+                        
+            if size(params,2)>1
+                head = zeros(size(headtmp,1),size(headtmp,2), size(params,2));
+                noise = zeros(size(headtmp,1),3, size(params,2));
+                head(:,:,1)= headtmp;
+                for ii=1:size(params,2)
+                    
+                    % Calc deterministic component of the head at 'time_points_all'.
+                    params = getParameters(obj);
+                    obj.variables.doingCalibration = false;
+                    [~, headtmp, obj.variables.h_forecast] = objectiveFunction(params(:,ii), time_points_all, obj);            
+
+                    % Filter 'head' to only those time points input to the
+                    % function.
+                    [~, ind] = intersect(time_points_all,time_points);            
+                    head(:,:,ii) = [time_points, head(ind,:)];                                
+                
+                    % Create noise component output.
+                    if isfield(obj.variables,'sigma_n');
+                        noise(:,:,ii) = [head(:,1,ii), ones(size(head,1),2) .* norminv(Pnoise,0,1) .* obj.variables.sigma_n(ii)];
+                    else
+                        noise(:,:,ii) = [head(:,1,ii), zeros(size(head,1),2)];
+                    end                
+                end
+            else
+                head = headtmp;                
+                
+                % Create noise component output.
+                if isfield(obj.variables,'sigma_n');
+                    noise(:,:) = [head(:,1), norminv(Pnoise,0,1) .* obj.variables.sigma_n(ones(size(head,1),2))];
+                else
+                    noise(:,:) = [head(:,1), zeros(size(head,1),2)];
+                end                
+                
+            end            
+                        
             % Assign column names
             colnames = {'time','h_star'};
-            
-            % Create noise component output.
-            if isfield(obj.variables,'sigma_n');
-                noise = [head(:,1), obj.variables.sigma_n(ones(size(head,1),2))];
-            else
-                noise = [head(:,1), zeros(size(head,1),2)];
-            end                        
+                                 
         end
         
         function [params_initial, time_points] = calibration_initialise(obj, t_start, t_end)
@@ -229,7 +261,7 @@ classdef ExpSmooth < model_abstract
             obj.variables.doingCalibration = false;
         end
         
-        function [objFn, h_star, h_forecast] = objectiveFunction(params, time_points, obj)                
+        function [objFn, h_star, h_forecast] = objectiveFunction(params, time_points, obj, getLikelihood)                
 
             % Check the required object variables are set.
             if ~isfield(obj.variables,'isObsTimePoints') ...
@@ -324,14 +356,7 @@ classdef ExpSmooth < model_abstract
             % Add the mean head onto the smoothed estimate and forecast
             h_ar = h_ar + obj.variables.meanHead_calib;
             h_forecast = h_forecast + obj.variables.meanHead_calib;
-
-%             % Calculate the mean error and add to estimates.
-%             if obj.variables.doingCalibration
-%                 obj.parameters.Const = mean(h_forecast) - obj.variables.meanHead_calib;
-%             end       
-%             h_ar = h_ar - obj.parameters.Const;
-%             h_forecast = h_forecast - obj.parameters.Const;
-%             
+             
             % Assign output for non-corrected head
             h_star = h_ar;
             
@@ -351,8 +376,14 @@ classdef ExpSmooth < model_abstract
             innov = resid(2:end,:) - resid(1:end-1,:).*exp( bsxfun(@times, -beta ,obj.variables.delta_t) );
 
             % Calculate the weighted least squares objective function
-            objFn = sqrt( bsxfun(@rdivide, exp(mean(log( 1- exp( bsxfun(@times, -2*beta ,obj.variables.delta_t )) ))) ...
+            objFn = sum( bsxfun(@rdivide, exp(mean(log( 1- exp( bsxfun(@times, -2*beta ,obj.variables.delta_t )) ))) ...
                         ,(1- exp(  bsxfun(@times, -2*beta ,obj.variables.delta_t) ))) .* innov.^2);   
+                    
+            % Calculate log liklihood    
+            if getLikelihood
+                N = size(resid,1);
+                objFn = -0.5 * N * ( log(2*pi) + log(objFn./N)+1); 
+            end                    
                     
         end
         

@@ -20,12 +20,12 @@ classdef responseFunction_JacobsCorrection < handle
                   
         % Set parameters
         function setParameters(obj, params)
-            obj.zeta = params(1);
+            obj.zeta = params(1,:);
         end
         
         % Get model parameters
         function [params, param_names] = getParameters(obj)
-            params(1,1) = obj.zeta;
+            params(1,:) = obj.zeta;
             param_names = {'zeta'};
         end
         

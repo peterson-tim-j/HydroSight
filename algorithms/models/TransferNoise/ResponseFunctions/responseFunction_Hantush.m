@@ -44,17 +44,17 @@ classdef responseFunction_Hantush < responseFunction_FerrisKnowles
         % Set parameters
         function setParameters(obj, params)
             if size(params,1)==3
-                setParameters@responseFunction_FerrisKnowles(obj, params(1:2));                        
-                obj.gamma = params(3);            
+                setParameters@responseFunction_FerrisKnowles(obj, params(1:2,:));                        
+                obj.gamma = params(3,:);            
             elseif size(params,1)==2
-                setParameters@responseFunction_FerrisKnowles(obj, params(1:2));                        
+                setParameters@responseFunction_FerrisKnowles(obj, params(1:2,:));                        
             end
         end
         
         % Get model parameters
         function [params, param_names] = getParameters(obj)
             [params, param_names] = getParameters@responseFunction_FerrisKnowles(obj);
-            params(3,1) = obj.gamma;       
+            params(3,:) = obj.gamma;       
             param_names{3,1} = 'gamma';
         end        
         

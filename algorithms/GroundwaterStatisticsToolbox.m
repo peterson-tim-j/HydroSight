@@ -577,7 +577,7 @@ classdef GroundwaterStatisticsToolbox < handle
            
            % Undertake the simulation of the head                      
            try
-              [obj.simulationResults{simInd,1}.head, obj.simulationResults{simInd,1}.colnames, obj.simulationResults{simInd,1}.noise] = solve(obj.model, time_points, -inf, inf);
+              [obj.simulationResults{simInd,1}.head, obj.simulationResults{simInd,1}.colnames, obj.simulationResults{simInd,1}.noise] = solve(obj.model, time_points);
            catch ME
                          
               % Add the original forcing back into the model.
@@ -592,35 +592,59 @@ classdef GroundwaterStatisticsToolbox < handle
            % Krige the residuals so that the simulation honours observation
            % points.
            krigingVariance=[];
-           if doKrigingOnResiduals && isempty(forcingData)
-              % Call model interpolation
-              maxKrigingObs = min(10,ceil(0.1*length(getObservedHead(obj))));
-              useModel = true;
-              head_estimates = interpolateData(obj, time_points, maxKrigingObs, useModel);
-              
+           if doKrigingOnResiduals && isempty(forcingData)           
+               kriging_contribution = zeros( size(obj.simulationResults{simInd,1}.head,1), 1, size(obj.simulationResults{simInd,1}.head,3));
+               krigingVariance = kriging_contribution;
+               head_estimates = zeros( size(obj.simulationResults{simInd,1}.head,1), 3, size(obj.simulationResults{simInd,1}.head,3));
+               parfor i=1:size(obj.simulationResults{simInd,1}.head,3)
+                  modelResults=[]; 
+                  modelResults.head_estimates = [obj.simulationResults{simInd,1}.head(:,1:2,i), ...
+                      obj.simulationResults{simInd,1}.head(:,2,i) - obj.simulationResults{simInd,1}.noise(:,2,i),  ...
+                      obj.simulationResults{simInd,1}.head(:,2,i) + obj.simulationResults{simInd,1}.noise(:,3,i)];
+                  modelResults.krigingData = [obj.calibrationResults.data.modelledHead(:,1), obj.calibrationResults.data.modelledHead_residuals(:,i)];
+                  modelResults.range = obj.calibrationResults.performance.variogram_residual.range{i};
+                  modelResults.sill = obj.calibrationResults.performance.variogram_residual.sill{i};
+                  modelResults.nugget = obj.calibrationResults.performance.variogram_residual.nugget{i};
+                   
+                  % Call model interpolation
+                  maxKrigingObs = min(10,ceil(0.1*length(getObservedHead(obj))));
+                  useModel = true;
+                  head_estimates(:,:,i) = interpolateData(obj, time_points, maxKrigingObs, useModel,modelResults);
+               end
+               
               % Calculate the contribution from interpolation
-              kriging_contribution = head_estimates(:,2) - obj.simulationResults{simInd,1}.head(:,2);
-              
+              kriging_contribution = head_estimates(:,2,:) - obj.simulationResults{simInd,1}.head(:,2,:);
+
               % Add interpolated head into the simulation results.
-              obj.simulationResults{simInd,1}.head(:,2) = head_estimates(:,2);
-              
+              obj.simulationResults{simInd,1}.head(:,2,:) = head_estimates(:,2,:);
+
               % Store the kriging variance.
-              krigingVariance = head_estimates(:,end);              
+              krigingVariance = head_estimates(:,end,:);              
                
            end
            
            % Add columns to output for the noise componant.
            if ~isempty(obj.simulationResults{simInd,1}.noise)
-               h = [obj.simulationResults{simInd,1}.head(:,1:2), obj.simulationResults{simInd,1}.head(:,2) - obj.simulationResults{simInd,1}.noise(:,2), obj.simulationResults{simInd,1}.head(:,2) + obj.simulationResults{simInd,1}.noise(:,3)];
+               h = [obj.simulationResults{simInd,1}.head(:,1:2,:), obj.simulationResults{simInd,1}.head(:,2,:) - obj.simulationResults{simInd,1}.noise(:,2,:), obj.simulationResults{simInd,1}.head(:,2,:) + obj.simulationResults{simInd,1}.noise(:,3,:)];
            else
                h = [obj.simulationResults{simInd,1}.head(:,1:2), zeros(size(obj.simulationResults{simInd,1}.head(:,2),1),2)];
            end
-           
+
            % Add contribution from kriging plus the variance
            if ~isempty(krigingVariance);               
                obj.simulationResults{simInd,1}.head = [obj.simulationResults{simInd,1}.head, kriging_contribution, krigingVariance];
                obj.simulationResults{simInd,1}.colnames = {obj.simulationResults{simInd,1}.colnames{:}, 'Kriging Adjustment','Kriging Variance'};
                h = obj.simulationResults{simInd,1}.head;
+           end           
+           
+           % Post-proess the stored simulation results to just percentiles
+           if size(obj.simulationResults{simInd,1}.head,3)>1                
+               head_tmp=obj.simulationResults{simInd,1}.head(:,1,1);
+                for i=2:size(obj.simulationResults{simInd,1}.head,2)
+                     head_tmp = [head_tmp, permute(prctile( obj.simulationResults{simInd,1}.head(:, i,:),[50 5 95],3),[1,3,2])];
+                end
+                obj.simulationResults{simInd,1}.head = head_tmp;
+                obj.simulationResults{simInd,1}.noise = [obj.simulationResults{simInd,1}.head(:,1,1), prctile( obj.simulationResults{simInd,1}.noise(:, 2,:),5,3), prctile( obj.simulationResults{simInd,1}.noise(:, 2,:),95,3)];
            end
            
            % Add the original forcing back into the model.
@@ -730,9 +754,25 @@ classdef GroundwaterStatisticsToolbox < handle
                error('The simulation label must be specified.');
            end
            simInd = cellfun( @(x) strcmp(x.simulationLabel , simulationLabel), obj.simulationResults);               
-                
+
+            % Assess if the data is from a population of simlations (eg
+            % from DREAM calibration)
+            hasModelledDistn = false;
+            if size(obj.calibrationResults.data.modelledHead,2)>2   
+                hasModelledDistn = true;                
+            end
+            
+            hasNoiseComponant=false;
+            if ~isempty(obj.simulationResults{simInd,1}.noise)
+                hasNoiseComponant=true;
+            end           
+           
            % Get number of model componant (ie forcing types).
-           nModelComponants = size(obj.simulationResults{simInd,1}.head,2)-2;
+           if hasModelledDistn
+                nModelComponants = (size(obj.simulationResults{simInd,1}.head,2)-1)/3 - 1;    
+           else
+                nModelComponants = size(obj.simulationResults{simInd,1}.head,2)-2;
+           end
 
            % Check if there is data for the climate lags
            doClimateLagCalcuations = false;
@@ -748,16 +788,31 @@ classdef GroundwaterStatisticsToolbox < handle
               h = subplot(2+nModelComponants+doClimateLagCalcuations,1,1:2, 'Parent',figHandle);  
               h_legend = [];
            end
-           
-           % Plot bounds for noise component.
-           if ~isempty(obj.simulationResults{simInd,1}.noise)
+            
+            % Plot time series of heads.                        
+            %-------
+            % Plot bounds for noise component.
+            if hasNoiseComponant
                XFill = [obj.simulationResults{simInd,1}.head(:,1)' fliplr(obj.simulationResults{simInd,1}.head(:,1)')];
                YFill = [[obj.simulationResults{simInd,1}.head(:,2) + obj.simulationResults{simInd,1}.noise(:,3)]', fliplr([obj.simulationResults{simInd,1}.head(:,2) - obj.simulationResults{simInd,1}.noise(:,2)]')];
+
                fill(XFill, YFill,[0.8 0.8 0.8],'Parent',h);
-               clear XFill YFill
+               clear XFill YFill               
                hold(h,'on');
-           end
-           
+            end
+
+            if hasModelledDistn
+
+               XFill = [obj.simulationResults{simInd,1}.head(:,1)' ...
+                        fliplr(obj.simulationResults{simInd,1}.head(:,1)')];
+               YFill = [obj.simulationResults{simInd,1}.head(:,4)', ...
+                        fliplr(obj.simulationResults{simInd,1}.head(:,3)')];
+                    
+               fill(XFill, YFill,[0.6 0.6 0.6],'Parent',h);
+               clear XFill YFill               
+               hold(h,'on');                    
+            end
+            
            % Plot modelled deterministic componant.
            plot(h, obj.simulationResults{simInd,1}.head(:,1), obj.simulationResults{simInd,1}.head(:,2),'-b' );
            hold(h,'on');         
@@ -769,13 +824,33 @@ classdef GroundwaterStatisticsToolbox < handle
            % Set axis labels and title
            datetick(h, 'x','yy');
            ylabel(h, 'Head (m)');           
-           title(h, ['Bore ', strrep(obj.bore_ID,'_',' ') , ' - Observed and modelled head']);                           
+           title(h, ['Bore ', strrep(obj.bore_ID,'_',' ') , ' - Simulated head']); 
            
-           if ~isempty(obj.simulationResults{simInd,1}.noise)
-                legend(h,'Noise','Modelled','Observed', 'Location','NorthWest' );
-           else               
-                legend(h,'Modelled','Observed' );
-           end
+            % Create legend strings  
+            i=1;
+            if hasNoiseComponant
+                if hasModelledDistn
+                    legendstr{i}='Total Err. (5th-95th)';
+                else
+                    legendstr{i}='Total Err.';
+                end
+                i=i+1;
+            end
+            if hasModelledDistn
+                legendstr{i}='Param. Err. (5th-95th)';            
+                i=i+1;
+            end
+            if hasModelledDistn
+                legendstr{i}='Sim. (median)';
+            else
+                legendstr{i}='Sim.';
+            end            
+            i=i+1;                                
+            legendstr{i}='Observed';
+            i=i+1;            
+            legend(h,legendstr, 'Location','NorthWest' );
+           
+
            hold(h,'off');
            %-------
             
@@ -788,7 +863,22 @@ classdef GroundwaterStatisticsToolbox < handle
                    else
                         h = subplot(2+nModelComponants+doClimateLagCalcuations,1, 2+ii, 'Parent',figHandle );
                    end
-                   plot(h, obj.simulationResults{simInd,1}.head(:,1), obj.simulationResults{simInd,1}.head(:,ii+2),'.-b' );
+                   if hasModelledDistn
+                       
+                       XFill = [obj.simulationResults{simInd,1}.head(:,1)' ...
+                                fliplr(obj.simulationResults{simInd,1}.head(:,1)')];
+                       YFill = [obj.simulationResults{simInd,1}.head(:,3*(ii+1)+1)', ...
+                                fliplr(obj.simulationResults{simInd,1}.head(:, 3*(ii+1))')];
+
+                       fill(XFill, YFill,[0.6 0.6 0.6],'Parent',h);
+                       clear XFill YFill               
+                       hold(h,'on');                    
+                       plot(h, obj.simulationResults{simInd,1}.head(:,1), obj.simulationResults{simInd,1}.head(:,3*(ii+1)-1),'-b' );
+                       
+                   else
+                       plot(h, obj.simulationResults{simInd,1}.head(:,1), obj.simulationResults{simInd,1}.head(:,ii+2),'-b' );
+                   end
+                        
                    
                    % Set axis labels and title
                    datetick(h, 'x','yy');                   
@@ -801,7 +891,7 @@ classdef GroundwaterStatisticsToolbox < handle
         end
 
 %% Interpolate and extrapolate observation data        
-        function head_estimates = interpolateData(obj, targetDates, maxKrigingObs, useModel)
+        function head_estimates = interpolateData(obj, targetDates, maxKrigingObs, useModel, modelResults)
 % Interpolate and extrapolate observation data.
 %
 % Syntax:
@@ -892,14 +982,25 @@ classdef GroundwaterStatisticsToolbox < handle
             
             % Call model at target date and remove the first column
             % containing the date (it is added back later)
-            if useModel                
-                head_estimates= solveModel(obj, targetDates, [], '', false);
-                head_estimates = head_estimates(:,2:4);
-                krigingData = obj.calibrationResults.data.modelledHead_residuals;
+            if useModel   
+                if nargin==4 || isempty(modelResults) 
+                    head_estimates= solveModel(obj, targetDates, [], '', false);
+                    krigingData = obj.calibrationResults.data.modelledHead_residuals;
+                    
+                    range = obj.calibrationResults.performance.variogram_residual.range;
+                    sill = obj.calibrationResults.performance.variogram_residual.sill;
+                    nugget = obj.calibrationResults.performance.variogram_residual.nugget;                
 
-                range = obj.calibrationResults.performance.variogram_residual.range;
-                sill = obj.calibrationResults.performance.variogram_residual.sill;
-                nugget = obj.calibrationResults.performance.variogram_residual.nugget;                
+                else 
+                    head_estimates = modelResults.head_estimates;
+                    krigingData = modelResults.krigingData;
+                    range = modelResults.range;
+                    sill = modelResults.sill;
+                    nugget = modelResults.nugget;
+                end
+                %head_estimates = head_estimates(:,2:4);
+                %krigingData = obj.calibrationResults.data.modelledHead_residuals;
+
             else
                 head_estimates = zeros(length(targetDates),5);
                 krigingData = getObservedHead(obj.model);
@@ -957,30 +1058,30 @@ classdef GroundwaterStatisticsToolbox < handle
                 kriging_weights = G_mod \ G_target;
                 
                 % Estimate residual at target date
-                head_estimates(ii,4) = sum( kriging_weights(1:nobs,1) .* krigingData(ind,2)) ...
+                head_estimates(ii,5) = sum( kriging_weights(1:nobs,1) .* krigingData(ind,2)) ...
                     + (1-sum(kriging_weights(1:end-1,1))) .* mean(krigingData(ind,2) );                    
                 
                 % Estimate kriging variance of the residual at target date.
-                head_estimates(ii,5) = sum( kriging_weights(1:nobs,1) .* G_target(1:nobs,1)) + kriging_weights(end,1);
+                head_estimates(ii,6) = sum( kriging_weights(1:nobs,1) .* G_target(1:nobs,1)) + kriging_weights(end,1);
             end
             %----------------------------
 
            % Adjust head estimate by kriging residual (ie the bias in the
            % estimate).
-           head_estimates(:,4) = head_estimates(:,1) + head_estimates(:,4);
+           head_estimates(:,5) = head_estimates(:,2) + head_estimates(:,5);
             
            % Normalise kriging weights to between zero and one.
-           head_estimates(:,5) = head_estimates(:,5)./ (sill + nugget);
+           head_estimates(:,6) = head_estimates(:,6)./ (sill + nugget);
            
            % Estimate prediction error with weighting by normalised kriging
            % variance.
            if useModel
-                head_estimates(:,5) = head_estimates(:,5) .* 0.5.*(head_estimates(:,3) - head_estimates(:,2));
+                head_estimates(:,6) = head_estimates(:,6) .* 0.5.*(head_estimates(:,4) - head_estimates(:,3));
            end
 
            % Remove the columns of working data and return prediction and
            % the error estimate.
-           head_estimates = [targetDates, head_estimates(:,4), head_estimates(:,5)];
+           head_estimates = [targetDates, head_estimates(:,5), head_estimates(:,6)];
             
         end
         
@@ -1128,6 +1229,10 @@ classdef GroundwaterStatisticsToolbox < handle
                     if ~isscalar(SchemeSetting) || (isscalar(SchemeSetting) && (SchemeSetting<1 || floor(SchemeSetting)~=ceil(SchemeSetting) ))
                         error('The SP-UCI calibration scheme requires an input scalar integer >=1 for the number of complexes per model parameter.');
                     end
+                case {'DREAM', 'dream','Dream'}
+                    if ~isscalar(SchemeSetting) || (isscalar(SchemeSetting) && (SchemeSetting<1 || floor(SchemeSetting)~=ceil(SchemeSetting) ))
+                        error('The DREAM calibration scheme requires an input scalar integer >=1 for the number of Markov cahins per model parameter.');
+                    end                    
                 otherwise
                     error('The requested calibration scheme is unknown.');
             end
@@ -1178,7 +1283,8 @@ classdef GroundwaterStatisticsToolbox < handle
             end
             
             % Initialsie model for calibration and check params
-            [params, time_points] = calibration_initialise(obj.model, t_start, t_end);             
+            [params, time_points] = calibration_initialise(obj.model, t_start, t_end);       
+            params =  median(params,2);
             if any(isnan(params))
                 error('At least one model parameter value equals NaN. Please input a correct value to the model');
             end
@@ -1257,9 +1363,6 @@ classdef GroundwaterStatisticsToolbox < handle
             end            
             %------------
             
-            % Set CMA-ES calibration the population size.  
-                      
-
             % Output user set options.
             display( char(13) );           
             display('Global calibration scheme is to be undertaken using the following settings');
@@ -1273,6 +1376,10 @@ classdef GroundwaterStatisticsToolbox < handle
                 case {'SP UCI','SP_UCI','SPUCI','SP-UCI'}
                     display( '      - Calibration scheme: Shuffled complex evolution with principal components analysis–University of California at Irvine (SP-UCI)');                    
                     display(['      - Number of complexes per parameter = ',num2str(SchemeSetting)]);  
+                case {'DREAM', 'Dream','dream'}
+                    display( '      - Calibration scheme: DiffeRential Evolution Adaptive Metropolis algorithm (DREAM)');                    
+                    display(['      - Number of generations per parameter = ',num2str(10000*SchemeSetting)]);  
+                    
              end             
             display( '      - Summary of parameters for calibration and their bounds: ');
             display( '      - Param. componant and name, lower and upper boundary value: ');
@@ -1287,18 +1394,13 @@ classdef GroundwaterStatisticsToolbox < handle
                 disp([params_str]);    
             end 
 
-            % Call objective function to find determine the number rows
-            % in the output.
-            h_forcing = objectiveFunction(params, time_points, obj.model);
-            nObjRows = size( h_forcing ,1);
-            clear h_forcing;
-            
             % Initial the random seed and some variables.
             rand('seed',seed);
             
             %--------------------------------------------------------------
 
-            % Do SCE calibration using the objective function SSE.m             
+            % Do SCE calibration using the objective function SSE.m
+            log_L=[];
             switch calibrationSchemeName
                 case {'CMA ES','CMA_ES','CMAES','CMA-ES'}
                     
@@ -1312,35 +1414,213 @@ classdef GroundwaterStatisticsToolbox < handle
                     cmaes_options.EvalParallel = 'yes';     % Undertake parrallel function evaluation
                     cmaes_options.SaveVariables = 'off';    % Do not save .mat file of results.
                     
+                    useLikelihood = false;
+                    
                     % Define bounds and initial standard dev of params
                     insigma = 1/3*(params_upperBound - params_lowerBound);
                     params_start = params_lowerBound + 1/2.*(params_upperBound - params_lowerBound);
                     params_start = [mat2str(params_start) '+ insigma .* (2 * rand(',num2str(nparams),',1) -1)'];                    
                     
                     % Do calibration
+                    doParamTranspose = false;
                     [params_finalEvol, fmin_finalEvol, numFunctionEvals, exitflag, evolutions, params_bestever] ...            
-                     = cmaes( 'calibrationObjectiveFunction', params_start, insigma, cmaes_options, obj, time_points );
+                     = cmaes( 'calibrationObjectiveFunction', params_start, insigma, cmaes_options, obj, time_points, doParamTranspose, useLikelihood );
 
                     % Assign best every solution to params variable
                     params = params_bestever.x;
                     fmin = params_bestever.f;          
                     
-                    % 
-                    
+                    % Store exit status
+                    if any( strcmp(exitflag, 'maxfunevals'))
+                        exitFlag = 1;
+                        existStatus = 'Insufficient maximum number of model evaluations for convergence.';
+                    elseif any( strcmp(exitflag, 'maxiter'))
+                        exitFlag = 1;
+                        existStatus = 'Insufficient maximum number of iterations for convergence.';
+                    elseif any( strcmp(exitflag, 'maxiter'))
+                        exitFlag = 1;
+                        existStatus = 'Insufficient maximum number of iterations for convergence.';                    
+                    elseif any( strcmp(exitflag, 'tolx')) && ~any( strcmp(exitflag, 'tolfun'))
+                        exitFlag=1;
+                        exitStatus = ['Only parameter convergence (not obj. function convergence) achieved in ', num2str(numFunctionEvals),' function evaluations.'];
+                    elseif ~any( strcmp(exitflag, 'tolx')) && any( strcmp(exitflag, 'tolfun'))
+                        exitFlag=1;
+                        exitStatus = ['Only objective function convergence achieved (not param. convergence) in ', num2str(numFunctionEvals),' function evaluations.'];
+                    elseif  any( strcmp(exitflag, 'maxfunevals')) || ...
+                    any( strcmp(exitflag, 'maxiter')) || ...    
+                    any( strcmp(exitflag, 'stoptoresume')) || ...    
+                    any( strcmp(exitflag, 'manual')) || ...    
+                    any( strcmp(exitflag, 'warnconditioncov')) || ...    
+                    any( strcmp(exitflag, 'warnnoeffectcoord')) || ...    
+                    any( strcmp(exitflag, 'warnnoeffectaxis')) || ...    
+                    any( strcmp(exitflag, 'warnequalfunvals')) || ...    
+                    any( strcmp(exitflag, 'warnequalfunvalhist')) ...
+                    any( strcmp(exitflag, 'bug')) ...
+                                                
+                        exitStatus = ['Calibration warning encountered:', exitflag,' See CMA-ES scheme documentation for details.'];                        
+                        exitFlag=1;
+                    elseif any( strcmp(exitflag, 'tolx')) && any( strcmp(exitflag, 'tolfun'))
+                        exitFlag=2;
+                        exitStatus = ['Parameter and objective function convergence achieved in ', num2str(numFunctionEvals),' function evaluations.'];
+                    else
+                        exitFlag=0;
+                        exitStatus = ['Unhandled non-convergence issues. Total model evaluations undertaken = ', num2str(numFunctionEvals)];
+                        
+                        obj.calibrationResults.exitFlag = exitFlag;
+                        obj.calibrationResults.exitStatus = exitStatus;
+                        
+                        ME = MException('GST:CalibrationFailure',exitStatus);
+                        throw(ME);                        
+                    end                        
+                        
                 case {'SP UCI','SP_UCI','SPUCI','SP-UCI'}
                     maxn = inf;
                     kstop = 10;    
                     pcento = 1e-10;    
-                    peps = 1e-7;
+                    peps = 1e-6;
                     ngs = SchemeSetting*nparams;
                     iseed = floor(rand(1)*100000);
                     iniflg =  1;                
+                    useLikelihood=false;
+
+                    % Do calibration                                        
+                    doParamTranspose = false;
+                    [params, fmin,numFunctionEvals, exitFlag, exitStatus] = SPUCI(@calibrationObjectiveFunction, @calibrationValidParameters, ...
+                        params', params_lowerBound', params_upperBound', params_lowerPhysBound', params_upperPhysBound', maxn, ...
+                        kstop, pcento, peps, ngs, iseed, iniflg, obj, time_points, doParamTranspose, useLikelihood); 
+                        params = params';
                     
-                    % Do calibration                    
-                    [params, fmin,numFunctionEvals] = SPUCI(@calibrationObjectiveFunction, @calibrationValidParameters, ...
-                    params', params_lowerBound', params_upperBound', params_lowerPhysBound', params_upperPhysBound', maxn, ...
-                    kstop, pcento, peps, ngs, iseed, iniflg, obj, time_points); 
-                    params = params';
+                    if exitFlag==0
+                        obj.calibrationResults.exitFlag = exitFlag;
+                        obj.calibrationResults.exitStatus = exitStatus;
+                        
+                        ME = MException('GST:CalibrationFailure',exitStatus);
+                        throw(ME);
+                    end
+
+                    
+                case {'DREAM', 'Dream','dream'}
+
+                    % Set uninformed prior distribution using plausible
+                    % bounds. DREAM will sample this to defined the initial
+                    % parameter values
+                    sig = 2*(params_upperBound - params_lowerBound);
+                    mu = params_lowerBound + 1/2.*(params_upperBound - params_lowerBound);
+                                        
+                    % Application specific settings.
+                    % -------------------------------------------------------------------------
+                    % Set the approx. number of samples required for
+                    % reliable inferance. Col 1: the number of parameters,
+                    % Col 2: number of samples. (source Vrugt, 2016, http://dx.doi.org/10.1016/j.envsoft.2015.08.013 p 293).                    
+                    reqMinParamSamples = [ 1 500; 2 1000; 5 5000; 10 10000; 25 50000; 50 200000; 100 1000000; 250 5000000];
+                    
+                    %Interpolate above matrix to number of parameters for
+                    %this model.
+                    reqMinParamSamples = floor(interp1( reqMinParamSamples(:,1), reqMinParamSamples(:,2), nparams, 'linear'));
+                    
+                    % -------------------------------------------------------------------------
+                    %                           DEFAULT VALUES
+                    % -------------------------------------------------------------------------
+                    DREAMPar.nCR = 3;                 % Number of crossover values 
+                    DREAMPar.delta = 3;               % Number chain pairs for proposal
+                    DREAMPar.lambda = 0.05;           % Random error for ergodicity
+                    DREAMPar.zeta = 0.05;             % Randomization
+                    DREAMPar.outlier = 'iqr';         % Test to detect outlier chains
+                    DREAMPar.pJumpRate_one = 0.2;     % Probability of jumprate of 1
+                    DREAMPar.pCR = 'yes';             % Adaptive tuning crossover values
+                    DREAMPar.thinning = 1;            % Each Tth sample is stored         
+                    % -------------------------------------------------------------------------
+                    %                           MODEL SPECIFIC VALUES
+                    % -------------------------------------------------------------------------                    
+                    DREAMPar.d = nparams;             % Dimensionality target distribution
+                    DREAMPar.N =max(nparams, 2*DREAMPar.delta+1);   % Number of Markov chains
+                    DREAMPar.T = 10000*SchemeSetting;  % Number of generations
+                    DREAMPar.lik=2;                   % Choice of likelihood function
+                    useLikelihood = true;
+                    DREAMPar.restart = 'no';
+                    DREAMPar.modout='no';
+                    DREAMPar.save='no';
+                    % -------------------------------------------------------------------------
+                    %                      OPTIONAL (DEFAULT = 'no'  / not used )
+                    % -------------------------------------------------------------------------
+                    % Multi-core computation chains? Turn on if there are
+                    % >1 cores available.
+                    if feature('numCores')>1
+                        DREAMPar.parallel = 'yes';        
+                    else
+                        DREAMPar.parallel = 'no';
+                    end
+                    %Par_info.prior ='normal';          % Initial sampling distribution ('uniform'/'latin'/'normal'/'prior')
+                    %Par_info.mu = mu';
+                    %Par_info.cov = repmat(sig,1,nparams).*eye(nparams);
+                    Par_info.prior ='latin';
+                    %Par_info.min_initial = params_lowerBound';
+                    %Par_info.max_initial = params_upperBound';
+                    %Par_info.min = params_lowerPhysBound'; % If 'latin', min parameter values
+                    %Par_info.max = params_upperPhysBound'; % If 'latin', max parameter values
+                    Par_info.min = params_lowerBound'; % If 'latin', min parameter values
+                    Par_info.max = params_upperBound'; % If 'latin', max parameter values                    
+                    Par_info.boundhandling ='reflect';% Explicit boundary handling
+
+                    % Do calibration 
+                    doParamTranspose = true;
+                    [params,output,fx,log_L] = DREAM(@calibrationObjectiveFunction,DREAMPar,Par_info,[], obj, time_points, doParamTranspose,useLikelihood);
+                              
+                    % Extract the R_statistic values and dilter for those
+                    % where R_statistic<1.2 for all parameters in the set.
+                    r_stat_threshold = 1.2;
+                    r_stat_acceptable = all(output.R_stat(1: end, 2: DREAMPar.d + 1)<r_stat_threshold,2);
+                    
+                    % Find the threshold generations where R-stat criteria is first met.
+                    convergedParamSamplesThreshold = min(output.R_stat(r_stat_acceptable,1));
+                    
+                    % Find the total number of samples
+                    nParamSamples = output.R_stat(end, 1);
+                    
+%                     % Find the threshold generations where R-stat criteria is last met.
+%                     convergedParamSamplesThresholdMax = max(output.R_stat(r_stat_acceptable,1));                    
+%                     if convergedParamSamplesThresholdMax<nParamSamples
+%                         params = params(1:floor(convergedParamSamplesThresholdMax/nparams),:,:);
+%                         nParamSamples = size(params,1)*nparams;
+%                     end
+                    
+                    % Find the number of viable parameter sets                    
+                    convergedParamSamples = max(1,nParamSamples - convergedParamSamplesThreshold);
+
+                    % To minimise RAM, only save a maximum of
+                    % 2*convergedGenerations parameter sets.
+                    if convergedParamSamples>=  2*reqMinParamSamples                        
+                        convergedParamSamples = 2*reqMinParamSamples;
+                        convergedParamSamplesThreshold = nParamSamples - convergedParamSamples;
+                    end
+                    
+                    if convergedParamSamples < 0.1*reqMinParamSamples
+                        exitFlag=0;
+                        exitStatus = ['Insufficient DREAM generations for reliable calibration. Number of reliable param. sets is ', num2str(convergedParamSamples), ...
+                            ' and recommended is at least ',num2str(reqMinParamSamples),'. Increase method number to greater than ',num2str(SchemeSetting)];
+                        
+                        obj.calibrationResults.exitFlag = exitFlag;
+                        obj.calibrationResults.exitStatus = exitStatus;
+                        
+                        ME = MException('GST:CalibrationFailure',exitStatus);
+                        throw(ME);
+                    elseif convergedParamSamples < reqMinParamSamples
+                        exitFlag=1;
+                        exitStatus = ['Possible insufficient DREAM generations. Number of reliable param. sets is ', num2str(convergedParamSamples), ...
+                            ' and recommended is at least ',num2str(reqMinParamSamples),'. Increase method number to greater than ',num2str(SchemeSetting)];
+                    else
+                        exitFlag=2;
+                        exitStatus = ['Sufficient DREAM iterations. Number of reliable param. sets is ', num2str(convergedParamSamples), ...
+                            ' and recommended is at least ',num2str(reqMinParamSamples)];                        
+                    end
+
+                    convergedParamSamplesThreshold = floor(convergedParamSamplesThreshold/nparams);
+                    params = params(convergedParamSamplesThreshold:end,:,:);
+                    params = genparset(params);
+                    paramsTmp = params(:,1:nparams)';
+                    log_L = params(:,end)';
+                    params=paramsTmp;                    
+                    clear paramsTmp
                 otherwise
                     error('The requested calibration scheme is unknown.');
             end            
@@ -1351,17 +1631,27 @@ classdef GroundwaterStatisticsToolbox < handle
            
             % Finalise model for calibration
             %--------------------------------------------------------------            
+            % Get likelihood est (for latter AICc estimate).
+            useLikelihood=true;
+            if isempty(log_L)
+                log_L = objectiveFunction(params, time_points, obj.model, useLikelihood);
+            end    
+            
             % Get observed head during calib. periods            
             obsHead = obj.model.inputData.head;            
             
             % Call model objects to finalise calibration.
             calibration_initialise(obj.model, t_start, t_end);
-            calibration_finalise(obj.model, params );            
+            calibration_finalise(obj.model, params, false );            
                        
             % Add final parameters
             [obj.calibrationResults.parameters.params_final, ...
                 obj.calibrationResults.parameters.params_name] = getParameters(obj.model);  
-                        
+
+            % Add exist status
+            obj.calibrationResults.exitFlag = exitFlag;
+            obj.calibrationResults.exitStatus = exitStatus;            
+            
             % Calculate calibration and evaluation heads
             %--------------------------------------------------------------            
             try                
@@ -1370,32 +1660,45 @@ classdef GroundwaterStatisticsToolbox < handle
                 head_est = solveModel(obj, obsHead(:,1));
             end
                 
-            % Calib residuals.
+            % Convert to real (just n case errors in pram est arose)
             head_est = real(head_est);
-            head_calib = head_est( t_filt, :);
-            head_calib_resid = [obsHead(t_filt,1), obsHead(t_filt,2) - head_calib(:,2)];
-            
-            % Eval. residuals.
-            head_eval = head_est( ~t_filt, :);
-            neval = size(head_eval,1);        
+
+            % Eval. residuals.            
+            neval = sum(~t_filt);        
             if neval>0
-                head_eval_resid = [obsHead(~t_filt,1),  obsHead(~t_filt,2) - head_eval(:,2)];
-                obj.evaluationResults.data.modelledHead = head_eval(:,1:2);
-                obj.evaluationResults.data.modelledNoiseBounds = head_eval(:,[1,3,4]);
-                obj.evaluationResults.data.modelledHead_residuals = head_eval_resid;
-                obj.evaluationResults.data.modelledHead_residuals_linFit = polyfit(head_eval_resid(:,1), head_eval_resid(:,2),1);
+                
+                if size(head_est,3)>1
+                    obj.evaluationResults.data.modelledHead = [head_est(~t_filt,1,1), permute(prctile( head_est(~t_filt, 2,:),[50 5 95],3),[1,3,2])];
+                    obj.evaluationResults.data.modelledNoiseBounds = [head_est(~t_filt,1,1), prctile( head_est(~t_filt, 3,:),5,3), prctile( head_est(~t_filt, 4,:),95,3)];
+                    %obj.evaluationResults.data.modelledHead_residuals = [head_est(~t_filt,1,1),  permute(prctile( bsxfun(@minus, obsHead(~t_filt,2), head_est(~t_filt, 2,:)),[50 5 95],3),[1,3,2])];
+                    obj.evaluationResults.data.modelledHead_residuals = permute(bsxfun(@minus, obsHead(~t_filt,2), head_est(~t_filt, 2,:)),[ 1 3 2]);
+                    head_eval_resid = [head_est(~t_filt,1,1),  permute(prctile( bsxfun(@minus, obsHead(~t_filt,2), head_est(~t_filt, 2,:)),50,3),[1,3,2])];
+                else
+                    obj.evaluationResults.data.modelledHead = head_est(~t_filt,1:2);
+                    obj.evaluationResults.data.modelledNoiseBounds = head_est(~t_filt,[1,3,4]);
+                    obj.evaluationResults.data.modelledHead_residuals = obsHead(~t_filt,2) -obj.evaluationResults.data.modelledHead(:,2);
+                    head_eval_resid = [head_est(~t_filt,1,1),  obj.evaluationResults.data.modelledHead_residuals];             
+                end
+                
             else
                 obj.evaluationResults =[];
             end
             
             % Add calib. obs data and residuals
-            obj.calibrationResults.data.modelledHead = head_calib(:,1:2);
-            obj.calibrationResults.data.modelledNoiseBounds = head_calib(:,[1,3,4]);
-            obj.calibrationResults.data.modelledHead_residuals = head_calib_resid;    
-            obj.calibrationResults.data.modelledHead_residuals_linFit = polyfit(head_calib_resid(:,1), head_calib_resid(:,2),1);            
+            if size(head_est,3)>1
+                obj.calibrationResults.data.modelledHead = [head_est(t_filt,1,1), permute(prctile( head_est(t_filt, 2,:),[50 5 95],3),[1,3,2])];                
+                obj.calibrationResults.data.modelledNoiseBounds = [head_est(t_filt,1,1), prctile( head_est(t_filt, 3,:),5,3), prctile( head_est(t_filt, 4,:),95,3)];
+                obj.calibrationResults.data.modelledHead_residuals = permute( bsxfun(@minus, obsHead(t_filt,2), head_est(t_filt, 2,:)),[1 3 2]);
+                head_calib_resid = [head_est(t_filt,1,1),  permute(prctile( bsxfun(@minus, obsHead(t_filt,2), head_est(t_filt, 2,:)),50,3),[1,3,2])];
+            else
+                obj.calibrationResults.data.modelledHead = head_est(t_filt,1:2);
+                obj.calibrationResults.data.modelledNoiseBounds = head_est(t_filt,[1,3,4]);
+                obj.calibrationResults.data.modelledHead_residuals = obsHead(t_filt,2) -obj.calibrationResults.data.modelledHead(:,2);
+                head_calib_resid = [head_est(t_filt,1), obj.calibrationResults.data.modelledHead_residuals];
+            end
                                                 
             nparams = size(params,1);
-            nobs = size(head_calib,1);
+            nobs = size(obj.calibrationResults.data.modelledHead,1);            
             %--------------------------------------------------------------
             
                         
@@ -1405,10 +1708,7 @@ classdef GroundwaterStatisticsToolbox < handle
             obj.calibrationResults.performance.mean_error =  mean( head_calib_resid(:,2) );
             %RMSE
             RMSE = sqrt( 1/numel(head_calib_resid(:,2)) * (head_calib_resid(:,2)' * head_calib_resid(:,2)));
-            obj.calibrationResults.performance.RMSE = RMSE;             
-            % Objective function error
-            obj.calibrationResults.performance.objectiveFunction = fmin;
-            
+            obj.calibrationResults.performance.RMSE = RMSE;                        
             
             obj.calibrationResults.performance.CoeffOfEfficiency_mean.description = 'Coefficient of Efficiency (CoE) calculated using a base model of the mean observed head. If the CoE > 0 then the model produces an estimate better than the mean head.';
             obj.calibrationResults.performance.CoeffOfEfficiency_mean.base_estimate = mean(obsHead(t_filt,2));            
@@ -1430,38 +1730,6 @@ classdef GroundwaterStatisticsToolbox < handle
                 ./sum( (obsHead(~t_filt,2) - mean(obsHead(~t_filt,2)) ).^2);                
             end
             %------------------
-
-            % Calc. coefficient of efficiency using a robust LOWESS  moving
-            % average of the head. This measure of model performance is
-            % better suited to non-stationary groundwater hydrographs.
-            %------------------            
-            % Calculate robust LOWESS moving average across all of the
-            % observed data. Note, the window size for the smoothing is set
-            % to two years. This is input to the smooth function by
-            % defining the fraction that two years is of the observation
-            % data.
-            try
-                smooth_weight = 730/(obsHead(end,1)-obsHead(1,1));
-                obsHead_movingAvg = smooth(obsHead(:,1), obsHead(:,2), smooth_weight ,'rlowess');
-
-                obj.calibrationResults.performance.CoeffOfEfficiency_movingAvg.description = 'Coefficient of Efficiency (CoE) calculated using a base model of the 2-year moving average head (using robust LOWESS). If the CoE > 0 then the model produces an estimate better than the moving average.';
-                obj.calibrationResults.performance.CoeffOfEfficiency_movingAvg.base_estimate = [obsHead(t_filt,1), obsHead_movingAvg(t_filt,1)];
-                obj.calibrationResults.performance.CoeffOfEfficiency_movingAvg.CoE  = 1 - sum( head_calib_resid(:,2).^2) ...
-                    ./sum( (obsHead(t_filt,2) - obj.calibrationResults.performance.CoeffOfEfficiency_movingAvg.base_estimate(:,2) ).^2);
-
-                if neval > 0;                   
-                    obj.evaluationResults.performance.CoeffOfEfficiency_movingAvg.description = 'Coefficient of Efficiency (CoE) calculated using a base model of the 2-year moving average head (using robust LOWESS). If the CoE > 0 then the model produces an estimate better than the moving average.';
-                    obj.evaluationResults.performance.CoeffOfEfficiency_movingAvg.base_estimate = [obsHead(~t_filt,1), obsHead_movingAvg(~t_filt,1)];
-
-                    obj.evaluationResults.performance.CoeffOfEfficiency_movingAvg.CoE  =  1 - sum( head_eval_resid(:,2).^2) ...
-                    ./sum( (obsHead(~t_filt,2) - obj.evaluationResults.performance.CoeffOfEfficiency_movingAvg.base_estimate(:,2) ).^2);                           
-                end
-            catch
-               % Do nothing. The curve fitting toolbox (for smooth()) does not seem to be
-               % installed.                              
-            end
-            %------------------            
-            
                                     
             % Calc. F-test and P(F>F_critical)          
             RSS = norm( obj.calibrationResults.data.modelledHead(:,2) ...
@@ -1471,53 +1739,50 @@ classdef GroundwaterStatisticsToolbox < handle
             obj.calibrationResults.performance.F_prob = fcdf(1./obj.calibrationResults.performance.F_test,nobs - nparams, nparams-1); % Significance probability for regression
             
             if neval > 0;   
+                nobs_eval = size(obj.evaluationResults.data.modelledHead,1);
                 RSS = norm( obj.evaluationResults.data.modelledHead(:,2) ...
                     - mean(obj.evaluationResults.data.obsHead(:,2))).^2;            
-                s2 = (norm(head_calib_resid(:,2))/sqrt(nobs - nparams)).^2;                
+                s2 = (norm(head_calib_resid(:,2))/sqrt(nobs_eval - nparams)).^2;                
                 obj.evaluationResults.performance.F_test = (RSS/(nparams-1))/s2;      % F statistic for regression
                 obj.evaluationResults.performance.F_prob = fcdf(1./obj.evaluationResults.performance.F_test,neval - nparams, nparams-1); % Significance probability for regression
             end
             
-            % Add BIC and Akaike information criterion            
-            err_variance = 1/(nobs-1)*(head_calib_resid(:,2)' * head_calib_resid(:,2));
-
-            obj.calibrationResults.performance.AIC = 2*nparams/nobs + log(err_variance);
-            obj.calibrationResults.performance.BIC = nparams/nobs*log(nobs) + log(err_variance);
-            if neval>1
-                err_variance = 1/(neval-1)*(head_eval_resid(:,2)' * head_eval_resid(:,2));
-                obj.evaluationResults.performance.AIC = 2*nparams/neval + log(err_variance);
-                obj.evaluationResults.performance.BIC = nparams/neval*log(neval) + log(err_variance);
-            end
+            % Add BIC and Akaike information criterion                                 
+            obj.calibrationResults.performance.AICc = 2*nparams - 2*log_L;
+            obj.calibrationResults.performance.AICc = obj.calibrationResults.performance.AICc + 2*nparams*(nparams+1)/(nobs-nparams-1);
+            obj.calibrationResults.performance.BIC = nparams*log(nobs) -2*log_L;
             
             % Calculate experimental variogram of residuals and fit an
             % exponential model
-            calib_var = variogram([head_calib_resid(:,1), zeros( size(head_calib_resid(:,1))) ] ...
-                , head_calib_resid(:,2) , 'maxdist', 365, 'nrbins', 12);
-            
-            [obj.calibrationResults.performance.variogram_residual.range, obj.calibrationResults.performance.variogram_residual.sill, ...
-                obj.calibrationResults.performance.variogram_residual.nugget, obj.calibrationResults.performance.variogram_residual.model] ...
-                = variogramfit(calib_var.distance, ...                
-                calib_var.val, 365/4, 0.75.*var( head_calib_resid(:,2)), calib_var.num, [], ...
-                'model', 'exponential', 'nugget', 0.25.*var( head_calib_resid(:,2)) ,'plotit',false );
-             
+            for i=1:size(head_est,3)                
+                resid = [obsHead(t_filt,1), obsHead(t_filt,2) - head_est(t_filt, 2,i)];
+                calib_var = variogram([resid(:,1), zeros( size(resid(:,1))) ] ...
+                    , resid(:,2) , 'maxdist', 365, 'nrbins', 12);
+
+                [obj.calibrationResults.performance.variogram_residual.range{i,1}, obj.calibrationResults.performance.variogram_residual.sill{i,1}, ...
+                    obj.calibrationResults.performance.variogram_residual.nugget{i,1}, obj.calibrationResults.performance.variogram_residual.model{i,1}] ...
+                    = variogramfit(calib_var.distance, ...                
+                    calib_var.val, 365/4, 0.75.*var( resid(:,2)), calib_var.num, [], ...
+                    'model', 'exponential', 'nugget', 0.25.*var( resid(:,2)) ,'plotit',false );
+            end 
             if neval > 0;                
-                eval_var = variogram([head_eval_resid(:,1), zeros( size(head_eval_resid(:,1)))] ...
-                    , head_eval_resid(:,2) , 'maxdist', 365, 'nrbins', 12);
+                for i=1:size(head_est,3)                
+                    resid = [obsHead(~t_filt,1), obsHead(~t_filt,2) - head_est(~t_filt, 2,i)];
+                    eval_var = variogram([resid(:,1), zeros( size(resid(:,1))) ] ...
+                        , resid(:,2) , 'maxdist', 365, 'nrbins', 12);
+
+                    [obj.evaluationResults.performance.variogram_residual.range{i,1}, obj.evaluationResults.performance.variogram_residual.sill{i,1}, ...
+                        obj.evaluationResults.performance.variogram_residual.nugget{i,1}, obj.evaluationResults.performance.variogram_residual.model{i,1}] ...
+                        = variogramfit(eval_var.distance, ...                
+                        eval_var.val, 365/4, 0.75.*var( resid(:,2)), eval_var.num, [], ...
+                        'model', 'exponential', 'nugget', 0.25.*var( resid(:,2)) ,'plotit',false );
+                end                 
                 
-                [obj.evaluationResults.performance.variogram_residual.range, obj.evaluationResults.performance.variogram_residual.sill, ...
-                    obj.evaluationResults.performance.variogram_residual.nugget, obj.evaluationResults.performance.variogram_residual.model] ...
-                    = variogramfit(eval_var.distance, ...
-                    eval_var.val, 365/4, 0.75.*var( head_eval_resid(:,2)), eval_var.num , [], ...
-                    'model', 'exponential', 'nugget', 0.25.*var( head_calib_resid(:,2)), 'plotit',false  );
             end                        
                                    
             % Update flag to denote the calibration completed successfully.
-            obj.calibrationResults.isCalibrated = true;
-            
-            % Store the settings for calibration scheme.
-            %obj.calibrationResults.algorithm_stats = evolutions;
-            obj.calibrationResults.performance.numFunctionEvals = numFunctionEvals;
-	end
+            obj.calibrationResults.isCalibrated = true;            
+        end
 
         function handle = calibrateModelPlotResults(obj, plotNumber, figHandle)
 % Plot the calibration results
@@ -1592,6 +1857,14 @@ classdef GroundwaterStatisticsToolbox < handle
                 hasNoiseComponant = true;
             end
             
+            % Assess if the data is from a population of simlations (eg
+            % from DREAM calibration)
+            hasModelledDistn = false;
+            if size(obj.calibrationResults.data.modelledHead,2)>2   
+                hasModelledDistn = true;
+                %hasNoiseComponant = false;
+            end
+            
             % Plot time series of heads.                        
             %-------
             if isempty(plotNumber)
@@ -1624,6 +1897,26 @@ classdef GroundwaterStatisticsToolbox < handle
                    hold(h,'on');
                 end
 
+                if hasModelledDistn
+                   if neval > 0; 
+                       XFill = [obj.calibrationResults.data.modelledHead(:,1)' ...
+                                obj.evaluationResults.data.modelledHead(:,1)' ...
+                                fliplr([obj.calibrationResults.data.modelledHead(:,1); ...
+                                        obj.evaluationResults.data.modelledHead(:,1)]')];
+                       YFill = [obj.calibrationResults.data.modelledHead(:,4)', ...
+                                obj.evaluationResults.data.modelledHead(:,4)', ...
+                                fliplr([obj.calibrationResults.data.modelledHead(:,3); ...
+                                obj.evaluationResults.data.modelledHead(:,3)]')];
+                   else
+                       XFill = [obj.calibrationResults.data.modelledHead(:,1)' ...
+                                fliplr(obj.calibrationResults.data.modelledHead(:,1)')];
+                       YFill = [obj.calibrationResults.data.modelledHead(:,4)', ...
+                                fliplr(obj.calibrationResults.data.modelledHead(:,3)')];
+                   end
+                   fill(XFill, YFill,[0.6 0.6 0.6],'Parent',h);
+                   clear XFill YFill               
+                   hold(h,'on');                    
+                end
                 % Plot the observed head
                 plot(h,obj.model.inputData.head(:,1), obj.model.inputData.head(:,2),'.-k');
                 hold(h,'on');
@@ -1642,20 +1935,35 @@ classdef GroundwaterStatisticsToolbox < handle
                     title(h, 'Observed and modelled head');
                 end
 
-                % Create legend strings              
-                if neval > 0;
-                    if hasNoiseComponant
-                        legendstr={'Noise';'Observed';'Calibration';'Evaluation'};
+                % Create legend strings  
+                i=1;
+                if hasNoiseComponant
+                    if hasModelledDistn
+                        legendstr{i}='Total Err. (5th-95th)';
                     else
-                        legendstr={'Observed';'Calibration';'Evaluation'};
+                        legendstr{i}='Total Err.';
                     end
-                else
-                    if hasNoiseComponant
-                        legendstr={'Noise';'Observed';'Calibration'};
-                    else
-                        legendstr={'Observed';'Calibration'};
-                    end
+                    i=i+1;
                 end
+                if hasModelledDistn
+                    legendstr{i}='Param. Err. (5th-95th)';
+                    i=i+1;
+                end
+                legendstr{i}='Observed';
+                i=i+1;
+                if hasModelledDistn
+                    legendstr{i}='Calib. (median)';
+                else
+                    legendstr{i}='Calib.';
+                end
+                i=i+1;                                
+                if neval > 0;
+                    if hasModelledDistn
+                        legendstr{i}='Eval. (median)';
+                    else
+                        legendstr{i}='Eval.';
+                    end
+                end                
 
                 % Finish the first plot!
                 legend(h, legendstr,'Location','best');
@@ -1670,15 +1978,33 @@ classdef GroundwaterStatisticsToolbox < handle
                 iplot = iplot + nplots;
             end
             if isempty(plotNumber) || plotNumber==2
-                scatter(h, obj.calibrationResults.data.modelledHead_residuals(:,1), obj.calibrationResults.data.modelledHead_residuals(:,2), '.b' );
+                if hasModelledDistn
+                    residuals = [obj.calibrationResults.data.modelledHead(:,1), prctile( obj.calibrationResults.data.modelledHead_residuals,[50 5 95],2)];
+                    ax=errorbar(h, residuals(:,1), residuals(:,2), residuals(:,2)-residuals(:,3), residuals(:,4)-residuals(:,2), '.b' );
+                    set(ax,'Color',[0.6 0.6 0.6]);
+                    set(ax,'MarkerEdgeColor','b');
+                else
+                    scatter(h, obj.calibrationResults.data.modelledHead_residuals(:,1), obj.calibrationResults.data.modelledHead_residuals(:,2), '.b' );
+                end
                 hold(h,'on');
                 if neval > 0;
-                    scatter( h, obj.evaluationResults.data.modelledHead_residuals(:,1),  obj.evaluationResults.data.modelledHead_residuals(:,2), '.r'  );                
+                    if hasModelledDistn
+                        residuals = [obj.evaluationResults.data.modelledHead(:,1), prctile( obj.evaluationResults.data.modelledHead_residuals,[50 5 95],2)];
+                        ax=errorbar(h, residuals(:,1), residuals(:,2), residuals(:,2)-residuals(:,3), residuals(:,4)-residuals(:,2), '.r' );
+                        set(ax,'Color',[0.6 0.6 0.6]);
+                        set(ax,'MarkerEdgeColor','r');
+                    else
+                        scatter( h, obj.evaluationResults.data.modelledHead_residuals(:,1),  obj.evaluationResults.data.modelledHead_residuals(:,2), '.r'  );                
+                    end
                     legend(h,'Calibration','Evaluation','Location','best');                
                 end
                 xlabel(h, 'Date');
                 ylabel(h, 'Residuals (obs-est) (m)');
-                title(h, 'Time series of residuals');
+                if hasModelledDistn
+                    title(h, 'Time series of residuals with parameter uncertainty (5th-95th) bars.');
+                else
+                    title(h, 'Time series of residuals');
+                end
                 datetick(h, 'x','yy');
             end
             
@@ -1689,7 +2015,8 @@ classdef GroundwaterStatisticsToolbox < handle
                 iplot = iplot + nplots + 1;                        
             end
             if isempty(plotNumber) || plotNumber==3
-                hist(h, obj.calibrationResults.data.modelledHead_residuals(:,2) , 0.5*size(obj.calibrationResults.data.modelledHead_residuals,1) );            
+                residuals = [obj.calibrationResults.data.modelledHead(:,1), prctile( obj.calibrationResults.data.modelledHead_residuals,50,2)];
+                hist(h, residuals(:,2) , 0.5*size(residuals,1) );            
                 ylabel(h, 'Freq.');
                 xlabel(h, 'Calib. residuals (obs-est) (m)');
                 axis(h, 'tight');
@@ -1704,7 +2031,8 @@ classdef GroundwaterStatisticsToolbox < handle
             end
             if isempty(plotNumber) || plotNumber==4
                 if neval > 0;            
-                    hist(h, obj.evaluationResults.data.modelledHead_residuals(:,2) ,  0.5*size(obj.evaluationResults.data.modelledHead_residuals,1) );            
+                    residuals = [obj.evaluationResults.data.modelledHead(:,1), prctile( obj.evaluationResults.data.modelledHead_residuals,50,2)];
+                    hist(h, residuals(:,2) , 0.5*size(residuals,1) );                                
                 end           
                 ylabel(h, 'Freq.');
                 xlabel(h, 'Eval. residuals (obs-est) (m)');
@@ -1719,14 +2047,16 @@ classdef GroundwaterStatisticsToolbox < handle
                 iplot = iplot + nplots + 1;
             end
             if isempty(plotNumber) || plotNumber==5
-                if neval > 0;                
-                    QQdata = NaN(size(obj.calibrationResults.data.modelledHead_residuals,1),2);
-                    QQdata(:,1) = obj.calibrationResults.data.modelledHead_residuals(:,2);
-                    QQdata(1:neval,2) = obj.evaluationResults.data.modelledHead_residuals(:,2);
+                residuals_cal = prctile( obj.calibrationResults.data.modelledHead_residuals,50,2);
+                if neval > 0;                              
+                    residuals_eval = prctile( obj.evaluationResults.data.modelledHead_residuals,50,2);
+                    QQdata = NaN(size(residuals_cal,1),2);
+                    QQdata(:,1) = residuals_cal;
+                    QQdata(1:neval,2) = residuals_eval;
                     qqplot(QQdata);
                     legend('Calibration','Evaluation','Location','best');                
                 else
-                    qqplot(obj.calibrationResults.data.modelledHead_residuals(:,2) );
+                    qqplot(residuals_cal );
                 end            
                 title(h, 'Quantile-quantile plot of residuals');
             end
@@ -1738,10 +2068,24 @@ classdef GroundwaterStatisticsToolbox < handle
                 iplot = iplot + nplots + 1;
             end
             if isempty(plotNumber) || plotNumber==6
-                scatter(h, obj.calibrationResults.data.obsHead(:,2),  obj.calibrationResults.data.modelledHead(:,2),'.b');
+                if hasModelledDistn                    
+                    residuals = [obj.calibrationResults.data.obsHead(:,2), prctile( obj.calibrationResults.data.modelledHead_residuals,[50 5 95],2)];
+                    ax=errorbar(h, residuals(:,1), residuals(:,2), residuals(:,2)-residuals(:,3), residuals(:,4)-residuals(:,2), '.b' );
+                    set(ax,'Color',[0.6 0.6 0.6]);
+                    set(ax,'MarkerEdgeColor','b');
+                else
+                    scatter(h, obj.calibrationResults.data.obsHead(:,2),  obj.calibrationResults.data.modelledHead(:,2),'.b');
+                end
                 hold(h,'on');
-                if neval > 0;                
-                    scatter(h, obj.evaluationResults.data.obsHead(:,2),  obj.evaluationResults.data.modelledHead(:,2),'.r');
+                if neval > 0;    
+                    if hasModelledDistn                        
+                        residuals = [obj.evaluationResults.data.obsHead(:,2), prctile( obj.evaluationResults.data.modelledHead_residuals,[50 5 95],2)];
+                        ax=errorbar(h, residuals(:,1), residuals(:,2), residuals(:,2)-residuals(:,3), residuals(:,4)-residuals(:,2), '.r' );
+                        set(ax,'Color',[0.6 0.6 0.6]);
+                        set(ax,'MarkerEdgeColor','r');
+                    else
+                        scatter(h, obj.evaluationResults.data.obsHead(:,2),  obj.evaluationResults.data.modelledHead(:,2),'.r');
+                    end
                     legend(h,'Calibration','Evaluation','Location','best');                
                     head_min = min([obj.model.inputData.head(:,2);  obj.calibrationResults.data.modelledHead(:,2); obj.evaluationResults.data.modelledHead(:,2)] );
                     head_max = max([obj.model.inputData.head(:,2);  obj.calibrationResults.data.modelledHead(:,2); obj.evaluationResults.data.modelledHead(:,2)] );
@@ -1751,7 +2095,11 @@ classdef GroundwaterStatisticsToolbox < handle
                 end            
                 xlabel(h, 'Obs. head (m)');
                 ylabel(h, 'Modelled. head (m)');
-                title(h, 'Observed vs. modellled heads');
+                if hasModelledDistn
+                    title(h, 'Observed vs. modelled heads with with parameter uncertainty (5th-95th) bars.');
+                else
+                    title(h, 'Observed vs. modelled heads');
+                end
                 xlim(h, [head_min , head_max] );
                 ylim(h, [head_min , head_max] );
                 plot(h, [head_min, head_max] , [head_min, head_max],'--k');
@@ -1765,15 +2113,33 @@ classdef GroundwaterStatisticsToolbox < handle
                 iplot = iplot + nplots + 1;
             end
             if isempty(plotNumber) || plotNumber==7
-                scatter(h, obj.calibrationResults.data.obsHead(:,2), obj.calibrationResults.data.modelledHead_residuals(:,2),'.b');
+                if hasModelledDistn
+                    residuals = [obj.calibrationResults.data.obsHead(:,2), prctile( obj.calibrationResults.data.modelledHead_residuals,[50 5 95],2)];
+                    ax=errorbar(h, residuals(:,1), residuals(:,2), residuals(:,2)-residuals(:,3), residuals(:,4)-residuals(:,2), '.b' );
+                    set(ax,'Color',[0.6 0.6 0.6]);
+                    set(ax,'MarkerEdgeColor','b');
+                else
+                    scatter(h, obj.calibrationResults.data.obsHead(:,2), obj.calibrationResults.data.modelledHead_residuals(:,2),'.b');
+                end
                 hold(h,'on');
                 if neval > 0;                
-                    scatter(h, obj.evaluationResults.data.obsHead(:,2),  obj.evaluationResults.data.modelledHead_residuals(:,2),'.r');
+                    if hasModelledDistn
+                        residuals = [obj.evaluationResults.data.obsHead(:,2), prctile( obj.evaluationResults.data.modelledHead_residuals,[50 5 95],2)];
+                        ax=errorbar(h, residuals(:,1), residuals(:,2), residuals(:,2)-residuals(:,3), residuals(:,4)-residuals(:,2), '.r' );
+                        set(ax,'Color',[0.6 0.6 0.6]);
+                        set(ax,'MarkerEdgeColor','r');
+                    else                    
+                        scatter(h, obj.evaluationResults.data.obsHead(:,2),  obj.evaluationResults.data.modelledHead_residuals(:,2),'.r');
+                    end
                     legend(h,'Calibration','Evaluation','Location','best');                
                 end            
                 xlabel(h, 'Obs. head (m)');
                 ylabel(h, 'Residuals (obs-est) (m)'); 
-                title(h, 'Observed vs. residuals');
+                if hasModelledDistn
+                    title(h, 'Observed vs. residuals with parameter uncertainty (5th-95th) bars.');
+                else                
+                    title(h, 'Observed vs. residuals');
+                end
                 hold(h,'off');        
             end
             
@@ -1784,13 +2150,61 @@ classdef GroundwaterStatisticsToolbox < handle
                 iplot = iplot + nplots + 1;
             end
             if isempty(plotNumber) || plotNumber==8
-                scatter(h, obj.calibrationResults.performance.variogram_residual.model.h , obj.calibrationResults.performance.variogram_residual.model.gamma, 'ob');            
-                hold(h,'on');
-                plot(h, obj.calibrationResults.performance.variogram_residual.model.h , obj.calibrationResults.performance.variogram_residual.model.gammahat, '-b');                        
-                if neval > 0;                                
-                    scatter(h, obj.evaluationResults.performance.variogram_residual.model.h,  obj.evaluationResults.performance.variogram_residual.model.gamma, 'or');
-                    plot(h, obj.evaluationResults.performance.variogram_residual.model.h,  obj.evaluationResults.performance.variogram_residual.model.gammahat, '-r');                
-                    legend(h, 'Calib. experimental','Calib model','Eval. experimental','Eval. model','Location','best');                
+                if hasModelledDistn
+                    % Extract data from cell arrays
+                    deltaTime=[];
+                    gamma=[];
+                    gammaHat=[];
+                    for i=1:size(obj.calibrationResults.performance.variogram_residual.model,1)
+                        deltaTime = [deltaTime,obj.calibrationResults.performance.variogram_residual.model{i}.h];
+                        gamma = [gamma,obj.calibrationResults.performance.variogram_residual.model{i}.gamma];
+                        gammaHat = [gammaHat,obj.calibrationResults.performance.variogram_residual.model{i}.gammahat];
+                    end
+                    
+                    %Plot data
+                    ax = errorbar(h, median(deltaTime,2) , median(gamma,2), median(gamma,2)-prctile(gamma,5 ,2),prctile(gamma,95 ,2)-median(gamma,2), '.b');
+                    set(ax,'Color',[0.6 0.6 0.6]);
+                    set(ax,'MarkerEdgeColor','b');
+                    hold(h,'on');
+                    plot(h, median(deltaTime,2) , median(gammaHat,2), '-b');
+                    plot(h, prctile(deltaTime,5,2) , prctile(gammaHat,5,2), '--b');
+                    plot(h, prctile(deltaTime,95,2) , prctile(gammaHat,95,2), '--b');                    
+                    
+                    if neval > 0;                                
+                        % Extract data from cell arrays
+                        deltaTime=[];
+                        gamma=[];
+                        gammaHat=[];
+                        for i=1:size(obj.evaluationResults.performance.variogram_residual.model,1)
+                            deltaTime = [deltaTime,obj.evaluationResults.performance.variogram_residual.model{i}.h];
+                            gamma = [gamma,obj.evaluationResults.performance.variogram_residual.model{i}.gamma];
+                            gammaHat = [gammaHat,obj.evaluationResults.performance.variogram_residual.model{i}.gammahat];
+                        end
+
+                        %Plot data
+                        ax = errorbar(h, median(deltaTime,2) , median(gamma,2), median(gamma,2)-prctile(gamma,5 ,2),prctile(gamma,95 ,2)-median(gamma,2), '.r');
+                        set(ax,'Color',[0.6 0.6 0.6]);
+                        set(ax,'MarkerEdgeColor','r');                                        
+                        plot(h, median(deltaTime,2) , median(gammaHat,2), '-r');
+                        plot(h, prctile(deltaTime,5,2) , prctile(gammaHat,5,2), '--r');
+                        plot(h, prctile(deltaTime,95,2) , prctile(gammaHat,95,2), '--r');                    
+                    
+                        legend(h, 'Calib.(5-50-95th %ile)', 'Calib. model-50th %ile','Calib. model-5th %ile','Calib. model-95th %ile', ...
+                            'Eval.(5-50-95th %ile)','Eval. model-50th %ile','Eval. model-5th %ile','Eval. model-95th %ile','Location','best');                
+                    else
+                        legend(h, 'Calib.(5-50-95th %ile)','Calib. model-50th %ile','Calib. model-5th %ile','Calib. model-95th %ile','Location','best');                        
+                    end
+                else
+                    scatter(h, obj.calibrationResults.performance.variogram_residual.model.h , obj.calibrationResults.performance.variogram_residual.model.gamma, 'ob');            
+                    hold(h,'on');
+                    plot(h, obj.calibrationResults.performance.variogram_residual.model.h , obj.calibrationResults.performance.variogram_residual.model.gammahat, '-b');                        
+                    if neval > 0;                                
+                        scatter(h, obj.evaluationResults.performance.variogram_residual.model.h,  obj.evaluationResults.performance.variogram_residual.model.gamma, 'or');
+                        plot(h, obj.evaluationResults.performance.variogram_residual.model.h,  obj.evaluationResults.performance.variogram_residual.model.gammahat, '-r');                
+                        legend(h, 'Calib.','Calib model','Eval. experimental','Eval. model','Location','best');                
+                    else
+                        legend(h, 'Calib.','Calib model','Location','best');                
+                    end
                 end
                 xlabel(h, 'Separation distance (days)' );
                 ylabel(h, 'Semi-variance (m^2)' );
@@ -1800,7 +2214,7 @@ classdef GroundwaterStatisticsToolbox < handle
         end
 
         %% Calculate the sum of squared errors and model residuals for CAM-ES.
-        function objectiveFunctionValue = calibrationObjectiveFunction(params, obj, time_points)
+        function objectiveFunctionValue = calibrationObjectiveFunction(params, obj, time_points, doParamTranspose, getLikelihood)
 % Calculate the model objective function value for the input parameter set
 %
 % Syntax:
@@ -1845,15 +2259,16 @@ classdef GroundwaterStatisticsToolbox < handle
 % Date:
 %   30 June 2015
 %
+            if doParamTranspose
+                params = params';
+            end
+
             objectiveFunctionValue = inf(1,size(params,2));
-            for i=1: size(params,2)
+            parfor i=1: size(params,2)
                 %Calculate the residuals
                 try
                     % Calcule sume of squared errors
-                    residuals = objectiveFunction( params(:,i), time_points, obj.model );
-
-                    objectiveFunctionValue(i) = residuals' * residuals;  
-
+                    objectiveFunctionValue(i) =  objectiveFunction( params(:,i), time_points, obj.model, getLikelihood );
                 catch ME
                     objectiveFunctionValue(i) = NaN;
                 end
@@ -1861,7 +2276,7 @@ classdef GroundwaterStatisticsToolbox < handle
         end        
         
         %% Check validity of parameter set.
-        function validParams = calibrationValidParameters(params, obj, time_points)
+        function validParams = calibrationValidParameters(params, obj, time_points,  doParamTranspose, varargin)
 % Checks if the parameter set is valid
 %
 % Syntax:
@@ -1902,7 +2317,12 @@ classdef GroundwaterStatisticsToolbox < handle
 %
 % Date:
 %   30 June 2015
-%            
+%           
+    
+            if doParamTranspose
+                params = params';
+            end
+            
             try
                 validParams = getParameterValidity(obj.model, params, time_points);
             catch ME

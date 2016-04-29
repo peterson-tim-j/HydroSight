@@ -565,7 +565,7 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
             
             % Cycle through each parameter and assign the parameter value.
             for i=1: length(param_names)
-               obj.(param_names{i}) = params(i); 
+               obj.(param_names{i}) = params(i,:); 
             end
             
             % Check if the parameters have changed since the last call to
@@ -626,7 +626,7 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
             % Cycle through each parameter and get the parameter value.
             params = zeros(length(param_names),1);
             for i=1: length(param_names)
-               params(i,1) = obj.(param_names{i}); 
+               params(i,:) = obj.(param_names{i}); 
             end
         end   
 

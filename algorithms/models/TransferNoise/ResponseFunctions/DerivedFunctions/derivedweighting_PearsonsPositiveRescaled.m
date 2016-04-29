@@ -59,12 +59,12 @@ classdef derivedweighting_PearsonsPositiveRescaled < derivedResponseFunction_abs
        
         % Set parameters
         function setParameters(obj, params)
-            obj.A = params(1);
+            obj.A = params(1,:);
         end
         
         % Get model parameters
         function [params, param_names] = getParameters(obj)
-            params(1,1) = obj.A;
+            params(1,:) = obj.A;
             param_names = {'A'};        
         end        
         

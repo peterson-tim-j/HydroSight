@@ -1,5 +1,5 @@
 <deployment-project plugin="plugin.ezdeploy" plugin-version="1.0">
-  <configuration build-checksum="1002748929" file="W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\deploymentCode\Windows_x64\TheGST.prj" location="W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\deploymentCode\Windows_x64" name="TheGST" preferred-package-location="W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\deploymentCode\Windows_x64\TheGST\for_redistribution" preferred-package-type="package.type.exe" target="target.ezdeploy.standalone" target-name="MATLAB Compiler for Standalone Applications">
+  <configuration build-checksum="815558456" file="W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\deploymentCode\Windows_x64\TheGST.prj" location="W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\deploymentCode\Windows_x64" name="TheGST" preferred-package-location="W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\deploymentCode\Windows_x64\TheGST\for_redistribution" preferred-package-type="package.type.exe" target="target.ezdeploy.standalone" target-name="MATLAB Compiler for Standalone Applications">
     <param.appname>TheGST</param.appname>
     <param.icon />
     <param.icons />
@@ -73,12 +73,50 @@ Details of the time-series framework are avaiable at: Peterson T. J and Western 
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\GST.m</file>
     </fileset.main>
     <fileset.resources>
-      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\calibration\CMA_ES\cmaes.m</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\calibration\CMA_ES\plotcmaesdat.m</file>
+      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\calibration\DREAM\Adapt_pCR.m</file>
+      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\calibration\DREAM\Boundary_handling.m</file>
+      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\calibration\DREAM\Calc_delta.m</file>
+      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\calibration\DREAM\Calc_density.m</file>
+      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\calibration\DREAM\Calc_proposal.m</file>
+      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\calibration\DREAM\Check_sigma.m</file>
+      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\calibration\DREAM\diagnostics\apm.m</file>
+      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\calibration\DREAM\diagnostics\chis_prb.m</file>
+      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\calibration\DREAM\diagnostics\coda.m</file>
+      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\calibration\DREAM\diagnostics\empquant.m</file>
+      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\calibration\DREAM\diagnostics\indtest.m</file>
+      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\calibration\DREAM\diagnostics\mcest.m</file>
+      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\calibration\DREAM\diagnostics\mctest.m</file>
+      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\calibration\DREAM\diagnostics\momentg.m</file>
+      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\calibration\DREAM\diagnostics\mprint.m</file>
+      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\calibration\DREAM\diagnostics\ppnd.m</file>
+      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\calibration\DREAM\diagnostics\prt_coda.m</file>
+      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\calibration\DREAM\diagnostics\raftery.m</file>
+      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\calibration\DREAM\diagnostics\sacf.m</file>
+      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\calibration\DREAM\diagnostics\thin.m</file>
+      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\calibration\DREAM\diagnostics\trimr.m</file>
+      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\calibration\DREAM\Draw_CR.m</file>
+      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\calibration\DREAM\DREAM.m</file>
+      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\calibration\DREAM\DREAM_calc_setup.m</file>
+      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\calibration\DREAM\DREAM_check.m</file>
+      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\calibration\DREAM\DREAM_end.m</file>
+      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\calibration\DREAM\DREAM_initialize.m</file>
+      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\calibration\DREAM\DREAM_setup.m</file>
+      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\calibration\DREAM\DREAM_store_results.m</file>
+      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\calibration\DREAM\Evaluate_model.m</file>
+      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\calibration\DREAM\Gelman.m</file>
+      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\calibration\DREAM\GL.m</file>
+      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\calibration\DREAM\Latin.m</file>
+      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\calibration\DREAM\Metropolis_rule.m</file>
+      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\calibration\DREAM\multrnd.m</file>
+      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\calibration\DREAM\postprocessing\genparset.m</file>
+      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\calibration\DREAM\Remove_outlier.m</file>
+      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\calibration\DREAM\Whittle.m</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\calibration\SP_UCI\Codes\DimRest.m</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\calibration\SP_UCI\Codes\GauSamp.m</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\calibration\SP_UCI\Codes\MCCE.m</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\calibration\SP_UCI\Codes\SPUCI.m</file>
+      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\calibration\Utilities\calibrateOnCluster.m</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\calibration\Utilities\fminsearchbnd.m</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\calibration\Utilities\InterPointDistanceMatrix\ipdm.m</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\calibration\Utilities\variogram.m</file>
@@ -86,10 +124,8 @@ Details of the time-series framework are avaiable at: Peterson T. J and Western 
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\GroundwaterStatisticsToolbox.m</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\models\CoupledHydroMod\coupledHydroMod.m</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\models\CoupledHydroMod\ExampleModel\exampleModel.m</file>
-      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\models\ExpSmooth\doExpSmoothing.mexa64</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\models\ExpSmooth\ExpSmooth.m</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\models\model_abstract.m</file>
-      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\models\TransferNoise\doIRFconvolution.mexa64</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\models\TransferNoise\doIRFconvolution.mexw32</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\models\TransferNoise\doIRFconvolution.mexw64</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\models\TransferNoise\Example_model\example_TFN_model.m</file>
@@ -118,6 +154,7 @@ Details of the time-series framework are avaiable at: Peterson T. J and Western 
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\models\TransferNoise\ResponseFunctions\responseFunction_PearsonsNegative.m</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\utilities\findAbstractName.m</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\utilities\findClassDefsUsingAbstractName.m</file>
+      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\utilities\plotmatrix.m</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\dataPreparationAnalysis\doDataQualityAnalysis.m</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\dataPreparationAnalysis\outlierDetection.m</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\documentation\html\diagrams\doc_GUI.png</file>
@@ -129,7 +166,6 @@ Details of the time-series framework are avaiable at: Peterson T. J and Western 
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\documentation\html\doc_Algorithms.html</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\documentation\html\doc_Calibration.html</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\documentation\html\doc_ExpSmooth.html</file>
-      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\documentation\html\doc_GST_GUI.html~</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\documentation\html\doc_GUI.html</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\documentation\html\doc_GUI_dataPrep.html</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\documentation\html\doc_GUI_ModelCalib.html</file>
@@ -151,12 +187,12 @@ Details of the time-series framework are avaiable at: Peterson T. J and Western 
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\documentation\html\papers\Peterson_Western_2014.pdf</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\documentation\html\papers\Shapoori_2015A.pdf</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\documentation\html\papers\Shapoori_2015B.pdf</file>
+      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\documentation\html\papers\Shapoori_2015C.pdf</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\Examples\BourkesFlat\BourkesFlat_data.mat</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\Examples\Clydebank\Clydebank_data.mat</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\Examples\Clydebank\Clydebank_model.mat</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\GUI\findjobj\findjobj.m</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\GUI\GST_GUI.m</file>
-      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\GUI\GST_GUI_data.m</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\GUI\GUI Layout Toolbox 2.1.mltbx FILES\[Content_Types].xml</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\GUI\GUI Layout Toolbox 2.1.mltbx FILES\fsroot\layout\+uiextras\BoxPanel.m</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\GUI\GUI Layout Toolbox 2.1.mltbx FILES\fsroot\layout\+uiextras\CardPanel.m</file>

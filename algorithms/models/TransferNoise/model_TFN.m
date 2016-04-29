@@ -985,12 +985,11 @@ classdef model_TFN < model_abstract
         end        
         
 %% Solve the model for the input time points
-        function [head, colnames, noise] = solve(obj, time_points, tor_min, tor_max)
+        function [head, colnames, noise] = solve(obj, time_points)
 % solve solves the model for the input time points.
 %
 % Syntax:
 %   [head, colnames, noise] = solve(obj, time_points)
-%   [head, colnames, noise] = solve(obj, time_points, tor_min, tor_max)
 %
 % Description:
 %   Solves the model using the model parameters and, depending upon
@@ -1004,10 +1003,6 @@ classdef model_TFN < model_abstract
 %   obj -  model object
 %
 %   time_points - column vector of the time points to be simulated.
-%
-%   tor_min - minimum value for tor (unit of days)
-%
-%   tor_max - minimum value for tor (unit of days)
 %
 % Outputs:
 %   head - MxN matrix of simulated head with the following columns: date/time,
@@ -1042,11 +1037,6 @@ classdef model_TFN < model_abstract
             if ~isfield(obj.variables, 'd')
                 error('The model does not appear to have first been calibrated. Please calibrate the model before running a simulation.');
             end
-
-            if nargin ==2;
-                tor_min = -inf;
-                tor_max = inf;                
-            end
                         
             % Clear obj.variables of temporary variables.
             if isfield(obj.variables, 'theta_est_indexes_min'), obj.variables = rmfield(obj.variables, 'theta_est_indexes_min'); end
@@ -1080,17 +1070,68 @@ classdef model_TFN < model_abstract
                 obj.variables.theta_est_indexes_max(ii) = max(1,ntor);
             end  
             
-            % Calc deterministic component of the head.
-            obj.variables.delta_time = diff(time_points);
-            params = getParameters(obj);
-            [junk, head, colnames, drainage_elevation] = objectiveFunction(params, time_points, obj, tor_min, tor_max);            
-            head(:,2) = head(:,2) + drainage_elevation;
+            % Free memory within mex function (just in case there'se been a
+            % prior calibration that crashed prior to clearing the MEX
+            % sttaic variables)
+            % Free memory within mex function
+            try
+                junk=doIRFconvolutionPhi([], [], [], [], false, 0);            
+            catch ME
+                % continue               
+            end          
             
-            % Create noise component output.
-            if isfield(obj.variables,'sigma_n');
-                noise = [head(:,1), obj.variables.sigma_n(ones(size(head,1),2))];
-            else
-                noise = [head(:,1), zeros(size(head,1),2)];
+            % Get the parameter sets (for use in resetting if >sets)
+            [params, param_names] = getParameters(obj);
+           
+            % Set percentile for noise 
+            Pnoise = 0.95;
+            
+            % Solve the modle using each parameter set.
+            obj.variables.delta_time = diff(time_points);
+            headtmp=cell(1,size(params,2));
+            noisetmp=cell(1,size(params,2));
+            parfor ii=1:size(params,2)
+                % Get the calibration estimate of the mean forcing for the
+                % current parameter set. This is a bit of a work around to
+                % handle the issue of each parameter set having a unique
+                % mean forcing (if a forcing transform is undertaken). The
+                % workaround was required when DREAM was addded.
+                calibData = struct;
+                companants = fieldnames(obj.inputData.componentData);
+                nCompanants = size(companants,1);                             
+                for j=1:nCompanants                    
+                    calibData.mean_forcing.(companants{j}) = obj.variables.(companants{j}).forcingMean(ii);
+                end                
+                              
+                % Add drainage elevation to the varargin variable sent to
+                % objectiveFunction.                
+                calibData.drainage_elevation = obj.variables.d(ii);
+                
+                % Solve model
+                [~, headtmp{ii}, colnames{ii}] = objectiveFunction(params(:,ii), time_points, obj, calibData);                        
+                headtmp{ii}(:,2) = headtmp{ii}(:,2) + obj.variables.d(ii);
+                
+                % Calculate total error bounds.
+                if isfield(obj.variables,'sigma_n');
+                    noisetmp{ii} = [headtmp{ii}(:,1), ones(size(headtmp{ii},1),2) .* norminv(Pnoise,0,1) .* obj.variables.sigma_n(ii)];
+                else
+                    noisetmp{ii} =  [headtmp{ii}(:,1), zeros(size(headtmp{ii},1),2)];
+                end                
+                
+            end
+            
+            head = zeros(size(headtmp{1},1),size(headtmp{1},2), size(params,2));
+            noise = zeros(size(headtmp{1},1),3, size(params,2));            
+            for ii=1:size(params,2)
+                head(:,:,ii) = headtmp{ii};
+                noise(:,:,ii) = noisetmp{ii};
+            end
+            colnames = colnames{1};
+            clear headtmp noisetmp
+                             
+            % Set the parameters if >1 parameter sets
+            if size(params,2)>1
+                setParameters(obj,params, param_names);
             end
             
             % Clear matrix of indexes for tor at each time_points
@@ -1153,6 +1194,16 @@ classdef model_TFN < model_abstract
             % Set a flag to indicate that calibration is being undertaken.
             obj.variables.doingCalibration = true;
             
+            % Free memory within mex function (just in case there'se been a
+            % prior calibration that crashed prior to clearing the MEX
+            % sttaic variables)
+            % Free memory within mex function
+            try
+                junk=doIRFconvolutionPhi([], [], [], [], false, 0);            
+            catch ME
+                % continue               
+            end            
+            
             % Get parameter names and initial values
             [params_initial, obj.variables.param_names] = getParameters(obj);
             
@@ -1191,7 +1242,7 @@ classdef model_TFN < model_abstract
         end        
         
 %% Finalise the model following calibration.
-        function calibration_finalise(obj, params)            
+        function calibration_finalise(obj, params, useLikelihood)            
 % calibration_finalise finalises the model following calibration.
 %
 % Syntax:
@@ -1235,61 +1286,74 @@ classdef model_TFN < model_abstract
 %
 % Date:
 %   26 Sept 2014            
-            
-            % Re-calc objective function and deterministic component of the head and innocations.
-            % Importantly, the drainage elevation (ie the constant term for
-            % the regression) is calculated within 'objectiveFunction' and
-            % assigned to the object. When the calibrated model is solved
-            % for a different time period (or climate data) then this
-            % drainage value will be used by 'objectiveFunction'.
-            [obj.variables.objFn, obj.variables.h_star, junk , obj.variables.d] = objectiveFunction(params, obj.variables.time_points, obj);                        
-            
-            % Calculate the mean forcing rates. These mean rates are used
-            % to calculate the contribution from the tail of the theta
-            % weighting beyond the last observation. That is, the theta
-            % function is integrated from the last time point of the
-            % forcing to negative infinity. This integral is then
-            % multiplied by the mean forcing rate. To ensure future
-            % simulations use an identical mean forcing rate, the means are
-            % calculated here and used in all future simulations.
-            companants = fieldnames(obj.inputData.componentData);
-            nCompanants = size(companants,1);
-            for i=1:nCompanants
-                obj.variables.(companants{i}).forcingMean = mean(obj.variables.(companants{i}).forcingData);
+            for j=1:size(params,2)
+                % Re-calc objective function and deterministic component of the head and innocations.
+                % Importantly, the drainage elevation (ie the constant term for
+                % the regression) is calculated within 'objectiveFunction' and
+                % assigned to the object. When the calibrated model is solved
+                % for a different time period (or climate data) then this
+                % drainage value will be used by 'objectiveFunction'.
+                try
+                    [obj.variables.objFn(:,j), h_star, ~ , obj.variables.d(j)] = objectiveFunction(params(:,j), obj.variables.time_points, obj,useLikelihood);                        
+                catch ME
+                    if size(params,2)>1
+                        continue
+                    else
+                        error('Model crashed -  this may be due to the parameter values.');
+                    end
+                end
+
+                % Calculate the mean forcing rates. These mean rates are used
+                % to calculate the contribution from the tail of the theta
+                % weighting beyond the last observation. That is, the theta
+                % function is integrated from the last time point of the
+                % forcing to negative infinity. This integral is then
+                % multiplied by the mean forcing rate. To ensure future
+                % simulations use an identical mean forcing rate, the means are
+                % calculated here and used in all future simulations.
+                companants = fieldnames(obj.inputData.componentData);
+                nCompanants = size(companants,1);
+                for i=1:nCompanants
+                    obj.variables.(companants{i}).forcingMean(j) = mean(obj.variables.(companants{i}).forcingData);
+                end
+
+                t_filt = find( obj.inputData.head(:,1) >=obj.variables.time_points(1)  ...
+                    & obj.inputData.head(:,1) <= obj.variables.time_points(end) );               
+                obj.variables.resid(:,j) = obj.inputData.head(t_filt,2)  -  (h_star(:,2) + obj.variables.d(j));
+
+                % Calculate mean of noise. This should be zero +- eps()
+                % because the drainage value is approximated assuming n-bar = 0.
+                obj.variables.n_bar(j) = real(mean( obj.variables.resid(:,j) ));
+
+                % Calculate drainage level.
+                %obj.variables.d = obj.variables.h_bar - mean(real(obj.variables.h_star(:,2))) - obj.variables.n_bar;
+
+                % Calculate noise standard deviation.
+                obj.variables.sigma_n(j) = sqrt(mean( obj.variables.resid(1:end-1,j).^2 ./ (1 - exp( -2 .* 10.^obj.parameters.noise.alpha .* obj.variables.delta_time ))));
             end
-                        
-            t_filt = find( obj.inputData.head(:,1) >=obj.variables.time_points(1)  ...
-                & obj.inputData.head(:,1) <= obj.variables.time_points(end) );               
-            obj.variables.resid = obj.inputData.head(t_filt,2)  -  (obj.variables.h_star(:,2) + obj.variables.d);
-            
-            % Calculate mean of noise. This should be zero +- eps()
-            % because the drainage value is approximated assuming n-bar = 0.
-            obj.variables.n_bar = real(mean( obj.variables.resid ));
-            
-            % Calculate drainage level.
-            %obj.variables.d = obj.variables.h_bar - mean(real(obj.variables.h_star(:,2))) - obj.variables.n_bar;
-            
-            % Calculate noise standard deviation.
-            obj.variables.sigma_n = sqrt(mean( obj.variables.resid(1:end-1).^2 ./ (1 - exp( -2 .* 10.^obj.parameters.noise.alpha .* obj.variables.delta_time ))));
-            
-            % Clear matrix of indexes for tor at each time_points
-            % obj.variables = rmfield(obj.variables, 'theta_est_indexes');
             
             % Set a flag to indicate that calibration is complete.
             obj.variables.doingCalibration = false;
-
-            % Use observed residuals to calculate the noise component and
-            % return to the user the deterministic estimate and the noise
-            % plus deterministic estimate.
+            
+            % Set model parameters (if params are multiple sets)
+            if size(params,2)>1
+                setParameters(obj, params, obj.variables.param_names);            
+            end
+            
+            % Free memory within mex function
+            try
+                junk=doIRFconvolutionPhi([], [], [], [], false, 0);            
+            catch ME
+                % continue               
+            end
         end        
 
 %% Calculate objective function vector. 
-        function [objFn, h_star, colnames, drainage_elevation] = objectiveFunction(params, time_points, obj, tor_min , tor_max)
+        function [objFn, h_star, colnames, drainage_elevation] = objectiveFunction(params, time_points, obj, varargin)
 % objectiveFunction calculates the objective function vector. 
 %
 % Syntax:
 %   [objFn, h_star, colnames, drainage_elevation] = objectiveFunction(params,time_points, obj)
-%   [objFn, h_star, colnames, drainage_elevation] = objectiveFunction(params,time_points, obj, tor_min , tor_max)
 %
 % Description:
 %   Solves the model for the input parameters and calculates the objective
@@ -1316,13 +1380,8 @@ classdef model_TFN < model_abstract
 %
 %   obj -  model object
 %
-%   tor_min - minimum value for tor (unit of days)
-%
-%   tor_max - minimum value for tor (unit of days)
-%
 % Outputs:
-%   objFn - column vector of objective function values. Note, this is not 
-%   the squared, but it can be derived by objFn' * objFn.
+%   objFn - scalar objective function value.
 %
 %   h_star - matrix of the contribution from various model components and
 %   their summed influence. The matrix columns are in the order of:
@@ -1357,26 +1416,34 @@ classdef model_TFN < model_abstract
 %
 % Date:
 %   26 Sept 2014    
-
-            % Note: varOutput will be set to the Jacobain when
-            % objectiveFunction is called from the optimiser. If not called
-            % from the optimiser, varOutput is set to h_star.
-            if nargin ==3;
-                tor_min = -inf;
-                tor_max = inf;
-            end
             
             % Set model parameters
             setParameters(obj, params, obj.variables.param_names);
             
+            % If varargin is a structural variable then the model
+            % simulation is to use predefined values of the drainage
+            % elevation and the mean forcing. Note, these inputs are only
+            % to be provided if not doing simulation.
+            getLikelihood = false;
+            drainage_elevation=[];
+            mean_forcing=[];
+            if ~isempty(varargin)
+                if isstruct(varargin{1})
+                    drainage_elevation=varargin{1}.drainage_elevation;
+                    mean_forcing=varargin{1}.mean_forcing;
+                elseif islogical(varargin{1})
+                    getLikelihood=varargin{1};
+                else
+                    error('The input varargin must be either a logical or a structural variable.');
+                end
+            end
+            
             % Calc deterministic component of the head.
-            [h_star, colnames] = get_h_star(obj, time_points, tor_min, tor_max);                 
-
-            if isfield(obj.variables, 'd')
-                drainage_elevation = obj.variables.d;                
+            if isempty(mean_forcing)
+                [h_star, colnames] = get_h_star(obj, time_points);                 
             else
-                drainage_elevation=[];
-            end            
+                [h_star, colnames] = get_h_star(obj, time_points,mean_forcing);                 
+            end
             
             % Return of there are nan or inf value
             if any(isnan(h_star(:,2)) | isinf(h_star(:,2)));
@@ -1401,7 +1468,7 @@ classdef model_TFN < model_abstract
             % may differ from d calculated within 'calibration_finalise'.
             t_filt = find( obj.inputData.head(:,1) >=time_points(1)  ...
                 & obj.inputData.head(:,1) <= time_points(end) );          
-            if ~isfield(obj.variables, 'd')
+            if isempty(drainage_elevation)
                 drainage_elevation = obj.variables.h_bar - mean(h_star(:,2));      
             end
             resid= obj.inputData.head(t_filt,2)  - (h_star(:,2) +  drainage_elevation);                 
@@ -1410,10 +1477,15 @@ classdef model_TFN < model_abstract
             innov = resid(2:end) - resid(1:end-1).*exp( -10.^obj.parameters.noise.alpha .* obj.variables.delta_time );
             
             % Calculate objective function
-            objFn = sqrt( exp(mean(log( 1- exp( -2.*10.^obj.parameters.noise.alpha .* obj.variables.delta_time) ))) ...
+            objFn = sum( exp(mean(log( 1- exp( -2.*10.^obj.parameters.noise.alpha .* obj.variables.delta_time) ))) ...
                     ./(1- exp( -2.*10.^obj.parameters.noise.alpha .* obj.variables.delta_time )) .* innov.^2);
   
 
+            % Calculate log liklihood    
+            if getLikelihood
+                N = size(resid,1);
+                objFn = -0.5 * N * ( log(2*pi) + log(objFn./N)+1); 
+            end
             % Increment count of function calls
             obj.variables.nobjectiveFunction_calls = obj.variables.nobjectiveFunction_calls +  size(params,2);
             
@@ -1839,7 +1911,7 @@ classdef model_TFN < model_abstract
                             end                           
                             
                             params_upperLimit = [params_upperLimit; alpha_upperLimit];
-                            params_lowerLimit = [params_lowerLimit; log10(sqrt(eps()))+2];
+                            params_lowerLimit = [params_lowerLimit; log10(sqrt(eps()))+4];
 
                        end
                    end
@@ -2018,11 +2090,11 @@ classdef model_TFN < model_abstract
     methods(Access=private)
        
 %% Main method calculating the contribution to the head from each model componant.
-        function [h_star, colnames] = get_h_star(obj, time_points, tor_min, tor_max)
+        function [h_star, colnames] = get_h_star(obj, time_points, varargin)
 % get_h_star private method calculating the contribution to the head from each model componant.
 %
 % Syntax:
-%   [h_star, colnames] = get_h_star(obj, time_points, tor_min, tor_max)
+%   [h_star, colnames] = get_h_star(obj, time_points)
 %
 % Description:
 %   This method performs the main calculates of the model. The method 
@@ -2058,10 +2130,6 @@ classdef model_TFN < model_abstract
 %   obj -  model object
 %
 %   time_points - column vector of the time points to be simulated.  
-%
-%   tor_min - minimum value for tor (unit of days)
-%
-%   tor_max - minimum value for tor (unit of days)
 %
 % Outputs:
 %
@@ -2186,102 +2254,51 @@ classdef model_TFN < model_abstract
                 % Calcule theta for each time point of forcing data.
                 theta_est_temp = theta(obj.parameters.( char(companants(i))), tor);                
 
-                % Calculate integral of theta from the end of the
-                % forcing data to -infinity. This is only undertaken if
-                % the climate decomposition is not being undertaken.
-                if isinf(abs(tor_max)) || any(tor_end < tor_max)
-                    integralTheta_upperTail = intTheta_upperTail2Inf(obj.parameters.( char(companants(i))), tor_end );
-                    if ~isinf(tor_min) 
-                        integralTheta_upperTail( tor_end >= tor_max ) = 0;
-                        if ~isinf(tor_max)                                
-                            integralTheta_upperTail( tor_end < tor_max ) = integralTheta_upperTail( tor_end < tor_max ) - intTheta_upperTail2Inf(obj.parameters.( char(companants(i))), tor_max );
-                        end
-                    end
-                else
-                    integralTheta_upperTail = zeros(size(theta_est_temp,2),1);
-                end
-                
-                % Calculate integral of theta from the0 to 1. 
-                % This was undertaken to ensure impulse response function
-                % with a very rapid chnage from zero to 1 are correctly
-                % integrated. 
-                if isinf(abs(tor_max)) || (tor_min < 1 && tor_max > 1)
-                    integralTheta_lowerTail = intTheta_lowerTail(obj.parameters.( char(companants(i))), 1 );                                
-                else
-                    integralTheta_lowerTail = zeros(1,size(theta_est_temp,2));
-                end
-                
-                % Integrate theta (using Simpon's method) over each
-                % daily time-step. This is undertaken because the
-                % forcing is assumed to be the sum over each day and
-                % hence to calculate the transfer function value at,
-                % say, the day of a head observation the theta value
-                % should also be the integratal and not the value at
-                % the end of the day.
-                %theta_est_temp = 0.5.*(theta_est_temp(1:end-1,:)+theta_est_temp(2:end,:));
-                %tor_temp = 0.5.*(tor(1:end-1)+tor(2:end));                    
-                    
-                % Restrict tor to between tor_min and tor_max. This allows the
-                % simulation of the contribution from climate due to recent and
-                % distant past forcing. 
-                % NOTE: Integration is undertaken over the entire range if
-                % tor is to be limited between an upper and lower bound.
-                % This will result in >10x computational time.
-                if any(tor < tor_min | tor > tor_max)
-                    theta_est_temp( tor < tor_min | tor > tor_max, :) = 0;                                                                                           
-                end
+                % Initialise some variables
+                integralTheta_upperTail = zeros(size(theta_est_temp,2),1);
+                integralTheta_lowerTail = zeros(1,size(theta_est_temp,2));
 
                 % Get the mean forcing.
-                if isfield(obj.variables.(companants{i}),'forcingMean')
-                    forcingMean = obj.variables.(companants{i}).forcingMean;
+                if ~isempty(varargin) && isfield(varargin{1},companants{i})
+                    %forcingMean = obj.variables.(companants{i}).forcingMean                    
+                    forcingMean = varargin{1}.(companants{i});
                 else
                     forcingMean = mean(obj.variables.(companants{i}).forcingData);
                 end                
                 
                 % Integrate transfer function over tor.
-                useGPU = false;
                 for j=1: size(theta_est_temp,2)
                     % Increment the output volumn index.
                     iOutputColumns = iOutputColumns + 1;
 
-                    % Trial of GPU integration
-                    if useGPU
-                        for k=1:length(obj.variables.theta_est_indexes_min)
-                            endIndex = obj.variables.theta_est_indexes_max(1)-obj.variables.theta_est_indexes_min(k) + 1;
-                            
-  
-                            m = mod(endIndex-3, 3);
-                            simsponsFactors  = gpuArray([1; repmat( [3;3;2], (endIndex-3-m)/3,1); 1; 0]);
-                            ind_theta = obj.variables.theta_est_indexes_min(k)+m;
-                            ind_forcing = endIndex - m;
-                            
-                            %est = 3/8*gather( sum( prod([simsponsFactors, theta_est_tempGPU(ind_theta: end),forcingGPU(1:ind_forcing,j)],2) )) ...
-                            %    + integralTheta_lowerTail * 0.5 * (obj.variables.(companants{i}).forcingData(endIndex,j) + obj.variables.(companants{i}).forcingData(ind_forcing,j));                             
-                            %est = sum( prod([simsponsFactors, theta_est_tempGPU(ind_theta: end),forcingGPU(1:ind_forcing,j)],2));
-                            est = gpuArray(theta_est_temp(ind_theta: end));
-                            forcingGPU = gpuArray(obj.variables.(companants{i}).forcingData(1:ind_forcing,j));
-                            est = 3/8*gather( dot( simsponsFactors .* est,forcingGPU)) ...
-                                + integralTheta_lowerTail * 0.5 * (obj.variables.(companants{i}).forcingData(endIndex,j) + obj.variables.(companants{i}).forcingData(ind_forcing,j)); 
-                            
-                            ind_theta = obj.variables.theta_est_indexes_max(k);
-                            if (m==1)
-                                est = est + 0.5*(theta_est_temp(ind_theta) * obj.variables.(companants{i}).forcingData(1,j) ...
-                                          + theta_est_temp(ind_theta-1) * obj.variables.(companants{i}).forcingData(2,j));
-                            elseif (m==2)
-                                est = est + 1/3*( theta_est_temp(ind_theta) * obj.variables.(companants{i}).forcingData(3,j) ...
-                                                 + 4.*theta_est_temp(ind_theta-1) * obj.variables.(companants{i}).forcingData(2,j) ...
-                                                 + theta_est_temp(ind_theta-2) * obj.variables.(companants{i}).forcingData(1,j));                                        
-                            end
-
-                            
-                            h_star(:,iOutputColumns) = est;
-                        end
-                    else
-                        h_star(:,iOutputColumns) = doIRFconvolution(theta_est_temp(:,j), obj.variables.theta_est_indexes_min, obj.variables.theta_est_indexes_max(1), ...
-                            obj.variables.(companants{i}).forcingData(:,j), isForcingADailyIntegral(i), integralTheta_lowerTail(j))' ...
-                            + integralTheta_upperTail(j,:)' .* forcingMean(j);
+                    % Try to call doIRFconvolution using Xeon Phi
+                    % Offload coprocessors. This will only work if the
+                    % computer has (1) the intel compiler >2013.1 and (2)
+                    % xeon phi cards. The code first tried to call the
+                    % mex function. 
+                    if ~isfield(obj.variables,'useXeonPhiCard')
+                        obj.variables.useXeonPhiCard = true;
                     end
                     
+                    try
+                        if obj.variables.useXeonPhiCard
+                            %display('Offloading convolution algorithm to Xeon Phi coprocessor!');
+                            h_star(:,iOutputColumns) = doIRFconvolutionPhi(theta_est_temp(:,j), obj.variables.theta_est_indexes_min, obj.variables.theta_est_indexes_max(1), ...
+                                obj.variables.(companants{i}).forcingData(:,j), isForcingADailyIntegral(i), integralTheta_lowerTail(j))' ...
+                                + integralTheta_upperTail(j,:)' .* forcingMean(j);
+                        else                            
+                            h_star(:,iOutputColumns) = doIRFconvolution(theta_est_temp(:,j), obj.variables.theta_est_indexes_min, obj.variables.theta_est_indexes_max(1), ...
+                                obj.variables.(companants{i}).forcingData(:,j), isForcingADailyIntegral(i), integralTheta_lowerTail(j))' ...
+                                + integralTheta_upperTail(j,:)' .* forcingMean(j);
+                        end
+                            
+                    catch
+                        %display('Offloading convolution algorithm to Xeon Phi coprocessor failed - falling back to CPU!');
+                        obj.variables.useXeonPhiCard = false;
+                        h_star(:,iOutputColumns) = doIRFconvolution(theta_est_temp(:,j), obj.variables.theta_est_indexes_min, obj.variables.theta_est_indexes_max(1), ...
+                                obj.variables.(companants{i}).forcingData(:,j), isForcingADailyIntegral(i), integralTheta_lowerTail(j))' ...
+                                + integralTheta_upperTail(j,:)' .* forcingMean(j);
+                    end                    
                     % Transform the h_star estimate for the current
                     % componant. This feature was included so that h_star
                     % estimate fro groundwater pumping could be corrected 

@@ -1,4 +1,4 @@
-function [bestx,bestf,icall] = SPUCI(funcHandle, funcHangle_validParams, x0,bl_plausible, bu_plausible, bl_phys,bu_phys,maxn,kstop,pcento,peps,ngs,iseed,iniflg, varargin) 
+function [bestx,bestf,icall, exitFlag, exitStatus] = SPUCI(funcHandle, funcHangle_validParams, x0,bl_plausible, bu_plausible, bl_phys,bu_phys,maxn,kstop,pcento,peps,ngs,iseed,iniflg, varargin) 
 % This is the Matlab code implementing the SP-UCI algorithm,written by Dr.
 % Wei Chu, 08/2012, based on the SCE Matlab codes written by Dr. Q. Duan
 % 9/2004.
@@ -33,6 +33,10 @@ function [bestx,bestf,icall] = SPUCI(funcHandle, funcHangle_validParams, x0,bl_p
 % Definition of outputs
 %  bestx = best parameter values at the end of the search.
 %  besft = best objective function value at the end of the search.
+%
+% Additional outputs (edits by Tim Peterson 2016)
+%  exitFlag = 0: did not converge, 1=partial convergence, 2 = converged
+%  exitStatus = statement of why the scheme ended.
 
 % Initialization of agorithmic 
 nopt=length(x0); %dimentions of the problem
@@ -45,6 +49,10 @@ bound = bu_plausible - bl_plausible;% boundary of the feasible space.
 
 rand('seed',iseed);
 randn('seed',iseed);
+
+% Initialise exist outputs. Tim Peterson 2016
+exitFlag = 0;
+exitStatus = 'Calibration scheme did not start.';
 
 % Initialization of the populaton
 x=zeros(npt,nopt);
@@ -111,6 +119,8 @@ if gnrng < peps;
     disp('THE POPULATION HAS CONVERGED TO A PRESPECIFIED SMALL PARAMETER SPACE');
 end;
 
+% Update exist status output. Tim Peterson 2016
+exitStatus = 'Calibration scheme did started.';
 
 % Begin evolution loops:
 criter=[];
@@ -194,6 +204,22 @@ disp(['SEARCH WAS STOPPED AT TRIAL NUMBER: ' num2str(icall)]);
 disp(['NORMALIZED GEOMETRIC RANGE = ' num2str(gnrng)]);
 disp(['THE BEST POINT HAS IMPROVED IN LAST ' num2str(kstop) ' LOOPS BY ', ...
     num2str(criter_change) '%']);
+
+% Update exist status output. Tim Peterson 2016
+if icall>=maxn 
+    exitFlag=1;
+    exitStatus = 'Insufficient maximum number of model evaluations for convergence.';
+elseif gnrng<peps && criter_change>pcento;
+    exitFlag=1;
+    exitStatus = ['Only parameter convergence (obj func. convergence = ',num2str(criter_change),' & threshold = ',num2str(pcento),') achieved in ', num2str(icall),' function evaluations.'];
+elseif gnrng>peps && criter_change<pcento;
+    exitFlag=1;
+    exitStatus = ['Only objective function convergence achieved (param. convergence = ',num2str(gnrng),' & threshold = ',num2str(peps),') in ', num2str(icall),' function evaluations.'];
+elseif gnrng<peps && criter_change<pcento;
+    exitFlag=2;
+    exitStatus = ['Parameter and objective function convergence achieved in ', num2str(icall),' function evaluations.'];
+end
+
 
 end
 

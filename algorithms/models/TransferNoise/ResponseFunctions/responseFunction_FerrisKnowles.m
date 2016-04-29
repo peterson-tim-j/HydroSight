@@ -173,14 +173,14 @@ classdef  responseFunction_FerrisKnowles < responseFunction_abstract
         
          % Set parameters
         function setParameters(obj, params)
-            obj.alpha = params(1);
-            obj.beta = params(2);        
+            obj.alpha = params(1,:);
+            obj.beta = params(2,:);        
         end
         
         % Get model parameters
         function [params, param_names] = getParameters(obj)
-            params(1,1) = obj.alpha;
-            params(2,1) = obj.beta;    
+            params(1,:) = obj.alpha;
+            params(2,:) = obj.beta;    
             param_names = {'alpha';'beta'};
         end        
         
@@ -216,7 +216,7 @@ classdef  responseFunction_FerrisKnowles < responseFunction_abstract
         % calibration if the user does not input parameter ranges.
         function [params_upperLimit, params_lowerLimit] = getParameters_plausibleLimit(obj)
             params_upperLimit = [1; -1];
-            params_lowerLimit = [-7; -7];
+            params_lowerLimit = [-5; -7];            
         end
         
         % Calculate impulse-response function for each pumping bore.
@@ -227,28 +227,27 @@ classdef  responseFunction_FerrisKnowles < responseFunction_abstract
             for i=1: size(obj.settings.pumpingBores,1)
                 % Calc. distance to obs well.
                 pumpDistancesSqr = (obj.settings.obsBore.Easting - obj.settings.pumpingBores{i,1}.Easting).^2 ...
-                    + (obj.settings.obsBore.Northing - obj.settings.pumpingBores{i,1}.Northing).^2;
-                
+                    + (obj.settings.obsBore.Northing - obj.settings.pumpingBores{i,1}.Northing).^2;                
                 if isfield(obj.settings.pumpingBores{i,1},'imageBoreID')
 
                     % Calculate the distance to each image bore.
                     imageDistancesSqr = (obj.settings.obsBore.Easting - obj.settings.pumpingBores{i,1}.imageBoreEasting).^2 ...
                     + (obj.settings.obsBore.Northing - obj.settings.pumpingBores{i,1}.imageBoreNorthing).^2;
-                    
+
                     imageWellMultiplier=zeros(size(obj.settings.pumpingBores{i,1}.imageBoreType,1),1);
                     
                     % create filter for recharge image wells
                     filt =  cellfun(@(x)strcmp(x,'Recharge'),obj.settings.pumpingBores{i,1}.imageBoreType);
-                    imageWellMultiplier(filt)= 1;
+                    imageWellMultiplier(filt)= -1;
                     
                     % create filter for no flow image wells
                     filt =  cellfun(@(x)strcmp(x,'No flow'),obj.settings.pumpingBores{i,1}.imageBoreType);
-                    imageWellMultiplier(filt)= -1;
+                    imageWellMultiplier(filt)= 1;
     
                     % Calculate the drawdown from the production well plus
                     % the influence from each image well.
-                    result(:,i) = bsxfun(@plus, - 10^obj.alpha./t.* exp(-10^obj.beta * (pumpDistancesSqr./t)), ...
-                        sum(bsxfun(@times, imageWellMultiplier' , bsxfun(@times, 10^obj.alpha./t , exp(-10^obj.beta * bsxfun(@rdivide,imageDistancesSqr',t)))),2));
+                    result(:,i) = - 10^obj.alpha./t .* bsxfun(@plus, exp(-10^obj.beta * (pumpDistancesSqr./t)), ...
+                        sum(bsxfun(@times, imageWellMultiplier' , exp(-10^obj.beta * bsxfun(@rdivide,imageDistancesSqr',t))),2));
                 else
                     result(:,i) = - 10^obj.alpha./t.* exp(-10^obj.beta * (pumpDistancesSqr ./t));
                 end
@@ -314,8 +313,8 @@ classdef  responseFunction_FerrisKnowles < responseFunction_abstract
         % Extract the estimates of aquifer properties from the values of
         % alpha, beta and gamma.
         function [params, param_names] = getDerivedParameters(obj)
-            T= 1/(4*pi*10^obj.alpha);
-            S= 4 * 10^obj.beta * T;            
+            T= 1./(4.*pi.*10.^obj.alpha);
+            S= 4 .* 10.^obj.beta .* T;            
             
             params = [T;S];
             param_names = {'Transmissivity (Head units^2/day)'; 'Storativity'};
