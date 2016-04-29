@@ -1,5 +1,5 @@
 <deployment-project plugin="plugin.ezdeploy" plugin-version="1.0">
-  <configuration build-checksum="815558456" file="W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\deploymentCode\Windows_x64\TheGST.prj" location="W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\deploymentCode\Windows_x64" name="TheGST" preferred-package-location="W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\deploymentCode\Windows_x64\TheGST\for_redistribution" preferred-package-type="package.type.exe" target="target.ezdeploy.standalone" target-name="MATLAB Compiler for Standalone Applications">
+  <configuration build-checksum="3136471281" file="W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\deploymentCode\Windows_x64\TheGST.prj" location="W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\deploymentCode\Windows_x64" name="TheGST" preferred-package-location="W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\deploymentCode\Windows_x64\TheGST\for_redistribution" preferred-package-type="package.type.exe" target="target.ezdeploy.standalone" target-name="MATLAB Compiler for Standalone Applications">
     <param.appname>TheGST</param.appname>
     <param.icon />
     <param.icons />
@@ -73,6 +73,7 @@ Details of the time-series framework are avaiable at: Peterson T. J and Western 
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\GST.m</file>
     </fileset.main>
     <fileset.resources>
+      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\calibration\CMA_ES\cmaes.m</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\calibration\CMA_ES\plotcmaesdat.m</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\calibration\DREAM\Adapt_pCR.m</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\algorithms\calibration\DREAM\Boundary_handling.m</file>
@@ -189,6 +190,7 @@ Details of the time-series framework are avaiable at: Peterson T. J and Western 
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\documentation\html\papers\Shapoori_2015B.pdf</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\documentation\html\papers\Shapoori_2015C.pdf</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\Examples\BourkesFlat\BourkesFlat_data.mat</file>
+      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\Examples\BourkesFlat\BourkesFlat_model.mat</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\Examples\Clydebank\Clydebank_data.mat</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\Examples\Clydebank\Clydebank_model.mat</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\GUI\findjobj\findjobj.m</file>
@@ -258,7 +260,6 @@ Details of the time-series framework are avaiable at: Peterson T. J and Western 
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\GUI\GUI Layout Toolbox 2.1.mltbx FILES\fsroot\layout\+uix\VisibilityObserver.m</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\GUI\GUI Layout Toolbox 2.1.mltbx FILES\fsroot\layout\Contents.m</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\GUI\GUI Layout Toolbox 2.1.mltbx FILES\fsroot\layout\layoutRoot.m</file>
-      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\GUI\icons\logo.png</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\GUI\icons\splash.png</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\GUI\icons\UniMelb.png</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\GUI\models\ExpSmooth_gui.m</file>
