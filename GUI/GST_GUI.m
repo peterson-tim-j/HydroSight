@@ -3961,6 +3961,10 @@ classdef GST_GUI < handle
                     nrows = size(this.tab_DataPrep.Table.Data,1);
                     this.tab_DataPrep.Table.RowName = mat2cell([1:nrows]',ones(1, nrows));                           
                     
+                    % Change cursor
+                    set(this.Figure, 'pointer', 'arrow');
+                    drawnow;                                
+                    
                     % Output Summary.
                     msgbox({['Data preparation table data was imported to ',num2str(nImportedRows), ' rows.'], ...
                             '', ...
@@ -4014,6 +4018,10 @@ classdef GST_GUI < handle
                     nrows = size(this.tab_ModelConstruction.Table.Data,1);
                     this.tab_ModelConstruction.Table.RowName = mat2cell([1:nrows]',ones(1, nrows));                        
 
+                    % Change cursor
+                    set(this.Figure, 'pointer', 'arrow');
+                    drawnow;                                                    
+                    
                     % Output Summary.
                     msgbox({['Construction data was imported to ',num2str(nImportedRows), ' rows.'], ...
                             '', ...
@@ -4108,8 +4116,11 @@ classdef GST_GUI < handle
                     % Update row numbers.
                     nrows = size(this.tab_ModelCalibration.Table.Data,1);
                     this.tab_ModelCalibration.Table.RowName = mat2cell([1:nrows]',ones(1, nrows));                            
-                                            
-                    
+
+                    % Change cursor
+                    set(this.Figure, 'pointer', 'arrow');
+                    drawnow;                                
+                                        
                     % Output Summary.
                     msgbox({['Calibration data was imported to ',num2str(nImportedRows), ' rows.'], ...
                             ['   Number of model labels not found in the calibration table: ',num2str(nModelsNotFound) ], ...

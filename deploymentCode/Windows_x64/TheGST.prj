@@ -1,5 +1,5 @@
 <deployment-project plugin="plugin.ezdeploy" plugin-version="1.0">
-  <configuration build-checksum="3136471281" file="W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\deploymentCode\Windows_x64\TheGST.prj" location="W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\deploymentCode\Windows_x64" name="TheGST" preferred-package-location="W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\deploymentCode\Windows_x64\TheGST\for_redistribution" preferred-package-type="package.type.exe" target="target.ezdeploy.standalone" target-name="MATLAB Compiler for Standalone Applications">
+  <configuration build-checksum="1021561806" file="W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\deploymentCode\Windows_x64\TheGST.prj" location="W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\deploymentCode\Windows_x64" name="TheGST" preferred-package-location="W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\deploymentCode\Windows_x64\TheGST\for_redistribution" preferred-package-type="package.type.exe" target="target.ezdeploy.standalone" target-name="MATLAB Compiler for Standalone Applications">
     <param.appname>TheGST</param.appname>
     <param.icon />
     <param.icons />
