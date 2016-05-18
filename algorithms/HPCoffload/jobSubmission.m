@@ -36,6 +36,8 @@ function [ userData, calibLabel ] = jobSubmission( userData, projectPath, calibL
                 'Full path to folder for the jobs:', ...
                 'Job name:', ...
                 'Queue name (optional):', ...
+                'Node name (optional) :', ...
+                'Max. MPI jobs (optional):', ...
                 'CPUs per node per model:', ...
                 'Max. runtime per model:', ...                
                 'Command for pre-job submission  (optional):'};
@@ -49,6 +51,8 @@ function [ userData, calibLabel ] = jobSubmission( userData, projectPath, calibL
                     '', ...                    
                     '/USER_FOLDER/GroundwaterStatisticsToolkit', ...
                     'GST-MPI-ARRAY', ...
+                    '', ...
+                    '', ...
                     '', ...
                     '1', ...
                     '24:00:00', ...
@@ -69,9 +73,11 @@ function [ userData, calibLabel ] = jobSubmission( userData, projectPath, calibL
     folder = userData{5};
     jobName = userData{6};
     queue = userData{7};
-    nCPUs= userData{8};
-    walltime= userData{9};
-    preCommands = userData{10};    
+    nodeName = userData{8};
+    nJobs = userData{9};
+    nCPUs= userData{10};
+    walltime= userData{11};
+    preCommands = userData{12};    
     userData{3} = '';
     
     
@@ -195,8 +201,7 @@ function [ userData, calibLabel ] = jobSubmission( userData, projectPath, calibL
 
             zip(fullfile(projectPath,'algorithms.zip'),algorithmsPath);
 
-            % Copy zipped file to cluster
-            %sftpfrommatlab(username,URL,password,fullfile(projectPath,'algorithms.zip'),[folder,'/','algorithms.zip']);
+            % Copy zipped file to cluster            
             scp_put(sshChannel, 'algorithms.zip', folder, projectPath, 'algorithms.zip');
 
             % Unzip the file
@@ -209,15 +214,31 @@ function [ userData, calibLabel ] = jobSubmission( userData, projectPath, calibL
             return;
         end
 
-        % Write file of model names. Each 'mpirun' jobs will open this file and find the requred model name it has 
-        % been allocated to calibrate.
+        % Set the number of MPI jobs
+        if isempty(nJobs)
+            nJobs = nModels;
+        else
+            nJobs=str2num(nJobs);
+        end            
+        
+        % Allocate models to a job.
+        if mod(length(calibLabel),nJobs)>0
+            blankModels = cellstr(repmat(' ',mod(length(calibLabel),nJobs),1))';
+            calibLabel = {calibLabel{:}, blankModels{:}};
+        end
+        nModelsPerJob = length(calibLabel)/nJobs;
+        calibLabel = reshape(calibLabel, nJobs, nModelsPerJob);
+        
+        % Write file of model names. Each 'mpirun' jobs will open this file and find the requred model name(s) it has 
+        % been allocated to calibrate. If more than one model name is
+        % listed in a row then the MPI job sequentially runs multiple
+        % models. 
         msgStr{4} = '   Writing file of model names ...';
         set(findobj(h,'Tag','MessageBox'),'String',msgStr);         
         drawnow;
-        [sshChannel,SSHresult] = ssh2_command(sshChannel,['printf "modelName \n" >> ',folder,'/ModelNames.txt']);
-        for i=1:nModels
+        for i=1:nJobs
            % Save calib options text file   
-           [sshChannel,SSHresult] = ssh2_command(sshChannel,['printf "',calibLabel{i},' \n" >> ',folder,'/ModelNames.txt']);
+           [sshChannel,SSHresult] = ssh2_command(sshChannel,['printf "',strjoin(calibLabel(i,:),','),' \n" >> ',folder,'/ModelNames.txt']);
         end
 
         msgStr{5} = '   Writing mpiexec submission file ...';
@@ -229,9 +250,13 @@ function [ userData, calibLabel ] = jobSubmission( userData, projectPath, calibL
         if ~isempty(queue)
            [sshChannel,SSHresult] = ssh2_command(sshChannel,['printf "#PBS -q ',queue,' \n" >> ',folder,'/SubmitJobs.in']);
         end
-        [sshChannel,SSHresult] = ssh2_command(sshChannel,['printf "#PBS -l nodes=1:ppn=',num2str(nCPUs),' \n" >> ',folder,'/SubmitJobs.in']);
+        if isempty(nodeName)
+            [sshChannel,SSHresult] = ssh2_command(sshChannel,['printf "#PBS -l nodes=1:ppn=',num2str(nCPUs),' \n" >> ',folder,'/SubmitJobs.in']);
+        else
+            [sshChannel,SSHresult] = ssh2_command(sshChannel,['printf "#PBS -l nodes=',nodeName,':ppn=',num2str(nCPUs),' \n" >> ',folder,'/SubmitJobs.in']);
+        end
         [sshChannel,SSHresult] = ssh2_command(sshChannel,['printf "#PBS -l walltime=',walltime,' \n" >> ',folder,'/SubmitJobs.in']);        
-        [sshChannel,SSHresult] = ssh2_command(sshChannel,['printf "#PBS -t 1-',num2str(nModels),' \n" >> ',folder,'/SubmitJobs.in']);
+        [sshChannel,SSHresult] = ssh2_command(sshChannel,['printf "#PBS -t 1-',num2str(nJobs),' \n" >> ',folder,'/SubmitJobs.in']);
         if ~isempty(email)
            [sshChannel,SSHresult] = ssh2_command(sshChannel,['printf "#PBS -m bea \n" >> ',folder,'/SubmitJobs.in']);
            [sshChannel,SSHresult] = ssh2_command(sshChannel,['printf "#PBS -M ',email,' \n" >> ',folder,'/SubmitJobs.in']);

@@ -602,9 +602,9 @@ classdef GroundwaterStatisticsToolbox < handle
                       obj.simulationResults{simInd,1}.head(:,2,i) - obj.simulationResults{simInd,1}.noise(:,2,i),  ...
                       obj.simulationResults{simInd,1}.head(:,2,i) + obj.simulationResults{simInd,1}.noise(:,3,i)];
                   modelResults.krigingData = [obj.calibrationResults.data.modelledHead(:,1), obj.calibrationResults.data.modelledHead_residuals(:,i)];
-                  modelResults.range = obj.calibrationResults.performance.variogram_residual.range{i};
-                  modelResults.sill = obj.calibrationResults.performance.variogram_residual.sill{i};
-                  modelResults.nugget = obj.calibrationResults.performance.variogram_residual.nugget{i};
+                  modelResults.range = obj.calibrationResults.performance.variogram_residual.range(i);
+                  modelResults.sill = obj.calibrationResults.performance.variogram_residual.sill(i);
+                  modelResults.nugget = obj.calibrationResults.performance.variogram_residual.nugget(i);
                    
                   % Call model interpolation
                   maxKrigingObs = min(10,ceil(0.1*length(getObservedHead(obj))));
@@ -1679,7 +1679,7 @@ classdef GroundwaterStatisticsToolbox < handle
                     obj.evaluationResults.data.modelledHead_residuals = obsHead(~t_filt,2) -obj.evaluationResults.data.modelledHead(:,2);
                     head_eval_resid = [head_est(~t_filt,1,1),  obj.evaluationResults.data.modelledHead_residuals];             
                 end
-                
+                obj.evaluationResults.data.modelledHead_residuals = single(obj.evaluationResults.data.modelledHead_residuals);
             else
                 obj.evaluationResults =[];
             end
@@ -1689,13 +1689,14 @@ classdef GroundwaterStatisticsToolbox < handle
                 obj.calibrationResults.data.modelledHead = [head_est(t_filt,1,1), permute(prctile( head_est(t_filt, 2,:),[50 5 95],3),[1,3,2])];                
                 obj.calibrationResults.data.modelledNoiseBounds = [head_est(t_filt,1,1), prctile( head_est(t_filt, 3,:),5,3), prctile( head_est(t_filt, 4,:),95,3)];
                 obj.calibrationResults.data.modelledHead_residuals = permute( bsxfun(@minus, obsHead(t_filt,2), head_est(t_filt, 2,:)),[1 3 2]);
-                head_calib_resid = [head_est(t_filt,1,1),  permute(prctile( bsxfun(@minus, obsHead(t_filt,2), head_est(t_filt, 2,:)),50,3),[1,3,2])];
+                head_calib_resid = [head_est(t_filt,1,1),  permute(prctile( bsxfun(@minus, obsHead(t_filt,2), head_est(t_filt, 2,:)),50,3),[1,3,2])];                
             else
                 obj.calibrationResults.data.modelledHead = head_est(t_filt,1:2);
                 obj.calibrationResults.data.modelledNoiseBounds = head_est(t_filt,[1,3,4]);
                 obj.calibrationResults.data.modelledHead_residuals = obsHead(t_filt,2) -obj.calibrationResults.data.modelledHead(:,2);
                 head_calib_resid = [head_est(t_filt,1), obj.calibrationResults.data.modelledHead_residuals];
             end
+            obj.calibrationResults.data.modelledHead_residuals = single(obj.calibrationResults.data.modelledHead_residuals);  % to reduce RAM from DREAM runs
                                                 
             nparams = size(params,1);
             nobs = size(obj.calibrationResults.data.modelledHead,1);            
@@ -1759,11 +1760,15 @@ classdef GroundwaterStatisticsToolbox < handle
                 calib_var = variogram([resid(:,1), zeros( size(resid(:,1))) ] ...
                     , resid(:,2) , 'maxdist', 365, 'nrbins', 12);
 
-                [obj.calibrationResults.performance.variogram_residual.range{i,1}, obj.calibrationResults.performance.variogram_residual.sill{i,1}, ...
-                    obj.calibrationResults.performance.variogram_residual.nugget{i,1}, obj.calibrationResults.performance.variogram_residual.model{i,1}] ...
+                [obj.calibrationResults.performance.variogram_residual.range(i,1), obj.calibrationResults.performance.variogram_residual.sill(i,1), ...
+                    obj.calibrationResults.performance.variogram_residual.nugget(i,1), varmodel] ...
                     = variogramfit(calib_var.distance, ...                
                     calib_var.val, 365/4, 0.75.*var( resid(:,2)), calib_var.num, [], ...
                     'model', 'exponential', 'nugget', 0.25.*var( resid(:,2)) ,'plotit',false );
+                
+                obj.calibrationResults.performance.variogram_residual.h(:,i) = varmodel.h;
+                obj.calibrationResults.performance.variogram_residual.gamma(:,i) = varmodel.gamma;
+                obj.calibrationResults.performance.variogram_residual.gammahat(:,i) = varmodel.gammahat;
             end 
             if neval > 0;                
                 for i=1:size(head_est,3)                
@@ -1771,11 +1776,16 @@ classdef GroundwaterStatisticsToolbox < handle
                     eval_var = variogram([resid(:,1), zeros( size(resid(:,1))) ] ...
                         , resid(:,2) , 'maxdist', 365, 'nrbins', 12);
 
-                    [obj.evaluationResults.performance.variogram_residual.range{i,1}, obj.evaluationResults.performance.variogram_residual.sill{i,1}, ...
-                        obj.evaluationResults.performance.variogram_residual.nugget{i,1}, obj.evaluationResults.performance.variogram_residual.model{i,1}] ...
+                    [obj.evaluationResults.performance.variogram_residual.range(i,1), obj.evaluationResults.performance.variogram_residual.sill(i,1), ...
+                        obj.evaluationResults.performance.variogram_residual.nugget(i,1), varmodel] ...
                         = variogramfit(eval_var.distance, ...                
                         eval_var.val, 365/4, 0.75.*var( resid(:,2)), eval_var.num, [], ...
                         'model', 'exponential', 'nugget', 0.25.*var( resid(:,2)) ,'plotit',false );
+                    
+                    obj.calibrationResults.performance.variogram_residual.h(:,i) = varmodel.h;
+                    obj.calibrationResults.performance.variogram_residual.gamma(:,i) = varmodel.gamma;
+                    obj.calibrationResults.performance.variogram_residual.gammahat(:,i) = varmodel.gammahat;
+                    
                 end                 
                 
             end                        
@@ -2155,10 +2165,16 @@ classdef GroundwaterStatisticsToolbox < handle
                     deltaTime=[];
                     gamma=[];
                     gammaHat=[];
-                    for i=1:size(obj.calibrationResults.performance.variogram_residual.model,1)
-                        deltaTime = [deltaTime,obj.calibrationResults.performance.variogram_residual.model{i}.h];
-                        gamma = [gamma,obj.calibrationResults.performance.variogram_residual.model{i}.gamma];
-                        gammaHat = [gammaHat,obj.calibrationResults.performance.variogram_residual.model{i}.gammahat];
+                    if isfield(obj.calibrationResults.performance.variogram_residual,'h')                        
+                        deltaTime = obj.calibrationResults.performance.variogram_residual.h;
+                        gamma = obj.calibrationResults.performance.variogram_residual.gamma;
+                        gammaHat = obj.calibrationResults.performance.variogram_residual.gammahat;                        
+                    else
+                        for i=1:size(obj.calibrationResults.performance.variogram_residual.range,1)
+                            deltaTime = [deltaTime,obj.calibrationResults.performance.variogram_residual.model{i}.h];
+                            gamma = [gamma,obj.calibrationResults.performance.variogram_residual.model{i}.gamma];
+                            gammaHat = [gammaHat,obj.calibrationResults.performance.variogram_residual.model{i}.gammahat];
+                        end
                     end
                     
                     %Plot data
@@ -2175,11 +2191,17 @@ classdef GroundwaterStatisticsToolbox < handle
                         deltaTime=[];
                         gamma=[];
                         gammaHat=[];
-                        for i=1:size(obj.evaluationResults.performance.variogram_residual.model,1)
-                            deltaTime = [deltaTime,obj.evaluationResults.performance.variogram_residual.model{i}.h];
-                            gamma = [gamma,obj.evaluationResults.performance.variogram_residual.model{i}.gamma];
-                            gammaHat = [gammaHat,obj.evaluationResults.performance.variogram_residual.model{i}.gammahat];
-                        end
+                        if isfield(obj.evaluationResults.performance.variogram_residual,'h')                        
+                            deltaTime = obj.evaluationResults.performance.variogram_residual.h;
+                            gamma = obj.evaluationResults.performance.variogram_residual.gamma;
+                            gammaHat = obj.evaluationResults.performance.variogram_residual.gammahat;                        
+                        else
+                            for i=1:size(obj.evaluationResults.performance.variogram_residual.range,1)
+                                deltaTime = [deltaTime,obj.evaluationResults.performance.variogram_residual.model{i}.h];
+                                gamma = [gamma,obj.evaluationResults.performance.variogram_residual.model{i}.gamma];
+                                gammaHat = [gammaHat,obj.evaluationResults.performance.variogram_residual.model{i}.gammahat];
+                            end
+                        end                        
 
                         %Plot data
                         ax = errorbar(h, median(deltaTime,2) , median(gamma,2), median(gamma,2)-prctile(gamma,5 ,2),prctile(gamma,95 ,2)-median(gamma,2), '.r');
@@ -2195,12 +2217,31 @@ classdef GroundwaterStatisticsToolbox < handle
                         legend(h, 'Calib.(5-50-95th %ile)','Calib. model-50th %ile','Calib. model-5th %ile','Calib. model-95th %ile','Location','best');                        
                     end
                 else
-                    scatter(h, obj.calibrationResults.performance.variogram_residual.model.h , obj.calibrationResults.performance.variogram_residual.model.gamma, 'ob');            
+                    if isfield(deltaTime,obj.calibrationResults.performance.variogram_residual,'h')
+                        deltaTime = obj.calibrationResults.performance.variogram_residual.h;
+                        gamma = obj.calibrationResults.performance.variogram_residual.gamma;
+                        gammaHat = obj.calibrationResults.performance.variogram_residual.gammahat;                          
+                    else
+                        deltaTime = obj.calibrationResults.performance.variogram_residual.model{i}.h;
+                        gamma = obj.calibrationResults.performance.variogram_residual.model{i}.gamma;
+                        gammaHat = obj.calibrationResults.performance.variogram_residual.model{i}.gammahat;
+                    end
+                    scatter(h, deltaTime, gamma, 'ob');            
                     hold(h,'on');
-                    plot(h, obj.calibrationResults.performance.variogram_residual.model.h , obj.calibrationResults.performance.variogram_residual.model.gammahat, '-b');                        
-                    if neval > 0;                                
-                        scatter(h, obj.evaluationResults.performance.variogram_residual.model.h,  obj.evaluationResults.performance.variogram_residual.model.gamma, 'or');
-                        plot(h, obj.evaluationResults.performance.variogram_residual.model.h,  obj.evaluationResults.performance.variogram_residual.model.gammahat, '-r');                
+                    plot(h, deltaTime, gammahat, '-b');                        
+                    if neval > 0;     
+                        if isfield(deltaTime,obj.evaluationResults.performance.variogram_residual,'h')
+                            deltaTime = obj.evaluationResults.performance.variogram_residual.h;
+                            gamma = obj.evaluationResults.performance.variogram_residual.gamma;
+                            gammaHat = obj.evaluationResults.performance.variogram_residual.gammahat;                          
+                        else
+                            deltaTime = obj.evaluationResults.performance.variogram_residual.model{i}.h;
+                            gamma = obj.evaluationResults.performance.variogram_residual.model{i}.gamma;
+                            gammaHat = obj.evaluationResults.performance.variogram_residual.model{i}.gammahat;
+                        end                        
+                        
+                        scatter(h, deltaTime, gamma, 'or');
+                        plot(h, deltaTime,  gammahat, '-r');                
                         legend(h, 'Calib.','Calib model','Eval. experimental','Eval. model','Location','best');                
                     else
                         legend(h, 'Calib.','Calib model','Location','best');                

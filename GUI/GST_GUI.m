@@ -6,8 +6,8 @@ classdef GST_GUI < handle
     %variables. Useful in different sitionations
     properties
         % Version number
-        versionNumber = '1.1.1';
-        versionDate= '12 Feb. 2016';
+        versionNumber = '1.2';
+        versionDate= '6 May 2016';
         
         % Model types supported
         modelTypes = {'model_TFN', 'ExpSmooth'};
@@ -3737,18 +3737,22 @@ classdef GST_GUI < handle
                 set(findobj(h,'Tag','MessageBox'),'String',msgStr);
                 drawnow;                
 
+                % get the original tabel text
+                tableRowData = this.tab_ModelCalibration.Table.Data(i,:); 
+                
                 % Get the selected model label.
                 calibLabel = data{i,2};                
                 calibLabel = GST_GUI.removeHTMLTags(calibLabel);
 
                 % Find index to the calibrated model label within the
                 % list of constructed models.
-                ind = cellfun(@(x) strcmp(calibLabel, x.model_label), this.models);
-                if all(~ind)
+                ind = find(cellfun(@(x) strcmp(calibLabel, x.model_label), this.models));
+                if isempty(ind)
                     this.tab_ModelCalibration.Table.Data{i,10} = '<html><font color = "#FF0000">Calib. failed - Model appears not to have been built.</font></html>';
                     continue;
                 end    
 
+                
                 % Remove special characters from label (as per jobSubmission.m)
                 calibLabel =  regexprep(calibLabel,'\W','_');                             
                 calibLabel =  regexprep(calibLabel,'____','_');                             
@@ -3777,8 +3781,58 @@ classdef GST_GUI < handle
                             cd(projectPath);
                             importedModel = load('results.mat');
 
+                            % Convert double precision residuals to single
+                            % to reduce RAM
+                            if isfield(importedModel.model.evaluationResults,'data')
+                                importedModel.model.evaluationResults.data.modelledHead_residuals = single(importedModel.model.evaluationResults.data.modelledHead_residuals);
+                            end
+                            importedModel.model.calibrationResults.data.modelledHead_residuals = single(importedModel.model.calibrationResults.data.modelledHead_residuals);
+                            
+                            % Clear the residuals from the model.model.variables. This is only done to minimise RAM.
+                            try
+                                if isfield(importedModel.model.model.variables,'resid');
+                                    importedModel.model.model.variables = rmfield(importedModel.model.model.variables, 'resid');
+                                end
+                            catch ME                                
+                                % do nothing
+                            end
+                            
+                            % IF an old version of the GST had been used,
+                            % then remove the cell array of variogram
+                            % values and just keep the relevant data. This
+                            % is done only to reduce RAM.
+                            if isfield(importedModel.evaluationResults,'performance')                        
+                                if isfield(importedModel.evaluationResults.performance.variogram_residual,'model')                        
+                                    nvariograms=size(obj.evaluationResults.performance.variogram_residual.range,1);
+                                    deltaTime=[];
+                                    gamma=[];
+                                    gammaHat=[];
+                                    for i=1:nvariograms
+                                        deltaTime = [deltaTime,obj.evaluationResults.performance.variogram_residual.model{i}.h];
+                                        gamma = [gamma,obj.evaluationResults.performance.variogram_residual.model{i}.gamma];
+                                        gammaHat = [gammaHat,obj.evaluationResults.performance.variogram_residual.model{i}.gammahat];
+                                    end
+                                    obj.evaluationResults.performance.variogram_residual.h = deltaTime;
+                                    obj.evaluationResults.performance.variogram_residual.gamma = gamma;
+                                    obj.evaluationResults.performance.variogram_residual.gammaHat = gammaHat;
+                                end
+                            end                              
+                            nvariograms=size(obj.calibrationResults.performance.variogram_residual.range,1);
+                            deltaTime=[];
+                            gamma=[];
+                            gammaHat=[];
+                            for i=1:nvariograms
+                                deltaTime = [deltaTime,obj.calibrationResults.performance.variogram_residual.model{i}.h];
+                                gamma = [gamma,obj.calibrationResults.performance.variogram_residual.model{i}.gamma];
+                                gammaHat = [gammaHat,obj.calibrationResults.performance.variogram_residual.model{i}.gammahat];
+                            end
+                            obj.calibrationResults.performance.variogram_residual.h = deltaTime;
+                            obj.calibrationResults.performance.variogram_residual.gamma = gamma;
+                            obj.calibrationResults.performance.variogram_residual.gammaHat = gammaHat;
+                            
+                            % Copy model into project
                             this.models{ind,1} = importedModel.model;
-                            this.tab_ModelCalibration.Table.Data{i,10} = '<html><font color = "#008000">Calibrated. </font></html>';
+                            tableRowData{1,10} = '<html><font color = "#008000">Calibrated. </font></html>';
 
                             % Get calib status and set into table.
                             exitFlag = this.models{ind,1}.calibrationResults.exitFlag;
@@ -3792,9 +3846,9 @@ classdef GST_GUI < handle
                                 continue
 
                             elseif exitFlag ==1
-                                this.tab_ModelCalibration.Table.Data{i,10} = ['<html><font color = "#FFA500">Partially calibrated: ',exitStatus,' </font></html>'];
+                                tableRowData{1,10} = ['<html><font color = "#FFA500">Partially calibrated: ',exitStatus,' </font></html>'];
                             elseif exitFlag ==2
-                                this.tab_ModelCalibration.Table.Data{i,10} = ['<html><font color = "#008000">Calibrated: ',exitStatus,' </font></html>'];
+                                tableRowData{1,10} = ['<html><font color = "#008000">Calibrated: ',exitStatus,' </font></html>'];
                             end
 
                             % Update status in GUI
@@ -3804,18 +3858,18 @@ classdef GST_GUI < handle
                             calibAICc = this.models{ind, 1}.calibrationResults.performance.AICc;
                             calibBIC = this.models{ind, 1}.calibrationResults.performance.BIC;
                             calibCoE = this.models{ind, 1}.calibrationResults.performance.CoeffOfEfficiency_mean.CoE;
-                            this.tab_ModelCalibration.Table.Data{i,11} = ['<html><font color = "#808080">',num2str(calibCoE),'</font></html>'];
-                            this.tab_ModelCalibration.Table.Data{i,13} = ['<html><font color = "#808080">',num2str(calibAICc),'</font></html>'];
-                            this.tab_ModelCalibration.Table.Data{i,14} = ['<html><font color = "#808080">',num2str(calibBIC),'</font></html>'];
+                            tableRowData{1,11} = ['<html><font color = "#808080">',num2str(calibCoE),'</font></html>'];
+                            tableRowData{1,13} = ['<html><font color = "#808080">',num2str(calibAICc),'</font></html>'];
+                            tableRowData{1,14} = ['<html><font color = "#808080">',num2str(calibBIC),'</font></html>'];
                             
                             
                             % Set eval performance stats
                             if isfield(this.models{ind, 1}.evaluationResults,'performance')
                                 evalCoE = this.models{ind, 1}.evaluationResults.performance.CoeffOfEfficiency_mean.CoE_unbias;                    
-                                this.tab_ModelCalibration.Table.Data{i,12} = ['<html><font color = "#808080">',num2str(evalCoE),'</font></html>'];
+                                tableRowData{1,12} = ['<html><font color = "#808080">',num2str(evalCoE),'</font></html>'];
                             else
                                 evalCoE = '(NA)';
-                                this.tab_ModelCalibration.Table.Data{i,12} = ['<html><font color = "#808080">',evalCoE,'</font></html>'];
+                                tableRowData{1,12} = ['<html><font color = "#808080">',evalCoE,'</font></html>'];
                             end
                             
                             
@@ -3835,6 +3889,7 @@ classdef GST_GUI < handle
                 end
                 
                 % Update GUI labels
+                this.tab_ModelCalibration.Table.Data(i,:) = tableRowData;
                 drawnow;
             end                      
             
@@ -3846,11 +3901,11 @@ classdef GST_GUI < handle
             drawnow;
             
             % Output Summary.
-            msgStr{3} = ['HPC calibration results files were retieved for ',num2str(nModelsRetieved), ' rows.'];
+            msgStr{3} = ['   HPC calibration results files were retieved for ',num2str(nModelsRetieved), ' rows.'];
             msgStr{4} = '';
-            msgStr{5} = ['No. HPC results not yet complete: ',num2str(nModelsNoResult) ];
-            msgStr{6} = ['No. HPC results for which the results file appears to be corrupted: ',num2str(nModelsResultFileErr) ];
-            msgStr{7} = ['No. HPC results for which an SSH error occured: ',num2str(nModelsRetrievalFailed) ];            
+            msgStr{5} = ['   No. HPC results not yet complete: ',num2str(nModelsNoResult) ];
+            msgStr{6} = ['   No. HPC results for which the results file appears to be corrupted: ',num2str(nModelsResultFileErr) ];
+            msgStr{7} = ['   No. HPC results for which an SSH error occured: ',num2str(nModelsRetrievalFailed) ];            
             set(findobj(h,'Tag','MessageBox'),'String',msgStr);
             set(findobj(h,'style','pushbutton'),'Visible','on');
             drawnow;             
