@@ -8,7 +8,7 @@ function headData = doDataQualityAnalysis( headData, boreDepth, surface_elevatio
     minObsforOutlierDetection = 12;
 
     % Duration for constant head error checkd min ob 
-    constHeadThreshold_minObs = 4;
+    constHeadThreshold_minObs = 3;
     
     % Assign plausible dates for water level obs    
     plausibleEndDate = now();    

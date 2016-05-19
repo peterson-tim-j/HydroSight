@@ -22,7 +22,7 @@ classdef model_abstract < handle
             
         [params_initial, time_points] = calibration_initialise(obj, t_start, t_end)
             
-        calibration_finalise(obj, params)
+        calibration_finalise(obj, params, useLikelihood)
             
         [objFn, h_star] = objectiveFunction(params, time_points, obj)                
         

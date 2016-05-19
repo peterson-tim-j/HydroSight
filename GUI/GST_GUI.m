@@ -6,8 +6,8 @@ classdef GST_GUI < handle
     %variables. Useful in different sitionations
     properties
         % Version number
-        versionNumber = '1.2';
-        versionDate= '6 May 2016';
+        versionNumber = '1.2.1';
+        versionDate= '19 May 2016';
         
         % Model types supported
         modelTypes = {'model_TFN', 'ExpSmooth'};
@@ -2756,6 +2756,10 @@ classdef GST_GUI < handle
                 if ~isempty(this.tab_DataPrep.Table.Data{i, dataCol})
                     try
                         constructionDate = datenum(this.tab_DataPrep.Table.Data{i, dataCol});
+                        if constructionDate > now()+1 || constructionDate< datenum(1500,1,1)
+                            nBoreInputsError = nBoreInputsError +1;
+                            continue;
+                        end
                     catch
                         this.tab_DataPrep.Table.Data{i, 15} = '<html><font color = "#FF0000">Bore not found in head data file -  data error.</font></html>';
                         nBoreInputsError = nBoreInputsError +1;
@@ -2904,7 +2908,7 @@ classdef GST_GUI < handle
                     ['   - Head data file errors: ', num2str(nBoreNotInHeadFile)] ...
                     ['   - Input table data errors: ', num2str(nBoreInputsError)] ...
                     ['   - Data analysis algorithm failures: ', num2str(nAnalysisFailed)] ...
-                    ['   - Bore IDs not starting with a letter and having only letters & numbers: ', num2str(nBoreIDLabelError)]}, ...                    
+                    ['   - Bore IDs not starting with a letter: ', num2str(nBoreIDLabelError)]}, ...                    
                     'Summary of data analysis ...');
                            
             
@@ -4990,8 +4994,8 @@ classdef GST_GUI < handle
                     modelStatus = '<html><font color = "#FF0000">Bore not analysed.</font></html>';
                     modelStatus_col = 15;
                     defaultData = {false, '', '',0, 0, 0, '01/01/1900',true, true, true, true, 10, 120, 3,modelStatus, ...
-                    '<html><font color = "#808080">','(NA)','</font></html>', ...
-                    '<html><font color = "#808080">','(NA)','</font></html>'};
+                    '<html><font color = "#808080">(NA)</font></html>', ...
+                    '<html><font color = "#808080">(NA)</font></html>'};
                 case 'Model Construction'
                     modelStatus = '<html><font color = "#FF0000">Model not built.</font></html>';
                     modelStatus_col = 9;

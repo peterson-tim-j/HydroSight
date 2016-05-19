@@ -107,7 +107,7 @@ classdef ExpSmooth < model_abstract
             % Filter 'head' to only those time points input to the
             % function.
             [~, ind] = intersect(time_points_all,time_points);            
-            headtmp = [time_points, head(ind,:)];            
+            headtmp = [time_points, headtmp(ind,:)];            
                         
             if size(params,2)>1
                 head = zeros(size(headtmp,1),size(headtmp,2), size(params,2));
@@ -235,7 +235,7 @@ classdef ExpSmooth < model_abstract
             end
         end
         
-        function calibration_finalise(obj, params)
+        function calibration_finalise(obj, params, useLikelihood)          
             
             % Re-calc objective function and deterministic component of the head and innocations.
             % Importantly, the drainage elevation (ie the constant term for
@@ -243,7 +243,7 @@ classdef ExpSmooth < model_abstract
             % assigned to the object. When the calibrated model is solved
             % for a different time period then this
             % drainage value will be used by 'objectiveFunction'.
-            [obj.variables.objFn, obj.variables.h_star, obj.variables.h_forecast] = objectiveFunction(params, obj.variables.calibraion_time_points, obj);                        
+            [obj.variables.objFn, obj.variables.h_star, obj.variables.h_forecast] = objectiveFunction(params, obj.variables.calibraion_time_points, obj, useLikelihood);                        
  
             % Re-calc residuals and assign to object                        
             t_filt = obj.inputData.head(:,1) >=obj.variables.calibraion_time_points(1)  ...
