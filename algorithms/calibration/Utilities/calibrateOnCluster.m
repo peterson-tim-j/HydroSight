@@ -20,12 +20,13 @@ isValidModel = cellfun(@(x) ~isempty(x), modelName);
 modelName = modelName(isValidModel);
 nModels = length(modelName);
 
+cd('models');
+
 % Loop through each model name and calibrate
 for i=1:nModels
 
     % Read in model options
-    display('Reading in model options...');
-    cd('models');
+    display('Reading in model options...');    
     cd(modelName{i});
     fid = fopen('options.txt');
     lineString = strtrim(fgetl(fid));
@@ -49,6 +50,7 @@ for i=1:nModels
         saveResults=true;
     catch ME
         display(['Calibration failed: ',ME.message]);
+        cd ..
         continue;
     end
 
@@ -60,6 +62,9 @@ for i=1:nModels
             display(['Saving results failed: ',ME.message]);
         end
     end
+    
+    % Exit model folder
+    cd ..
 end
 
 % Kill matlab. This is an unfortuante requirement when the MEX function

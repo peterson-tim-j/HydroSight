@@ -221,12 +221,18 @@ function [ userData, calibLabel ] = jobSubmission( userData, projectPath, calibL
             nJobs=str2num(nJobs);
         end            
         
-        % Allocate models to a job.
-        if mod(length(calibLabel),nJobs)>0
-            blankModels = cellstr(repmat(' ',mod(length(calibLabel),nJobs),1))';
+        % Calculate the number of models per job, and if theer are to be an 
+        % unequal number per job then add blank model IDs
+        if floor(nModels/nJobs) ~= nModels/nJobs            
+            nModelsPerJob = ceil(nModels/nJobs);
+            nBlankModels = nModelsPerJob*nJobs - nModels;
+            blankModels = cellstr(repmat(' ',nBlankModels,1))';
             calibLabel = {calibLabel{:}, blankModels{:}};
-        end
-        nModelsPerJob = length(calibLabel)/nJobs;
+        else
+            nModelsPerJob = nModels/nJobs;
+        end            
+        
+        % Reshape list of model names to allocate models to a job.
         calibLabel = reshape(calibLabel, nJobs, nModelsPerJob);
         
         % Write file of model names. Each 'mpirun' jobs will open this file and find the requred model name(s) it has 

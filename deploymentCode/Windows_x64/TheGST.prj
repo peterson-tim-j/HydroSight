@@ -1,9 +1,9 @@
 <deployment-project plugin="plugin.ezdeploy" plugin-version="1.0">
-  <configuration build-checksum="1021561806" file="W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\deploymentCode\Windows_x64\TheGST.prj" location="W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\deploymentCode\Windows_x64" name="TheGST" preferred-package-location="W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\deploymentCode\Windows_x64\TheGST\for_redistribution" preferred-package-type="package.type.exe" target="target.ezdeploy.standalone" target-name="MATLAB Compiler for Standalone Applications">
+  <configuration build-checksum="900820768" file="W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\deploymentCode\Windows_x64\TheGST.prj" location="W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\deploymentCode\Windows_x64" name="TheGST" preferred-package-location="W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\deploymentCode\Windows_x64\TheGST\for_redistribution" preferred-package-type="package.type.exe" target="target.ezdeploy.standalone" target-name="MATLAB Compiler for Standalone Applications">
     <param.appname>TheGST</param.appname>
     <param.icon />
     <param.icons />
-    <param.version>1.1</param.version>
+    <param.version>1.21</param.version>
     <param.authnamewatermark>Tim Peterson</param.authnamewatermark>
     <param.email>timjp@unimelb.edu.au</param.email>
     <param.company>The University of Melbourne</param.company>
@@ -261,7 +261,6 @@ Details of the time-series framework are avaiable at: Peterson T. J and Western 
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\GUI\GUI Layout Toolbox 2.1.mltbx FILES\fsroot\layout\Contents.m</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\GUI\GUI Layout Toolbox 2.1.mltbx FILES\fsroot\layout\layoutRoot.m</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\GUI\icons\splash.png</file>
-      <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\GUI\icons\UniMelb.png</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\GUI\models\ExpSmooth_gui.m</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\GUI\models\model_gui_abstract.m</file>
       <file>W:\staff\timjp\Research\SRC\GIT-sandbox\GroundwaterStatisticalToolbox\GUI\models\model_TFN_gui.m</file>
