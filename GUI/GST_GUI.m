@@ -3734,10 +3734,10 @@ classdef GST_GUI < handle
             nModelsRetrievalFailed = 0;
             nModelsResultFileErr=0;
             nModelsNoResult=0;
-            j=0;
+            k=0;
             for i=imodels
-                j=j+1;
-                msgStr{1} = ['   Attempting to retrieve model ',num2str(j),' of ',num2str(nModels) '...'];           
+                k=k+1;
+                msgStr{1} = ['   Attempting to retrieve model ',num2str(k),' of ',num2str(nModels) '...'];           
                 set(findobj(h,'Tag','MessageBox'),'String',msgStr);
                 drawnow;                
 
@@ -3768,7 +3768,11 @@ classdef GST_GUI < handle
                 try
                     [~,SSHresult] = ssh2_command(sshChannel,['if test -f ',[folder,'/models/',calibLabel,'/results.mat'],' ; then echo "exist"; else echo "not exists"; fi']);
                 catch ME
-                    sshChannel  =  ssh2_close(sshChannel);
+                    try 
+                        sshChannel  =  ssh2_close(sshChannel);
+                    catch ME2
+                        % do nothing
+                    end
                     sshChannel = ssh2_config(URL,username,password); 
                     nModelsRetrievalFailed = nModelsRetrievalFailed +1;
                     continue
@@ -3805,34 +3809,34 @@ classdef GST_GUI < handle
                             % then remove the cell array of variogram
                             % values and just keep the relevant data. This
                             % is done only to reduce RAM.
-                            if isfield(importedModel.evaluationResults,'performance')                        
-                                if isfield(importedModel.evaluationResults.performance.variogram_residual,'model')                        
-                                    nvariograms=size(obj.evaluationResults.performance.variogram_residual.range,1);
+                            if isfield(importedModel.model.evaluationResults,'performance')                        
+                                if isfield(importedModel.model.evaluationResults.performance.variogram_residual,'model')                        
+                                    nvariograms=size(importedModel.model.evaluationResults.performance.variogram_residual.range,1);
                                     deltaTime=[];
                                     gamma=[];
                                     gammaHat=[];
-                                    for i=1:nvariograms
-                                        deltaTime = [deltaTime,obj.evaluationResults.performance.variogram_residual.model{i}.h];
-                                        gamma = [gamma,obj.evaluationResults.performance.variogram_residual.model{i}.gamma];
-                                        gammaHat = [gammaHat,obj.evaluationResults.performance.variogram_residual.model{i}.gammahat];
+                                    for j=1:nvariograms
+                                        deltaTime = [deltaTime,importedModel.model.evaluationResults.performance.variogram_residual.model{j}.h];
+                                        gamma = [gamma,importedModel.model.evaluationResults.performance.variogram_residual.model{j}.gamma];
+                                        gammaHat = [gammaHat,importedModel.model.evaluationResults.performance.variogram_residual.model{j}.gammahat];
                                     end
-                                    obj.evaluationResults.performance.variogram_residual.h = deltaTime;
-                                    obj.evaluationResults.performance.variogram_residual.gamma = gamma;
-                                    obj.evaluationResults.performance.variogram_residual.gammaHat = gammaHat;
+                                    importedModel.model.evaluationResults.performance.variogram_residual.h = deltaTime;
+                                    importedModel.model.evaluationResults.performance.variogram_residual.gamma = gamma;
+                                    importedModel.model.evaluationResults.performance.variogram_residual.gammaHat = gammaHat;
                                 end
                             end                              
-                            nvariograms=size(obj.calibrationResults.performance.variogram_residual.range,1);
+                            nvariograms=size(importedModel.model.calibrationResults.performance.variogram_residual.range,1);
                             deltaTime=[];
                             gamma=[];
                             gammaHat=[];
-                            for i=1:nvariograms
-                                deltaTime = [deltaTime,obj.calibrationResults.performance.variogram_residual.model{i}.h];
-                                gamma = [gamma,obj.calibrationResults.performance.variogram_residual.model{i}.gamma];
-                                gammaHat = [gammaHat,obj.calibrationResults.performance.variogram_residual.model{i}.gammahat];
+                            for j=1:nvariograms
+                                deltaTime = [deltaTime,importedModel.model.calibrationResults.performance.variogram_residual.model{j}.h];
+                                gamma = [gamma,importedModel.model.calibrationResults.performance.variogram_residual.model{j}.gamma];
+                                gammaHat = [gammaHat,importedModel.model.calibrationResults.performance.variogram_residual.model{j}.gammahat];
                             end
-                            obj.calibrationResults.performance.variogram_residual.h = deltaTime;
-                            obj.calibrationResults.performance.variogram_residual.gamma = gamma;
-                            obj.calibrationResults.performance.variogram_residual.gammaHat = gammaHat;
+                            importedModel.model.calibrationResults.performance.variogram_residual.h = deltaTime;
+                            importedModel.model.calibrationResults.performance.variogram_residual.gamma = gamma;
+                            importedModel.model.calibrationResults.performance.variogram_residual.gammaHat = gammaHat;
                             
                             % Copy model into project
                             this.models{ind,1} = importedModel.model;
@@ -3885,7 +3889,13 @@ classdef GST_GUI < handle
                         
                     catch ME
                         nModelsRetrievalFailed = nModelsRetrievalFailed +1;
-                        sshChannel  =  ssh2_close(sshChannel);
+                        
+                        try 
+                            sshChannel  =  ssh2_close(sshChannel);
+                        catch ME2
+                            % do nothing
+                        end                        
+                                                
                         sshChannel = ssh2_config(URL,username,password); 
                     end
                 else
