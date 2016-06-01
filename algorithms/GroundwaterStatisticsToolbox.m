@@ -1994,7 +1994,7 @@ classdef GroundwaterStatisticsToolbox < handle
                     set(ax,'Color',[0.6 0.6 0.6]);
                     set(ax,'MarkerEdgeColor','b');
                 else
-                    scatter(h, obj.calibrationResults.data.modelledHead_residuals(:,1), obj.calibrationResults.data.modelledHead_residuals(:,2), '.b' );
+                    scatter(h, obj.calibrationResults.data.modelledHead(:,1), obj.calibrationResults.data.modelledHead_residuals, '.b' );
                 end
                 hold(h,'on');
                 if neval > 0;
@@ -2004,7 +2004,7 @@ classdef GroundwaterStatisticsToolbox < handle
                         set(ax,'Color',[0.6 0.6 0.6]);
                         set(ax,'MarkerEdgeColor','r');
                     else
-                        scatter( h, obj.evaluationResults.data.modelledHead_residuals(:,1),  obj.evaluationResults.data.modelledHead_residuals(:,2), '.r'  );                
+                        scatter( h, obj.evaluationResults.data.modelledHead(:,1),  obj.evaluationResults.data.modelledHead_residuals, '.r'  );                
                     end
                     legend(h,'Calibration','Evaluation','Location','best');                
                 end
@@ -2129,7 +2129,7 @@ classdef GroundwaterStatisticsToolbox < handle
                     set(ax,'Color',[0.6 0.6 0.6]);
                     set(ax,'MarkerEdgeColor','b');
                 else
-                    scatter(h, obj.calibrationResults.data.obsHead(:,2), obj.calibrationResults.data.modelledHead_residuals(:,2),'.b');
+                    scatter(h, obj.calibrationResults.data.obsHead(:,2), obj.calibrationResults.data.modelledHead_residuals,'.b');
                 end
                 hold(h,'on');
                 if neval > 0;                
@@ -2139,7 +2139,7 @@ classdef GroundwaterStatisticsToolbox < handle
                         set(ax,'Color',[0.6 0.6 0.6]);
                         set(ax,'MarkerEdgeColor','r');
                     else                    
-                        scatter(h, obj.evaluationResults.data.obsHead(:,2),  obj.evaluationResults.data.modelledHead_residuals(:,2),'.r');
+                        scatter(h, obj.evaluationResults.data.obsHead(:,2),  obj.evaluationResults.data.modelledHead_residuals,'.r');
                     end
                     legend(h,'Calibration','Evaluation','Location','best');                
                 end            
@@ -2217,31 +2217,41 @@ classdef GroundwaterStatisticsToolbox < handle
                         legend(h, 'Calib.(5-50-95th %ile)','Calib. model-50th %ile','Calib. model-5th %ile','Calib. model-95th %ile','Location','best');                        
                     end
                 else
-                    if isfield(deltaTime,obj.calibrationResults.performance.variogram_residual,'h')
+                    if isfield(obj.calibrationResults.performance.variogram_residual,'h')
                         deltaTime = obj.calibrationResults.performance.variogram_residual.h;
                         gamma = obj.calibrationResults.performance.variogram_residual.gamma;
                         gammaHat = obj.calibrationResults.performance.variogram_residual.gammahat;                          
                     else
-                        deltaTime = obj.calibrationResults.performance.variogram_residual.model{i}.h;
-                        gamma = obj.calibrationResults.performance.variogram_residual.model{i}.gamma;
-                        gammaHat = obj.calibrationResults.performance.variogram_residual.model{i}.gammahat;
+                        deltaTime=[];
+                        gamma=[];
+                        gammaHat=[];
+                        for i=1:size(obj.calibrationResults.performance.variogram_residual.range,1)
+                            deltaTime = [deltaTime,obj.calibrationResults.performance.variogram_residual.model{i}.h];
+                            gamma = [gamma,obj.calibrationResults.performance.variogram_residual.model{i}.gamma];
+                            gammaHat = [gammaHat,obj.calibrationResults.performance.variogram_residual.model{i}.gammahat];
+                        end                        
                     end
                     scatter(h, deltaTime, gamma, 'ob');            
                     hold(h,'on');
-                    plot(h, deltaTime, gammahat, '-b');                        
+                    plot(h, deltaTime, gammaHat, '-b');                        
                     if neval > 0;     
-                        if isfield(deltaTime,obj.evaluationResults.performance.variogram_residual,'h')
+                        if isfield(obj.evaluationResults.performance.variogram_residual,'h')
                             deltaTime = obj.evaluationResults.performance.variogram_residual.h;
                             gamma = obj.evaluationResults.performance.variogram_residual.gamma;
                             gammaHat = obj.evaluationResults.performance.variogram_residual.gammahat;                          
                         else
-                            deltaTime = obj.evaluationResults.performance.variogram_residual.model{i}.h;
-                            gamma = obj.evaluationResults.performance.variogram_residual.model{i}.gamma;
-                            gammaHat = obj.evaluationResults.performance.variogram_residual.model{i}.gammahat;
+                            deltaTime=[];
+                            gamma=[];
+                            gammaHat=[];
+                            for i=1:size(obj.evaluationResults.performance.variogram_residual.range,1)
+                                deltaTime = [deltaTime,obj.evaluationResults.performance.variogram_residual.model{i}.h];
+                                gamma = [gamma,obj.evaluationResults.performance.variogram_residual.model{i}.gamma];
+                                gammaHat = [gammaHat,obj.evaluationResults.performance.variogram_residual.model{i}.gammahat];
+                            end                                                    
                         end                        
                         
                         scatter(h, deltaTime, gamma, 'or');
-                        plot(h, deltaTime,  gammahat, '-r');                
+                        plot(h, deltaTime,  gammaHat, '-r');                
                         legend(h, 'Calib.','Calib model','Eval. experimental','Eval. model','Location','best');                
                     else
                         legend(h, 'Calib.','Calib model','Location','best');                
