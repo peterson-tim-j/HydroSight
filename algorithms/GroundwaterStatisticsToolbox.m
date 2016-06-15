@@ -605,7 +605,18 @@ classdef GroundwaterStatisticsToolbox < handle
                   modelResults.range = obj.calibrationResults.performance.variogram_residual.range(i);
                   modelResults.sill = obj.calibrationResults.performance.variogram_residual.sill(i);
                   modelResults.nugget = obj.calibrationResults.performance.variogram_residual.nugget(i);
-                   
+                  
+                  
+                  if iscell(modelResults.range)
+                      modelResults.range = modelResults.range{1};
+                  end
+                  if iscell(modelResults.sill)
+                      modelResults.sill = modelResults.sill{1};
+                  end
+                  if iscell(modelResults.nugget)
+                      modelResults.nugget = modelResults.nugget{1};
+                  end          
+                  
                   % Call model interpolation
                   maxKrigingObs = min(10,ceil(0.1*length(getObservedHead(obj))));
                   useModel = true;
