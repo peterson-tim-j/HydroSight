@@ -290,8 +290,9 @@ classdef GST_GUI < handle
             uimenu(this.Figure.UIContextMenu,'Label','Select all','Callback',@this.rowSelection);
             uimenu(this.Figure.UIContextMenu,'Label','Select none','Callback',@this.rowSelection);
             uimenu(this.Figure.UIContextMenu,'Label','Invert selection','Callback',@this.rowSelection);
-            uimenu(this.Figure.UIContextMenu,'Label','Select row range','Callback',@this.rowSelection);
-
+            uimenu(this.Figure.UIContextMenu,'Label','Select row range ...','Callback',@this.rowSelection);
+            uimenu(this.Figure.UIContextMenu,'Label','Select by col. value ...','Callback',@this.rowSelection);
+            
             % Attach menu to the construction table
             set(this.tab_DataPrep.Table,'UIContextMenu',this.Figure.UIContextMenu);
                         
@@ -438,7 +439,8 @@ classdef GST_GUI < handle
             uimenu(this.Figure.UIContextMenu,'Label','Select all','Callback',@this.rowSelection);
             uimenu(this.Figure.UIContextMenu,'Label','Select none','Callback',@this.rowSelection);
             uimenu(this.Figure.UIContextMenu,'Label','Invert selection','Callback',@this.rowSelection);
-            uimenu(this.Figure.UIContextMenu,'Label','Select row range','Callback',@this.rowSelection);
+            uimenu(this.Figure.UIContextMenu,'Label','Select row range ...','Callback',@this.rowSelection);
+            uimenu(this.Figure.UIContextMenu,'Label','Select by col. value ...','Callback',@this.rowSelection);
                         
             % Attach menu to the construction table
             set(this.tab_ModelConstruction.Table,'UIContextMenu',this.Figure.UIContextMenu);
@@ -576,7 +578,8 @@ classdef GST_GUI < handle
             uimenu(this.Figure.UIContextMenu,'Label','Select all','Callback',@this.rowSelection);
             uimenu(this.Figure.UIContextMenu,'Label','Select none','Callback',@this.rowSelection);
             uimenu(this.Figure.UIContextMenu,'Label','Invert selection','Callback',@this.rowSelection);
-            uimenu(this.Figure.UIContextMenu,'Label','Select row range','Callback',@this.rowSelection);
+            uimenu(this.Figure.UIContextMenu,'Label','Select row range ...','Callback',@this.rowSelection);
+            uimenu(this.Figure.UIContextMenu,'Label','Select by col. value ...','Callback',@this.rowSelection);
             
             % Attach menu to the construction table
             set(this.tab_ModelCalibration.Table,'UIContextMenu',this.Figure.UIContextMenu);
@@ -691,7 +694,8 @@ classdef GST_GUI < handle
             uimenu(this.Figure.UIContextMenu,'Label','Select all','Callback',@this.rowSelection);
             uimenu(this.Figure.UIContextMenu,'Label','Select none','Callback',@this.rowSelection);
             uimenu(this.Figure.UIContextMenu,'Label','Invert selection','Callback',@this.rowSelection);
-            uimenu(this.Figure.UIContextMenu,'Label','Select row range','Callback',@this.rowSelection);
+            uimenu(this.Figure.UIContextMenu,'Label','Select row range ...','Callback',@this.rowSelection);
+            uimenu(this.Figure.UIContextMenu,'Label','Select by col. value ...','Callback',@this.rowSelection);
             
             % Attach menu to the construction table
             set(this.tab_ModelSimulation.Table,'UIContextMenu',this.Figure.UIContextMenu);
@@ -5648,12 +5652,7 @@ classdef GST_GUI < handle
             tableObj = eval(eventdata.Source.Parent.UserData);            
                                     
             % Get selected rows
-            selectedRows = false(size(tableObj.Data,1),1);
-            for i=1:size(tableObj.Data,1)
-                if ~isempty(tableObj.Data{i,1}) && tableObj.Data{i,1};
-                    selectedRows(i) = true;
-                end
-            end
+            selectedRows = cellfun(@(x) isempty(x) && x, tableObj.Data(:,1));
             
             % Do the selected action            
             switch hObject.Label
@@ -5663,7 +5662,7 @@ classdef GST_GUI < handle
                     tableObj.Data(:,1) = mat2cell(false(size(selectedRows,1),1),ones(1, size(selectedRows,1)));
                 case 'Invert selection'
                     tableObj.Data(:,1) = mat2cell(~selectedRows,ones(1, size(selectedRows,1)));
-                case 'Select row range'
+                case 'Select row range ...'
                     rowRange = inputdlg( {'First row number:', 'Last row number:'}, 'Input row range for selection.',1,{'1','2'});
                     if isempty(rowRange)
                         return;
@@ -5682,6 +5681,26 @@ classdef GST_GUI < handle
                     end
                     filt =  (irows >=startRow &  irows <=endRow) | selectedRows;
                     tableObj.Data(:,1) =  mat2cell(filt,ones(1, size(selectedRows,1)));
+                    
+                case 'Select by col. value ...'
+                    colNames = GST_GUI.removeHTMLTags(tableObj.ColumnName);
+                    
+                    [selectedCol,ok] = listdlg('PromptString', 'Select column:', 'Name', 'Select by col. value ...', ...
+                        'ListString', colNames,'SelectionMode','single');                                        
+
+                    if ok==1
+                        colNames_str = inputdlg('Input the string to be found within the selected column:',  'Select by col. value ...',1);
+                        
+                        if isempty(colNames_str)
+                            return;
+                        end
+                        
+                        % Find rows within table
+                        filt = cellfun(@(x) ~isempty(strfind(upper(x),upper(colNames_str{1}))) , tableObj.Data(:,selectedCol));
+                        
+                        % Select rows
+                        tableObj.Data(:,1) =  mat2cell(filt,ones(1, size(selectedRows,1)));
+                    end
 
             end
                         
