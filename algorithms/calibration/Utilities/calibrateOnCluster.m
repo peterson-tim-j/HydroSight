@@ -11,7 +11,7 @@ cd ..
 addpath(genpath(pwd));
 
 display('Loading list of model names...');
-modelName = readtable('ModelNames.txt');
+modelName = readtable('ModelNames.csv','ReadVariableNames',false);
 modelName = modelName{iModel,:};
 modelName = strtrim(modelName);
 
@@ -20,23 +20,39 @@ isValidModel = cellfun(@(x) ~isempty(x), modelName);
 modelName = modelName(isValidModel);
 nModels = length(modelName);
 
+display(['Number of models to calibrate = ',num2str(nModels)]);
+
 cd('models');
+
+display(['Starting directory = ',pwd()]);
 
 % Loop through each model name and calibrate
 for i=1:nModels
 
+    % Move to model's folder
+    cd(modelName{i});    
+
+    % Check if the model has already been calibrated.
+    if ~isempty(dir('results.mat'))
+        display(['Model ',num2str(i),'(',modelName{i},') is already calibrated. ...']);
+        cd ..
+        display(['... Moving back to ',pwd()]);
+        continue;
+    end
+
     % Read in model options
     display('Reading in model options...');    
-    cd(modelName{i});
     fid = fopen('options.txt');
     lineString = strtrim(fgetl(fid));
-    calibStartDate = datenum(lineString);ls
+    calibStartDate = datenum(lineString);
 
     lineString = strtrim(fgetl(fid));
     calibEndDate = datenum(lineString);
     calibMethod = strtrim(fgetl(fid));
     lineString = strtrim(fgetl(fid));
     calibMethodSetting= str2num(lineString);
+    fclose(fid);
+	
 
     % Read in model .mat file
     display('Loading model data file ...');

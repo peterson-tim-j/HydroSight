@@ -2326,7 +2326,7 @@ classdef GroundwaterStatisticsToolbox < handle
             end
 
             objectiveFunctionValue = inf(1,size(params,2));
-            parfor i=1: size(params,2)
+            for i=1: size(params,2)
                 %Calculate the residuals
                 try
                     % Calcule sume of squared errors

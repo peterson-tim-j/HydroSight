@@ -15,7 +15,7 @@ classdef derivedForcing_logisticScaling < derivedForcingTransform_abstract
             isOptionalInput = false;
         end
         
-        function [variable_names] = outputForcingdata_options()
+        function [variable_names] = outputForcingdata_options(inputForcingDataColNames)
             variable_names = {'scaledForcing'};
         end
         

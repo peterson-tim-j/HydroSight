@@ -1,4 +1,4 @@
-function [ userData, calibLabel ] = jobSubmission( userData, projectPath, calibLabel, calibStartDate, calibEndDate, calibMethod,  calibMethodSetting, modelsObjects)
+function [ userData, calibLabel ] = jobSubmission(obj, userData, projectPath, calibLabel, calibStartDate, calibEndDate, calibMethod,  calibMethodSetting)
 % jobSubmission Steps for job submission to qsub
 
 
@@ -150,6 +150,7 @@ function [ userData, calibLabel ] = jobSubmission( userData, projectPath, calibL
            drawnow;
             
            % Create model folder
+           calibLabel_orig = calibLabel{i};
            calibLabel{i} =  regexprep(calibLabel{i},'\W','_');                             
            calibLabel{i} =  regexprep(calibLabel{i},'____','_');                             
            calibLabel{i} =  regexprep(calibLabel{i},'___','_');                             
@@ -168,7 +169,7 @@ function [ userData, calibLabel ] = jobSubmission( userData, projectPath, calibL
 
                % Save model object to .mat file
                % NOTE: Calibraton results are clearer to minimise upload time
-               model = modelsObjects{i};
+               model = getModel(obj, calibLabel_orig);
                model.calibrationResults=[];
                model.evaluationResults=[];
                save(fullfile(projectPath,'HPCmodel.mat'), 'model');
@@ -244,7 +245,7 @@ function [ userData, calibLabel ] = jobSubmission( userData, projectPath, calibL
         drawnow;
         for i=1:nJobs
            % Save calib options text file   
-           [sshChannel,SSHresult] = ssh2_command(sshChannel,['printf "',strjoin(calibLabel(i,:),','),' \n" >> ',folder,'/ModelNames.txt']);
+           [sshChannel,SSHresult] = ssh2_command(sshChannel,['printf "',strjoin(calibLabel(i,:),','),' \n" >> ',folder,'/ModelNames.csv']);
         end
 
         msgStr{5} = '   Writing mpiexec submission file ...';

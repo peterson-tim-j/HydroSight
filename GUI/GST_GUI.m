@@ -6,8 +6,8 @@ classdef GST_GUI < handle
     %variables. Useful in different sitionations
     properties
         % Version number
-        versionNumber = '1.2.3';
-        versionDate= '3 June 2016';
+        versionNumber = '1.2.4';
+        versionDate= '8 August 2016';
         
         % Model types supported
         modelTypes = {'model_TFN', 'ExpSmooth'};
@@ -2469,8 +2469,16 @@ classdef GST_GUI < handle
                 
                 switch columnName;
                     case 'Model Label'
-                        % Get list of calibrated models
-                        calibLabels = this.model_labels(this.model_labels{:,1},1).Properties.RowNames;
+                        % Get list of models
+                        calibLabels = fieldnames(this.models);
+                        filt = false(length(calibLabels),1);
+                        for i=1:length(calibLabels)                           
+                            tmpModel = getModel(this, calibLabels {i});                            
+                            if ~isempty(tmpModel.calibrationResults) && tmpModel.calibrationResults.isCalibrated
+                                filt(i) = true;
+                            end                            
+                        end
+                        calibLabels = calibLabels(filt);
                         
                         % Assign calib model labels to drop down
                         hObject.ColumnFormat{2} = calibLabels';   
@@ -2647,11 +2655,11 @@ classdef GST_GUI < handle
                 return;
             end          
             modelLabel = GST_GUI.modelLabel2FieldName(modelLabel);            
-            if ~strfind(this.model_labels.Properties.RowNames{this.model_labels{:,1}},modelLabel) % Check if model is calibrated.
-                set(this.Figure, 'pointer', 'arrow');
-                drawnow update;                 
-                return;
-            end          
+%             if ~strfind(this.model_labels.Properties.RowNames{this.model_labels{:,1}},modelLabel) % Check if model is calibrated.
+%                 set(this.Figure, 'pointer', 'arrow');
+%                 drawnow update;                 
+%                 return;
+%             end          
             
             % Check if there is a simulation label within the
             % identified calibrated model.            
@@ -2807,9 +2815,12 @@ classdef GST_GUI < handle
                     modelLabel = GST_GUI.modelLabel2FieldName(modelLabel);            
                     if any(strcmp(fieldnames(this.models), modelLabel))
                         
+                        % Get model
+                        tmpModel = getModel(this, modelLabel);
+                                               
                         % Check if the model is calibrated
-                        isCalibrated =  isfield(this.models.(calibLabel).calibrationResults,'isCalibrated') ... 
-                            & this.models.(calibLabel).calibrationResults.isCalibrated;
+                        isCalibrated =  isfield(tmpModel.calibrationResults,'isCalibrated') ... 
+                            & tmpModel.calibrationResults.isCalibrated;
 
                         % Create warnign message and display
                         if isCalibrated
@@ -2918,10 +2929,13 @@ classdef GST_GUI < handle
                                     this.model = rmfield(this.model,modelLabel4FieldNames);
                                 else
 
+                                    % Get model
+                                    tmpModel = getModel(this, modelLabel);
+
                                     % Check if the model is calibrated
-                                    isCalibrated =  isfield(this.models.(modelLabel4FieldNames).calibrationResults,'isCalibrated') ... 
-                                    & this.models.(modelLabel4FieldNames).calibrationResults.isCalibrated;
-                                                                
+                                    isCalibrated =  isfield(tmpModel.calibrationResults,'isCalibrated') ... 
+                                        & tmpModel.calibrationResults.isCalibrated;
+                         
                                     % Create warnign message and display
                                     if isCalibrated
                                         msg = {['Model ',modelLabel, ' has already been built and calibrated. If you change the model construction all calibration and simulation results will be deleted.'], ...
@@ -3658,7 +3672,6 @@ classdef GST_GUI < handle
                     calibEndDate{i,1} = datenum( data{i,7},'dd-mmm-yyyy') + datenum(0,0,0,23,59,59);
                     calibMethod{i,1} = data{i,8};
                     calibMethodSetting{i,1} = data{i,9};
-                    calibModelsForHPC{i,1} = tmpModel;
                     
                 else
                     % Update status to starting calib.
@@ -3752,14 +3765,16 @@ classdef GST_GUI < handle
                if ~isdir(this.project_fileName)
                    project_fileName = fileparts(project_fileName);
                end
-               userData = jobSubmission( this.HPCoffload, project_fileName, calibLabelForHPC, calibStartDate, calibEndDate, calibMethod,  calibMethodSetting, calibModelsForHPC) ; 
+               filt = cellfun(@(x) ~isempty(x), calibLabelForHPC)  | cellfun(@(x) ~isempty(x), calibStartDate) | cellfun(@(x) ~isempty(x), calibEndDate) | cellfun(@(x) ~isempty(x), calibMethod) | cellfun(@(x) ~isempty(x), calibMethodSetting);
+               userData = jobSubmission(this, this.HPCoffload, project_fileName, calibLabelForHPC(filt), calibStartDate(filt), calibEndDate(filt), calibMethod(filt),  calibMethodSetting(filt)) ; 
                if ~isempty(userData)
                    this.HPCoffload = userData;
                end
                               
-               for i=1:length(selectedBores);
-                    % Update status to starting calib.
+               for i=1:length(selectedBores)
+                if ~isempty(selectedBores{i}) && selectedBores{i}
                     this.tab_ModelCalibration.Table.Data{i,10} = '<html><font color = "#FFA500">Calib. on HPC... </font></html>';
+                end
                end
 
                 % Update status in GUI
@@ -4786,6 +4801,10 @@ classdef GST_GUI < handle
                         % Convert to matrix.
                         tableData = table2array(tableData);
 
+                        % Convert table to real (if previously set to
+                        % single for memeory issues)
+                        tableData = double(tableData);                        
+                        
                         % Export data
                         try
                             if exportAllData                                                   
@@ -4904,6 +4923,10 @@ classdef GST_GUI < handle
                                 tableData = sortrows(tableData, 1);
                             end
 
+                            % Convert table to real (if previously set to
+                            % single for memeory issues)
+                            tableData = double(tableData);
+                            
                             % Calculate year, month, day etc
                             tableData = [year(tableData(:,1)), month(tableData(:,1)), day(tableData(:,1)), hour(tableData(:,1)), minute(tableData(:,1)), tableData(:,2:end)];                    
                    
@@ -5306,7 +5329,7 @@ classdef GST_GUI < handle
             this.tab_ModelSimulation.Table.RowName = mat2cell([1:nrows]',ones(1, nrows));                       
 
             % Set flag denoting models are on RAM.            
-            this.modelsOnHDD =  false;
+            this.modelsOnHDD =  '';
 
             % Load modle objects 
             %-------------
@@ -5652,7 +5675,7 @@ classdef GST_GUI < handle
             tableObj = eval(eventdata.Source.Parent.UserData);            
                                     
             % Get selected rows
-            selectedRows = cellfun(@(x) isempty(x) && x, tableObj.Data(:,1));
+            selectedRows = cellfun(@(x) ~isempty(x) && islogical(x) && x, tableObj.Data(:,1));
             
             % Do the selected action            
             switch hObject.Label
@@ -5760,7 +5783,7 @@ classdef GST_GUI < handle
             
             % Get model
             
-            if isempty(this.modelsOnHDD)
+            if isempty(this.modelsOnHDD) || ~this.modelsOnHDD
                 if isa(this.models.(modelLabel),'GroundwaterStatisticsToolbox')                    
                     model = this.models.(modelLabel);
                 else

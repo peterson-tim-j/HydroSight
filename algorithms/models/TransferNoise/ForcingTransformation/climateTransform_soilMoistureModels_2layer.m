@@ -179,7 +179,7 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
             isOptionalInput = [false; false; true];
         end
         
-        function [variable_names] = outputForcingdata_options()
+        function [variable_names] = outputForcingdata_options(inputForcingDataColNames)
             variable_names = {'drainage';'drainage_bypassFlow';'drainage_normalised';'infiltration';'evap_soil';'evap_gw_potential';'runoff';'SMS'; ...
                 'drainage_deep';'drainage_bypassFlow_deep';'drainage_normalised_deep';'SMS_deep' };
         end

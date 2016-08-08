@@ -1085,6 +1085,8 @@ classdef model_TFN_gui < model_gui_abstract
 
                            % Add row for each required variable
                            if isempty(this.forcingTranforms.tbl.Data{this.currentSelection.row ,3})
+                               this.modelOptions.options{1, 1}.tbl.Data = cell(length(requiredVariables),2);
+                               this.modelOptions.options{1, 1}.tbl.RowName=cell(1,length(requiredVariables)); 
                                for i=1:length(requiredVariables)                                   
                                     this.modelOptions.options{1, 1}.tbl.Data{i,1}= requiredVariables{i};
                                     this.modelOptions.options{1, 1}.tbl.RowName{i}= num2str(i);
@@ -1186,7 +1188,7 @@ classdef model_TFN_gui < model_gui_abstract
                                end
 
                                % Get output options.
-                               outputOptions = feval(strcat(this.forcingTranforms.tbl.Data{i,2},'.outputForcingdata_options'));
+                               outputOptions = feval(strcat(this.forcingTranforms.tbl.Data{i,2},'.outputForcingdata_options'),this.forcingData.colnames);
 
                                % Add output options from the function
                                % to the list of available options
@@ -1202,7 +1204,7 @@ classdef model_TFN_gui < model_gui_abstract
                                end
 
                                % Get output options.
-                               outputOptions = feval(strcat(this.derivedForcingTranforms.tbl.Data{i,2},'.outputForcingdata_options'));
+                               outputOptions = feval(strcat(this.derivedForcingTranforms.tbl.Data{i,2},'.outputForcingdata_options'),this.forcingData.colnames);
 
                                % Add output options from the function
                                % to the list of available options
@@ -1510,7 +1512,7 @@ classdef model_TFN_gui < model_gui_abstract
                                end
 
                                % Get output options.
-                               outputOptions = feval(strcat(this.forcingTranforms.tbl.Data{i,2},'.outputForcingdata_options'));
+                               outputOptions = feval(strcat(this.forcingTranforms.tbl.Data{i,2},'.outputForcingdata_options'),this.forcingData.colnames);
 
                                % Add output options from the function
                                % to the list of available options
@@ -1526,7 +1528,7 @@ classdef model_TFN_gui < model_gui_abstract
                                end
 
                                % Get output options.
-                               outputOptions = feval(strcat(this.derivedForcingTranforms.tbl.Data{i,2},'.outputForcingdata_options'));
+                               outputOptions = feval(strcat(this.derivedForcingTranforms.tbl.Data{i,2},'.outputForcingdata_options'),this.forcingData.colnames);
 
                                % Add output options from the function
                                % to the list of available options

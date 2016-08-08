@@ -1,5 +1,4 @@
-classdef forcingTransform_abstract < handle
-    %RESPONSEFUNCTION_ABSTRACT Summary of this class goes here
+classdef forcingTransform_abstract < dynamicprops
     %   Detailed explanation goes here
     
     properties
@@ -12,7 +11,7 @@ classdef forcingTransform_abstract < handle
     
     methods(Static, Abstract=true)
          [variable_names, isOptionalInput] = inputForcingData_required()
-        [variable_names] = outputForcingdata_options()
+         [variable_names] = outputForcingdata_options(inputForcingDataColNames)
     end
     
     methods(Abstract)

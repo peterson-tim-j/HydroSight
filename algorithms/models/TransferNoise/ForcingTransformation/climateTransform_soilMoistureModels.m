@@ -165,7 +165,7 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
             isOptionalInput = [false; false; true];
         end
         
-        function [variable_names] = outputForcingdata_options()
+        function [variable_names] = outputForcingdata_options(inputForcingDataColNames)
             variable_names = {'drainage';'drainage_bypassFlow';'drainage_normalised';'infiltration';'evap_soil';'evap_gw_potential';'runoff';'SMS'};
         end
         

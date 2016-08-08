@@ -14,7 +14,7 @@ classdef derivedForcing_linearUnconstrainedScaling < derivedForcingTransform_abs
             isOptionalInput = false;
         end
         
-        function [variable_names] = outputForcingdata_options()
+        function [variable_names] = outputForcingdata_options(inputForcingDataColNames)
             variable_names = {'scaledForcing'};
         end
         

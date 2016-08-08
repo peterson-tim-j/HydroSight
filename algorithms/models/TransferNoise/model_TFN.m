@@ -429,7 +429,7 @@ classdef model_TFN < model_abstract
                             
                             % Get a list of valid output forcing variable names.
                             filt  =  strcmp(propertyValue(:,1), valid_transformProperties{1});
-                            [optionalFocingOutputs] = eval([propertyValue{filt,2},'.outputForcingdata_options()']);
+                            [optionalFocingOutputs] = feval([propertyValue{filt,2},'.outputForcingdata_options'],forcingData_colnames);
                                                         
                             % Check that the output variable a char or cell vector.
                             filt  =  strcmp(propertyValue(:,1), valid_transformProperties{3});                              
@@ -872,7 +872,12 @@ classdef model_TFN < model_abstract
                 transformObject_inputs = transformObject_inputs(rowFilt,:);
                 
                 try
-                    obj.parameters.(transformObject_name) = feval(transformObject_name, bore_ID, forcingData_data(:,colNum), forcingData_colnames(colNum), siteCoordinates, transformObject_inputs, transformObject_options);
+                    colNum_extras = true(length(forcingData_colnames),1);
+                    colNum_extras(colNum) = false;
+                    colNum_extras = find(colNum_extras);
+                    forcingData_colnamesTmp = forcingData_colnames([colNum;colNum_extras]);
+                    forcingData_dataTmp = forcingData_data(:,[colNum;colNum_extras]);
+                    obj.parameters.(transformObject_name) = feval(transformObject_name, bore_ID, forcingData_dataTmp, forcingData_colnamesTmp, siteCoordinates, transformObject_inputs, transformObject_options);
                                                                                                 
                 catch exception
                     display(['ERROR: Invalid model component class object for forcing transform: ', transformObject_name ]);
@@ -932,8 +937,14 @@ classdef model_TFN < model_abstract
                     end
                 end
                 
-                try                    
-                    obj.parameters.(transformObject_name) = feval(transformObject_name, bore_ID, forcingData_data(:,colNum), forcingData_colnames(colNum), siteCoordinates, transformObject_inputs, obj.parameters.(transformObject_sourceName), transformObject_options);
+                try                
+                    colNum_extras = true(length(forcingData_colnames),1);
+                    colNum_extras(colNum) = false;
+                    colNum_extras = find(colNum_extras);
+                    forcingData_colnamesTmp = forcingData_colnames([colNum;colNum_extras]);
+                    forcingData_dataTmp = forcingData_data(:,[colNum;colNum_extras]);
+                                                                                    
+                    obj.parameters.(transformObject_name) = feval(transformObject_name, bore_ID, forcingData_dataTmp, forcingData_colnamesTmp, siteCoordinates, transformObject_inputs, obj.parameters.(transformObject_sourceName), transformObject_options);
                 catch exception
                     display(['ERROR: Invalid model component class object for forcing transform: ', transformObject_name ]);
                     rethrow(exception);
