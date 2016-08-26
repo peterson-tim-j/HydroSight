@@ -593,36 +593,49 @@ classdef GroundwaterStatisticsToolbox < handle
            % points.
            krigingVariance=[];
            if doKrigingOnResiduals && isempty(forcingData)           
-               kriging_contribution = zeros( size(obj.simulationResults{simInd,1}.head,1), 1, size(obj.simulationResults{simInd,1}.head,3));
-               krigingVariance = kriging_contribution;
-               head_estimates = zeros( size(obj.simulationResults{simInd,1}.head,1), 3, size(obj.simulationResults{simInd,1}.head,3));
-               parfor i=1:size(obj.simulationResults{simInd,1}.head,3)
-                  modelResults=[]; 
-                  modelResults.head_estimates = [obj.simulationResults{simInd,1}.head(:,1:2,i), ...
+               nparams = size(obj.simulationResults{simInd,1}.head,3);
+               head_estimates = zeros( size(obj.simulationResults{simInd,1}.head,1), 3, nparams);   
+               modelResults = cell( size(head_estimates,3),1);
+               for i=1:nparams
+                  modelResults{i,1}.head_estimates = [obj.simulationResults{simInd,1}.head(:,1:2,i), ...
                       obj.simulationResults{simInd,1}.head(:,2,i) - obj.simulationResults{simInd,1}.noise(:,2,i),  ...
                       obj.simulationResults{simInd,1}.head(:,2,i) + obj.simulationResults{simInd,1}.noise(:,3,i)];
-                  modelResults.krigingData = [obj.calibrationResults.data.modelledHead(:,1), obj.calibrationResults.data.modelledHead_residuals(:,i)];
-                  modelResults.range = obj.calibrationResults.performance.variogram_residual.range(i);
-                  modelResults.sill = obj.calibrationResults.performance.variogram_residual.sill(i);
-                  modelResults.nugget = obj.calibrationResults.performance.variogram_residual.nugget(i);
+                  modelResults{i,1}.krigingData = [obj.calibrationResults.data.modelledHead(:,1), obj.calibrationResults.data.modelledHead_residuals(:,i)];
+                  modelResults{i,1}.range = obj.calibrationResults.performance.variogram_residual.range(i);
+                  modelResults{i,1}.sill = obj.calibrationResults.performance.variogram_residual.sill(i);
+                  modelResults{i,1}.nugget = obj.calibrationResults.performance.variogram_residual.nugget(i);
                   
                   
-                  if iscell(modelResults.range)
-                      modelResults.range = modelResults.range{1};
+                  if iscell(modelResults{i,1}.range)
+                      modelResults{i,1}.range = modelResults{i,1}.range{1};
                   end
-                  if iscell(modelResults.sill)
-                      modelResults.sill = modelResults.sill{1};
+                  if iscell(modelResults{i,1}.sill)
+                      modelResults{i,1}.sill = modelResults{i,1}.sill{1};
                   end
-                  if iscell(modelResults.nugget)
-                      modelResults.nugget = modelResults.nugget{1};
+                  if iscell(modelResults{i,1}.nugget)
+                      modelResults{i,1}.nugget = modelResults{i,1}.nugget{1};
                   end          
-                  
-                  % Call model interpolation
-                  maxKrigingObs = min(10,ceil(0.1*length(getObservedHead(obj))));
-                  useModel = true;
-                  head_estimates(:,:,i) = interpolateData(obj, time_points, maxKrigingObs, useModel,modelResults);
                end
                
+              % Set constant for the kriging
+              maxKrigingObs = min(10,ceil(0.1*length(getObservedHead(obj))));
+              useModel = true;
+              
+              % Remove the simulation results. This is done to minimise the
+              % size of obj in the following parfor loop, which if nparams
+              % >>1 then the RAM requirements can be huge.
+              simulationResults = obj.simulationResults;
+              obj.simulationResults=[];
+              
+              % Call model interpolation
+              parfor i=1:nparams
+                  head_estimates(:,:,i) = interpolateData(obj, time_points, maxKrigingObs, useModel,modelResults{i});                 
+              end
+
+              % Add simulation results back onto the object.
+              obj.simulationResults = simulationResults;
+              clear simulationResults;
+              
               % Calculate the contribution from interpolation
               kriging_contribution = head_estimates(:,2,:) - obj.simulationResults{simInd,1}.head(:,2,:);
 
@@ -832,10 +845,17 @@ classdef GroundwaterStatisticsToolbox < handle
            head = getObservedHead(obj);
            plot(h, head(:,1), head(:,2),'.-k' );
            
-           % Set axis labels and title
+           % Calculate and set the date limits from the simulation period
+           dateLimits = [floor(min(obj.simulationResults{simInd,1}.head(:,1))), ceil(max(obj.simulationResults{simInd,1}.head(:,1)))];
+           dateRange = dateLimits(2) - dateLimits(1);
+           dateLimits(1) = floor(dateLimits(1) - (dateRange * 0.05));
+           dateLimits(2) = ceil(dateLimits(2) + (dateRange * 0.05));
+           
+           % Set axis labels,  title and x axis limits
            datetick(h, 'x','yy');
            ylabel(h, 'Head (m)');           
            title(h, ['Bore ', strrep(obj.bore_ID,'_',' ') , ' - Simulated head']); 
+           xlim(h,dateLimits);
            
             % Create legend strings  
             i=1;
@@ -895,7 +915,7 @@ classdef GroundwaterStatisticsToolbox < handle
                    datetick(h, 'x','yy');                   
                    ylabel(h, 'Head rise(m)');
                    title(h, ['Head contribution from: ', strrep(obj.simulationResults{simInd,1}.colnames{ii+2},'_',' ') ]);
-                   
+                   xlim(h,dateLimits);                   
                    
                end
            end       
@@ -1008,6 +1028,7 @@ classdef GroundwaterStatisticsToolbox < handle
                     range = modelResults.range;
                     sill = modelResults.sill;
                     nugget = modelResults.nugget;
+                    clear modelResults;
                 end
                 %head_estimates = head_estimates(:,2:4);
                 %krigingData = obj.calibrationResults.data.modelledHead_residuals;
@@ -1031,6 +1052,11 @@ classdef GroundwaterStatisticsToolbox < handle
                 
             end
             
+            % Convert kriging data to double (if saved as single)
+            if isa(krigingData,'single')
+                krigingData = double(krigingData);
+            end
+            
             % Undertake unievral kriging. 
             % If 'useModel'==true then the krigin is undertaken on the
             % simulation residuals. Else, it is undertaken using entire 
@@ -1038,43 +1064,51 @@ classdef GroundwaterStatisticsToolbox < handle
             % Adapted from :
             % Martin H. Trauth, Robin Gebbers, Norbert Marwan, MATLAB
             % recipes for earth sciences.
-            %----------------------------            
-            for ii=1: length(targetDates)
-                
-                % Find  'maxKrigingObs' cloest to the target obs.
-                [~, ind] = sort(abs(krigingData(:,1) - targetDates(ii)));
-                ind = ind(1: min(length(ind),maxKrigingObs));
-                nobs = length(ind);
-                
-                % Calculate distance (1-D in units of days) between the closest
-                % 'maxObs'
-                dist = ipdm( krigingData(ind,1));
+            %----------------------------
+            
+            % Find indexes to 'maxKrigingObs' closest of to each target
+            % date.
+            [~, ind] = sort(abs(bsxfun(@minus,krigingData(:,1), targetDates')));
+            ind = ind(1: min(size(ind,1),maxKrigingObs),:);
+            nobs = size(ind,1);
 
+            % Calculate distance (1-D in units of days) between all obs.
+            dist_allObs = ipdm( krigingData(:,1));
+            
+            % Create LHS matrix with fixes 0/1
+            G_mod_initial = zeros(nobs+1, nobs+1); 
+            G_mod_initial(: , nobs+1) = 1;
+            G_mod_initial(nobs+1, :) = 1;
+            G_mod_initial(nobs+1, nobs+1) = 0;
+            
+            warning off;
+            for ii=1: length(targetDates)
+
+                % Get pre-calc distance (1-D in units of days) between the closest
+                % 'maxObs'
+                dist = dist_allObs(ind(:,ii),ind(:,ii));                
+                
                 % Calculate kriging matrix for obs data from avriogram, then
                 % expand g_mod matrix for kriging and finally invert.
-                G_mod = nan(nobs+1, nobs+1);    
+                G_mod = G_mod_initial;
                 G_mod(1:nobs,1:nobs) = nugget + sill*(1-exp(-3.*abs(dist)./range));
-                %G_mod(: , nobs+1) = 1;
-                %G_mod(nobs+1 , :) = 1;
-                %G_mod(nobs+1,nobs+1) = 0;
-                G_mod(: , nobs+1) = 1;
-                G_mod(nobs+1 , 1:nobs) = krigingData(ind,1) ;
-                G_mod(nobs+1,nobs+1) = 0;
+                %G_mod(nobs+1 , 1:nobs) = krigingData(ind(:,ii),2);
                 
                 % Calculate the distance from the cloest maxObs to the
                 % target obs.
-                dist_to_target =  abs(krigingData(ind,1) - targetDates(ii));
+                dist_to_target =  abs(krigingData(ind(:,ii),1) - targetDates(ii));
                 G_target = nugget + sill*(1-exp(-3.*abs(dist_to_target)./range));
-                G_target(nobs+1) = targetDates(ii);
+                G_target(nobs+1) = 1;
                 kriging_weights = G_mod \ G_target;
                 
                 % Estimate residual at target date
-                head_estimates(ii,5) = sum( kriging_weights(1:nobs,1) .* krigingData(ind,2)) ...
-                    + (1-sum(kriging_weights(1:end-1,1))) .* mean(krigingData(ind,2) );                    
+                head_estimates(ii,5) = sum( kriging_weights(1:nobs,1) .* krigingData(ind(:,ii),2)) ...
+                    + (1-sum(kriging_weights(1:end-1,1))) .* mean(krigingData(ind(:,ii),2) );                    
                 
                 % Estimate kriging variance of the residual at target date.
                 head_estimates(ii,6) = sum( kriging_weights(1:nobs,1) .* G_target(1:nobs,1)) + kriging_weights(end,1);
             end
+            warning on;            
             %----------------------------
 
            % Adjust head estimate by kriging residual (ie the bias in the
@@ -2503,7 +2537,22 @@ classdef GroundwaterStatisticsToolbox < handle
 %             
             setForcingData(obj.model, forcingData, forcingData_colnames);
         end
+       
+        function delete(obj)
+            % Clear object properties
+            obj.model_label=[];
+            obj.bore_ID=[];
+            obj.calibrationResults=[];
+            obj.evaluationResults=[];  
+            obj.simulationResults=[];
+
+            % Delete model object.       
+            if ~isempty(obj.model)
+                delete(obj.model);
+            end
+
+        end        
         
-    end
+    end    
 end
 

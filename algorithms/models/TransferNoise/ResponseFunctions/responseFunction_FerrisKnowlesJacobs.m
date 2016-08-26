@@ -94,5 +94,38 @@ classdef  responseFunction_FerrisKnowlesJacobs < responseFunction_FerrisKnowles 
             params = [params(1,:); params(2,:); Ksat];
             param_names = {param_names{1}; param_names{2}; 'Lateral conductivity'};
         end
+        
+        function delete(obj)
+% delete class destructor
+%
+% Syntax:
+%   delete(obj)
+%
+% Description:
+%   Loops through parameters and, if not an object, empties them. Else, calls
+%   the sub-object's destructor.
+%
+% Input:
+%   obj -  model object
+%
+% Output:  
+%   (none)
+%
+% Author: 
+%   Dr. Tim Peterson, The Department of Infrastructure Engineering, 
+%   The University of Melbourne.
+%
+% Date:
+%   24 Aug 2016
+%%            
+            propNames = properties(obj);
+            for i=1:length(propNames)
+               if isobject(obj.(propNames{i}))
+                delete(obj.(propNames{i}));
+               else               
+                obj.(propNames{i}) = []; 
+               end
+            end
+        end            
     end
 end

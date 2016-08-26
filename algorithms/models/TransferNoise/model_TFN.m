@@ -1093,7 +1093,15 @@ classdef model_TFN < model_abstract
             
             % Get the parameter sets (for use in resetting if >sets)
             [params, param_names] = getParameters(obj);
-           
+            
+            % If the number of parameter sets is >1 then temporarily apply 
+            % only the first parameter set. This is done only to reduce the
+            % RAM requirements for the broadcasting of the obj variable in
+            % the following parfor.
+            if size(params,2)>1
+                setParameters(obj, params(:,1), param_names);
+            end
+            
             % Set percentile for noise 
             Pnoise = 0.95;
             
@@ -1101,43 +1109,52 @@ classdef model_TFN < model_abstract
             obj.variables.delta_time = diff(time_points);
             headtmp=cell(1,size(params,2));
             noisetmp=cell(1,size(params,2));
-            parfor ii=1:size(params,2)
+            companants = fieldnames(obj.inputData.componentData);
+            nCompanants = size(companants,1);                             
+            for ii=1:size(params,2)
                 % Get the calibration estimate of the mean forcing for the
                 % current parameter set. This is a bit of a work around to
                 % handle the issue of each parameter set having a unique
                 % mean forcing (if a forcing transform is undertaken). The
                 % workaround was required when DREAM was addded.
-                calibData = struct;
-                companants = fieldnames(obj.inputData.componentData);
-                nCompanants = size(companants,1);                             
                 for j=1:nCompanants                    
-                    calibData.mean_forcing.(companants{j}) = obj.variables.(companants{j}).forcingMean(ii);
+                    calibData(ii,1).mean_forcing.(companants{j}) = obj.variables.(companants{j}).forcingMean(ii);
                 end                
                               
                 % Add drainage elevation to the varargin variable sent to
                 % objectiveFunction.                
-                calibData.drainage_elevation = obj.variables.d(ii);
+                calibData(ii,1).drainage_elevation = obj.variables.d(ii);
                 
-                % Solve model
-                [~, headtmp{ii}, colnames{ii}] = objectiveFunction(params(:,ii), time_points, obj, calibData);                        
-                headtmp{ii}(:,2) = headtmp{ii}(:,2) + obj.variables.d(ii);
-                
-                % Calculate total error bounds.
+                % Add noise std dev
                 if isfield(obj.variables,'sigma_n');
-                    noisetmp{ii} = [headtmp{ii}(:,1), ones(size(headtmp{ii},1),2) .* norminv(Pnoise,0,1) .* obj.variables.sigma_n(ii)];
+                    calibData(ii,1).sigma_n = obj.variables.sigma_n(ii);
                 else
-                    noisetmp{ii} =  [headtmp{ii}(:,1), zeros(size(headtmp{ii},1),2)];
-                end                
+                    calibData(ii,1).sigma_n = 0;
+                end
                 
             end
             
+            % Solve model and add drainage constants
+            [~, headtmp{1}, colnames] = objectiveFunction(params(:,1), time_points, obj, calibData(1));                        
+            if size(params,2)>1
+                parfor jj=2:size(params,2)
+                    [~, headtmp{jj}] = objectiveFunction(params(:,jj), time_points, obj, calibData(jj));                        
+                end              
+            end
+            
+            % Add drainage constants and calculate total error bounds.
+            for ii=1:size(params,2)
+                headtmp{ii}(:,2) = headtmp{ii}(:,2) + calibData(ii).drainage_elevation;
+            
+                noisetmp{ii} = [headtmp{ii}(:,1), ones(size(headtmp{ii},1),2) .* norminv(Pnoise,0,1) .* calibData(ii).sigma_n];
+            end                            
             head = zeros(size(headtmp{1},1),size(headtmp{1},2), size(params,2));
             noise = zeros(size(headtmp{1},1),3, size(params,2));            
             for ii=1:size(params,2)
                 head(:,:,ii) = headtmp{ii};
                 noise(:,:,ii) = noisetmp{ii};
             end
-            colnames = colnames{1};
+            %colnames = colnames{1};
             clear headtmp noisetmp
                              
             % Set the parameters if >1 parameter sets
@@ -2091,6 +2108,39 @@ classdef model_TFN < model_abstract
             ylabel('Tranfer function weight');
             title(['Tranfer function for: ', char(companants(ii))]);
             box on;
+        end
+    end
+    
+    function delete(obj)
+% delete class destructor
+%
+% Syntax:
+%   delete(obj)
+%
+% Description:
+%   Loops through parameters and, if not an object, empties them. Else, calls
+%   the sub-object's destructor.
+%
+% Input:
+%   obj -  model object
+%
+% Output:  
+%   (none)
+%
+% Author: 
+%   Dr. Tim Peterson, The Department of Infrastructure Engineering, 
+%   The University of Melbourne.
+%
+% Date:
+%   24 Aug 2016
+%%            
+        propNames = properties(obj);
+        for i=1:length(propNames)
+           if isobject(obj.(propNames{i}))
+            delete(obj.(propNames{i}));
+           else               
+            obj.(propNames{i}) = []; 
+           end
         end
     end
     
