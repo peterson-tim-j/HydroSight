@@ -1282,7 +1282,7 @@ classdef GST_GUI < handle
                         model_labels = fieldnames(tmpModels);
                         for i=1:length(model_labels)
                             if isobject(tmpModels.(model_labels{i}))
-                                delete(tmpModels{i});
+                                delete(tmpModels.(model_labels{i}));
                             end
                         end
                         clear tmpModels;                                       
@@ -1355,7 +1355,7 @@ classdef GST_GUI < handle
                         model_labels = fieldnames(tmpModels);
                         for i=1:length(model_labels)
                             if isobject(tmpModels.(model_labels{i}))
-                                delete(tmpModels{i});
+                                delete(tmpModels.(model_labels{i}));
                             end
                         end
                         clear tmpModels;
