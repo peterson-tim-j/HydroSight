@@ -1277,14 +1277,6 @@ classdef GST_GUI < handle
                     try
                         tmpModels = this.models;
                         save(this.project_fileName, '-struct', 'tmpModels', '-append');
-                        
-                        % Delete saved model objects 
-                        model_labels = fieldnames(tmpModels);
-                        for i=1:length(model_labels)
-                            if isobject(tmpModels.(model_labels{i}))
-                                delete(tmpModels.(model_labels{i}));
-                            end
-                        end
                         clear tmpModels;                                       
 
                         % Enable file menu items
@@ -1350,14 +1342,6 @@ classdef GST_GUI < handle
                         % to the files will be saved.
                         tmpModels = this.models;
                         save(this.project_fileName, '-struct', 'tmpModels', '-append');
-                        
-                        % Delete saved model objects 
-                        model_labels = fieldnames(tmpModels);
-                        for i=1:length(model_labels)
-                            if isobject(tmpModels.(model_labels{i}))
-                                delete(tmpModels.(model_labels{i}));
-                            end
-                        end
                         clear tmpModels;
                     catch
                         set(this.Figure, 'pointer', 'arrow');
@@ -3836,7 +3820,7 @@ classdef GST_GUI < handle
                         % Add updated tmpModel back to data structure of
                         % all models
                         setModel(this, calibLabel, tmpModel)
-                        delete(tmpModels);
+                        delete(tmpModel);
                         
                         if saveModels
                             this.tab_ModelCalibration.Table.Data{i,10} = '<html><font color = "#FFA500">Saving project. </font></html>';
@@ -4082,7 +4066,6 @@ classdef GST_GUI < handle
                
                % Undertake the simulation.
                try 
-                   tmpModel.simulationResults=[];
                    solveModel(tmpModel, simTimePoints, forcingData, simLabel, doKrigingOfResiduals);                   
                    setModel(this, calibLabel, tmpModel);        
                    delete(tmpModel);

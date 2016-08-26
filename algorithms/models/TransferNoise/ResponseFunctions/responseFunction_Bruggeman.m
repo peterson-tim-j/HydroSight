@@ -157,6 +157,9 @@ classdef responseFunction_Bruggeman < responseFunction_abstract
 %%            
             propNames = properties(obj);
             for i=1:length(propNames)
+               if isempty(obj.(propNames{i}))
+                   continue;
+               end                
                if isobject(obj.(propNames{i}))
                 delete(obj.(propNames{i}));
                else               

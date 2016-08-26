@@ -213,6 +213,9 @@ classdef responseFunction_Hantush < responseFunction_FerrisKnowles
 %%            
             propNames = properties(obj);
             for i=1:length(propNames)
+               if isempty(obj.(propNames{i}))
+                   continue;
+               end                
                if isobject(obj.(propNames{i}))
                 delete(obj.(propNames{i}));
                else               
