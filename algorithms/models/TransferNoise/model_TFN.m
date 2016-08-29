@@ -1118,7 +1118,7 @@ classdef model_TFN < model_abstract
                 % mean forcing (if a forcing transform is undertaken). The
                 % workaround was required when DREAM was addded.
                 for j=1:nCompanants                    
-                    calibData(ii,1).mean_forcing.(companants{j}) = obj.variables.(companants{j}).forcingMean(ii);
+                    calibData(ii,1).mean_forcing.(companants{j}) = obj.variables.(companants{j}).forcingMean(:,ii);
                 end                
                               
                 % Add drainage elevation to the varargin variable sent to
@@ -1342,7 +1342,7 @@ classdef model_TFN < model_abstract
                 companants = fieldnames(obj.inputData.componentData);
                 nCompanants = size(companants,1);
                 for i=1:nCompanants
-                    obj.variables.(companants{i}).forcingMean(j) = mean(obj.variables.(companants{i}).forcingData);
+                    obj.variables.(companants{i}).forcingMean(:,j) = mean(obj.variables.(companants{i}).forcingData)';
                 end
 
                 t_filt = find( obj.inputData.head(:,1) >=obj.variables.time_points(1)  ...

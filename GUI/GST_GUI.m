@@ -2769,8 +2769,8 @@ classdef GST_GUI < handle
             % matfile();
             tmpModel = getModel(this, modelLabel);
 
-            % Exit if model is model not found
-            if isempty(tmpModel)
+            % Exit if model is model not found or model is empty
+            if isempty(tmpModel) || isempty(tmpModel.simulationResults)
                 set(this.Figure, 'pointer', 'arrow');
                 drawnow update;                            
                 return
@@ -3549,8 +3549,9 @@ classdef GST_GUI < handle
                 try 
                     % Build model
                     model_labelAsField = GST_GUI.modelLabel2FieldName(model_label);
-                    this.models.(model_labelAsField) = GroundwaterStatisticsToolbox(model_label, boreID, modelType , headData, 1, forcingData, coordData, modelOptions);
-
+                    tmpModel = GroundwaterStatisticsToolbox(model_label, boreID, modelType , headData, 1, forcingData, coordData, modelOptions);
+                    setModel(this, model_labelAsField, tmpModel);
+                    
                     % Check if model is listed in calib table. if so get
                     % index
                     calibModelLabelsHTML = this.tab_ModelCalibration.Table.Data(:,2);
@@ -3820,7 +3821,6 @@ classdef GST_GUI < handle
                         % Add updated tmpModel back to data structure of
                         % all models
                         setModel(this, calibLabel, tmpModel)
-                        delete(tmpModel);
                         
                         if saveModels
                             this.tab_ModelCalibration.Table.Data{i,10} = '<html><font color = "#FFA500">Saving project. </font></html>';
@@ -4015,7 +4015,7 @@ classdef GST_GUI < handle
                        simTimePoints = zeros(0,3);
                        startYear = year(simStartDate);
                        startMonth= month(simStartDate);
-                       startDay= day(simStartDate);
+                       startDay= 1;
                        endYear = year(simEndDate);
                        endMonth = month(simEndDate);
                        endDay = day(simEndDate);
@@ -4024,7 +4024,7 @@ classdef GST_GUI < handle
                        iday = startDay;
                        j=1;
                        simTimePoints(j,1:3) = [iyear, imonth, iday];
-                       while datenum(iyear,imonth,iday) < simEndDate
+                       while datenum(iyear,imonth,iday) <= simEndDate
                           
                            if imonth == 12
                                imonth = 1;
@@ -4032,11 +4032,10 @@ classdef GST_GUI < handle
                            else
                                imonth = imonth + 1;
                            end
-                           j=j+1;
-                           simTimePoints(j,1:3) = [iyear, imonth, iday];                           
-                       end
-                       if iyear ~= endYear && imonth ~= endMonth && iday ~= endDay
-                           simTimePoints(i+1,1:3) = [endYear, endMonth, endDay];
+                           if datenum(iyear, imonth, iday) >= simStartDate && datenum(iyear, imonth, iday) <= simEndDate
+                               j=j+1;
+                               simTimePoints(j,1:3) = [iyear, imonth, iday];
+                           end
                        end
                        
                        simTimePoints = datenum(simTimePoints);
@@ -4068,8 +4067,6 @@ classdef GST_GUI < handle
                try 
                    solveModel(tmpModel, simTimePoints, forcingData, simLabel, doKrigingOfResiduals);                   
                    setModel(this, calibLabel, tmpModel);        
-                   delete(tmpModel);
-                   clear tmpModel;
 
                    % Update GUI table
                    this.tab_ModelSimulation.Table.Data{i,end} = '<html><font color = "#008000">Simulated. </font></html>';
@@ -6156,8 +6153,9 @@ classdef GST_GUI < handle
             inputLabel = strrep(inputLabel,'?','');
             inputLabel = strrep(inputLabel,'\','_');
             inputLabel = strrep(inputLabel,'/','_');
+            inputLabel = strrep(inputLabel,'___','_');
             inputLabel = strrep(inputLabel,'__','_');
-            
+                       
             % Check if any reserved labels are used. The reserved labels
             % are GUI variables to saved within a project .mat file.
             if strcmp(inputLabel, {'tableData'; 'dataPrep';'settings'})

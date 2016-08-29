@@ -618,7 +618,7 @@ classdef GroundwaterStatisticsToolbox < handle
                end
                
               % Set constant for the kriging
-              maxKrigingObs = min(10,ceil(0.1*length(getObservedHead(obj))));
+              maxKrigingObs = min(24,length(getObservedHead(obj)));
               useModel = true;
               
               % Remove the simulation results. This is done to minimise the
@@ -1057,7 +1057,7 @@ classdef GroundwaterStatisticsToolbox < handle
                 krigingData = double(krigingData);
             end
             
-            % Undertake unievral kriging. 
+            % Undertake universal kriging. 
             % If 'useModel'==true then the krigin is undertaken on the
             % simulation residuals. Else, it is undertaken using entire 
             % record of the the observed head.
@@ -1066,49 +1066,57 @@ classdef GroundwaterStatisticsToolbox < handle
             % recipes for earth sciences.
             %----------------------------
             
-            % Find indexes to 'maxKrigingObs' closest of to each target
-            % date.
-            [~, ind] = sort(abs(bsxfun(@minus,krigingData(:,1), targetDates')));
-            ind = ind(1: min(size(ind,1),maxKrigingObs),:);
-            nobs = size(ind,1);
-
             % Calculate distance (1-D in units of days) between all obs.
             dist_allObs = ipdm( krigingData(:,1));
-            
-            % Create LHS matrix with fixes 0/1
-            G_mod_initial = zeros(nobs+1, nobs+1); 
-            G_mod_initial(: , nobs+1) = 1;
-            G_mod_initial(nobs+1, :) = 1;
-            G_mod_initial(nobs+1, nobs+1) = 0;
-            
+                        
             warning off;
             for ii=1: length(targetDates)
 
                 % Get pre-calc distance (1-D in units of days) between the closest
                 % 'maxObs'
-                dist = dist_allObs(ind(:,ii),ind(:,ii));                
+                dist_to_target =  krigingData(:,1) - targetDates(ii);
                 
+                indNegDuration = find(dist_to_target<0, maxKrigingObs, 'last');
+                indPosDuration = find(dist_to_target>=0, maxKrigingObs, 'first');
+                indNegClosestQuaterObObs = 1:length(indNegDuration)<=ceil(maxKrigingObs/4);
+                indPosClosestQuaterObObs = 1:length(indPosDuration)<=ceil(maxKrigingObs/4);
+                ind = [indNegDuration(indNegClosestQuaterObObs) ; indPosDuration(indPosClosestQuaterObObs); ...
+                        indNegDuration(~indNegClosestQuaterObObs) ; indPosDuration(~indPosClosestQuaterObObs)]; 
+                ind = ind(1: min(length(ind), maxKrigingObs));    
+                
+                dist = dist_allObs(ind, ind);
+                dist_to_target = dist_to_target(ind);
+                nobs = length(ind);
+                
+                % Create LHS matrix with fixes 0/1
+                G_mod = zeros(nobs+2, nobs+2); 
+                G_mod(: , nobs+1) = 1;
+                G_mod(nobs+1, :) = 1;
+                G_mod(nobs+1:end, nobs+1:end) = 0;
+                G_target = zeros(nobs+2,1);
+                                
                 % Calculate kriging matrix for obs data from avriogram, then
                 % expand g_mod matrix for kriging and finally invert.
-                G_mod = G_mod_initial;
                 G_mod(1:nobs,1:nobs) = nugget + sill*(1-exp(-3.*abs(dist)./range));
-                %G_mod(nobs+1 , 1:nobs) = krigingData(ind(:,ii),2);
+                G_mod(nobs+2 , 1:nobs) = krigingData(ind,1)-targetDates(ii);
+                G_mod(1:nobs,nobs+2) = krigingData(ind,1)-targetDates(ii);
                 
                 % Calculate the distance from the cloest maxObs to the
                 % target obs.
-                dist_to_target =  abs(krigingData(ind(:,ii),1) - targetDates(ii));
-                G_target = nugget + sill*(1-exp(-3.*abs(dist_to_target)./range));
+                
+                G_target(1:nobs) = nugget + sill*(1-exp(-3.*abs(dist_to_target)./range));
                 G_target(nobs+1) = 1;
+                G_target(nobs+2) = 0;
                 kriging_weights = G_mod \ G_target;
                 
                 % Estimate residual at target date
-                head_estimates(ii,5) = sum( kriging_weights(1:nobs,1) .* krigingData(ind(:,ii),2)) ...
-                    + (1-sum(kriging_weights(1:end-1,1))) .* mean(krigingData(ind(:,ii),2) );                    
+                head_estimates(ii,5) = sum( kriging_weights(1:nobs,1) .* krigingData(ind,2)) ...
+                    + (1-sum(kriging_weights(1:end-1,1))) .* mean(krigingData(ind,2) );                    
                 
                 % Estimate kriging variance of the residual at target date.
                 head_estimates(ii,6) = sum( kriging_weights(1:nobs,1) .* G_target(1:nobs,1)) + kriging_weights(end,1);
             end
-            warning on;            
+            warning on;                   
             %----------------------------
 
            % Adjust head estimate by kriging residual (ie the bias in the
