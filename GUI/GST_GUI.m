@@ -3797,9 +3797,9 @@ classdef GST_GUI < handle
                         exitStatus = tmpModel.calibrationResults.exitStatus;                          
 
                         % Set calib performance stats.
-                        calibAICc = tmpModel.calibrationResults.performance.AICc;
-                        calibBIC = tmpModel.calibrationResults.performance.BIC;
-                        calibCoE = tmpModel.calibrationResults.performance.CoeffOfEfficiency_mean.CoE;
+                        calibAICc = mean(tmpModel.calibrationResults.performance.AICc);
+                        calibBIC =mean( tmpModel.calibrationResults.performance.BIC);
+                        calibCoE = mean(tmpModel.calibrationResults.performance.CoeffOfEfficiency_mean.CoE);
                         this.tab_ModelCalibration.Table.Data{i,11} = ['<html><font color = "#808080">',num2str(calibCoE),'</font></html>'];
                         this.tab_ModelCalibration.Table.Data{i,13} = ['<html><font color = "#808080">',num2str(calibAICc),'</font></html>'];
                         this.tab_ModelCalibration.Table.Data{i,14} = ['<html><font color = "#808080">',num2str(calibBIC),'</font></html>'];
@@ -3807,7 +3807,7 @@ classdef GST_GUI < handle
                         % Set eval performance stats
                         if isfield(tmpModel.evaluationResults,'performance')
                             %evalAIC = this.models.data{ind, 1}.evaluationResults.performance.AIC;
-                            evalCoE = tmpModel.evaluationResults.performance.CoeffOfEfficiency_mean.CoE_unbias;                    
+                            evalCoE = mean(tmpModel.evaluationResults.performance.CoeffOfEfficiency_mean.CoE_unbias);
 
                             this.tab_ModelCalibration.Table.Data{i,12} = ['<html><font color = "#808080">',num2str(evalCoE),'</font></html>'];                            
                         else
