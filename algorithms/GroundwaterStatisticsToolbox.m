@@ -1483,6 +1483,11 @@ classdef GroundwaterStatisticsToolbox < handle
                     params = params_bestever.x;
                     fmin = params_bestever.f;          
                     
+                    % Extract exit flag message.
+                    if iscell(exitflag)
+                        exitflag = exitflag{1};
+                    end                    
+                    
                     % Store exit status
                     if any( strcmp(exitflag, 'maxfunevals'))
                         exitFlag = 1;
@@ -1508,7 +1513,7 @@ classdef GroundwaterStatisticsToolbox < handle
                     any( strcmp(exitflag, 'warnnoeffectaxis')) || ...    
                     any( strcmp(exitflag, 'warnequalfunvals')) || ...    
                     any( strcmp(exitflag, 'warnequalfunvalhist')) ...
-                    any( strcmp(exitflag, 'bug')) ...
+                    any( strcmp(exitflag, 'bug'))
                                                 
                         exitStatus = ['Calibration warning encountered:', exitflag,' See CMA-ES scheme documentation for details.'];                        
                         exitFlag=1;
