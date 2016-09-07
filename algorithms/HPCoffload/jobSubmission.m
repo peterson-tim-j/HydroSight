@@ -28,6 +28,11 @@ function [ userData, calibLabel ] = jobSubmission(obj, userData, projectPath, ca
     uiwait(h);
 
 
+    % Determine the number of models to calibrate and their labels
+    hasModelName = cellfun(@(x) ~isempty(x), calibLabel);
+    calibLabel = calibLabel(hasModelName);
+    nModels = length(calibLabel);    
+    
     % Get the following inputs: cluster URL, user name, folder name, max cores, qsub command (queue, wall time, matlab command)
     prompts = { 'URL to the cluster:', ...
                 'User name for cluster:', ...
@@ -37,7 +42,7 @@ function [ userData, calibLabel ] = jobSubmission(obj, userData, projectPath, ca
                 'Job name:', ...
                 'Queue name (optional):', ...
                 'Node name (optional) :', ...
-                'Max. MPI jobs (optional):', ...
+                ['Max. MPI jobs (',num2str(nModels),' models selected):'], ...
                 'CPUs per node per model:', ...
                 'Max. runtime per model:', ...                
                 'Command for pre-job submission  (optional):'};
@@ -139,9 +144,6 @@ function [ userData, calibLabel ] = jobSubmission(obj, userData, projectPath, ca
 
         % Loop through each model to be calibrated, create a folder, save a text file for the
         % calib options and the model object    
-        hasModelName = cellfun(@(x) ~isempty(x), calibLabel);
-        calibLabel = calibLabel(hasModelName);
-        nModels = length(calibLabel);
         nModelsUploadFailed=0;
         for i=1:nModels
 

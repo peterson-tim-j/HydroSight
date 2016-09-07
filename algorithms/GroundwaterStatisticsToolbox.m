@@ -1728,14 +1728,13 @@ classdef GroundwaterStatisticsToolbox < handle
                 if size(head_est,3)>1
                     obj.evaluationResults.data.modelledHead = [head_est(~t_filt,1,1), permute(prctile( head_est(~t_filt, 2,:),[50 5 95],3),[1,3,2])];
                     obj.evaluationResults.data.modelledNoiseBounds = [head_est(~t_filt,1,1), prctile( head_est(~t_filt, 3,:),5,3), prctile( head_est(~t_filt, 4,:),95,3)];
-                    %obj.evaluationResults.data.modelledHead_residuals = [head_est(~t_filt,1,1),  permute(prctile( bsxfun(@minus, obsHead(~t_filt,2), head_est(~t_filt, 2,:)),[50 5 95],3),[1,3,2])];
                     obj.evaluationResults.data.modelledHead_residuals = permute(bsxfun(@minus, obsHead(~t_filt,2), head_est(~t_filt, 2,:)),[ 1 3 2]);
-                    head_eval_resid = [head_est(~t_filt,1,1),  permute(prctile( bsxfun(@minus, obsHead(~t_filt,2), head_est(~t_filt, 2,:)),50,3),[1,3,2])];
+                    head_eval_resid = obj.evaluationResults.data.modelledHead_residuals;
                 else
                     obj.evaluationResults.data.modelledHead = head_est(~t_filt,1:2);
                     obj.evaluationResults.data.modelledNoiseBounds = head_est(~t_filt,[1,3,4]);
                     obj.evaluationResults.data.modelledHead_residuals = obsHead(~t_filt,2) -obj.evaluationResults.data.modelledHead(:,2);
-                    head_eval_resid = [head_est(~t_filt,1,1),  obj.evaluationResults.data.modelledHead_residuals];             
+                    head_eval_resid = obj.evaluationResults.data.modelledHead_residuals;
                 end
                 obj.evaluationResults.data.modelledHead_residuals = single(obj.evaluationResults.data.modelledHead_residuals);
             else
@@ -1747,12 +1746,12 @@ classdef GroundwaterStatisticsToolbox < handle
                 obj.calibrationResults.data.modelledHead = [head_est(t_filt,1,1), permute(prctile( head_est(t_filt, 2,:),[50 5 95],3),[1,3,2])];                
                 obj.calibrationResults.data.modelledNoiseBounds = [head_est(t_filt,1,1), prctile( head_est(t_filt, 3,:),5,3), prctile( head_est(t_filt, 4,:),95,3)];
                 obj.calibrationResults.data.modelledHead_residuals = permute( bsxfun(@minus, obsHead(t_filt,2), head_est(t_filt, 2,:)),[1 3 2]);
-                head_calib_resid = [head_est(t_filt,1,1),  permute(prctile( bsxfun(@minus, obsHead(t_filt,2), head_est(t_filt, 2,:)),50,3),[1,3,2])];                
+                head_calib_resid = obj.calibrationResults.data.modelledHead_residuals;
             else
                 obj.calibrationResults.data.modelledHead = head_est(t_filt,1:2);
                 obj.calibrationResults.data.modelledNoiseBounds = head_est(t_filt,[1,3,4]);
                 obj.calibrationResults.data.modelledHead_residuals = obsHead(t_filt,2) -obj.calibrationResults.data.modelledHead(:,2);
-                head_calib_resid = [head_est(t_filt,1), obj.calibrationResults.data.modelledHead_residuals];
+                head_calib_resid = obj.calibrationResults.data.modelledHead_residuals;
             end
             obj.calibrationResults.data.modelledHead_residuals = single(obj.calibrationResults.data.modelledHead_residuals);  % to reduce RAM from DREAM runs
                                                 
@@ -1764,46 +1763,82 @@ classdef GroundwaterStatisticsToolbox < handle
             % Calc. various performance measures including the coefficient of efficiency using the mean observed head
             %------------------
             % Mean error
-            obj.calibrationResults.performance.mean_error =  mean( head_calib_resid(:,2) );
+            obj.calibrationResults.performance.mean_error =  mean(head_calib_resid);
+            
             %RMSE
-            RMSE = sqrt( 1/numel(head_calib_resid(:,2)) * (head_calib_resid(:,2)' * head_calib_resid(:,2)));
+            SSE = sum(head_calib_resid.^2);
+            RMSE = sqrt( 1/size(head_calib_resid,1) * SSE);
             obj.calibrationResults.performance.RMSE = RMSE;                        
             
+            % CoE
             obj.calibrationResults.performance.CoeffOfEfficiency_mean.description = 'Coefficient of Efficiency (CoE) calculated using a base model of the mean observed head. If the CoE > 0 then the model produces an estimate better than the mean head.';
             obj.calibrationResults.performance.CoeffOfEfficiency_mean.base_estimate = mean(obsHead(t_filt,2));            
-            obj.calibrationResults.performance.CoeffOfEfficiency_mean.CoE  = 1 - sum( head_calib_resid(:,2).^2) ...
-                ./sum( (obsHead(t_filt,2) - mean(obsHead(t_filt,2)) ).^2);            
-            obj.calibrationResults.performance.CoeffOfEfficiency_mean.CoE_unbias  = 1 - sum( (head_calib_resid(:,2)-obj.calibrationResults.performance.mean_error).^2) ...
-                ./sum( (obsHead(t_filt,2) - mean(obsHead(t_filt,2)) ).^2);            
+            obj.calibrationResults.performance.CoeffOfEfficiency_mean.CoE  = 1 - SSE./sum( (obsHead(t_filt,2) - mean(obsHead(t_filt,2)) ).^2);            
+            
+            % Unbiased CoE
+            residuals_unbiased = bsxfun(@minus,head_calib_resid, obj.calibrationResults.performance.mean_error);
+            SSE_unbiased = sum(residuals_unbiased.^2);
+            obj.calibrationResults.performance.CoeffOfEfficiency_mean.CoE_unbias  = 1 - SSE_unbiased./sum( (obsHead(t_filt,2) - mean(obsHead(t_filt,2)) ).^2);            
             
             if neval > 0;                                   
-                obj.evaluationResults.performance.mean_error = mean( head_eval_resid(:,2) ); 
-                obj.evaluationResults.performance.RMSE = sqrt( 1/numel(head_eval_resid(:,2)) * (head_eval_resid(:,2)' * head_eval_resid(:,2)));;                             
+                % Mean error
+                obj.evaluationResults.performance.mean_error = mean(head_eval_resid); 
+                
+                %RMSE
+                SSE = sum(head_eval_resid.^2);
+                obj.evaluationResults.performance.RMSE = sqrt( 1/size(head_eval_resid,1) * SSE);                
+                
+                % CoE
                 obj.evaluationResults.performance.CoeffOfEfficiency_mean.description = 'Coefficient of Efficiency (CoE) calculated using a base model of the mean observed head. If the CoE > 0 then the model produces an estimate better than the mean head.';
                 obj.evaluationResults.performance.CoeffOfEfficiency_mean.base_estimate = mean(obsHead(~t_filt,2));            
-            
-                obj.evaluationResults.performance.CoeffOfEfficiency_mean.CoE  =  1 - sum( head_eval_resid(:,2).^2) ...
-                ./sum( (obsHead(~t_filt,2) - mean(obsHead(~t_filt,2)) ).^2);           
+                obj.evaluationResults.performance.CoeffOfEfficiency_mean.CoE  = 1 - SSE./sum( (obsHead(~t_filt,2) - mean(obsHead(~t_filt,2)) ).^2);            
 
-                obj.evaluationResults.performance.CoeffOfEfficiency_mean.CoE_unbias  =  1 - sum( (head_eval_resid(:,2)-obj.evaluationResults.performance.mean_error).^2) ...
-                ./sum( (obsHead(~t_filt,2) - mean(obsHead(~t_filt,2)) ).^2);                
+                % Unbiased CoE
+                residuals_unbiased = bsxfun(@minus,head_eval_resid, obj.evaluationResults.performance.mean_error);
+                SSE_unbiased = sum(residuals_unbiased.^2);
+                obj.evaluationResults.performance.CoeffOfEfficiency_mean.CoE_unbias  = 1 - SSE_unbiased./sum( (obsHead(~t_filt,2) - mean(obsHead(~t_filt,2)) ).^2);            
             end
             %------------------
                                     
-            % Calc. F-test and P(F>F_critical)          
-            RSS = norm( obj.calibrationResults.data.modelledHead(:,2) ...
-                - mean(obj.calibrationResults.data.obsHead(:,2))).^2;            
-            s2 = (norm(head_calib_resid(:,2))/sqrt(nobs - nparams)).^2;
-            obj.calibrationResults.performance.F_test = (RSS/(nparams-1))/s2;      % F statistic for regression
-            obj.calibrationResults.performance.F_prob = fcdf(1./obj.calibrationResults.performance.F_test,nobs - nparams, nparams-1); % Significance probability for regression
+            % Calc. F-test and P(F>F_critical)  
+            if size(head_est,3)>1
+                meanObsHead = mean(obj.calibrationResults.data.obsHead(:,2));
+                for i=1:size(head_est,3)
+                    RSS(:,i) = norm( head_est(t_filt, 2,i) - meanObsHead).^2;
+                    s2(:,i) = (norm(head_calib_resid(:,i))/sqrt(nobs - nparams)).^2;
+                end
+            else
+                RSS = norm( obj.calibrationResults.data.modelledHead(:,2)  - mean(obj.calibrationResults.data.obsHead(:,2))).^2;            
+                s2 = (norm(head_calib_resid)/sqrt(nobs - nparams)).^2;
+            end                        
+            obj.calibrationResults.performance.F_test = (RSS/(nparams-1))./s2;      % F statistic for regression
+            if size(head_est,3)>1
+                for i=1:size(head_est,3)
+                    obj.calibrationResults.performance.F_prob(:,i) = fcdf(1./obj.calibrationResults.performance.F_test(:,i),nobs - nparams, nparams-1); % Significance probability for regression
+                end
+            else
+                obj.calibrationResults.performance.F_prob = fcdf(1./obj.calibrationResults.performance.F_test,nobs - nparams, nparams-1); % Significance probability for regression
+            end
             
             if neval > 0;   
-                nobs_eval = size(obj.evaluationResults.data.modelledHead,1);
-                RSS = norm( obj.evaluationResults.data.modelledHead(:,2) ...
-                    - mean(obj.evaluationResults.data.obsHead(:,2))).^2;            
-                s2 = (norm(head_calib_resid(:,2))/sqrt(nobs_eval - nparams)).^2;                
-                obj.evaluationResults.performance.F_test = (RSS/(nparams-1))/s2;      % F statistic for regression
-                obj.evaluationResults.performance.F_prob = fcdf(1./obj.evaluationResults.performance.F_test,neval - nparams, nparams-1); % Significance probability for regression
+                if size(head_est,3)>1
+                    meanObsHead = mean(obj.evaluationResults.data.obsHead(:,2));
+                    for i=1:size(head_est,3)
+                        RSS(:,i) = norm( head_est(~t_filt, 2,i) - meanObsHead).^2;
+                        s2(:,i) = (norm(head_eval_resid(:,i))/sqrt(neval - nparams)).^2;
+                    end
+                else
+                    RSS = norm( obj.evaluationResults.data.modelledHead(:,2)  - mean(obj.evaluationResults.data.obsHead(:,2))).^2;            
+                    s2 = (norm(head_eval_resid)/sqrt(neval - nparams)).^2;
+                end                        
+                obj.evaluationResults.performance.F_test = (RSS/(nparams-1))./s2;      % F statistic for regression
+                if size(head_est,3)>1
+                    for i=1:size(head_est,3)
+                        obj.evaluationResults.performance.F_prob(:,i) = fcdf(1./obj.evaluationResults.performance.F_test(:,i),neval - nparams, nparams-1); % Significance probability for regression
+                    end
+                else
+                    obj.evaluationResults.performance.F_prob = fcdf(1./obj.evaluationResults.performance.F_test,neval - nparams, nparams-1); % Significance probability for regression
+                end
             end
             
             % Add BIC and Akaike information criterion                                 
@@ -1840,9 +1875,9 @@ classdef GroundwaterStatisticsToolbox < handle
                         eval_var.val, 365/4, 0.75.*var( resid(:,2)), eval_var.num, [], ...
                         'model', 'exponential', 'nugget', 0.25.*var( resid(:,2)) ,'plotit',false );
                     
-                    obj.calibrationResults.performance.variogram_residual.h(:,i) = varmodel.h;
-                    obj.calibrationResults.performance.variogram_residual.gamma(:,i) = varmodel.gamma;
-                    obj.calibrationResults.performance.variogram_residual.gammahat(:,i) = varmodel.gammahat;
+                    obj.evaluationResults.performance.variogram_residual.h(:,i) = varmodel.h;
+                    obj.evaluationResults.performance.variogram_residual.gamma(:,i) = varmodel.gamma;
+                    obj.evaluationResults.performance.variogram_residual.gammahat(:,i) = varmodel.gammahat;
                     
                 end                 
                 

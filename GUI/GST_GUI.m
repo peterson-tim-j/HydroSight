@@ -933,6 +933,18 @@ classdef GST_GUI < handle
                 % Assign the file name 
                 this.project_fileName = fullfile(pName,fName);
 
+                % Ask if the performance stats in the GUI calib table are
+                % to be rebuilt
+                doPerforamnceMeasureRestimation=false;
+                if ~isdeployed                   
+                    response = questdlg({'Would you like the calibration performance metrics to be re-calculated?','','Note, the calculations can be slow if there are 100''s of models'},'Re-calculate performance metrics?','Yes','No','Cancel','No');
+                    if strcmp(response,'Cancel')
+                        return;
+                    elseif strcmp(response,'Yes')
+                        doPerforamnceMeasureRestimation=true;
+                    end
+                end                
+                
                 % Change cursor
                 set(this.Figure, 'pointer', 'watch');                
                 drawnow update;
@@ -1103,52 +1115,92 @@ classdef GST_GUI < handle
                     % values from the GUI table and recalculates the mean.
                     % Obviously if there is only one value listed then
                     % this code does not chnage the result.
-                    colInd=[11:14];
-                    for i=colInd                    
-                        performanceStat = GST_GUI.removeHTMLTags(savedData.tableData.tab_ModelCalibration(:,i));
-                        ind = cellfun(@(x) isempty(x) || strcmp(x,'(NA)'), performanceStat);
-                        performanceStat(ind) = repmat({'<html><font color = "#808080">(NA)</font></html>'},sum(ind),1);
-                        performanceStat(~ind) = cellfun( @(x) ['<html><font color = "#808080">',num2str(mean(str2num(x))),'</font></html>'],performanceStat(~ind),'UniformOutput',false);
-                        savedData.tableData.tab_ModelCalibration(:,i) = performanceStat;
+                    if doPerforamnceMeasureRestimation
+                        % This code allows the recalculation of the model
+                        % performance statistics. Uncomment if required.
+
+                        h = waitbar(0,'Recalculating performance metrics. Please wait ...');
+                        for i=1:size(savedData.tableData.tab_ModelCalibration,1)
+                            
+                            % update progress bar
+                            waitbar(i/size(savedData.tableData.tab_ModelCalibration,1));
+                            
+                            % Get model label
+                            model_Label = savedData.tableData.tab_ModelCalibration{i,2};
+                            model_Label = GST_GUI.removeHTMLTags(model_Label); 
+                            model_Label = GST_GUI.modelLabel2FieldName(model_Label);
+                            try
+                                tmpModel = getModel(this,model_Label);                        
+                            catch ME
+                                savedData.tableData.tab_ModelCalibration{i,11} = '<html><font color = "#808080">(NA)</font></html>';
+                                savedData.tableData.tab_ModelCalibration{i,13} = '<html><font color = "#808080">(NA)</font></html>';
+                                savedData.tableData.tab_ModelCalibration{i,14} = '<html><font color = "#808080">(NA)</font></html>';                            
+                                continue;
+                            end
+
+                            if ~isempty(tmpModel.calibrationResults) && tmpModel.calibrationResults.isCalibrated
+                                head_calib_resid = tmpModel.calibrationResults.data.modelledHead_residuals;
+                                SSE = sum(head_calib_resid.^2);
+                                RMSE = sqrt( 1/size(head_calib_resid,1) * SSE);
+                                tmpModel.calibrationResults.performance.RMSE = RMSE;                        
+
+                                % CoE
+                                obsHead =  tmpModel.calibrationResults.data.obsHead;
+                                tmpModel.calibrationResults.performance.CoeffOfEfficiency_mean.description = 'Coefficient of Efficiency (CoE) calculated using a base model of the mean observed head. If the CoE > 0 then the model produces an estimate better than the mean head.';
+                                tmpModel.calibrationResults.performance.CoeffOfEfficiency_mean.base_estimate = mean(obsHead(:,2));            
+                                tmpModel.calibrationResults.performance.CoeffOfEfficiency_mean.CoE  = 1 - SSE./sum( (obsHead(:,2) - mean(obsHead(:,2)) ).^2);            
+                                                                
+                                CoE_cal = median(tmpModel.calibrationResults.performance.CoeffOfEfficiency_mean.CoE);
+                                AICc = median(tmpModel.calibrationResults.performance.AICc);
+                                BIC = median(tmpModel.calibrationResults.performance.BIC);
+
+                                savedData.tableData.tab_ModelCalibration{i,11} = ['<html><font color = "#808080">',num2str(CoE_cal),'</font></html>'];
+
+                                savedData.tableData.tab_ModelCalibration{i,13} = ['<html><font color = "#808080">',num2str(AICc),'</font></html>'];
+                                savedData.tableData.tab_ModelCalibration{i,14} = ['<html><font color = "#808080">',num2str(BIC),'</font></html>'];
+
+                                if ~isempty(tmpModel.evaluationResults)
+                                    
+                                    head_eval_resid = tmpModel.evaluationResults.data.modelledHead_residuals;
+                                    obsHead =  tmpModel.evaluationResults.data.obsHead;
+                                    
+                                    % Mean error
+                                    tmpModel.evaluationResults.performance.mean_error = mean(head_eval_resid); 
+
+                                    %RMSE
+                                    SSE = sum(head_eval_resid.^2);
+                                    tmpModel.evaluationResults.performance.RMSE = sqrt( 1/size(head_eval_resid,1) * SSE);                
+
+                                    % Unbiased CoE
+                                    residuals_unbiased = bsxfun(@minus,head_eval_resid, tmpModel.evaluationResults.performance.mean_error);
+                                    SSE = sum(residuals_unbiased.^2);
+                                    tmpModel.evaluationResults.performance.CoeffOfEfficiency_mean.CoE_unbias  = 1 - SSE./sum( (obsHead(:,2) - mean(obsHead(:,2)) ).^2);            
+                                    
+                                    CoE_eval = median(tmpModel.evaluationResults.performance.CoeffOfEfficiency_mean.CoE_unbias);
+                                    savedData.tableData.tab_ModelCalibration{i,12} = ['<html><font color = "#808080">',num2str(CoE_eval),'</font></html>'];
+                                else
+                                    savedData.tableData.tab_ModelCalibration{i,12} = '<html><font color = "#808080">(NA)</font></html>';
+                                end  
+                                
+                                % Save model
+                                setModel(this,model_Label, tmpModel);                        
+                            else
+                                savedData.tableData.tab_ModelCalibration{i,11} = '<html><font color = "#808080">(NA)</font></html>';
+                                savedData.tableData.tab_ModelCalibration{i,13} = '<html><font color = "#808080">(NA)</font></html>';
+                                savedData.tableData.tab_ModelCalibration{i,14} = '<html><font color = "#808080">(NA)</font></html>';
+                            end
+                        end
+                        close (h);
+                    else
+                        colInd=[11:14];
+                        for i=colInd                    
+                            performanceStat = GST_GUI.removeHTMLTags(savedData.tableData.tab_ModelCalibration(:,i));
+                            ind = cellfun(@(x) isempty(x) || strcmp(x,'(NA)'), performanceStat);
+                            performanceStat(ind) = repmat({'<html><font color = "#808080">(NA)</font></html>'},sum(ind),1);
+                            performanceStat(~ind) = cellfun( @(x) ['<html><font color = "#808080">',num2str(median(str2num(x))),'</font></html>'],performanceStat(~ind),'UniformOutput',false);
+                            savedData.tableData.tab_ModelCalibration(:,i) = performanceStat;
+                        end
                     end
-                    
-%                     % This code allows the recalculation of the model
-%                     % performance statistics. Uncomment if required.
-%                     for i=1:size(savedData.tableData.tab_ModelCalibration,1)
-%                         model_Label = savedData.tableData.tab_ModelCalibration{i,2};
-%                         model_Label = GST_GUI.removeHTMLTags(model_Label); 
-%                         try
-%                             tmpModel = getModel(this,model_Label);                        
-%                         catch ME
-%                             savedData.tableData.tab_ModelCalibration{i,11} = '<html><font color = "#808080">(NA)</font></html>';
-%                             savedData.tableData.tab_ModelCalibration{i,13} = '<html><font color = "#808080">(NA)</font></html>';
-%                             savedData.tableData.tab_ModelCalibration{i,14} = '<html><font color = "#808080">(NA)</font></html>';                            
-%                             continue;
-%                         end
-% 
-%                         if ~isempty(tmpModel.calibrationResults) && tmpModel.calibrationResults.isCalibrated
-%                             CoE_cal = mean(tmpModel.calibrationResults.performance.CoeffOfEfficiency_mean.CoE);
-%                             AICc = mean(tmpModel.calibrationResults.performance.AICc);
-%                             BIC = mean(tmpModel.calibrationResults.performance.BIC);
-%                         
-%                             savedData.tableData.tab_ModelCalibration{i,11} = ['<html><font color = "#808080">',num2str(CoE_cal),'</font></html>'];
-%                             
-%                             savedData.tableData.tab_ModelCalibration{i,13} = ['<html><font color = "#808080">',num2str(AICc),'</font></html>'];
-%                             savedData.tableData.tab_ModelCalibration{i,14} = ['<html><font color = "#808080">',num2str(BIC),'</font></html>'];
-%                             
-%                             if ~isempty(tmpModel.evaluationResults)
-%                                 CoE_eval = mean(tmpModel.evaluationResults.performance.CoeffOfEfficiency_mean.CoE_unbias);
-%                                 savedData.tableData.tab_ModelCalibration{i,12} = ['<html><font color = "#808080">',num2str(CoE_eval),'</font></html>'];
-%                             else
-%                                 savedData.tableData.tab_ModelCalibration{i,12} = '<html><font color = "#808080">(NA)</font></html>';
-%                             end                            
-%                         else
-%                             savedData.tableData.tab_ModelCalibration{i,11} = '<html><font color = "#808080">(NA)</font></html>';
-%                             savedData.tableData.tab_ModelCalibration{i,13} = '<html><font color = "#808080">(NA)</font></html>';
-%                             savedData.tableData.tab_ModelCalibration{i,14} = '<html><font color = "#808080">(NA)</font></html>';
-%                         end
-%                    end
-                    
                     this.tab_ModelCalibration.Table.Data = savedData.tableData.tab_ModelCalibration;
                     
                     % Update row numbers
@@ -3745,20 +3797,8 @@ classdef GST_GUI < handle
 
                 % Get the selected model for simulation
                 calibLabel = data{i,2};
-    
-                % Get a copy of the model object. This is only done to
-                % minimise HDD read when the models are off loaded to HDD using
-                % matfile();
                 calibLabel = GST_GUI.removeHTMLTags(calibLabel);
-                tmpModel = getModel(this, calibLabel);
-
-                % Exit if model is model not found
-                if isempty(tmpModel)
-                    nModelsCalibFailed = nModelsCalibFailed +1;
-                    this.tab_ModelCalibration.Table.Data{i,10} = '<html><font color = "#FF0000">Calib. failed - Model appears not to have been built.</font></html>';
-                    continue;
-                end    
-                
+                                
                 if strcmp(hObject.Tag,'useHPC')
 
                     % Prepare inputs for HPC offload function
@@ -3769,6 +3809,19 @@ classdef GST_GUI < handle
                     calibMethodSetting{i,1} = data{i,9};
                     
                 else
+                    
+                    % Get a copy of the model object. This is only done to
+                    % minimise HDD read when the models are off loaded to HDD using
+                    % matfile();                
+                    tmpModel = getModel(this, calibLabel);
+
+                    % Exit if model is model not found
+                    if isempty(tmpModel)
+                        nModelsCalibFailed = nModelsCalibFailed +1;
+                        this.tab_ModelCalibration.Table.Data{i,10} = '<html><font color = "#FF0000">Calib. failed - Model appears not to have been built.</font></html>';
+                        continue;
+                    end  
+                    
                     % Update status to starting calib.
                     this.tab_ModelCalibration.Table.Data{i,10} = '<html><font color = "#FFA500">Calibrating ... </font></html>';
 
@@ -3797,9 +3850,9 @@ classdef GST_GUI < handle
                         exitStatus = tmpModel.calibrationResults.exitStatus;                          
 
                         % Set calib performance stats.
-                        calibAICc = mean(tmpModel.calibrationResults.performance.AICc);
-                        calibBIC =mean( tmpModel.calibrationResults.performance.BIC);
-                        calibCoE = mean(tmpModel.calibrationResults.performance.CoeffOfEfficiency_mean.CoE);
+                        calibAICc = median(tmpModel.calibrationResults.performance.AICc);
+                        calibBIC =median( tmpModel.calibrationResults.performance.BIC);
+                        calibCoE = median(tmpModel.calibrationResults.performance.CoeffOfEfficiency_mean.CoE);
                         this.tab_ModelCalibration.Table.Data{i,11} = ['<html><font color = "#808080">',num2str(calibCoE),'</font></html>'];
                         this.tab_ModelCalibration.Table.Data{i,13} = ['<html><font color = "#808080">',num2str(calibAICc),'</font></html>'];
                         this.tab_ModelCalibration.Table.Data{i,14} = ['<html><font color = "#808080">',num2str(calibBIC),'</font></html>'];
@@ -4090,22 +4143,32 @@ classdef GST_GUI < handle
 
         end
         
+        
         function onImportFromHPC(this, hObject, eventdata)
            % Get SSH details
             prompts = { 'URL to the cluster:', ...
                         'User name for cluster:', ...
                         'Password for cluster:', ...
-                        'Full path to folder for the jobs:'};
+                        'Full path to folder for the jobs:', ...
+                        'Temporary local working folder:'};
             dlg_title = 'Commands for retrieving HPC cluster model calibration.';        
             num_lines = 1;
             if isempty(this.HPCoffload)
                 defaults = {'edward.hpc.unimelb.edu.au', ...
                             '', ...
                             '', ...
-                            '/home/timjp/GroundwaterStatisticsToolkit'};
+                            '', ...
+                            ''};
             else
-                defaults=this.HPCoffload();
+                defaults{1}=this.HPCoffload{1};
+                defaults{2}=this.HPCoffload{2};
+                defaults{4}=this.HPCoffload{5};
                 defaults{3}='';
+                if length(this.HPCoffload)>=13
+                    defaults{5}=this.HPCoffload{13};
+                else
+                    defaults{5}='';
+                end
             end
             userData = inputdlg(prompts,dlg_title,num_lines,defaults);
             if isempty(userData)
@@ -4117,9 +4180,11 @@ classdef GST_GUI < handle
             username = userData{2};
             password = userData{3};
             folder = userData{4};
+            workingFolder = userData{5};
             this.HPCoffload{1} = URL;
             this.HPCoffload{2} = username;
             this.HPCoffload{4} = folder;
+            this.HPCoffload{13} = workingFolder;
             
             % Get project folder
             if isempty(this.project_fileName)
@@ -4133,37 +4198,43 @@ classdef GST_GUI < handle
                     [projectPath,projectName,projectExt] = fileparts(this.project_fileName);
                 end
             end            
+
+            % Create message box for status of offload
+            msgStr=cell(0,1);
+            h = msgbox(msgStr, 'HPC retrieval progress ...','help');
+            set(findobj(h,'style','pushbutton'),'Visible','off')
+            pos=get(h,'Position');
+            pos(3) = 400;
+            pos(4) = 225;
+            set(h,'Position',pos);
+            drawnow update;            
             
-            %CD to project path 
-            cd(fileparts(projectPath));
-            %sshfrommatlabinstall();
-
-            %Load Java SSH module
-            %sshfrommatlabinstall(1);
-
-            % Check that a SSH channel can be opened            
+            % Check the local workin folder exists. If not, create it.
+            if ~exist(workingFolder,'dir')
+                msgStr{1} = ['   Making local working folder at:',workingFolder];           
+                set(findobj(h,'Tag','MessageBox'),'String',msgStr);
+                drawnow update;                                
+                
+                mkdir(workingFolder);
+            end
+            cd(workingFolder);
+            
+            % Check that a SSH channel can be opened           
+            msgStr{length(msgStr)+1} = '   Checking SSH connection to cluster ...';
+            set(findobj(h,'Tag','MessageBox'),'String',msgStr);
+            drawnow update;                                                        
             sshChannel = ssh2_config(URL,username,password); 
             if isempty(sshChannel)
                 errordlg({'An SSH connection to the cluster could not be established.','Please check the input URL, username and passord.'},'SSH connection failed.');
                 return;
             end
                       
-            % Get list of selected bores.
+            % Get list of selected bores.            
             data = this.tab_ModelCalibration.Table.Data;
             selectedBores = data(:,1);
 
             % Change cursor
             set(this.Figure, 'pointer', 'watch');
-            drawnow update;
-            
-            % Create message box for status of offload
-            msgStr=cell(1,7);
-            h = msgbox(msgStr, 'HPC retrieval progress ...','help');
-            set(findobj(h,'style','pushbutton'),'Visible','off')
-            pos=get(h,'Position');
-            pos(3) = 450;
-            pos(4) = 150;
-            set(h,'Position',pos);
             drawnow update;
               
             % Get model indexes
@@ -4176,18 +4247,108 @@ classdef GST_GUI < handle
                     imodels = [imodels,i];
                 end            
             end
+            nSelectedModels = length(imodels);
+            
+            % Get a list of .mat files on remote cluster
+            msgStr{length(msgStr)+1} = '   Getting list of results files on cluster ...';
+            set(findobj(h,'Tag','MessageBox'),'String',msgStr);
+            drawnow update;                            
+            [~,allMatFiles] = ssh2_command(sshChannel,['cd ',folder,'/models ; find -name \*.mat -print']);
+            
+            % Filter out the input data files
+            ind = find(cellfun( @(x) isempty(strfind(x, 'HPCmodel.mat')), allMatFiles));
+            allMatFiles = allMatFiles(ind);
+            
+            % Build list of mat files results to download
+            msgStr{length(msgStr)+1} = '   Building list of results files to retieve ...';
+            set(findobj(h,'Tag','MessageBox'),'String',msgStr);
+            drawnow update;                
+            resultsToDownload=cell(0,1);
+            j=0;
+            imodel_filt=[];            
+            nModelsNoResult=0;
+            nModelsNamesToChange=0;
+            SSH_commands = '';
+            for i=imodels
+                % Get the selected model label.
+                calibLabel = data{i,2};                
+                calibLabel = GST_GUI.removeHTMLTags(calibLabel);
+  
+                % Remove special characters from label (as per jobSubmission.m)
+                calibLabel =  regexprep(calibLabel,'\W','_');                             
+                calibLabel =  regexprep(calibLabel,'____','_');                             
+                calibLabel =  regexprep(calibLabel,'___','_');                             
+                calibLabel =  regexprep(calibLabel,'__','_');                      
+                
+                indResultsFileName = find(cellfun( @(x) ~isempty(strfind(x, ['/',calibLabel,'/results.mat'])), allMatFiles));                
+                if ~isempty(indResultsFileName)
+                    changefilename=true;
+                else
+                    indResultsFileName = find(cellfun( @(x) ~isempty(strfind(x, ['/',calibLabel,'/',calibLabel,'.mat'])), allMatFiles));
+                    changefilename=false;
+                end
+                    
+                if ~isempty(indResultsFileName)
+                    % Build SSH command string for chnaging results file
+                    % names form results.mat to bore label
+                    if changefilename
+                        nModelsNamesToChange=nModelsNamesToChange+1;
+                        SSH_commands = strcat(SSH_commands, [' cd ',folder,'/models/',calibLabel '; mv results.mat ', calibLabel,'.mat ;']);
+                    end
+                    
+                    % Add file name to list of files to download
+                    j=j+1;
+                    resultsToDownload{j,1}=['./',calibLabel,'/',calibLabel,'.mat'];
+                    imodel_filt =  [imodel_filt,true];
+                else
+                    imodel_filt =  [imodel_filt,false];
+                    nModelsNoResult=nModelsNoResult+1;
+                end
+            end
+
+            % Change file names from results.mat
+            if length(SSH_commands)>0
+                msgStr{length(msgStr)+1} = ['   Changing file from results.mat to model label .mat at ', num2str(nModelsNamesToChange), ' models...'];
+                set(findobj(h,'Tag','MessageBox'),'String',msgStr);
+                drawnow update;                
+                
+                try
+                    [~,status] = ssh2_command(sshChannel,SSH_commands);
+                catch ME
+                    warndlg({'Some results.mat files could not be changed to the model lablel.' ,'These models will not be imported.'},'SSH file name change failed.');
+                end
+            end
+            
+            % Download .mat files
+            msgStr{length(msgStr)+1} = ['   Downloading ', num2str(length(resultsToDownload)), ' completed models to working folder ...'];
+            set(findobj(h,'Tag','MessageBox'),'String',msgStr);
+            drawnow update;                
+            imodels = imodels(logical(imodel_filt));
+            try
+                ssh2_struct = scp_get(sshChannel,resultsToDownload, [projectPath,'/tmp'], [folder,'/models/']);
+            catch
+                sshChannel  =  ssh2_close(sshChannel);        
+            end
+            
+            msgStr{length(msgStr)+1} = '   Closing SSH connection to cluster ...';
+            set(findobj(h,'Tag','MessageBox'),'String',msgStr);
+            drawnow update;                            
+            % Closing connection
+            try
+                sshChannel  =  ssh2_close(sshChannel);        
+            catch
+                % do nothing
+            end            
             
             % Loop  through the list of selected bore and apply the model
             % options.
             nModels=length(imodels);
-            nModelsRetieved = 0;
-            nModelsRetrievalFailed = 0;
             nModelsResultFileErr=0;
-            nModelsNoResult=0;
+            nModelsRetieved=0;
             k=0;
             for i=imodels
                 k=k+1;
-                msgStr{1} = ['   Attempting to retrieve model ',num2str(k),' of ',num2str(nModels) '...'];           
+                msgStr{length(msgStr)} = ['   Importing model ',num2str(k),' of ',num2str(nModels) ' into the project ...'];           
                 set(findobj(h,'Tag','MessageBox'),'String',msgStr);
                 drawnow update;                
 
@@ -4199,153 +4360,146 @@ classdef GST_GUI < handle
                 calibLabel = GST_GUI.removeHTMLTags(calibLabel);
   
                 % Remove special characters from label (as per jobSubmission.m)
-                calibLabel =  regexprep(calibLabel,'\W','_');                             
-                calibLabel =  regexprep(calibLabel,'____','_');                             
-                calibLabel =  regexprep(calibLabel,'___','_');                             
-                calibLabel =  regexprep(calibLabel,'__','_');                    
-                                
-                % Check if result.mat exists. If so, copy it.
+                calibLabel = GST_GUI.modelLabel2FieldName(calibLabel);
+                                                        
+                % Load model
                 try
-                    [~,SSHresult] = ssh2_command(sshChannel,['if test -f ',[folder,'/models/',calibLabel,'/results.mat'],' ; then echo "exist"; else echo "not exists"; fi']);
-                catch ME
-                    try 
-                        sshChannel  =  ssh2_close(sshChannel);
-                    catch ME2
+                    cd([projectPath,'/tmp/']);
+                    importedModel = load([calibLabel,'.mat']);
+
+                    % Convert double precision residuals to single
+                    % to reduce RAM
+                    if isfield(importedModel.model.evaluationResults,'data')
+                        importedModel.model.evaluationResults.data.modelledHead_residuals = single(importedModel.model.evaluationResults.data.modelledHead_residuals);
+                    end
+                    importedModel.model.calibrationResults.data.modelledHead_residuals = single(importedModel.model.calibrationResults.data.modelledHead_residuals);
+
+                    % Clear the residuals from the model.model.variables. This is only done to minimise RAM.
+                    try
+                        if isfield(importedModel.model.model.variables,'resid');
+                            importedModel.model.model.variables = rmfield(importedModel.model.model.variables, 'resid');
+                        end
+                    catch ME                                
                         % do nothing
                     end
-                    sshChannel = ssh2_config(URL,username,password); 
-                    nModelsRetrievalFailed = nModelsRetrievalFailed +1;
-                    continue
-                end
-                    
-                if strcmp(SSHresult,'exist')
-                    % Copy results.mat to the project folder                
-                    try
-                        %scptomatlab(username,URL,password,projectPath,[folder,'/models/',calibLabel,'/results.mat']);                                   
-                         ssh2_struct = scp_get(sshChannel, 'results.mat', projectPath, [folder,'/models/',calibLabel]);
-                         
-                        % Load model
-                        try
-                            cd(projectPath);
-                            importedModel = load('results.mat');
 
-                            % Convert double precision residuals to single
-                            % to reduce RAM
-                            if isfield(importedModel.model.evaluationResults,'data')
-                                importedModel.model.evaluationResults.data.modelledHead_residuals = single(importedModel.model.evaluationResults.data.modelledHead_residuals);
+                    % IF an old version of the GST had been used,
+                    % then remove the cell array of variogram
+                    % values and just keep the relevant data. This
+                    % is done only to reduce RAM.
+                    if isfield(importedModel.model.evaluationResults,'performance')                        
+                        if isfield(importedModel.model.evaluationResults.performance.variogram_residual,'model')                        
+                            nvariograms=size(importedModel.model.evaluationResults.performance.variogram_residual.range,1);
+                            nBins  = length(importedModel.model.calibrationResults.performance.variogram_residual.model{1}.h);
+                            deltaTime=zeros(nBins ,nvariograms);
+                            gamma=zeros(nBins ,nvariograms);
+                            gammaHat=zeros(nBins ,nvariograms);
+                            parfor j=1:nvariograms
+                                deltaTime(:,j) = importedModel.model.evaluationResults.performance.variogram_residual.model{j}.h;
+                                gamma(:,j) = importedModel.model.evaluationResults.performance.variogram_residual.model{j}.gamma;
+                                gammaHat(:,j) = importedModel.model.evaluationResults.performance.variogram_residual.model{j}.gammahat;
                             end
-                            importedModel.model.calibrationResults.data.modelledHead_residuals = single(importedModel.model.calibrationResults.data.modelledHead_residuals);
-                            
-                            % Clear the residuals from the model.model.variables. This is only done to minimise RAM.
-                            try
-                                if isfield(importedModel.model.model.variables,'resid');
-                                    importedModel.model.model.variables = rmfield(importedModel.model.model.variables, 'resid');
-                                end
-                            catch ME                                
-                                % do nothing
-                            end
-                            
-                            % IF an old version of the GST had been used,
-                            % then remove the cell array of variogram
-                            % values and just keep the relevant data. This
-                            % is done only to reduce RAM.
-                            if isfield(importedModel.model.evaluationResults,'performance')                        
-                                if isfield(importedModel.model.evaluationResults.performance.variogram_residual,'model')                        
-                                    nvariograms=size(importedModel.model.evaluationResults.performance.variogram_residual.range,1);
-                                    nBins  = length(importedModel.model.calibrationResults.performance.variogram_residual.model{1}.h);
-                                    deltaTime=zeros(nBins ,nvariograms);
-                                    gamma=zeros(nBins ,nvariograms);
-                                    gammaHat=zeros(nBins ,nvariograms);
-                                    parfor j=1:nvariograms
-                                        deltaTime(:,j) = importedModel.model.evaluationResults.performance.variogram_residual.model{j}.h;
-                                        gamma(:,j) = importedModel.model.evaluationResults.performance.variogram_residual.model{j}.gamma;
-                                        gammaHat(:,j) = importedModel.model.evaluationResults.performance.variogram_residual.model{j}.gammahat;
-                                    end
-                                    importedModel.model.evaluationResults.performance.variogram_residual.h = deltaTime;
-                                    importedModel.model.evaluationResults.performance.variogram_residual.gamma = gamma;
-                                    importedModel.model.evaluationResults.performance.variogram_residual.gammaHat = gammaHat;
-                                end
-                            end                              
-                            if isfield(importedModel.model.calibrationResults.performance.variogram_residual,'model')                        
-                                nvariograms=size(importedModel.model.calibrationResults.performance.variogram_residual.range,1);
-                                nBins  = length(importedModel.model.calibrationResults.performance.variogram_residual.model{1}.h);
-                                deltaTime=zeros(nBins ,nvariograms);
-                                gamma=zeros(nBins ,nvariograms);
-                                gammaHat=zeros(nBins ,nvariograms);
-                                parfor j=1:nvariograms
-                                    deltaTime(:,j) = importedModel.model.calibrationResults.performance.variogram_residual.model{j}.h;
-                                    gamma(:,j) = importedModel.model.calibrationResults.performance.variogram_residual.model{j}.gamma;
-                                    gammaHat(:,j) = importedModel.model.calibrationResults.performance.variogram_residual.model{j}.gammahat;
-                                end
-                                importedModel.model.calibrationResults.performance.variogram_residual.h = deltaTime;
-                                importedModel.model.calibrationResults.performance.variogram_residual.gamma = gamma;
-                                importedModel.model.calibrationResults.performance.variogram_residual.gammaHat = gammaHat;
-                            end
-                            % Assign calib status
-                            tableRowData{1,10} = '<html><font color = "#008000">Calibrated. </font></html>';
-
-                            % Get calib status and set into table.
-                            exitFlag = importedModel.model.calibrationResults.exitFlag;
-                            exitStatus = importedModel.model.calibrationResults.exitStatus;                            
-                            if exitFlag ==0 
-                                this.tab_ModelCalibration.Table.Data{i,10} = ['<html><font color = "#FF0000">Calib. failed - ', ME.message,'</font></html>'];
-
-                                % Update status in GUI
-                                %drawnow update
-
-                                continue
-
-                            elseif exitFlag ==1
-                                tableRowData{1,10} = ['<html><font color = "#FFA500">Partially calibrated: ',exitStatus,' </font></html>'];
-                            elseif exitFlag ==2
-                                tableRowData{1,10} = ['<html><font color = "#008000">Calibrated: ',exitStatus,' </font></html>'];
-                            end
-
-                            % Update status in GUI
-                            drawnow update;
-
-                            % Set calib performance stats.
-                            calibAICc = mean(importedModel.model.calibrationResults.performance.AICc);
-                            calibBIC = mean(importedModel.model.calibrationResults.performance.BIC);
-                            calibCoE = mean(importedModel.model.calibrationResults.performance.CoeffOfEfficiency_mean.CoE);
-                            tableRowData{1,11} = ['<html><font color = "#808080">',num2str(calibCoE),'</font></html>'];
-                            tableRowData{1,13} = ['<html><font color = "#808080">',num2str(calibAICc),'</font></html>'];
-                            tableRowData{1,14} = ['<html><font color = "#808080">',num2str(calibBIC),'</font></html>'];
-                            
-                            
-                            % Set eval performance stats
-                            if isfield(importedModel.model.evaluationResults,'performance')
-                                evalCoE = importedModel.model.evaluationResults.performance.CoeffOfEfficiency_mean.CoE_unbias;                    
-                                tableRowData{1,12} = ['<html><font color = "#808080">',num2str(evalCoE),'</font></html>'];
-                            else
-                                evalCoE = '(NA)';
-                                tableRowData{1,12} = ['<html><font color = "#808080">',evalCoE,'</font></html>'];
-                            end
-                            
-                            %vars=whos('-file','tmp2.mat'); for i=1:6;vars2{i}=vars(i).name;end; for i=1:6; loadedVars=load('tmp2.mat',vars2{i}); if i==1; save('tmp4.mat','-Struct','loadedVars');else;save('tmp4.mat','-Struct','loadedVars','-append');end; end
-                            % Update project with imported model.
-                            setModel(this, calibLabel, importedModel.model);
-                            clear importedModel;
-                            
-                            nModelsRetieved = nModelsRetieved + 1;
-                            
-                        catch ME
-                            nModelsResultFileErr = nModelsResultFileErr +1;
+                            importedModel.model.evaluationResults.performance.variogram_residual.h = deltaTime;
+                            importedModel.model.evaluationResults.performance.variogram_residual.gamma = gamma;
+                            importedModel.model.evaluationResults.performance.variogram_residual.gammaHat = gammaHat;
                         end
-                        
-                    catch ME
-                        nModelsRetrievalFailed = nModelsRetrievalFailed +1;
-                        
-                        try 
-                            sshChannel  =  ssh2_close(sshChannel);
-                        catch ME2
-                            % do nothing
-                        end                        
-                                                
-                        sshChannel = ssh2_config(URL,username,password); 
+                    end                              
+                    if isfield(importedModel.model.calibrationResults.performance.variogram_residual,'model')                        
+                        nvariograms=size(importedModel.model.calibrationResults.performance.variogram_residual.range,1);
+                        nBins  = length(importedModel.model.calibrationResults.performance.variogram_residual.model{1}.h);
+                        deltaTime=zeros(nBins ,nvariograms);
+                        gamma=zeros(nBins ,nvariograms);
+                        gammaHat=zeros(nBins ,nvariograms);
+                        parfor j=1:nvariograms
+                            deltaTime(:,j) = importedModel.model.calibrationResults.performance.variogram_residual.model{j}.h;
+                            gamma(:,j) = importedModel.model.calibrationResults.performance.variogram_residual.model{j}.gamma;
+                            gammaHat(:,j) = importedModel.model.calibrationResults.performance.variogram_residual.model{j}.gammahat;
+                        end
+                        importedModel.model.calibrationResults.performance.variogram_residual.h = deltaTime;
+                        importedModel.model.calibrationResults.performance.variogram_residual.gamma = gamma;
+                        importedModel.model.calibrationResults.performance.variogram_residual.gammaHat = gammaHat;
                     end
-                else                    
-                    nModelsNoResult = nModelsNoResult + 1;
+                    % Assign calib status
+                    tableRowData{1,10} = '<html><font color = "#008000">Calibrated. </font></html>';
+
+                    % Get calib status and set into table.
+                    exitFlag = importedModel.model.calibrationResults.exitFlag;
+                    exitStatus = importedModel.model.calibrationResults.exitStatus;                            
+                    if exitFlag ==0 
+                        this.tab_ModelCalibration.Table.Data{i,10} = ['<html><font color = "#FF0000">Calib. failed - ', ME.message,'</font></html>'];
+
+                        % Update status in GUI
+                        %drawnow update
+
+                        continue
+
+                    elseif exitFlag ==1
+                        tableRowData{1,10} = ['<html><font color = "#FFA500">Partially calibrated: ',exitStatus,' </font></html>'];
+                    elseif exitFlag ==2
+                        tableRowData{1,10} = ['<html><font color = "#008000">Calibrated: ',exitStatus,' </font></html>'];
+                    end
+
+                    % Update status in GUI
+                    drawnow update;
+
+                    % Recalculate performance stats
+                    %------------------
+                    head_calib_resid = importedModel.model.calibrationResults.data.modelledHead_residuals;
+                    SSE = sum(head_calib_resid.^2);
+                    RMSE = sqrt( 1/size(head_calib_resid,1) * SSE);
+                    importedModel.model.calibrationResults.performance.RMSE = RMSE;                        
+
+                    % CoE
+                    obsHead =  importedModel.model.calibrationResults.data.obsHead;
+                    importedModel.model.calibrationResults.performance.CoeffOfEfficiency_mean.description = 'Coefficient of Efficiency (CoE) calculated using a base model of the mean observed head. If the CoE > 0 then the model produces an estimate better than the mean head.';
+                    importedModel.model.calibrationResults.performance.CoeffOfEfficiency_mean.base_estimate = mean(obsHead(:,2));            
+                    importedModel.model.calibrationResults.performance.CoeffOfEfficiency_mean.CoE  = 1 - SSE./sum( (obsHead(:,2) - mean(obsHead(:,2)) ).^2);            
+
+                    if ~isempty(importedModel.model.evaluationResults)
+
+                        head_eval_resid = importedModel.model.evaluationResults.data.modelledHead_residuals;
+                        obsHead =  importedModel.model.evaluationResults.data.obsHead;
+
+                        % Mean error
+                        importedModel.model.evaluationResults.performance.mean_error = mean(head_eval_resid); 
+
+                        %RMSE
+                        SSE = sum(head_eval_resid.^2);
+                        importedModel.model.evaluationResults.performance.RMSE = sqrt( 1/size(head_eval_resid,1) * SSE);                
+
+                        % Unbiased CoE
+                        residuals_unbiased = bsxfun(@minus,head_eval_resid, importedModel.model.evaluationResults.performance.mean_error);
+                        SSE = sum(residuals_unbiased.^2);
+                        importedModel.model.evaluationResults.performance.CoeffOfEfficiency_mean.CoE_unbias  = 1 - SSE./sum( (obsHead(:,2) - mean(obsHead(:,2)) ).^2);            
+                    end                              
+                    %--------------
+
+                    % Set calib performance stats.
+                    calibAICc = median(importedModel.model.calibrationResults.performance.AICc);
+                    calibBIC = median(importedModel.model.calibrationResults.performance.BIC);
+                    calibCoE = median(importedModel.model.calibrationResults.performance.CoeffOfEfficiency_mean.CoE);
+                    tableRowData{1,11} = ['<html><font color = "#808080">',num2str(calibCoE),'</font></html>'];
+                    tableRowData{1,13} = ['<html><font color = "#808080">',num2str(calibAICc),'</font></html>'];
+                    tableRowData{1,14} = ['<html><font color = "#808080">',num2str(calibBIC),'</font></html>'];
+
+                    % Set eval performance stats
+                    if isfield(importedModel.model.evaluationResults,'performance')
+                        evalCoE = median(importedModel.model.evaluationResults.performance.CoeffOfEfficiency_mean.CoE_unbias);
+                        tableRowData{1,12} = ['<html><font color = "#808080">',num2str(evalCoE),'</font></html>'];
+                    else
+                        evalCoE = '(NA)';
+                        tableRowData{1,12} = ['<html><font color = "#808080">',evalCoE,'</font></html>'];
+                    end
+
+                    %vars=whos('-file','tmp2.mat'); for i=1:6;vars2{i}=vars(i).name;end; for i=1:6; loadedVars=load('tmp2.mat',vars2{i}); if i==1; save('tmp4.mat','-Struct','loadedVars');else;save('tmp4.mat','-Struct','loadedVars','-append');end; end
+                    % Update project with imported model.
+                    setModel(this, calibLabel, importedModel.model);
+                    clear importedModel;
+
+                    nModelsRetieved = nModelsRetieved + 1;
+
+                catch ME
+                    nModelsResultFileErr = nModelsResultFileErr +1;
                 end
                 
                 % Update GUI labels
@@ -4353,24 +4507,24 @@ classdef GST_GUI < handle
 
             end                                  
             
-            % Closing connection
-            sshChannel  =  ssh2_close(sshChannel);        
-            
             % Change cursor
             set(this.Figure, 'pointer', 'arrow');
             drawnow update;
             
             % Output Summary.
-            msgStr{3} = ['   HPC calibration results files were retieved for ',num2str(nModelsRetieved), ' rows.'];
-            msgStr{4} = '';
-            msgStr{5} = ['   No. HPC results not yet complete: ',num2str(nModelsNoResult) ];
-            msgStr{6} = ['   No. HPC results for which the results file appears to be corrupted: ',num2str(nModelsResultFileErr) ];
-            msgStr{7} = ['   No. HPC results for which an SSH error occured: ',num2str(nModelsRetrievalFailed) ];            
+            msgStr{length(msgStr)+1} = '';
+            msgStr{length(msgStr)+1} = 'Summary of Retrieval';
+            msgStr{length(msgStr)+1} = ['   No. models sucessfully imported to project: ',num2str(nModelsRetieved)];            
+            msgStr{length(msgStr)+1} = ['   No. selected models to retrieve: ',num2str(nSelectedModels )];
+            msgStr{length(msgStr)+1} = ['   No. selected models not yet complete: ',num2str(nModelsNoResult) ];
+            msgStr{length(msgStr)+1} = ['   No. selected models complete: ',num2str(nModels) ];                        
+            msgStr{length(msgStr)+1} = ['   No. models files that could not be imported to project: ',num2str(nModelsResultFileErr) ];     
             set(findobj(h,'Tag','MessageBox'),'String',msgStr);
             set(findobj(h,'style','pushbutton'),'Visible','on');
             drawnow update;             
                                    
         end
+        
         
         
         function onImportTable(this, hObject, eventdata)
@@ -5480,19 +5634,13 @@ classdef GST_GUI < handle
             if iscell(exampleModel.data)
                 for i=1:nModels                    
                     modelLabel = exampleModel.data{i,1}.model_label;
-                    modelLabel = strrep(modelLabel, ' ', '_');
-                    modelLabel = strrep(modelLabel, '-', '_');
-                    modelLabel = strrep(modelLabel, '__', '_');
-                    modelLabel = strrep(modelLabel, '__', '_');
+                    modelLabel = GST_GUI.modelLabel2FieldName(modelLabel);
                     this.models.(modelLabel) = exampleModel.data{i,1};
                 end
             else
                 for i=1:nModels
                     modelLabel = exampleModel.data{i,1}.model_label;
-                    modelLabel = strrep(modelLabel, ' ', '_');
-                    modelLabel = strrep(modelLabel, '-', '_');
-                    modelLabel = strrep(modelLabel, '__', '_'); 
-                    modelLabel = strrep(modelLabel, '__', '_');
+                    modelLabel = GST_GUI.modelLabel2FieldName(modelLabel);
                     this.models.(modelLabel) = exampleModel.data(i,1);
                 end
             end                 
@@ -5837,6 +5985,7 @@ classdef GST_GUI < handle
                         
                         % Find rows within table
                         filt = cellfun(@(x) ~isempty(strfind(upper(x),upper(colNames_str{1}))) , tableObj.Data(:,selectedCol));
+                        filt = filt | selectedRows;
                         
                         % Select rows
                         tableObj.Data(:,1) =  mat2cell(filt,ones(1, size(selectedRows,1)));
