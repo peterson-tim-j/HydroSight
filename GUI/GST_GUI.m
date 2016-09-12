@@ -6,8 +6,8 @@ classdef GST_GUI < handle
     %variables. Useful in different sitionations
     properties
         % Version number
-        versionNumber = '1.2.4';
-        versionDate= '8 August 2016';
+        versionNumber = '1.2.5';
+        versionDate= '8 September 2016';
         
         % Model types supported
         modelTypes = {'model_TFN', 'ExpSmooth'};
@@ -3826,7 +3826,7 @@ classdef GST_GUI < handle
                     this.tab_ModelCalibration.Table.Data{i,10} = '<html><font color = "#FFA500">Calibrating ... </font></html>';
 
                     % Update status in GUI
-                    drawnow update
+                    drawnow
 
                     % Get start and end date. Note, start date is at the start
                     % of the day and end date is shifted to the end of the day.
@@ -3879,7 +3879,7 @@ classdef GST_GUI < handle
                             this.tab_ModelCalibration.Table.Data{i,10} = '<html><font color = "#FFA500">Saving project. </font></html>';
 
                             % Update status in GUI
-                            drawnow update                        
+                            drawnow                        
 
                             % Save project.
                             onSave(this,hObject,eventdata);
@@ -3900,7 +3900,7 @@ classdef GST_GUI < handle
                     end
                 end
                 % Update status in GUI
-                drawnow update
+                drawnow
                 
             end
             
@@ -5147,6 +5147,7 @@ classdef GST_GUI < handle
                         % Get model label.
                         modelLabel = this.tab_ModelCalibration.Table.Data{i,2};
                         modelLabel = GST_GUI.removeHTMLTags(modelLabel);
+                        modelLabel = GST_GUI.modelLabel2FieldName(modelLabel);
                         
                         % Incrment number of models selected for export
                         nModelsToExport = nModelsToExport+1;
@@ -5203,6 +5204,9 @@ classdef GST_GUI < handle
                                fmt = strcat(fmt,',%12.3f'); 
                             end
                             fmt = strcat(fmt,'  \n'); 
+                            
+                            % Get Bore ID
+                            boreID = tmpModel.bore_ID;
                             
                             %Write each row.
                             for j=1:size(tableData,1)
@@ -5635,13 +5639,13 @@ classdef GST_GUI < handle
                 for i=1:nModels                    
                     modelLabel = exampleModel.data{i,1}.model_label;
                     modelLabel = GST_GUI.modelLabel2FieldName(modelLabel);
-                    this.models.(modelLabel) = exampleModel.data{i,1};
+                    setModel(this, modelLabel, exampleModel.data{i,1});
                 end
             else
                 for i=1:nModels
                     modelLabel = exampleModel.data{i,1}.model_label;
                     modelLabel = GST_GUI.modelLabel2FieldName(modelLabel);
-                    this.models.(modelLabel) = exampleModel.data(i,1);
+                    setModel(this, modelLabel, exampleModel.data(i,1));
                 end
             end                 
             %-------------
