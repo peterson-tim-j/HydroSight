@@ -3477,7 +3477,7 @@ classdef GST_GUI < handle
                 this.tab_ModelConstruction.Table.Data{i, 9} = '<html><font color = "#FFA500">Building model ...</font></html>';
 
                 % Update status in GUI
-                drawnow update
+                drawnow
                                 
                 % Import head data
                 %----------------------------------------------------------
@@ -3654,7 +3654,7 @@ classdef GST_GUI < handle
                 end
                 
                 % Update status in GUI
-                drawnow update
+                drawnow
 
             end
             
