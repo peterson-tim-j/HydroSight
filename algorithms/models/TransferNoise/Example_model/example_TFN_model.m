@@ -27,7 +27,7 @@
 
 %clear all
 
-% Comment out the one bore ID that you want to model.
+% Comment out the one bore ID that you DO NOT want to model.
 %bore_ID = '124705';
 bore_ID = '124676';
 
@@ -43,21 +43,19 @@ load('124705_forcingData.mat');
 
 % Reformat the matric of forcing data to a sturctire variable containing
 % the column names.
-forcingData.data = forcingData;
-forcingData.colnames = {'YEAR','MONTH','DAY','PRECIP','APET','RevegFrac'};
+forcingDataStruct.data = forcingData;
+forcingDataStruct.colnames = {'YEAR','MONTH','DAY','PRECIP','APET','RevegFrac'};
 
 % To increase performance, we can reduce the length of the climate record.
 % This may cause longer time scales to be less reliably estimated.
 yearsOfPriorForcing = 100;
 forcingData_thresholddate  = datenum( boreDataWL(1,1)- yearsOfPriorForcing, boreDataWL(1,2), boreDataWL(1,3)); 
-filt = datenum(forcingData.data(:,1), forcingData.data(:,2), forcingData.data(:,3)) >= forcingData_thresholddate;
-forcingData.data = forcingData.data(filt,:);
+filt = datenum(forcingDataStruct.data(:,1), forcingDataStruct.data(:,2), forcingDataStruct.data(:,3)) >= forcingData_thresholddate;
+forcingDataStruct.data = forcingDataStruct.data(filt,:);
 
 % Define the bore ID and create sume dummy site coordinates. This must be
 % for the bore and each column in the forcing file.
-maxObsFreq = 7;
 siteCoordinates = {bore_ID, 100, 100; 'PRECIP', 100, 100; 'APET', 100, 100; 'RevegFrac',602, 100};
-
 
 % Define the way in which the precipitation is transformed. In this case it
 % is transformed using the 'climateTransform_soilMoistureModels' soil
@@ -105,8 +103,8 @@ modelOptions_7params = { 'precip','weightingfunction','responseFunction_Pearsons
 % Set the maximum frequency of water level obs
 maxObsFreq = 7;
 
-% Set the number of CMA-ES restarts
-nCMAES_restarts = 1;
+% Set the number of SP-UCI calibration clusters per parameter
+clustersPerParam = 4;
 
 % Select which model structures to build and calibrate.
 run7paramModel = true;
@@ -117,11 +115,11 @@ modelLabel = 'Great Western Catchment - no landuse change';
 
 if run7paramModel
     % Build the 7 parameter model.
-    model_7params = GroundwaterStatisticsToolbox(modelLabel, bore_ID, 'model_TFN', boreDataWL, maxObsFreq, forcingData, siteCoordinates, modelOptions_7params);
+    model_7params = GroundwaterStatisticsToolbox(modelLabel, bore_ID, 'model_TFN', boreDataWL, maxObsFreq, forcingDataStruct, siteCoordinates, modelOptions_7params);
 
     % Calibrate the 7 parameter model.
     sTime = now;
-    calibrateModel(model_7params, 0, inf, 'SP-UCI', 2);
+    calibrateModel(model_7params, 0, inf, 'SP-UCI', clustersPerParam);
     eTime = now;
     display(['Calibration time = ',num2str((eTime-sTime)*24*3600),'  sec']); 
     
@@ -136,10 +134,10 @@ end
 
 if run9paramModel
     % Build the 9 parameter model.
-    model_9params = GroundwaterStatisticsToolbox(modelLabel, bore_ID, 'model_TFN', boreDataWL, maxObsFreq, forcingData, siteCoordinates, modelOptions_9params);
+    model_9params = GroundwaterStatisticsToolbox(modelLabel, bore_ID, 'model_TFN', boreDataWL, maxObsFreq, forcingDataStruct, siteCoordinates, modelOptions_9params);
 
     % Calibrate the 7 parameter model.
-    calibrateModel(model_9params, 0, inf, 'SP-UCI', 1);
+    calibrateModel(model_9params, 0, inf, 'SP-UCI', clustersPerParam);
     
     % Plot the calibration results.
     sTime = tic;
