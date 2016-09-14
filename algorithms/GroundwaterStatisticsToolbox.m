@@ -1508,6 +1508,7 @@ classdef GroundwaterStatisticsToolbox < handle
                     any( strcmp(exitflag, 'maxiter')) || ...    
                     any( strcmp(exitflag, 'stoptoresume')) || ...    
                     any( strcmp(exitflag, 'manual')) || ...    
+                    any( strcmp(exitflag, 'stagnation')) || ...    
                     any( strcmp(exitflag, 'warnconditioncov')) || ...    
                     any( strcmp(exitflag, 'warnnoeffectcoord')) || ...    
                     any( strcmp(exitflag, 'warnnoeffectaxis')) || ...    
@@ -1558,13 +1559,7 @@ classdef GroundwaterStatisticsToolbox < handle
 
                     
                 case {'DREAM', 'Dream','dream'}
-
-                    % Set uninformed prior distribution using plausible
-                    % bounds. DREAM will sample this to defined the initial
-                    % parameter values
-                    sig = 2*(params_upperBound - params_lowerBound);
-                    mu = params_lowerBound + 1/2.*(params_upperBound - params_lowerBound);
-                                        
+              
                     % Application specific settings.
                     % -------------------------------------------------------------------------
                     % Set the approx. number of samples required for
@@ -1608,14 +1603,8 @@ classdef GroundwaterStatisticsToolbox < handle
                     else
                         DREAMPar.parallel = 'no';
                     end
-                    %Par_info.prior ='normal';          % Initial sampling distribution ('uniform'/'latin'/'normal'/'prior')
-                    %Par_info.mu = mu';
-                    %Par_info.cov = repmat(sig,1,nparams).*eye(nparams);
+                    % Set parameter bounds
                     Par_info.prior ='latin';
-                    %Par_info.min_initial = params_lowerBound';
-                    %Par_info.max_initial = params_upperBound';
-                    %Par_info.min = params_lowerPhysBound'; % If 'latin', min parameter values
-                    %Par_info.max = params_upperPhysBound'; % If 'latin', max parameter values
                     Par_info.min = params_lowerBound'; % If 'latin', min parameter values
                     Par_info.max = params_upperBound'; % If 'latin', max parameter values                    
                     Par_info.boundhandling ='reflect';% Explicit boundary handling
@@ -1635,13 +1624,6 @@ classdef GroundwaterStatisticsToolbox < handle
                     % Find the total number of samples
                     nParamSamples = output.R_stat(end, 1);
                     
-%                     % Find the threshold generations where R-stat criteria is last met.
-%                     convergedParamSamplesThresholdMax = max(output.R_stat(r_stat_acceptable,1));                    
-%                     if convergedParamSamplesThresholdMax<nParamSamples
-%                         params = params(1:floor(convergedParamSamplesThresholdMax/nparams),:,:);
-%                         nParamSamples = size(params,1)*nparams;
-%                     end
-                    
                     % Find the number of viable parameter sets                    
                     convergedParamSamples = max(1,nParamSamples - convergedParamSamplesThreshold);
 
@@ -1654,14 +1636,15 @@ classdef GroundwaterStatisticsToolbox < handle
                     
                     if convergedParamSamples < 0.1*reqMinParamSamples
                         exitFlag=0;
-                        exitStatus = ['Insufficient DREAM generations for reliable calibration. Number of reliable param. sets is ', num2str(convergedParamSamples), ...
+                        exitStatus = ['Insufficient DREAM generations for reliable calibration-selected lesser of last 10,000 samples of 10% of no. samples. Number of reliable param. sets is ', num2str(convergedParamSamples), ...
                             ' and recommended is at least ',num2str(reqMinParamSamples),'. Increase method number to greater than ',num2str(SchemeSetting)];
                         
                         obj.calibrationResults.exitFlag = exitFlag;
                         obj.calibrationResults.exitStatus = exitStatus;
                         
-                        ME = MException('GST:CalibrationFailure',exitStatus);
-                        throw(ME);
+                        convergedParamSamples = min(floor(nParamSamples*0.1), 10000);
+                        convergedParamSamplesThreshold = nParamSamples - convergedParamSamples;
+                        
                     elseif convergedParamSamples < reqMinParamSamples
                         exitFlag=1;
                         exitStatus = ['Possible insufficient DREAM generations. Number of reliable param. sets is ', num2str(convergedParamSamples), ...
