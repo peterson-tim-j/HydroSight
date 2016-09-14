@@ -128,8 +128,11 @@ if run7paramModel
    
     % Plot the simulation results. 
     time_points = model_7params.model.variables.time_points;
-    solveModel(model_7params, time_points, true);
-    solveModelPlotResults(model_7params);    
+    newForcingData = [];
+    simulationLabel = 'default simulation';
+    doKrigingOnResiduals = false;    
+    solveModel(model_7params, time_points, newForcingData, simulationLabel, doKrigingOnResiduals);    
+    solveModelPlotResults(model_7params, simulationLabel, []);    
 end
 
 if run9paramModel
@@ -148,13 +151,9 @@ if run9paramModel
    
     % Plot the simulation results. 
     time_points = model_9params.model.variables.time_points;
-    solveModel(model_9params, time_points, true);
-    solveModelPlotResults(model_9params);    
+    newForcingData = [];
+    simulationLabel = 'default simulation';
+    doKrigingOnResiduals = false;    
+    solveModel(model_9params, time_points, newForcingData, simulationLabel, doKrigingOnResiduals);    
+    solveModelPlotResults(model_9params, simulationLabel, []);    
 end
-
-
-
-
-
-
-

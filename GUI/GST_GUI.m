@@ -7,7 +7,7 @@ classdef GST_GUI < handle
     properties
         % Version number
         versionNumber = '1.2.5';
-        versionDate= '8 September 2016';
+        versionDate= '14 September 2016';
         
         % Model types supported
         modelTypes = {'model_TFN', 'ExpSmooth'};
