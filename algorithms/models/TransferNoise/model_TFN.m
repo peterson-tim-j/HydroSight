@@ -2316,8 +2316,8 @@ classdef model_TFN < model_abstract
                 theta_est_temp = theta(obj.parameters.( char(companants(i))), tor);                
 
                 % Initialise some variables
-                integralTheta_upperTail = zeros(size(theta_est_temp,2),1);
-                integralTheta_lowerTail = zeros(1,size(theta_est_temp,2));
+                integralTheta_upperTail = intTheta_upperTail2Inf(obj.parameters.( char(companants(i))), tor);                           
+                integralTheta_lowerTail = intTheta_lowerTail(obj.parameters.( char(companants(i))), tor);
 
                 % Get the mean forcing.
                 if ~isempty(varargin) && isfield(varargin{1},companants{i})

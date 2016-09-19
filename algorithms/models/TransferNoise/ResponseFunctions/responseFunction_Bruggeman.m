@@ -98,11 +98,9 @@ classdef responseFunction_Bruggeman < responseFunction_abstract
            
             result = - obj.gamma ./ sqrt( pi()*obj.beta^2/obj.alpha^2 .* t.^3 ).* exp( -obj.alpha^2 ./(obj.beta.^2 .* t)- obj.beta.^2.*t );
             
-            % Trials indicated that when tor (ie t herein) is very large,
-            % result can equal NaN.
-            if any(isnan(result) | isinf(result))
-                error('NaN or Inf within the integral of the theta function.');
-            end  
+            % Set theta at first time point to zero. NOTE: the first time
+            % point is more accuratly estimated by intTheta_lowerTail().
+            result(t==0,:) = 0;
         end    
         
         % Calculate integral of impulse-response function from t to inf.
@@ -123,7 +121,7 @@ classdef responseFunction_Bruggeman < responseFunction_abstract
         
         % Transform the estimate of the response function * the forcing.
         function result = transform_h_star(obj, h_star_est)
-           result = h_star_est;
+           result = h_star_est(:,end);
         end     
         
         % Return the derived variables.
