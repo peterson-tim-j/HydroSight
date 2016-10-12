@@ -199,7 +199,7 @@ classdef  responseFunction_FerrisKnowles < responseFunction_abstract
             [params_upperLimit, params_lowerLimit] = getParameters_physicalLimit(obj);
 
             % Check parameters are within bounds and T>0 and 0<S<1.
-            isValidParameter = repmat(S >=0 & S <1 & T>= 0,size(params,1),1) & ...
+            isValidParameter = repmat(S >=1e-6 & S <1 & T> 0,size(params,1),1) & ...
             params >= params_lowerLimit(1:size(params,1),ones(1,size(params,2))) & ...
             params <= params_upperLimit(1:size(params,1),ones(1,size(params,2)));            
         end
@@ -238,15 +238,15 @@ classdef  responseFunction_FerrisKnowles < responseFunction_abstract
                     
                     % create filter for recharge image wells
                     filt =  cellfun(@(x)strcmp(x,'Recharge'),obj.settings.pumpingBores{i,1}.imageBoreType);
-                    imageWellMultiplier(filt)= -1;
+                    imageWellMultiplier(filt)= 1;
                     
                     % create filter for no flow image wells
                     filt =  cellfun(@(x)strcmp(x,'No flow'),obj.settings.pumpingBores{i,1}.imageBoreType);
-                    imageWellMultiplier(filt)= 1;
+                    imageWellMultiplier(filt)= -1;
     
                     % Calculate the drawdown from the production well plus
                     % the influence from each image well.
-                    result(:,i) = - 10^obj.alpha./t .* bsxfun(@plus, exp(-10^obj.beta * (pumpDistancesSqr./t)), ...
+                    result(:,i) = 10^obj.alpha./t .* bsxfun(@plus, -exp(-10^obj.beta * (pumpDistancesSqr./t)), ...
                         sum(bsxfun(@times, imageWellMultiplier' , exp(-10^obj.beta * bsxfun(@rdivide,imageDistancesSqr',t))),2));
                 else
                     result(:,i) = - 10^obj.alpha./t.* exp(-10^obj.beta * (pumpDistancesSqr ./t));
@@ -275,14 +275,14 @@ classdef  responseFunction_FerrisKnowles < responseFunction_abstract
             result = zeros(size(t,1),size(obj.settings.pumpingBores,1));
             for i=1: size(obj.settings.pumpingBores,1)
                 % Calc. distance to obs well.
-                pumpDistances = sqrt((obj.settings.obsBore.Easting - obj.settings.pumpingBores{i,1}.Easting).^2 ...
-                    + (obj.settings.obsBore.Northing - obj.settings.pumpingBores{i,1}.Northing).^2);
+                pumpDistancesSqr = (obj.settings.obsBore.Easting - obj.settings.pumpingBores{i,1}.Easting).^2 ...
+                    + (obj.settings.obsBore.Northing - obj.settings.pumpingBores{i,1}.Northing).^2;
                 
                 if isfield(obj.settings.pumpingBores{i,1},'imageBoreID')
 
                     % Calculate the distance to each image bore.
-                    imageDistances = sqrt((obj.settings.obsBore.Easting - obj.settings.pumpingBores{i,1}.imageBoreEasting).^2 ...
-                    + (obj.settings.obsBore.Northing - obj.settings.pumpingBores{i,1}.imageBoreNorthing).^2);
+                    imageDistancesSqr = (obj.settings.obsBore.Easting - obj.settings.pumpingBores{i,1}.imageBoreEasting).^2 ...
+                    + (obj.settings.obsBore.Northing - obj.settings.pumpingBores{i,1}.imageBoreNorthing).^2;
                     
                     imageWellMultiplier=zeros(size(obj.settings.pumpingBores{i,1}.imageBoreType,1),1);
                     
@@ -296,12 +296,18 @@ classdef  responseFunction_FerrisKnowles < responseFunction_abstract
     
                     % Calculate the drawdown from the production well plus
                     % the influence from each image well.
-                    result(i) = - 10^obj.alpha * expint(10^obj.beta * (pumpDistances^2./t)) ...
-                                 + sum( imageWellMultiplier' .* 10^obj.alpha.* expint(10^obj.beta * ((imageDistances').^2./t) ));
+                    result(i,:) = - 10^obj.alpha * expint(10^obj.beta * (pumpDistancesSqr./t)) ...
+                                 + sum( imageWellMultiplier' .* 10^obj.alpha.* expint(10^obj.beta * ((imageDistancesSqr')./t) ));
                 else
-                    result(i) = - 10^obj.alpha.* expint(10^obj.beta * (pumpDistances^2./t));
+                    result(i,:) = - 10^obj.alpha.* expint(10^obj.beta * (pumpDistancesSqr./t));
                 end
-
+                
+                % TEMP: CHECK integral using trapz
+                % NOTE: As n approaches zero, theta(0) approaches inf. Trapz
+                % integration of such a function produces a poor numerical estimate.
+                %t_0to1 = 10.^([-10:0.0001:0])';
+                %theta_0to1 = theta(obj, t_0to1);
+                %result_trapz = trapz(t_0to1, theta_0to1);                
             end              
         end
                 

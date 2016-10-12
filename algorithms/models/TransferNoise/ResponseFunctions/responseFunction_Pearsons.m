@@ -181,8 +181,8 @@ classdef responseFunction_Pearsons < responseFunction_abstract
                 % Calculate the weighting function with the weight at the
                 % limit subtracted and rescaled to between zero and one and
                 % then multiplied by A.
-                %result = A_backTrans./(integral0toInf.*(1-obj.settings.weight_at_limit)) .* ( t.^(n_backTrans-1) .* exp( -b_backTrans .* t ) - obj.settings.weight_at_limit);                                                                
-                result = A_backTrans./(1-obj.settings.weight_at_limit) .* ( t.^(n_backTrans-1) .* exp( -b_backTrans .* t ) - obj.settings.weight_at_limit);                                                                
+                %result = A_backTrans./(integral0toInf.*(1-obj.settings.weight_at_limit)) .* ( t.^(n_backTrans-1) .* exp( -b_backTrans .* t ) - obj.settings.weight_at_limit);
+                result = A_backTrans./(1-obj.settings.weight_at_limit) .* ( t.^(n_backTrans-1) .* exp( -b_backTrans .* t ) - obj.settings.weight_at_limit);
             end
             
             % Set theta at first time point to zero. NOTE: the first time
@@ -304,23 +304,35 @@ classdef responseFunction_Pearsons < responseFunction_abstract
                     error('When "exp(obj.n) - 1<1", the method "theta()" must be called prior to "intTheta()" so that the lower time limit can be set.')
                 end                   
                                 
+                % NOTE: As t -> 0, t^(n_backTrans-1) -> Inf. This can cause
+                % the integral of the lower tail (it t from 0 to 1 day) to
+                % be exceeding large when n_backTrans<0 (ie decaying
+                % exponential like function).  This can cause the
+                % contribution from climate to be implausible and (at least
+                % for the Clydebank built in expamle) can cause the pumping
+                % componant to produce S<=10-6. To address this weakness,
+                % the following excludes the first 1 hour from the
+                % integration of the lower tail and the rescales it to the 
+                % duration of the input t.
+                t_to_omit =  1/24;
+                result_to_omit = A_backTrans./(1-obj.settings.weight_at_limit) .* (gamma(n_backTrans )./ ( b_backTrans^n_backTrans) .* (gammainc(0 ,n_backTrans ,'upper') - gammainc(b_backTrans .* t_to_omit ,n_backTrans ,'upper')) - obj.settings.weight_at_limit.*t_to_omit);
                 result = A_backTrans./(1-obj.settings.weight_at_limit) .* (gamma(n_backTrans )./ ( b_backTrans^n_backTrans) .* (gammainc(0 ,n_backTrans ,'upper') - gammainc(b_backTrans .* t ,n_backTrans ,'upper')) - obj.settings.weight_at_limit.*t);
+                result = (result - result_to_omit)./(t - t_to_omit);
+                result = zeros(size(t));
             end
             
             % TEMP: CHECK integral using trapz
             % NOTE: As n approaches zero, theta(0) approaches inf. Trapz
             % integration of such a function produces a poor numerical estimate.
-%             t_0to1 = 0.1*10.^([-100:0.0001:1])';
-%             theta_0to1 = theta(obj, t_0to1);
-%             result_trapz = trapz(t_0to1, theta_0to1);
+%              t_0to1 = 10.^([-100:0.0001:0])';
+%              theta_0to1 = theta(obj, t_0to1);
+%              result_trapz = trapz(t_0to1, theta_0to1);
 %             if abs(result_trapz - result) > abs(0.05*result);
 %                 display(['Pearsons tail integration error. Analytical est:', num2str(result),' Trapz:', num2str(result_trapz)]);
 %             elseif( isnan(result) || isinf(abs(result)))
 %                     display('Pearsons tail integration error (inf or NAN)');
 %                 
 %             end
-               
-             result = zeros(size(result));
             
         end
         

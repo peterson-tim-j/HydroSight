@@ -2315,9 +2315,9 @@ classdef model_TFN < model_abstract
                 % Calcule theta for each time point of forcing data.
                 theta_est_temp = theta(obj.parameters.( char(companants(i))), tor);                
 
-                % Initialise some variables
-                integralTheta_upperTail = intTheta_upperTail2Inf(obj.parameters.( char(companants(i))), tor);                           
-                integralTheta_lowerTail = intTheta_lowerTail(obj.parameters.( char(companants(i))), tor);
+                % Get analytical esitmates of lower and upper theta tails
+                integralTheta_upperTail = intTheta_upperTail2Inf(obj.parameters.( char(companants(i))), tor_end);                           
+                integralTheta_lowerTail = intTheta_lowerTail(obj.parameters.( char(companants(i))), 1);
 
                 % Get the mean forcing.
                 if ~isempty(varargin) && isfield(varargin{1},companants{i})

@@ -1634,8 +1634,11 @@ classdef GroundwaterStatisticsToolbox < handle
                         convergedParamSamplesThreshold = nParamSamples - convergedParamSamples;
                     end
                     
-                    if convergedParamSamples < 0.1*reqMinParamSamples
-                        exitFlag=0;
+                    if isempty(convergedParamSamples) || convergedParamSamples < 0.1*reqMinParamSamples
+                        if isempty(convergedParamSamples)
+                            convergedParamSamples = 0;
+                        end                    
+                        exitFlag=1;
                         exitStatus = ['Insufficient DREAM generations for reliable calibration-selected lesser of last 10,000 samples of 10% of no. samples. Number of reliable param. sets is ', num2str(convergedParamSamples), ...
                             ' and recommended is at least ',num2str(reqMinParamSamples),'. Increase method number to greater than ',num2str(SchemeSetting)];
                         
