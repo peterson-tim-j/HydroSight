@@ -1019,8 +1019,11 @@ classdef GST_GUI < handle
 
                         % Remove GUI data fields
                         try
-                            savedData = rmfield(savedData , {'tableData', 'dataPrep', 'settings','model_labels'});
-                        catch
+                        	filt = strcmp(fieldnames(savedData),'dataPrep') | strcmp(fieldnames(savedData),'settings') |  strcmp(fieldnames(savedData),'tableData') |  strcmp(fieldnames(savedData),'model_labels');
+                            removedFields = fieldnames(savedData);
+                            removedFields = removedFields(filt);                            
+                            savedData = rmfield(savedData,removedFields);
+                        catch ME
                             % do nothing
                         end                            
                     end
@@ -5673,37 +5676,23 @@ classdef GST_GUI < handle
 
             % Load modle objects 
             %-------------
-            % Handle the situation of the models not being in a
-            % field of 'models'.
-            if isfield(exampleModel,'models') && ~isfield(exampleModel,'data')
-                exampleModel.data = exampleModel.models;                            
-                exampleModel = rmfield(exampleModel, 'models');
-            end
-
             % CLear models in preject.                        
             this.models=[];
 
             % Determine number of models
-            nModels = size(exampleModel.data,1);
+            filt = strcmp(fieldnames(exampleModel),'dataPrep') | strcmp(fieldnames(exampleModel),'settings') |  strcmp(fieldnames(exampleModel),'tableData');
+            modelLabels = fieldnames(exampleModel);
+            modelLabels = modelLabels(~filt);
+            nModels = length(modelLabels);
 
             % Create object array
             %this.models.data(nModels,1) = [GroundwaterStatisticsToolbox];
 
-            % Fill array
-            this.models=[];
-            if iscell(exampleModel.data)
-                for i=1:nModels                    
-                    modelLabel = exampleModel.data{i,1}.model_label;
-                    modelLabel = GST_GUI.modelLabel2FieldName(modelLabel);
-                    setModel(this, modelLabel, exampleModel.data{i,1});
-                end
-            else
-                for i=1:nModels
-                    modelLabel = exampleModel.data{i,1}.model_label;
-                    modelLabel = GST_GUI.modelLabel2FieldName(modelLabel);
-                    setModel(this, modelLabel, exampleModel.data(i,1));
-                end
-            end                 
+            % Set model
+            for i=1:nModels
+                modelLabeltmp = GST_GUI.modelLabel2FieldName(modelLabels{i});
+                setModel(this, modelLabeltmp , exampleModel.(modelLabeltmp));
+            end
             %-------------
             
             % Assign analysed bores.
