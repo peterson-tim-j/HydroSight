@@ -6,8 +6,8 @@ classdef GST_GUI < handle
     %variables. Useful in different sitionations
     properties
         % Version number
-        versionNumber = '1.2.5';
-        versionDate= '14 September 2016';
+        versionNumber = '1.2.6';
+        versionDate= '13 October 2016';
         
         % Model types supported
         modelTypes = {'model_TFN', 'ExpSmooth'};
