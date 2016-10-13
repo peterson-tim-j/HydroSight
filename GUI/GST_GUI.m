@@ -890,7 +890,6 @@ classdef GST_GUI < handle
              set(this.Figure, 'pointer', 'arrow');                
              drawnow update;               
         end
-        
         % Open saved model
         function onOpen(this,hObject,eventdata)
             
@@ -930,20 +929,21 @@ classdef GST_GUI < handle
             [fName,pName] = uigetfile({'*.mat'},'Select project to open.');    
 
             if fName~=0;
+                
                 % Assign the file name 
                 this.project_fileName = fullfile(pName,fName);
 
                 % Ask if the performance stats in the GUI calib table are
                 % to be rebuilt
                 doPerforamnceMeasureRestimation=false;
-                if ~isdeployed                   
+                if ~isdeployed
                     response = questdlg({'Would you like the calibration performance metrics to be re-calculated?','','Note, the calculations can be slow if there are 100''s of models'},'Re-calculate performance metrics?','Yes','No','Cancel','No');
                     if strcmp(response,'Cancel')
                         return;
                     elseif strcmp(response,'Yes')
                         doPerforamnceMeasureRestimation=true;
                     end
-                end                
+                end
                 
                 % Change cursor
                 set(this.Figure, 'pointer', 'watch');                
@@ -991,10 +991,21 @@ classdef GST_GUI < handle
                 catch
                     this.modelsOnHDD = '';
                 end
-                                
-                % CLear models in preject.                        
-                this.models=[];                
-                this.model_labels=[];                
+
+                % Add model label settings
+                try
+                    savedData = load(this.project_fileName, 'model_labels','-mat');
+                    if isempty(fieldnames(savedData))
+                        this.model_labels=[];
+                    else
+                        this.model_labels=savedData.model_labels;                
+                    end
+                catch ME
+                    this.model_labels=[];
+                end
+                
+                % Clear models in project.                        
+                this.models=[];                                
                 
                 % Assign built models.
                 try
@@ -1008,7 +1019,7 @@ classdef GST_GUI < handle
 
                         % Remove GUI data fields
                         try
-                            savedData = rmfield(savedData , {'tableData', 'dataPrep', 'settings'});
+                            savedData = rmfield(savedData , {'tableData', 'dataPrep', 'settings','model_labels'});
                         catch
                             % do nothing
                         end                            
@@ -1018,23 +1029,37 @@ classdef GST_GUI < handle
                         
                         % Setup matfile link to 'this'. NOTE: for
                         % offloadeed models setModel() can handle the third input being the 
-                        % file name to the matfile link.
+                        % file name to the matfile link. 
+                        % Note 2: The models only need to be loaded if
+                        % this.model_labels does not contain calib. status.
                         model_labels = fieldnames(savedData);
                         nModels = length(model_labels);
                         nErr=0;
-                        for i=1:nModels             
-                            try
-                                setModel(this, model_labels{i,1}, savedData.(model_labels{i,1}));
-                            catch ME
-                                nErr = nErr+1;
-                            end                                
+                        if isempty(this.model_labels) || size(this.model_labels,1)<nModels
+                            this.model_labels=[];
+                            h = waitbar(0,'Re-building list of calibrated models because of error. Please wait ...');                        
+                            for i=1:nModels             
+                                waitbar(i/nModels);
+                                try                                
+                                    setModel(this, model_labels{i,1}, savedData.(model_labels{i,1}));
+                                catch ME
+                                    nErr = nErr+1;
+                                end                                
+                            end
+                            close(h);
+                        else
+                            % Update object hold the relative path to the .mat file                            
+                            for i=1:nModels   
+                                model_label_tmp = GST_GUI.modelLabel2FieldName(model_labels{i,1});
+                                this.models.(model_label_tmp) = fullfile(this.modelsOnHDD, [model_label_tmp,'.mat']);                                
+                            end
                         end
                         
                         if nErr>0
                             warndlg(['The HDD stored .mat files could not be loaded for ', num2str(nErr), ' models. Check the .mat files exist for all calibrated models in the project'],'Model load errors...');
                         end
                     else
-                        % Add models to project
+                        
                         if iscell(savedData)
                             nModels = size(savedData,1);
                             for i=1:nModels                                
@@ -1118,14 +1143,13 @@ classdef GST_GUI < handle
                     if doPerforamnceMeasureRestimation
                         % This code allows the recalculation of the model
                         % performance statistics. Uncomment if required.
-
                         h = waitbar(0,'Recalculating performance metrics. Please wait ...');
                         for i=1:size(savedData.tableData.tab_ModelCalibration,1)
                             
                             % update progress bar
                             waitbar(i/size(savedData.tableData.tab_ModelCalibration,1));
                             
-                            % Get model label
+                            % Get model lable
                             model_Label = savedData.tableData.tab_ModelCalibration{i,2};
                             model_Label = GST_GUI.removeHTMLTags(model_Label); 
                             model_Label = GST_GUI.modelLabel2FieldName(model_Label);
@@ -1190,7 +1214,7 @@ classdef GST_GUI < handle
                                 savedData.tableData.tab_ModelCalibration{i,14} = '<html><font color = "#808080">(NA)</font></html>';
                             end
                         end
-                        close (h);
+                       close (h);
                     else
                         colInd=[11:14];
                         for i=colInd                    
@@ -1205,7 +1229,7 @@ classdef GST_GUI < handle
                     
                     % Update row numbers
                     nrows = size(this.tab_ModelCalibration.Table.Data,1);
-                    this.tab_ModelCalibration.Table.RowName = mat2cell([1:nrows]',ones(1, nrows));                      
+                    this.tab_ModelCalibration.Table.RowName = mat2cell([1:nrows]',ones(1, nrows));           
                 catch ME
                     set(this.Figure, 'pointer', 'arrow');
                     drawnow update;
@@ -1261,7 +1285,7 @@ classdef GST_GUI < handle
             set(this.Figure, 'pointer', 'arrow');
             drawnow update;                    
         end
-        
+
         % Save as current model        
         function onSaveAs(this,hObject,eventdata)
             
@@ -1318,9 +1342,12 @@ classdef GST_GUI < handle
                 % Get settings
                 settings.HPCoffload = this.HPCoffload;
                 settings.modelsOnHDD = this.modelsOnHDD;
-                                                
+                
+                % Get model labels & calib. status
+                model_labels = this.model_labels;                
+                
                 % Save the GUI tables to the file.
-                save(this.project_fileName, 'tableData', 'dataPrep', 'settings', '-v7.3');  
+                save(this.project_fileName, 'tableData', 'dataPrep', 'model_labels','settings', '-v7.3');  
                 
                 % Save models. NOTE: If the models are offloaded to the
                 % HDD, then only the file path to the individual model
@@ -1385,8 +1412,11 @@ classdef GST_GUI < handle
                 settings.HPCoffload = this.HPCoffload;
                 settings.modelsOnHDD = this.modelsOnHDD;                               
                 
+                % Get model labels & calib. status
+                model_labels = this.model_labels;
+                
                 % Save the GUI tables to the file.
-                save(this.project_fileName, 'tableData', 'dataPrep', 'settings', '-v7.3');  
+                save(this.project_fileName, 'tableData', 'dataPrep', 'model_labels','settings', '-v7.3');  
                 if ~isempty(this.models)
                     try
                         % Save each model as a single variable in file. If the
@@ -4524,8 +4554,7 @@ classdef GST_GUI < handle
             drawnow update;             
                                    
         end
-        
-        
+
         
         function onImportTable(this, hObject, eventdata)
         
@@ -4877,7 +4906,7 @@ classdef GST_GUI < handle
                             'Summary of model calibration importing ...');
                                    
             end
-        end
+        end        
         
         function onExportTable(this, hObject, eventdata)
             % Create the label for each type of inport
@@ -5029,12 +5058,18 @@ classdef GST_GUI < handle
                     % Get a list of bore IDs
                     boreIDs = fieldnames(this.dataPrep);
                     
+                    % Setup wait box
+                    h = waitbar(0,'Exporting results. Please wait ...');                        
+                                   
                     % Export each bore analysed.
                     nResultsWritten = 0;
                     nResultsNotWritten = 0;
                     nResultToExport=0;
                     for i = 1:size(boreIDs,1)
-                       
+
+                        % update wait bar
+                        waitbar(i/size(boreIDs,1));             
+                        
                         % Find the model bore ID is within the GUI
                         % table and then check if the row is to be
                         % exported.
@@ -5094,6 +5129,9 @@ classdef GST_GUI < handle
                     end
                     fclose(fileID);
                     
+                    % Close wait bar
+                    close(h);                      
+                    
                     % Change cursor
                     set(this.Figure, 'pointer', 'arrow');
                     drawnow update;                    
@@ -5131,6 +5169,9 @@ classdef GST_GUI < handle
                     fileID = fopen(filename,'w');
                     fprintf(fileID,'Model_Label,BoreID,Year,Month,Day,Hour,Minute,Obs_Head,Is_Calib_Point?,Calib_Head,Eval_Head,Model_Err,Noise_Lower,Noise_Upper \n');
                     
+                    % Setup wait box
+                    h = waitbar(0,'Exporting results. Please wait ...');                                            
+                    
                     % Loop through each row of the calibration table and
                     % export the calibration results (if calibrated)
                     nrows = size(this.tab_ModelCalibration.Table.Data,1);
@@ -5139,6 +5180,9 @@ classdef GST_GUI < handle
                     nModelsNotCalib=0;
                     for i=1:nrows
 
+                        % update wait bar
+                        waitbar(i/nrows);    
+                        
                         % Skip if not selected
                         if ~this.tab_ModelCalibration.Table.Data{i,1}
                             continue
@@ -5222,6 +5266,9 @@ classdef GST_GUI < handle
                     end
                     fclose(fileID);
                     
+                    % Close wait bar
+                    close(h);                      
+                    
                     % Change cursor
                     set(this.Figure, 'pointer', 'arrow');
                     drawnow update;                    
@@ -5268,6 +5315,9 @@ classdef GST_GUI < handle
                     set(this.Figure, 'pointer', 'watch');
                     drawnow update;                   
                     
+                    % Setup wait box
+                    h = waitbar(0,'Exporting results. Please wait ...');                                            
+                    
                     % Loop through each row of the simulation table and
                     % export the calibration results (if calibrated)
                     nrows = size(this.tab_ModelSimulation.Table.Data,1);
@@ -5278,6 +5328,9 @@ classdef GST_GUI < handle
                     nTableConstFailed = 0;
                     nWritteError = 0;
                     for i=1:nrows                        
+                        
+                        % update wait bar
+                        waitbar(i/nrows);                   
                         
                         % Skip if the model is not sleected for export
                         if ~this.tab_ModelSimulation.Table.Data{i,1}
@@ -5387,6 +5440,9 @@ classdef GST_GUI < handle
                         
                                                     
                     end
+                    
+                    % Close wait bar
+                    close(h);                         
                     
                     % Change cursor
                     set(this.Figure, 'pointer', 'arrow');

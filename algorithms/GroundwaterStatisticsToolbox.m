@@ -1663,7 +1663,16 @@ classdef GroundwaterStatisticsToolbox < handle
                     params = genparset(params);
                     paramsTmp = params(:,1:nparams)';
                     log_L = params(:,end)';
-                    params=paramsTmp;                    
+                    params=paramsTmp;    
+                    
+                    % Filt out any inf likiloof values (just in case)
+                    filt = ~isinf(log_L);
+                    if any(~filt)
+                        exitStatus = [exitStatus, ' WARNING: ', num2str(sum(~filt)), ' parameter sets with liklihood value of inf were removed.'];
+                        params = params(filt,:);                    
+                        log_L = log_L(filt);
+                    end;                    
+                    
                     clear paramsTmp
                 otherwise
                     error('The requested calibration scheme is unknown.');
@@ -1834,39 +1843,46 @@ classdef GroundwaterStatisticsToolbox < handle
             
             % Calculate experimental variogram of residuals and fit an
             % exponential model
-            for i=1:size(head_est,3)                
-                resid = [obsHead(t_filt,1), obsHead(t_filt,2) - head_est(t_filt, 2,i)];
-                calib_var = variogram([resid(:,1), zeros( size(resid(:,1))) ] ...
-                    , resid(:,2) , 'maxdist', 365, 'nrbins', 12);
+            for i=1:size(head_est,3)   
+                try
+                    resid = [obsHead(t_filt,1), obsHead(t_filt,2) - head_est(t_filt, 2,i)];
+                    calib_var = variogram([resid(:,1), zeros( size(resid(:,1))) ] ...
+                        , resid(:,2) , 'maxdist', min(365,max(resid(:,1))-min(resid(:,1))), 'nrbins', min(size(resid,1),12));
 
-                [obj.calibrationResults.performance.variogram_residual.range(i,1), obj.calibrationResults.performance.variogram_residual.sill(i,1), ...
-                    obj.calibrationResults.performance.variogram_residual.nugget(i,1), varmodel] ...
-                    = variogramfit(calib_var.distance, ...                
-                    calib_var.val, 365/4, 0.75.*var( resid(:,2)), calib_var.num, [], ...
-                    'model', 'exponential', 'nugget', 0.25.*var( resid(:,2)) ,'plotit',false );
-                
-                obj.calibrationResults.performance.variogram_residual.h(:,i) = varmodel.h;
-                obj.calibrationResults.performance.variogram_residual.gamma(:,i) = varmodel.gamma;
-                obj.calibrationResults.performance.variogram_residual.gammahat(:,i) = varmodel.gammahat;
+                    [obj.calibrationResults.performance.variogram_residual.range(i,1), obj.calibrationResults.performance.variogram_residual.sill(i,1), ...
+                        obj.calibrationResults.performance.variogram_residual.nugget(i,1), varmodel] ...
+                        = variogramfit(calib_var.distance, ...                
+                        calib_var.val, 365/4, 0.75.*var( resid(:,2)), calib_var.num, [], ...
+                        'model', 'exponential', 'nugget', 0.25.*var( resid(:,2)) ,'plotit',false );
+
+                    obj.calibrationResults.performance.variogram_residual.h(:,i) = varmodel.h;
+                    obj.calibrationResults.performance.variogram_residual.gamma(:,i) = varmodel.gamma;
+                    obj.calibrationResults.performance.variogram_residual.gammahat(:,i) = varmodel.gammahat;
+                catch ME
+                    continue;
+                end
+                    
             end 
             if neval > 0;                
-                for i=1:size(head_est,3)                
-                    resid = [obsHead(~t_filt,1), obsHead(~t_filt,2) - head_est(~t_filt, 2,i)];
-                    eval_var = variogram([resid(:,1), zeros( size(resid(:,1))) ] ...
-                        , resid(:,2) , 'maxdist', 365, 'nrbins', 12);
+                for i=1:size(head_est,3)      
+                    try
+                        resid = [obsHead(~t_filt,1), obsHead(~t_filt,2) - head_est(~t_filt, 2,i)];
+                        eval_var = variogram([resid(:,1), zeros( size(resid(:,1))) ] ...
+                            , resid(:,2) , 'maxdist', min(365,max(resid(:,1))-min(resid(:,1))), 'nrbins', min(size(resid,1),12));
 
-                    [obj.evaluationResults.performance.variogram_residual.range(i,1), obj.evaluationResults.performance.variogram_residual.sill(i,1), ...
-                        obj.evaluationResults.performance.variogram_residual.nugget(i,1), varmodel] ...
-                        = variogramfit(eval_var.distance, ...                
-                        eval_var.val, 365/4, 0.75.*var( resid(:,2)), eval_var.num, [], ...
-                        'model', 'exponential', 'nugget', 0.25.*var( resid(:,2)) ,'plotit',false );
-                    
-                    obj.evaluationResults.performance.variogram_residual.h(:,i) = varmodel.h;
-                    obj.evaluationResults.performance.variogram_residual.gamma(:,i) = varmodel.gamma;
-                    obj.evaluationResults.performance.variogram_residual.gammahat(:,i) = varmodel.gammahat;
-                    
-                end                 
-                
+                        [obj.evaluationResults.performance.variogram_residual.range(i,1), obj.evaluationResults.performance.variogram_residual.sill(i,1), ...
+                            obj.evaluationResults.performance.variogram_residual.nugget(i,1), varmodel] ...
+                            = variogramfit(eval_var.distance, ...                
+                            eval_var.val, 365/4, 0.75.*var( resid(:,2)), eval_var.num, [], ...
+                            'model', 'exponential', 'nugget', 0.25.*var( resid(:,2)) ,'plotit',false );
+
+                        obj.evaluationResults.performance.variogram_residual.h(:,i) = varmodel.h;
+                        obj.evaluationResults.performance.variogram_residual.gamma(:,i) = varmodel.gamma;
+                        obj.evaluationResults.performance.variogram_residual.gammahat(:,i) = varmodel.gammahat;
+                    catch ME
+                        continue;
+                    end                    
+                end                                 
             end                        
                                    
             % Update flag to denote the calibration completed successfully.
