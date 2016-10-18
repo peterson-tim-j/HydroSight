@@ -7,7 +7,7 @@ classdef GST_GUI < handle
     properties
         % Version number
         versionNumber = '1.2.6';
-        versionDate= '13 October 2016';
+        versionDate= '19 October 2016';
         
         % Model types supported
         modelTypes = {'model_TFN', 'ExpSmooth'};
@@ -3213,6 +3213,22 @@ classdef GST_GUI < handle
                 saveModels=true;
             end            
             
+            
+            % Count the number of models selected
+            nModels=0;
+            for i=1:length(selectedBores);                                
+                if ~isempty(selectedBores{i}) && selectedBores{i}
+                    nModels = nModels +1;
+                end
+            end
+            
+            % Add simulation bar
+            minModels4Waitbar = 5;
+            iModels=0;
+            if nModels>=minModels4Waitbar
+                h = waitbar(0, ['Analysing ', num2str(nModels), ' bores. Please wait ...']);
+            end    
+            
             % Loop  through the list of selected bore and apply the modle
             % options.
             nBoresAnalysed = 0;
@@ -3232,7 +3248,7 @@ classdef GST_GUI < handle
                 this.tab_DataPrep.Table.Data{i,17} = ['<html><font color = "#808080">','(NA)','</font></html>'];
                     
                 % Update status in GUI
-                drawnow update
+                drawnow;
                 
                 % Import head data
                 %----------------------------------------------------------
@@ -3436,7 +3452,7 @@ classdef GST_GUI < handle
                         this.tab_DataPrep.Table.Data{i,15} = '<html><font color = "#FFA500">Saving project. </font></html>';
 
                         % Update status in GUI
-                        drawnow update                        
+                        drawnow;                        
                         
                         % Save project.
                         onSave(this,hObject,eventdata);
@@ -3454,9 +3470,19 @@ classdef GST_GUI < handle
                 end
           
                 % Update status in GUI
-                drawnow update
+                drawnow;
+                
+                % Update wait bar
+                if nModels>=minModels4Waitbar            
+                    iModels=iModels+1;
+                    waitbar(iModels/nModels);                
+                end
             end
             
+            % Close wait bar
+            if nModels>=minModels4Waitbar            
+                close(h);
+            end              
             % Change cursor to arrow
             set(this.Figure, 'pointer', 'arrow');
             drawnow update
@@ -3496,6 +3522,21 @@ classdef GST_GUI < handle
             % Get list of selected bores.
             selectedBores = data(:,1);
                         
+            % Count the number of models selected
+            nModels=0;
+            for i=1:length(selectedBores);                                
+                if ~isempty(selectedBores{i}) && selectedBores{i}
+                    nModels = nModels +1;
+                end
+            end
+            
+            % Add wait bar
+            minModels4Waitbar = 5;
+            iModels=0;
+            if nModels>=minModels4Waitbar
+                h = waitbar(0, ['Building ', num2str(nModels), ' models. Please wait ...']);
+            end               
+            
             % Loop  through the list of selected bore and apply the modle
             % options.
             nModelsBuilt = 0;
@@ -3689,7 +3730,17 @@ classdef GST_GUI < handle
                 % Update status in GUI
                 drawnow
 
+               % Update wait bar
+                if nModels>=minModels4Waitbar            
+                    iModels=iModels+1;
+                    waitbar(iModels/nModels);                
+                end
             end
+            
+            % Close wait bar
+            if nModels>=minModels4Waitbar            
+                close(h);
+            end            
             
             % Change cursor to arrow
             set(this.Figure, 'pointer', 'arrow');
@@ -3817,6 +3868,21 @@ classdef GST_GUI < handle
                 end
             end
             
+            % Count the number of models selected
+            nModels=0;
+            iModels=0;
+            for i=1:length(selectedBores);                                
+                if ~isempty(selectedBores{i}) && selectedBores{i}
+                    nModels = nModels +1;
+                end
+            end
+            
+            % Add wait bar
+            minModels4Waitbar = 5;
+            if ~strcmp(hObject.Tag,'useHPC') && nModels>=minModels4Waitbar
+                h = waitbar(0, ['Calibrating ', num2str(nModels), ' models. Please wait ...']);
+            end               
+            
             % Loop  through the list of selected bore and apply the model
             % options.
             nModelsCalib = 0;
@@ -3932,9 +3998,20 @@ classdef GST_GUI < handle
                         this.tab_ModelCalibration.Table.Data{i,10} = ['<html><font color = "#FF0000">Calib. failed - ', ME.message,'</font></html>'];
                     end
                 end
+                
                 % Update status in GUI
                 drawnow
                 
+                % Update wait bar
+                if ~strcmp(hObject.Tag,'useHPC') && nModels>=minModels4Waitbar            
+                    iModels=iModels+1;
+                    waitbar(iModels/nModels);                
+                end
+            end
+            
+            % Close wait bar
+            if ~strcmp(hObject.Tag,'useHPC') && nModels>=minModels4Waitbar            
+                close(h);
             end
             
             % Change cursor to arrow
@@ -3983,6 +4060,21 @@ classdef GST_GUI < handle
             set(this.Figure, 'pointer', 'watch');
             drawnow update            
 
+            % Count the number of models selected
+            nModels=0;
+            for i=1:length(selectedBores);                                
+                if ~isempty(selectedBores{i}) && selectedBores{i}
+                    nModels = nModels +1;
+                end
+            end
+            
+            % Add simulation bar
+            minModels4Waitbar = 5;
+            iModels=0;
+            if nModels>=minModels4Waitbar
+                h = waitbar(0, ['Simulating ', num2str(nModels), ' models. Please wait ...']);
+            end            
+            
             % Loop  through the list of selected bore and apply the model
             % options.
             nModelsSim = 0;
@@ -4163,8 +4255,17 @@ classdef GST_GUI < handle
                    nModelsSimFailed = nModelsSimFailed +1;
                    this.tab_ModelSimulation.Table.Data{i,end} = ['<html><font color = "#FF0000">Sim. failed - ', ME.message,'</font></html>']; '<html><font color = "#FF0000">Failed. </font></html>';                       
                end
-                       
                
+               % Update wait bar
+               if nModels>=minModels4Waitbar            
+                    iModels=iModels+1;
+                    waitbar(iModels/nModels);                
+               end
+            end
+            
+            % Close wait bar
+            if nModels>=minModels4Waitbar            
+                close(h);
             end
             
             % Change cursor
@@ -4172,7 +4273,7 @@ classdef GST_GUI < handle
             drawnow update            
             
             % Report Summary
-            msgbox(['The simulations were successfull for ',num2str(nModelsSim), ' models and failed for ',num2str(nModelsSimFailed), ' models.'], 'Summary of model simulaions...');
+            msgbox(['The simulations were successful for ',num2str(nModelsSim), ' models and failed for ',num2str(nModelsSimFailed), ' models.'], 'Summary of model simulaions...');
 
         end
         
