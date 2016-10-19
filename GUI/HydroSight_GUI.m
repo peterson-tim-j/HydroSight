@@ -5582,9 +5582,9 @@ classdef HydroSight_GUI < handle
                
         function onGitHub(this, hObject, eventdata)
            if strcmp(hObject.Tag,'doc_GitHubUpdate') 
-               web('https://github.com/peterson-tim-j/Groundwater-Statistics-Toolbox/releases');
+               web('https://github.com/peterson-tim-j/HydroSight/releases');
            elseif strcmp(hObject.Tag,'doc_GitHubIssue') 
-               web('https://github.com/peterson-tim-j/Groundwater-Statistics-Toolbox/issues');
+               web('https://github.com/peterson-tim-j/HydroSight/issues');
            end            
                        
         end
