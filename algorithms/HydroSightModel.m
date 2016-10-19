@@ -1,4 +1,4 @@
-classdef GroundwaterStatisticsToolbox < handle
+classdef HydroSightModel < handle
 % Class definition for building a time-series model of groundwater head.
 %
 % Description:
@@ -25,7 +25,7 @@ classdef GroundwaterStatisticsToolbox < handle
 %   open example_TFN_model()
 %   
 % See also
-%   GroundwaterStatisticsToolbox: model_construction;
+%   HydroSightModel: model_construction;
 %   calibrateModel: model_calibration;
 %   solveModel: solve_the_model;
 %   model_TFN: - constructor_for_transfer_fuction_noise_models;
@@ -92,11 +92,11 @@ classdef GroundwaterStatisticsToolbox < handle
 %%  PUBLIC METHODS     
     methods
 %% Construct the model
-        function obj = GroundwaterStatisticsToolbox(model_label, bore_ID, model_class_name, obsHead, obsHead_maxObsFreq, forcingData, siteCoordinates, varargin)
+        function obj = HydroSightModel(model_label, bore_ID, model_class_name, obsHead, obsHead_maxObsFreq, forcingData, siteCoordinates, varargin)
 % Model construction.
 %
 % Syntax:
-%   model = GroundwaterStatisticsToolbox(model_label, bore_ID, model_class_name , obsHead, obsHead_maxObsFreq, forcingData, siteCoordinates, modelOptions)
+%   model = HydroSightModel(model_label, bore_ID, model_class_name , obsHead, obsHead_maxObsFreq, forcingData, siteCoordinates, modelOptions)
 %
 % Description:
 %   Builds the model object, declares initial parameters and sets the
@@ -167,7 +167,7 @@ classdef GroundwaterStatisticsToolbox < handle
 %   documentation for the relevant model.
 %
 % Output:
-%   model - GroundwaterStatisticsToolbox class object 
+%   model - HydroSightModel class object 
 %
 % Example: 
 %   Load the input head and forcing data:
@@ -191,7 +191,7 @@ classdef GroundwaterStatisticsToolbox < handle
 %                     {'Year','Month','Day','precip','APET','LandRevegFraction'});
 %   
 %   Build the model with a maximum frequency of observation data of 7 days:
-%   >> model_124705 = GroundwaterStatisticsToolbox('Example TFN model', 'Bore_124705',  ...
+%   >> model_124705 = HydroSightModel('Example TFN model', 'Bore_124705',  ...
 %                     'model_TFN', boreDataWL, 7, forcingData, ...
 %                     siteCoordinates, modelOptions_TFN)
 %
@@ -200,7 +200,7 @@ classdef GroundwaterStatisticsToolbox < handle
 %    >> open model_124705
 %
 % See also:
-%   GroundwaterStatisticsToolbox: class_description;
+%   HydroSightModel: class_description;
 %   calibrateModel: model_calibration;
 %   calibrateModelPlotResults: plot_model_calibration_results;
 %   solveModel: run_model_simulations;
@@ -472,7 +472,7 @@ classdef GroundwaterStatisticsToolbox < handle
 %   >> solveModel(model_124705, time_points);
 %
 % See also:
-%   GroundwaterStatisticsToolbox: class_description;
+%   HydroSightModel: class_description;
 %   calibrateModel: model_calibration;
 %   solveModelPlotResults: plot_model_simulation_results;
 %   interpolateData: time-series_interpolation_algorithm.
@@ -747,7 +747,7 @@ classdef GroundwaterStatisticsToolbox < handle
 %   >> solveModelPlotResults(model_124705);
 %
 % See also:
-%   GroundwaterStatisticsToolbox: class_description;
+%   HydroSightModel: class_description;
 %   solveModel: model_simulations;
 %
 % Dependencies
@@ -972,7 +972,7 @@ classdef GroundwaterStatisticsToolbox < handle
 %   >> head_estimates = interpolateData(model_124705, time_points, 20, true)
 %
 % See also:
-%   GroundwaterStatisticsToolbox: class_description;
+%   HydroSightModel: class_description;
 %   solveModel: solve_the_model;
 %   calibrateModel: model_calibration;
 %
@@ -1234,7 +1234,7 @@ classdef GroundwaterStatisticsToolbox < handle
 %   >> calibrateModel(model_124705, start_date, end_date, 'SPUCI', 2);
 %
 % See also:
-%   GroundwaterStatisticsToolbox: class_description;
+%   HydroSightModel: class_description;
 %   calibrateModelPlotResults: plot_model_calibration_results;
 %   SPUCI: SP-UCI_calibration_algorithm;
 %   cmaes: CMA-ES_calibration_algorithm;
@@ -1528,7 +1528,7 @@ classdef GroundwaterStatisticsToolbox < handle
                         obj.calibrationResults.exitFlag = exitFlag;
                         obj.calibrationResults.exitStatus = exitStatus;
                         
-                        ME = MException('GST:CalibrationFailure',exitStatus);
+                        ME = MException('HydroSightModel:CalibrationFailure',exitStatus);
                         throw(ME);                        
                     end                        
                         
@@ -1553,7 +1553,7 @@ classdef GroundwaterStatisticsToolbox < handle
                         obj.calibrationResults.exitFlag = exitFlag;
                         obj.calibrationResults.exitStatus = exitStatus;
                         
-                        ME = MException('GST:CalibrationFailure',exitStatus);
+                        ME = MException('HydroSightModel:CalibrationFailure',exitStatus);
                         throw(ME);
                     end
 
@@ -1916,7 +1916,7 @@ classdef GroundwaterStatisticsToolbox < handle
 %   >> calibrateModelPlotResults(model_124705);
 %
 % See also:
-%   GroundwaterStatisticsToolbox: class_description;
+%   HydroSightModel: class_description;
 %   calibrateModel: model_calibration;
 %
 % Dependencies
@@ -2389,7 +2389,7 @@ classdef GroundwaterStatisticsToolbox < handle
 %   values.
 %
 % See also:
-%   GroundwaterStatisticsToolbox: class_description;
+%   HydroSightModel: class_description;
 %   calibrateModel: model_calibration;
 %   calibrationValidParameters: model_parameter_set_validity_check
 %
@@ -2450,7 +2450,7 @@ classdef GroundwaterStatisticsToolbox < handle
 %   (true) or invalid (false).
 %
 % See also:
-%   GroundwaterStatisticsToolbox: class_description;
+%   HydroSightModel: class_description;
 %   calibrateModel: model_calibration;
 %
 % Dependencies
@@ -2494,7 +2494,7 @@ classdef GroundwaterStatisticsToolbox < handle
 %   columns are date, head where the date is as a matlab date number.
 %
 % See also:
-%   GroundwaterStatisticsToolbox: class_description;
+%   HydroSightModel: class_description;
 %
 % Dependencies
 %   model_TFN.m
@@ -2531,7 +2531,7 @@ classdef GroundwaterStatisticsToolbox < handle
 %   focring data.
 %
 % See also:
-%   GroundwaterStatisticsToolbox: class_description;
+%   HydroSightModel: class_description;
 %   setForcingData: assign_forcing_data;
 %
 % Dependencies
@@ -2571,7 +2571,7 @@ classdef GroundwaterStatisticsToolbox < handle
 %   (none)
 %
 % See also:
-%   GroundwaterStatisticsToolbox: class_description;
+%   HydroSightModel: class_description;
 %   getForcingData: get_model_forcing_data;
 %
 % Dependencies

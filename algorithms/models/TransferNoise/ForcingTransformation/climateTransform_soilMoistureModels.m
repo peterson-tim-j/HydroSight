@@ -624,7 +624,7 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
 %   isValidParameter - column vector of the parameter validity.
 %
 % Example:
-%   see GroundwaterStatisticsToolbox: time_series_model_calibration_and_construction;
+%   see HydroSight: time_series_model_calibration_and_construction;
 %
 % See also:
 %   model_TFN: model_construction;
@@ -664,7 +664,7 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
 %   params_lowerLimit - column vector of the lower parameter bounds
 %
 % Example:
-%   see GroundwaterStatisticsToolbox: time_series_model_calibration_and_construction;
+%   see HydroSight: time_series_model_calibration_and_construction;
 %
 % See also:
 %   model_TFN: model_construction;
@@ -737,7 +737,7 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
 %   params_lowerLimit - column vector of the lower parameter bounds
 %
 % Example:
-%   see GroundwaterStatisticsToolbox: time_series_model_calibration_and_construction;
+%   see HydroSight: time_series_model_calibration_and_construction;
 %
 % See also:
 %   model_TFN: model_construction;

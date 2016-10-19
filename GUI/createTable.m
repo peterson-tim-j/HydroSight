@@ -123,7 +123,7 @@ function [mtable, buttons] = createTable(varargin)
 %    1.5 2013-06-27: fix for HG2
 %    1.6 2015-01-07: fixes for HG2 and a couple of input params edge-cases
 %    1.7 2016-08-17: Edits made to container and uitable create to suport
-%    1) Groundwater statistical toolkox and 2) to support matlabe 2015b+.
+%    1) HydroSight and 2) to support matlabe 2015b+.
 %    Chnage made my Tim Peterson
 
 % License to use and modify this code is granted freely to all interested, as long as the original author is

@@ -1,10 +1,10 @@
 classdef model_TFN < model_abstract
-% Class definition for Transfer Function Noise (TFN) model for use with GroundwaterStatisticsToolbox
+% Class definition for Transfer Function Noise (TFN) model for use with HydroSight
 %
 % Description: 
 %   The class defines a transfer function Noise (TFN) model for
 %   simulating time series of groundwater head. The model should be
-%   defined, calibrated and solved using GroundwaterStatisticsToolbox() or 
+%   defined, calibrated and solved using HydroSight() or 
 %   the graphical user interface.
 %
 %   This class uses an object-oriented structure to provide a highly flexible 
@@ -66,7 +66,7 @@ classdef model_TFN < model_abstract
 %   the 'model_TFN' constructor for details of how to build a model.
 %
 % See also:
-%   GroundwaterStatisticsToolbox: time_series_model_calibration_and_construction;
+%   HydroSight: time_series_model_calibration_and_construction;
 %   model_TFN: model_construction;
 %   calibration_finalise: initialisation_of_model_prior_to_calibration;
 %   calibration_initialise: initialisation_of_model_prior_to_calibration;
@@ -154,7 +154,7 @@ classdef model_TFN < model_abstract
 % Description:
 %   Builds the model_TFN object, declares initial parameters and sets the
 %   observation and forcing data within the object. This method should be 
-%   called from GroundwaterStatisticsToolbox.
+%   called from HydroSight.
 %
 %   A wide range of models can be built within this method. See the inputs
 %   section below for details of the model components that can be built and 
@@ -209,7 +209,7 @@ classdef model_TFN < model_abstract
 %           - 'derivedweighting_PearsonsPositiveRescaled' (see below)
 %            
 %       - 'forcingdata': Property value is the column number, column name 
-%       within forcingData (as input to GroundwaterStatisticsToolbox) or a cell 
+%       within forcingData (as input to HydroSight) or a cell 
 %       array containing the options for a forcing transformation
 %       object. The forcing transformation input must be a Nx2 cell array  
 %       with the following property (left column) and value (right column) 
@@ -258,10 +258,10 @@ classdef model_TFN < model_abstract
 %   model - model_TFN class object 
 %
 % Example:
-%   see GroundwaterStatisticsToolbox: time_series_model_calibration_and_construction;
+%   see HydroSight: time_series_model_calibration_and_construction;
 %
 % See also:
-%   GroundwaterStatisticsToolbox: time_series_model_calibration_and_construction;
+%   HydroSight: time_series_model_calibration_and_construction;
 %   calibration_finalise: initialisation_of_model_prior_to_calibration;
 %   calibration_initialise: initialisation_of_model_prior_to_calibration;
 %   get_h_star: main_method_for_calculating_the_head_contributions.
@@ -1007,7 +1007,7 @@ classdef model_TFN < model_abstract
 %   the method's inputs, limits the groundwater head to the
 %   contribution from various periods of climate forcing and plots the
 %   results. The latter is achieved by inputting min and max values for
-%   tor but to date is not incorporated into the GroundwaterStatisticsToolbox()
+%   tor but to date is not incorporated into the HydroSight()
 %   callign methods.
 %
 % Input:
@@ -1025,10 +1025,10 @@ classdef model_TFN < model_abstract
 %   time-series noise componat at M time steps.
 %
 % Example:
-%   see GroundwaterStatisticsToolbox: time_series_model_calibration_and_construction;
+%   see HydroSight: time_series_model_calibration_and_construction;
 %
 % See also:
-%   GroundwaterStatisticsToolbox: time_series_model_calibration_and_construction;
+%   HydroSight: time_series_model_calibration_and_construction;
 %   model_TFN: model_construction;
 %   calibration_finalise: initialisation_of_model_prior_to_calibration;
 %   calibration_initialise: initialisation_of_model_prior_to_calibration;
@@ -1197,10 +1197,10 @@ classdef model_TFN < model_abstract
 %   exists.
 %
 % Example:
-%   see GroundwaterStatisticsToolbox: time_series_model_calibration_and_construction;
+%   see HydroSight: time_series_model_calibration_and_construction;
 %
 % See also:
-%   GroundwaterStatisticsToolbox: time_series_model_calibration_and_construction;
+%   HydroSight: time_series_model_calibration_and_construction;
 %   model_TFN: model_construction;
 %   calibration_finalise: initialisation_of_model_prior_to_calibration;
 %   get_h_star: main_method_for_calculating_the_head_contributions.
@@ -1296,10 +1296,10 @@ classdef model_TFN < model_abstract
 %   (none, the results are output to obj.variables)
 %
 % Example:
-%   see GroundwaterStatisticsToolbox: time_series_model_calibration_and_construction;
+%   see HydroSight: time_series_model_calibration_and_construction;
 %
 % See also:
-%   GroundwaterStatisticsToolbox: time_series_model_calibration_and_construction;
+%   HydroSight: time_series_model_calibration_and_construction;
 %   model_TFN: model_construction;
 %   calibration_initialise: initialisation_of_model_prior_to_calibration;
 %   get_h_star: main_method_for_calculating_the_head_contributions.
@@ -1421,10 +1421,10 @@ classdef model_TFN < model_abstract
 %   drainage_elevation - drainage elevation constant.
 %
 % Example:
-%   see GroundwaterStatisticsToolbox: time_series_model_calibration_and_construction;
+%   see HydroSight: time_series_model_calibration_and_construction;
 %
 % See also:
-%   GroundwaterStatisticsToolbox: time_series_model_calibration_and_construction;
+%   HydroSight: time_series_model_calibration_and_construction;
 %   model_TFN: model_construction;
 %   calibration_finalise: initialisation_of_model_prior_to_calibration;
 %   calibration_initialise: initialisation_of_model_prior_to_calibration;
@@ -1546,10 +1546,10 @@ classdef model_TFN < model_abstract
 %   exists.
 %
 % Example:
-%   see GroundwaterStatisticsToolbox: time_series_model_calibration_and_construction;
+%   see HydroSight: time_series_model_calibration_and_construction;
 %
 % See also:
-%   GroundwaterStatisticsToolbox: time_series_model_calibration_and_construction;
+%   HydroSight: time_series_model_calibration_and_construction;
 %   model_TFN: model_construction;
 %   calibration_finalise: initialisation_of_model_prior_to_calibration;
 %   calibration_initialise: initialisation_of_model_prior_to_calibration;
@@ -1656,10 +1656,10 @@ classdef model_TFN < model_abstract
 %   compnant name (column 1) and parameter name (column 2).
 %
 % Example:
-%   see GroundwaterStatisticsToolbox: time_series_model_calibration_and_construction;
+%   see HydroSight: time_series_model_calibration_and_construction;
 %
 % See also:
-%   GroundwaterStatisticsToolbox: time_series_model_calibration_and_construction;
+%   HydroSight: time_series_model_calibration_and_construction;
 %   model_TFN: model_construction;
 %   calibration_finalise: initialisation_of_model_prior_to_calibration;
 %   calibration_initialise: initialisation_of_model_prior_to_calibration;
@@ -1739,10 +1739,10 @@ classdef model_TFN < model_abstract
 %   compnant name (column 1) and parameter name (column 2).
 %
 % Example:
-%   see GroundwaterStatisticsToolbox: time_series_model_calibration_and_construction;
+%   see HydroSight: time_series_model_calibration_and_construction;
 %
 % See also:
-%   GroundwaterStatisticsToolbox: time_series_model_calibration_and_construction;
+%   HydroSight: time_series_model_calibration_and_construction;
 %   model_TFN: model_construction;
 %   calibration_finalise: initialisation_of_model_prior_to_calibration;
 %   calibration_initialise: initialisation_of_model_prior_to_calibration;
@@ -1804,10 +1804,10 @@ classdef model_TFN < model_abstract
 %   params_lowerLimit - column vector of the lower parameter bounds
 %
 % Example:
-%   see GroundwaterStatisticsToolbox: time_series_model_calibration_and_construction;
+%   see HydroSight: time_series_model_calibration_and_construction;
 %
 % See also:
-%   GroundwaterStatisticsToolbox: time_series_model_calibration_and_construction;
+%   HydroSight: time_series_model_calibration_and_construction;
 %   model_TFN: model_construction;
 %   calibration_finalise: initialisation_of_model_prior_to_calibration;
 %   calibration_initialise: initialisation_of_model_prior_to_calibration;
@@ -1870,10 +1870,10 @@ classdef model_TFN < model_abstract
 %   params_lowerLimit - column vector of the lower parameter plausible bounds
 %
 % Example:
-%   see GroundwaterStatisticsToolbox: time_series_model_calibration_and_construction;
+%   see HydroSight: time_series_model_calibration_and_construction;
 %
 % See also:
-%   GroundwaterStatisticsToolbox: time_series_model_calibration_and_construction;
+%   HydroSight: time_series_model_calibration_and_construction;
 %   model_TFN: model_construction;
 %   calibration_finalise: initialisation_of_model_prior_to_calibration;
 %   calibration_initialise: initialisation_of_model_prior_to_calibration;
@@ -1970,10 +1970,10 @@ classdef model_TFN < model_abstract
 %   isValidParameter - column vector of the parameter validity.
 %
 % Example:
-%   see GroundwaterStatisticsToolbox: time_series_model_calibration_and_construction;
+%   see HydroSight: time_series_model_calibration_and_construction;
 %
 % See also:
-%   GroundwaterStatisticsToolbox: time_series_model_calibration_and_construction;
+%   HydroSight: time_series_model_calibration_and_construction;
 %   model_TFN: model_construction;
 %   calibration_finalise: initialisation_of_model_prior_to_calibration;
 %   calibration_initialise: initialisation_of_model_prior_to_calibration;
@@ -2051,7 +2051,7 @@ classdef model_TFN < model_abstract
 %   (none)
 %
 % See also:
-%   GroundwaterStatisticsToolbox: time_series_model_calibration_and_construction;
+%   HydroSight: time_series_model_calibration_and_construction;
 %   model_TFN: model_construction;
 %
 % Dependencies
@@ -2202,10 +2202,10 @@ classdef model_TFN < model_abstract
 %   colnames - column names for matrix 'head'.
 %
 % Example:
-%   see GroundwaterStatisticsToolbox: time_series_model_calibration_and_construction;
+%   see HydroSight: time_series_model_calibration_and_construction;
 %
 % See also:
-%   GroundwaterStatisticsToolbox: time_series_model_calibration_and_construction;
+%   HydroSight: time_series_model_calibration_and_construction;
 %   model_TFN: model_construction;
 %   calibration_finalise: initialisation_of_model_prior_to_calibration;
 %   calibration_initialise: initialisation_of_model_prior_to_calibration;

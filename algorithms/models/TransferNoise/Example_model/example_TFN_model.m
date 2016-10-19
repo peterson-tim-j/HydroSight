@@ -115,7 +115,7 @@ modelLabel = 'Great Western Catchment - no landuse change';
 
 if run7paramModel
     % Build the 7 parameter model.
-    model_7params = GroundwaterStatisticsToolbox(modelLabel, bore_ID, 'model_TFN', boreDataWL, maxObsFreq, forcingDataStruct, siteCoordinates, modelOptions_7params);
+    model_7params = HydroSightModel(modelLabel, bore_ID, 'model_TFN', boreDataWL, maxObsFreq, forcingDataStruct, siteCoordinates, modelOptions_7params);
 
     % Calibrate the 7 parameter model.
     sTime = now;
@@ -137,7 +137,7 @@ end
 
 if run9paramModel
     % Build the 9 parameter model.
-    model_9params = GroundwaterStatisticsToolbox(modelLabel, bore_ID, 'model_TFN', boreDataWL, maxObsFreq, forcingDataStruct, siteCoordinates, modelOptions_9params);
+    model_9params = HydroSightModel(modelLabel, bore_ID, 'model_TFN', boreDataWL, maxObsFreq, forcingDataStruct, siteCoordinates, modelOptions_9params);
 
     % Calibrate the 7 parameter model.
     calibrateModel(model_9params, 0, inf, 'SP-UCI', clustersPerParam);

@@ -1,5 +1,5 @@
-classdef GST_GUI < handle  
-    %GST_GUI Summary of this class goes here
+classdef HydroSight_GUI < handle  
+    %HydroSight_GUI Summary of this class goes here
     %   Detailed explanation goes here
     
     %class properties - access is private so nothing else can access these
@@ -53,12 +53,12 @@ classdef GST_GUI < handle
     
     methods
         
-        function this = GST_GUI
+        function this = HydroSight_GUI
                             
             %--------------------------------------------------------------
             % Open a window and add some menus
             this.Figure = figure( ...
-                'Name', 'The Groundwater Statistics Toolbox', ...
+                'Name', 'HydroSight', ...
                 'NumberTitle', 'off', ...
                 'MenuBar', 'none', ...
                 'Toolbar', 'none', ...
@@ -755,7 +755,7 @@ classdef GST_GUI < handle
                 this.project_fileName = projectPath;
                                 
                 % Update GUI title
-                set(this.Figure,'Name',['The Groundwater Statistics Toolbox - ', this.project_fileName]);
+                set(this.Figure,'Name',['HydroSight - ', this.project_fileName]);
                 drawnow update;
             end            
             
@@ -1053,7 +1053,7 @@ classdef GST_GUI < handle
                         else
                             % Update object hold the relative path to the .mat file                            
                             for i=1:nModels   
-                                model_label_tmp = GST_GUI.modelLabel2FieldName(model_labels{i,1});
+                                model_label_tmp = HydroSight_GUI.modelLabel2FieldName(model_labels{i,1});
                                 this.models.(model_label_tmp) = fullfile(this.modelsOnHDD, [model_label_tmp,'.mat']);                                
                             end
                         end
@@ -1154,8 +1154,8 @@ classdef GST_GUI < handle
                             
                             % Get model lable
                             model_Label = savedData.tableData.tab_ModelCalibration{i,2};
-                            model_Label = GST_GUI.removeHTMLTags(model_Label); 
-                            model_Label = GST_GUI.modelLabel2FieldName(model_Label);
+                            model_Label = HydroSight_GUI.removeHTMLTags(model_Label); 
+                            model_Label = HydroSight_GUI.modelLabel2FieldName(model_Label);
                             try
                                 tmpModel = getModel(this,model_Label);                        
                             catch ME
@@ -1221,7 +1221,7 @@ classdef GST_GUI < handle
                     else
                         colInd=[11:14];
                         for i=colInd                    
-                            performanceStat = GST_GUI.removeHTMLTags(savedData.tableData.tab_ModelCalibration(:,i));
+                            performanceStat = HydroSight_GUI.removeHTMLTags(savedData.tableData.tab_ModelCalibration(:,i));
                             ind = cellfun(@(x) isempty(x) || strcmp(x,'(NA)'), performanceStat);
                             performanceStat(ind) = repmat({'<html><font color = "#808080">(NA)</font></html>'},sum(ind),1);
                             performanceStat(~ind) = cellfun( @(x) ['<html><font color = "#808080">',num2str(median(str2num(x))),'</font></html>'],performanceStat(~ind),'UniformOutput',false);
@@ -1266,7 +1266,7 @@ classdef GST_GUI < handle
                 end          
                 
                 % Update GUI title
-                set(this.Figure,'Name',['The Groundwater Statistics Toolbox - ', this.project_fileName]);
+                set(this.Figure,'Name',['HydroSight - ', this.project_fileName]);
                 drawnow update;   
                 
                 % Enable file menu items
@@ -1380,7 +1380,7 @@ classdef GST_GUI < handle
                 end
                 
                 % Update GUI title
-                set(this.Figure,'Name',['The Groundwater Statistics Toolbox - ', this.project_fileName]);                                        
+                set(this.Figure,'Name',['HydroSight - ', this.project_fileName]);                                        
                 
             end
             
@@ -1453,7 +1453,7 @@ classdef GST_GUI < handle
             
             % Check that it was saved (ie if saveas was called from save() )
             if ~strcmp(ans,'No') && (isempty(this.project_fileName) || exist(this.project_fileName,'file') ~= 2);
-                warndlg('The GST is not to exit because the project does not appear to have been saved.','Project save error ...');
+                warndlg('HydroSight cannot exit because the project does not appear to have been saved.','Project save error ...');
                 return
             end
             
@@ -1476,7 +1476,7 @@ classdef GST_GUI < handle
                 this.tab_DataPrep.currentCol = icol;
             
                 % Remove HTML tags from the column name
-                columnName = GST_GUI.removeHTMLTags(eventdata.Source.ColumnName{icol});
+                columnName = HydroSight_GUI.removeHTMLTags(eventdata.Source.ColumnName{icol});
                 
                 switch columnName;
                     case 'Obs. Head File'
@@ -1549,7 +1549,7 @@ classdef GST_GUI < handle
                         % Show the results if the bore has been analysed.
                         
                         boreID = data{eventdata.Indices(1),3};
-                        modelStatus = GST_GUI.removeHTMLTags(data{eventdata.Indices(1),15});
+                        modelStatus = HydroSight_GUI.removeHTMLTags(data{eventdata.Indices(1),15});
                         
                         if ~isempty(this.dataPrep) && ~isempty(boreID) && ...
                         isfield(this.dataPrep,boreID) && ~isempty(this.dataPrep.(boreID)) && ...
@@ -1808,7 +1808,7 @@ classdef GST_GUI < handle
             end
             
             % Remove HTML tags from the column name
-            columnName = GST_GUI.removeHTMLTags(eventdata.Source.ColumnName{icol});
+            columnName = HydroSight_GUI.removeHTMLTags(eventdata.Source.ColumnName{icol});
 
             if ~(strcmp(columnName, 'Obs. Head File') || ...
             strcmp(columnName, 'Forcing Data File') || ...
@@ -2038,7 +2038,7 @@ classdef GST_GUI < handle
                 this.tab_ModelConstruction.currentCol = icol;
             
                 % Remove HTML tags from the column name
-                columnName = GST_GUI.removeHTMLTags(eventdata.Source.ColumnName{icol});                
+                columnName = HydroSight_GUI.removeHTMLTags(eventdata.Source.ColumnName{icol});                
                                 
                 % Warn the user if the model is already built and the
                 % inputs are to change - reuiring the model object to be
@@ -2054,7 +2054,7 @@ classdef GST_GUI < handle
                     
                     
                     % Convert model label to field label.
-                    model_labelAsField = GST_GUI.modelLabel2FieldName(modelLabel);
+                    model_labelAsField = HydroSight_GUI.modelLabel2FieldName(modelLabel);
                     
                     % Check if the model object exists                    
                     if any(strcmp(fieldnames(this.models), model_labelAsField))
@@ -2091,7 +2091,7 @@ classdef GST_GUI < handle
 
                         % Delete model from calibration table.
                         modelLabels_calibTable =  this.tab_ModelCalibration.Table.Data(:,2);                            
-                        modelLabels_calibTable = GST_GUI.removeHTMLTags(modelLabels_calibTable);
+                        modelLabels_calibTable = HydroSight_GUI.removeHTMLTags(modelLabels_calibTable);
                         ind = cellfun( @(x) strcmp(x,modelLabel), modelLabels_calibTable);
                         this.tab_ModelCalibration.Table.Data = this.tab_ModelCalibration.Table.Data(~ind,:);
 
@@ -2101,7 +2101,7 @@ classdef GST_GUI < handle
                         
                         % Delete models from simulations table.
                         modelLabels_simTable =  this.tab_ModelSimulation.Table.Data(:,2);                            
-                        modelLabels_simTable = GST_GUI.removeHTMLTags(modelLabels_simTable);
+                        modelLabels_simTable = HydroSight_GUI.removeHTMLTags(modelLabels_simTable);
                         ind = cellfun( @(x) strcmp(x,modelLabel), modelLabels_simTable);
                         this.tab_ModelSimulation.Table.Data = this.tab_ModelSimulation.Table.Data(~ind,:);                        
                         
@@ -2122,12 +2122,12 @@ classdef GST_GUI < handle
                         
                         % Check the model label can be converted to an
                         % appropriate field name (for saving)                        
-                        if isempty(GST_GUI.modelLabel2FieldName(newLabel))
+                        if isempty(HydroSight_GUI.modelLabel2FieldName(newLabel))
                             return;
                         end
                         
                         % Check that the model label is unique.
-                        newLabel = GST_GUI.createUniqueLabel(allLabels, newLabel, irow);                          
+                        newLabel = HydroSight_GUI.createUniqueLabel(allLabels, newLabel, irow);                          
                         
                         % Report error if required
                         if ~strcmp(newLabel, hObject.Data{irow,2})
@@ -2181,7 +2181,7 @@ classdef GST_GUI < handle
             this.tab_ModelConstruction.currentCol = icol;
 
             % Remove HTML tags from the column name
-            columnName  = GST_GUI.removeHTMLTags(eventdata.Source.ColumnName{icol});
+            columnName  = HydroSight_GUI.removeHTMLTags(eventdata.Source.ColumnName{icol});
 
             % Exit if no results are to be viewed and none of the following are to columns edits
             if ~(strcmp(columnName, 'Calib. Start Date') || strcmp(columnName, 'Calib. End Date'))                  
@@ -2205,8 +2205,8 @@ classdef GST_GUI < handle
                     % date number.
                     startDate = data{irow,4};
                     endDate = data{irow,5};
-                    startDate = GST_GUI.removeHTMLTags(startDate);
-                    endDate = GST_GUI.removeHTMLTags(endDate);                        
+                    startDate = HydroSight_GUI.removeHTMLTags(startDate);
+                    endDate = HydroSight_GUI.removeHTMLTags(endDate);                        
                     startDate = datenum(startDate,'dd-mmm-yyyy');
                     endDate = datenum(endDate,'dd-mmm-yyyy');
 
@@ -2238,8 +2238,8 @@ classdef GST_GUI < handle
                     % date number.
                     startDate = data{irow,4};
                     endDate = data{irow,5};
-                    startDate = GST_GUI.removeHTMLTags(startDate);
-                    endDate = GST_GUI.removeHTMLTags(endDate);
+                    startDate = HydroSight_GUI.removeHTMLTags(startDate);
+                    endDate = HydroSight_GUI.removeHTMLTags(endDate);
                     startDate = datenum(startDate,'dd-mmm-yyyy');
                     endDate = datenum(endDate,'dd-mmm-yyyy');
 
@@ -2291,7 +2291,7 @@ classdef GST_GUI < handle
                 drawnow update;                                   
                 return;
             end                        
-            calibLabel = GST_GUI.removeHTMLTags(data{irow,2}); 
+            calibLabel = HydroSight_GUI.removeHTMLTags(data{irow,2}); 
             
             % Get a copy of the model object. This is only done to
             % minimise HDD read when the models are off loaded to HDD using
@@ -2535,7 +2535,7 @@ classdef GST_GUI < handle
                 this.tab_ModelSimulation.currentCol = icol;
             
                 % Remove HTML tags from the column name
-                columnName = GST_GUI.removeHTMLTags(eventdata.Source.ColumnName{icol});
+                columnName = HydroSight_GUI.removeHTMLTags(eventdata.Source.ColumnName{icol});
                 
                 switch columnName;
                     % Get the selected model.
@@ -2594,7 +2594,7 @@ classdef GST_GUI < handle
                         %  create a new label if not.
                         allLabels = hObject.Data(:,[2,6]);
                         newLabel = {hObject.Data{irow, 2}, eventdata.EditData};
-                        newLabel = GST_GUI.createUniqueLabel(allLabels, newLabel, irow);                        
+                        newLabel = HydroSight_GUI.createUniqueLabel(allLabels, newLabel, irow);                        
                         hObject.Data{irow,6} = newLabel{2};
 
                         % Warn user if the label has chnaged.
@@ -2621,7 +2621,7 @@ classdef GST_GUI < handle
             end
 
             % Remove HTML tags from the column name
-            columnName = GST_GUI.removeHTMLTags(eventdata.Source.ColumnName{icol});            
+            columnName = HydroSight_GUI.removeHTMLTags(eventdata.Source.ColumnName{icol});            
             
             % Exit if no cells edits are to be dealt with and no results
             % are to viewed.
@@ -2658,7 +2658,7 @@ classdef GST_GUI < handle
                     for i=1:length(model_label)                           
                         
                         % Convert model label to field label.
-                        model_labelAsField = GST_GUI.modelLabel2FieldName(model_label{i});
+                        model_labelAsField = HydroSight_GUI.modelLabel2FieldName(model_label{i});
                         
                         % Check if model is calibrated
                         filt(i) = this.model_labels{model_labelAsField, 'isCalibrated'};
@@ -2689,7 +2689,7 @@ classdef GST_GUI < handle
                     calibLabel = data{irow,2};
 
                     % Get calibrated model field name
-                    calibLabel = GST_GUI.modelLabel2FieldName(calibLabel);            
+                    calibLabel = HydroSight_GUI.modelLabel2FieldName(calibLabel);            
 
                     % Check the model is calibrated.
                     if ~this.model_labels{calibLabel, 'isCalibrated'};
@@ -2838,7 +2838,7 @@ classdef GST_GUI < handle
                 drawnow update;                 
                 return;
             end          
-            modelLabel = GST_GUI.modelLabel2FieldName(modelLabel);                 
+            modelLabel = HydroSight_GUI.modelLabel2FieldName(modelLabel);                 
             
             % Check if there is a simulation label within the
             % identified calibrated model.            
@@ -2991,7 +2991,7 @@ classdef GST_GUI < handle
                     modelLabel = this.tab_ModelConstruction.Table.Data{irow,2};
 
                     % Check if the model object exists
-                    modelLabel = GST_GUI.modelLabel2FieldName(modelLabel);            
+                    modelLabel = HydroSight_GUI.modelLabel2FieldName(modelLabel);            
                     if any(strcmp(fieldnames(this.models), modelLabel))
                         
                         % Get model
@@ -3026,7 +3026,7 @@ classdef GST_GUI < handle
 
                         % Delete model from calibration table.
                         modelLabels_calibTable =  this.tab_ModelCalibration.Table.Data(:,2);                            
-                        modelLabels_calibTable = GST_GUI.removeHTMLTags(modelLabels_calibTable);
+                        modelLabels_calibTable = HydroSight_GUI.removeHTMLTags(modelLabels_calibTable);
                         ind = cellfun( @(x) strcmp(x,modelLabel), modelLabels_calibTable);
                         this.tab_ModelCalibration.Table.Data = this.tab_ModelCalibration.Table.Data(~ind,:);
 
@@ -3036,7 +3036,7 @@ classdef GST_GUI < handle
 
                         % Delete models from simulations table.
                         modelLabels_simTable =  this.tab_ModelSimulation.Table.Data(:,2);                            
-                        modelLabels_simTable = GST_GUI.removeHTMLTags(modelLabels_simTable);
+                        modelLabels_simTable = HydroSight_GUI.removeHTMLTags(modelLabels_simTable);
                         ind = cellfun( @(x) strcmp(x,modelLabel), modelLabels_simTable);
                         this.tab_ModelSimulation.Table.Data = this.tab_ModelSimulation.Table.Data(~ind,:);   
 
@@ -3102,7 +3102,7 @@ classdef GST_GUI < handle
                             modelLabel = this.tab_ModelConstruction.Table.Data{i,2};                                                      
                             
                             % Remove modle if exists                            
-                            modelLabel4FieldNames = GST_GUI.modelLabel2FieldName(modelLabel);            
+                            modelLabel4FieldNames = HydroSight_GUI.modelLabel2FieldName(modelLabel);            
                             if any(strcmp(fieldnames(this.models), modelLabel4FieldNames))
                                 if strcmp(response, 'Yes - all models')
                                     this.model = rmfield(this.model,modelLabel4FieldNames);
@@ -3139,7 +3139,7 @@ classdef GST_GUI < handle
 
                                 % Delete model from calibration table.
                                 modelLabels_calibTable =  this.tab_ModelCalibration.Table.Data(:,2);                            
-                                modelLabels_calibTable = GST_GUI.removeHTMLTags(modelLabels_calibTable);
+                                modelLabels_calibTable = HydroSight_GUI.removeHTMLTags(modelLabels_calibTable);
                                 ind = cellfun( @(x) strcmp(x,modelLabel), modelLabels_calibTable);
                                 this.tab_ModelCalibration.Table.Data = this.tab_ModelCalibration.Table.Data(~ind,:);
 
@@ -3149,7 +3149,7 @@ classdef GST_GUI < handle
 
                                 % Delete models from simulations table.
                                 modelLabels_simTable =  this.tab_ModelSimulation.Table.Data(:,2);                            
-                                modelLabels_simTable = GST_GUI.removeHTMLTags(modelLabels_simTable);
+                                modelLabels_simTable = HydroSight_GUI.removeHTMLTags(modelLabels_simTable);
                                 ind = cellfun( @(x) strcmp(x,modelLabel), modelLabels_simTable);
                                 this.tab_ModelSimulation.Table.Data = this.tab_ModelSimulation.Table.Data(~ind,:);
 
@@ -3674,14 +3674,14 @@ classdef GST_GUI < handle
                 % Build model
                 try 
                     % Build model
-                    model_labelAsField = GST_GUI.modelLabel2FieldName(model_label);
-                    tmpModel = GroundwaterStatisticsToolbox(model_label, boreID, modelType , headData, 1, forcingData, coordData, modelOptions);
+                    model_labelAsField = HydroSight_GUI.modelLabel2FieldName(model_label);
+                    tmpModel = HydroSightModel(model_label, boreID, modelType , headData, 1, forcingData, coordData, modelOptions);
                     setModel(this, model_labelAsField, tmpModel);
                     
                     % Check if model is listed in calib table. if so get
                     % index
                     calibModelLabelsHTML = this.tab_ModelCalibration.Table.Data(:,2);
-                    calibModelLabels = GST_GUI.removeHTMLTags(calibModelLabelsHTML);
+                    calibModelLabels = HydroSight_GUI.removeHTMLTags(calibModelLabelsHTML);
                     isModelListed = cellfun( @(x) strcmp( model_label, x), calibModelLabels);
                     
                     % Get model start and end dates
@@ -3810,7 +3810,7 @@ classdef GST_GUI < handle
                     % Get model label
                     calibModelLabelsHTML = data(i,2);
                     % Remove HTML tags
-                    calibModelLabels = GST_GUI.removeHTMLTags(calibModelLabelsHTML);
+                    calibModelLabels = HydroSight_GUI.removeHTMLTags(calibModelLabelsHTML);
 
                     % Add index for row if it is to be deleted                    
                     if ~any(cellfun( @(x) strcmp( calibModelLabels, x), constructModelLabels))
@@ -3896,7 +3896,7 @@ classdef GST_GUI < handle
 
                 % Get the selected model for simulation
                 calibLabel = data{i,2};
-                calibLabel = GST_GUI.removeHTMLTags(calibLabel);
+                calibLabel = HydroSight_GUI.removeHTMLTags(calibLabel);
                                 
                 if strcmp(hObject.Tag,'useHPC')
 
@@ -4406,7 +4406,7 @@ classdef GST_GUI < handle
             for i=imodels
                 % Get the selected model label.
                 calibLabel = data{i,2};                
-                calibLabel = GST_GUI.removeHTMLTags(calibLabel);
+                calibLabel = HydroSight_GUI.removeHTMLTags(calibLabel);
   
                 % Remove special characters from label (as per jobSubmission.m)
                 calibLabel =  regexprep(calibLabel,'\W','_');                             
@@ -4491,10 +4491,10 @@ classdef GST_GUI < handle
                 
                 % Get the selected model label.
                 calibLabel = data{i,2};                
-                calibLabel = GST_GUI.removeHTMLTags(calibLabel);
+                calibLabel = HydroSight_GUI.removeHTMLTags(calibLabel);
   
                 % Remove special characters from label (as per jobSubmission.m)
-                calibLabel = GST_GUI.modelLabel2FieldName(calibLabel);
+                calibLabel = HydroSight_GUI.modelLabel2FieldName(calibLabel);
                                                         
                 % Load model
                 try
@@ -4517,7 +4517,7 @@ classdef GST_GUI < handle
                         % do nothing
                     end
 
-                    % IF an old version of the GST had been used,
+                    % IF an old version of the HydroSight had been used,
                     % then remove the cell array of variogram
                     % values and just keep the relevant data. This
                     % is done only to reduce RAM.
@@ -4854,7 +4854,7 @@ classdef GST_GUI < handle
                         boreID_src = tbl{i,3};
                         
                         % Find model within the table.
-                        modelLabel_dest = GST_GUI.removeHTMLTags(this.tab_ModelCalibration.Table.Data(:,2));
+                        modelLabel_dest = HydroSight_GUI.removeHTMLTags(this.tab_ModelCalibration.Table.Data(:,2));
                         ind = find(strcmp(modelLabel_dest, modelLabel_src));                        
                         
                         % Check if the model is found
@@ -4864,7 +4864,7 @@ classdef GST_GUI < handle
                         end
                         
                         % Check the bore IDs are equal.
-                        boreID_dest = GST_GUI.removeHTMLTags(this.tab_ModelCalibration.Table.Data{ind,3});
+                        boreID_dest = HydroSight_GUI.removeHTMLTags(this.tab_ModelCalibration.Table.Data{ind,3});
                         if ~strcmp(boreID_dest, boreID_src)
                             nBoresNotMatching = nBoresNotMatching + 1;
                             continue;                            
@@ -4952,8 +4952,8 @@ classdef GST_GUI < handle
                         
                         % Check that the model ID and simulation label are
                         % unique
-                        modelLabel_dest = GST_GUI.removeHTMLTags(this.tab_ModelCalibration.Table.Data(:,2));
-                        simLabel_dest = GST_GUI.removeHTMLTags(this.tab_ModelCalibration.Table.Data(:,6));
+                        modelLabel_dest = HydroSight_GUI.removeHTMLTags(this.tab_ModelCalibration.Table.Data(:,2));
+                        simLabel_dest = HydroSight_GUI.removeHTMLTags(this.tab_ModelCalibration.Table.Data(:,6));
                         ind = find(strcmp(modelLabel_dest, modelLabel_src) & strcmp(simLabel_dest, simLabel_src));
                         
                         % Skip if the model and label are not unique
@@ -5051,7 +5051,7 @@ classdef GST_GUI < handle
             end         
             
             % Remove HTML tags from the column names
-            colnames = GST_GUI.removeHTMLTags(colnames);
+            colnames = HydroSight_GUI.removeHTMLTags(colnames);
             
             % Replace spaces within column names with "_"
             colnames = strrep(colnames,' ','_');
@@ -5072,7 +5072,7 @@ classdef GST_GUI < handle
             
             % Remove HTML tags from each row
             for i=find(strcmp(colFormat, 'char'))
-                tbl(:,i) = GST_GUI.removeHTMLTags(tbl(:,i));
+                tbl(:,i) = HydroSight_GUI.removeHTMLTags(tbl(:,i));
             end           
             
             % Convert cell array to table            
@@ -5294,8 +5294,8 @@ classdef GST_GUI < handle
                         
                         % Get model label.
                         modelLabel = this.tab_ModelCalibration.Table.Data{i,2};
-                        modelLabel = GST_GUI.removeHTMLTags(modelLabel);
-                        modelLabel = GST_GUI.modelLabel2FieldName(modelLabel);
+                        modelLabel = HydroSight_GUI.removeHTMLTags(modelLabel);
+                        modelLabel = HydroSight_GUI.modelLabel2FieldName(modelLabel);
                         
                         % Incrment number of models selected for export
                         nModelsToExport = nModelsToExport+1;
@@ -5528,7 +5528,7 @@ classdef GST_GUI < handle
                             fmt = '%s,%s,%s,%i,%i,%i,%i,%i,%12.3f \n';
                             
                             % Remove HTML from bore ID
-                            boreID = GST_GUI.removeHTMLTags(boreID);
+                            boreID = HydroSight_GUI.removeHTMLTags(boreID);
                             
                             %Write each row.
                             try
@@ -5574,7 +5574,7 @@ classdef GST_GUI < handle
         
         function onDocumentation(this, hObject, eventdata)
            if strcmp(hObject.Tag,'Algorithms') 
-                doc GroundwaterStatisticsToolbox
+                doc HydroSight
            else
                web([hObject.Tag,'.html']);
            end
@@ -5590,7 +5590,7 @@ classdef GST_GUI < handle
         end
         
         function onVersion(this, hObject, eventdata)           
-            msgbox({['This is version ',this.versionNumber, ' of the Groundwater Statistics Toolbox GUI.'],'',['It was released on ',this.versionDate]},'Groundwater Statistics Toolbox GUI version ...');
+            msgbox({['This is version ',this.versionNumber, ' of HydroSight GUI.'],'',['It was released on ',this.versionDate]},'HydroSight GUI version ...');
         end
         
         function onLicenseDisclaimer(this, hObject, eventdata)
@@ -5787,11 +5787,11 @@ classdef GST_GUI < handle
             nModels = length(modelLabels);
 
             % Create object array
-            %this.models.data(nModels,1) = [GroundwaterStatisticsToolbox];
+            %this.models.data(nModels,1) = [HydroSight];
 
             % Set model
             for i=1:nModels
-                modelLabeltmp = GST_GUI.modelLabel2FieldName(modelLabels{i});
+                modelLabeltmp = HydroSight_GUI.modelLabel2FieldName(modelLabels{i});
                 setModel(this, modelLabeltmp , exampleModel.(modelLabeltmp));
             end
             %-------------
@@ -5800,7 +5800,7 @@ classdef GST_GUI < handle
             this.dataPrep = exampleModel.dataPrep;            
         
             % Updating project location with title bar
-            set(this.Figure,'Name',['The Groundwater Statistics Toolbox - ', this.project_fileName]);
+            set(this.Figure,'Name',['HydroSight - ', this.project_fileName]);
             drawnow update;                            
             
             % Disable file menu items
@@ -5918,7 +5918,7 @@ classdef GST_GUI < handle
                                 for i=indSelected
                                     
                                     % Get a unique model label. 
-                                    newModelLabel = GST_GUI.createUniqueLabel(tableObj.Data(:,2), this.copiedData.data{1,2}, i);
+                                    newModelLabel = HydroSight_GUI.createUniqueLabel(tableObj.Data(:,2), this.copiedData.data{1,2}, i);
                                     
                                     % Paste data
                                     tableObj.Data{i,2} = newModelLabel;
@@ -5940,7 +5940,7 @@ classdef GST_GUI < handle
                                     % Get a unique model label.
                                     irow = size(tableObj.Data,1);
                                     newModLabel = this.copiedData.data(i,2);
-                                    newModLabel = GST_GUI.createUniqueLabel(tableObj.Data(:,2), newModLabel, irow);
+                                    newModLabel = HydroSight_GUI.createUniqueLabel(tableObj.Data(:,2), newModLabel, irow);
 
                                     % Add data to the new row.
                                     tableObj.Data{irow,2} = newModLabel;
@@ -5971,7 +5971,7 @@ classdef GST_GUI < handle
                                     
                                     % Get a unique model label.
                                     newSimLabel = {this.copiedData.data{1,2}, this.copiedData.data{1,6}};
-                                    newSimLabel = GST_GUI.createUniqueLabel(tableObj.Data(:,[2,6]), newSimLabel, i);
+                                    newSimLabel = HydroSight_GUI.createUniqueLabel(tableObj.Data(:,[2,6]), newSimLabel, i);
                                     
                                     tableObj.Data{i,2} = this.copiedData.data{1,2};                                    
                                     tableObj.Data{i,3} = this.copiedData.data{1,3};
@@ -5996,7 +5996,7 @@ classdef GST_GUI < handle
                                     % status.
                                     irow = size(tableObj.Data,1);
                                     newSimLabel = {this.copiedData.data{i,2}, this.copiedData.data{i,6}};
-                                    newSimLabel = GST_GUI.createUniqueLabel(tableObj.Data(:,[2,6]), newSimLabel, irow );
+                                    newSimLabel = HydroSight_GUI.createUniqueLabel(tableObj.Data(:,[2,6]), newSimLabel, irow );
                                     tableObj.Data{irow,6} = newSimLabel{2};
                                     tableObj.Data{irow,modelStatus_col} = modelStatus;                                    
                                 end
@@ -6121,7 +6121,7 @@ classdef GST_GUI < handle
                     tableObj.Data(:,1) =  mat2cell(filt,ones(1, size(selectedRows,1)));
                     
                 case 'Select by col. value ...'
-                    colNames = GST_GUI.removeHTMLTags(tableObj.ColumnName);
+                    colNames = HydroSight_GUI.removeHTMLTags(tableObj.ColumnName);
                     
                     [selectedCol,ok] = listdlg('PromptString', 'Select column:', 'Name', 'Select by col. value ...', ...
                         'ListString', colNames,'SelectionMode','single');                                        
@@ -6189,7 +6189,7 @@ classdef GST_GUI < handle
 
         function [model, errmsg] = getModel(this, modelLabel)
             % Convert model label to a valid field name
-            modelLabel = GST_GUI.modelLabel2FieldName(modelLabel);
+            modelLabel = HydroSight_GUI.modelLabel2FieldName(modelLabel);
             
             model = [];
             if isempty(modelLabel)
@@ -6199,10 +6199,10 @@ classdef GST_GUI < handle
             
             % Get model            
             if isempty(this.modelsOnHDD) || (islogical(this.modelsOnHDD) && ~this.modelsOnHDD)
-                if isa(this.models.(modelLabel),'GroundwaterStatisticsToolbox')                    
+                if isa(this.models.(modelLabel),'HydroSightModel')                    
                     model = this.models.(modelLabel);
                 else
-                    errmsg = ['The following model is not a GST object and could not be loaded:',modelLabel];
+                    errmsg = ['The following model is not a HydroSight object and could not be loaded:',modelLabel];
                 end
             elseif ~isempty(this.modelsOnHDD)
                 try                    
@@ -6215,19 +6215,19 @@ classdef GST_GUI < handle
                                         
                     % Check the file exists
                     if exist(filepath, 'file')==0
-                        errmsg = ['The following GST .mat file could not be found:',modelLabel];
+                        errmsg = ['The following HydroSight .mat file could not be found:',modelLabel];
                         return;
                     end                   
                            
                     % Load model and check.
                     savedData = load(filepath,'model');
                     model = savedData.model;
-                    if ~isa(model,'GroundwaterStatisticsToolbox');
-                        errmsg = ['The following model is not a GST object and could not be loaded:',modelLabel];    
+                    if ~isa(model,'HydroSightModel');
+                        errmsg = ['The following model is not a HydroSight object and could not be loaded:',modelLabel];    
                         model=[];
                     end
                 catch
-                    errmsg = ['The following model is not a GST object and could not be loaded:',modelLabel];
+                    errmsg = ['The following model is not a HydroSight object and could not be loaded:',modelLabel];
                 end
             else
                 errmsg = ['The following model could not be loaded:',modelLabel];
@@ -6236,13 +6236,13 @@ classdef GST_GUI < handle
         
         function errmsg = setModel(this, modelLabel, model)
             % Convert model label to a valid field name
-            modelLabel = GST_GUI.modelLabel2FieldName(modelLabel);
+            modelLabel = HydroSight_GUI.modelLabel2FieldName(modelLabel);
            
             isCalibrated=false;
             
             % Set model
             if isempty(this.modelsOnHDD)
-                if isa(model,'GroundwaterStatisticsToolbox')                    
+                if isa(model,'HydroSightModel')                    
                     % Add model object
                     this.models.(modelLabel) = model;
                     
@@ -6252,11 +6252,11 @@ classdef GST_GUI < handle
                     end
 
                 else
-                    errmsg = ['The following model is not a GST object and could not be set:',modelLabel];
+                    errmsg = ['The following model is not a HydroSight object and could not be set:',modelLabel];
                     return;
                 end
             elseif ~isempty(this.modelsOnHDD)
-                if isa(model,'GroundwaterStatisticsToolbox')   
+                if isa(model,'HydroSightModel')   
                     % Build file path to model .mat file
                     filepath = fullfile(fileparts(this.project_fileName), this.modelsOnHDD, [modelLabel,'.mat']);
 
@@ -6289,7 +6289,7 @@ classdef GST_GUI < handle
                     
                     % Check the file exists
                     if exist(filepath, 'file')==0
-                        errmsg = ['The following model is not a GST object and could not be set:',modelLabel];
+                        errmsg = ['The following model is not a HydroSight object and could not be set:',modelLabel];
                         return;
                     end
                     
@@ -6305,7 +6305,7 @@ classdef GST_GUI < handle
                         isCalibrated = model.calibrationResults.isCalibrated;
                     end                    
                 else
-                    errmsg = ['The following model is not a GST object and could not be set:',modelLabel];
+                    errmsg = ['The following model is not a HydroSight object and could not be set:',modelLabel];
                     return;
                 end
             else
@@ -6332,7 +6332,7 @@ classdef GST_GUI < handle
         
         function [model, errmsg] = deleteModel(this, modelLabel)
             % Convert model label to a valid field name
-            modelLabel = GST_GUI.modelLabel2FieldName(modelLabel);
+            modelLabel = HydroSight_GUI.modelLabel2FieldName(modelLabel);
             
             model = [];
             if isempty(modelLabel)
@@ -6342,10 +6342,10 @@ classdef GST_GUI < handle
             
             % Delete model            
             if isempty(this.modelsOnHDD) || ~this.modelsOnHDD
-                if isa(this.models.(modelLabel),'GroundwaterStatisticsToolbox')                    
+                if isa(this.models.(modelLabel),'HydroSightModel')                    
                     this.models = rmfield(this.models, modelLabel);
                 else
-                    errmsg = ['The following model is not a GST object and could not be deleted:',modelLabel];
+                    errmsg = ['The following model is not a HydroSight object and could not be deleted:',modelLabel];
                 end
             elseif ~isempty(this.modelsOnHDD)
                 try                    
@@ -6358,7 +6358,7 @@ classdef GST_GUI < handle
                                         
                     % Check the file exists
                     if exist(filepath, 'file')==0
-                        errmsg = ['The following GST .mat file could not be found:',modelLabel];
+                        errmsg = ['The following HydroSight .mat file could not be found:',modelLabel];
                         return;
                     end                   
                            
@@ -6367,7 +6367,7 @@ classdef GST_GUI < handle
                     this.models = rmfield(this.models, modelLabel);
 
                 catch
-                    errmsg = ['The following model is not a GST object and could not be deleted:',modelLabel];
+                    errmsg = ['The following model is not a HydroSight object and could not be deleted:',modelLabel];
                 end
             else
                 errmsg = ['The following model could not be deleted:',modelLabel];

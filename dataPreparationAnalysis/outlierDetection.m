@@ -28,7 +28,7 @@ function [ isOutlier, noise_sigma, x_opt, model_calib ] = outlierDetection( head
     while i==1 || sum(isNewOutlier)/size(isNewOutlier,1) > normpdf(nSigma_threshold*noise_sigma,0.0,noise_sigma) || doFinalCalibration
 
         % Build model        
-        model_calib = GroundwaterStatisticsToolbox('Outlier detection', dummyBoreID, 'ExpSmooth', h_obs_model(~isOutlier,:), -999, forcingData, coordinates, false);
+        model_calib = HydroSight('Outlier detection', dummyBoreID, 'ExpSmooth', h_obs_model(~isOutlier,:), -999, forcingData, coordinates, false);
         
         % Calibrate model
         calibrateModel(model_calib, 0, inf, 'SPUCI',2)
@@ -70,7 +70,7 @@ function [ isOutlier, noise_sigma, x_opt, model_calib ] = outlierDetection( head
 
             % Rebuild the model without the current time point, assign the
             % calibrated parameters and solve the model.
-            model = GroundwaterStatisticsToolbox('Outlier detection', dummyBoreID, 'ExpSmooth', h_obs_trim, -999, forcingData, coordinates, false);
+            model = HydroSight('Outlier detection', dummyBoreID, 'ExpSmooth', h_obs_trim, -999, forcingData, coordinates, false);
             model.model.parameters.alpha = alpha;
             model.model.parameters.beta = beta;
             model.model.parameters.gamma = gamma;

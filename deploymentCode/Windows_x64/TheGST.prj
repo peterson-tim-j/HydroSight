@@ -7,8 +7,8 @@
     <param.authnamewatermark>Tim Peterson</param.authnamewatermark>
     <param.email>timjp@unimelb.edu.au</param.email>
     <param.company>The University of Melbourne</param.company>
-    <param.summary>The Groundwater Statistical Toolbox (GST) is a highly flexible statistical toolbox for groundwater hydrograph modelling.</param.summary>
-    <param.description>The Groundwater Statistical Toolbox (GST) is a highly flexible statistical toolbox for getting more quantitiative value from groundwater monitoring data. Currently, the toolbox contains a highly flexible groundwater hydrograph time-series modeling framework that facilitates the following:
+    <param.summary>HydroSight is a highly flexible statistical toolbox for groundwater hydrograph modelling.</param.summary>
+    <param.description>HydroSight is a highly flexible statistical toolbox for getting more quantitiative value from groundwater monitoring data. Currently, the toolbox contains a highly flexible groundwater hydrograph time-series modeling framework that facilitates the following:
     1. Decomposition of hydrographs into individual drivers, such as climate and pumping
     2. Decomposition of hydrographs into time-periods causing observed trends
     3. Interpolation or extrapolation of the observed hydrograph. 

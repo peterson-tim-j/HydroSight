@@ -1,4 +1,4 @@
-function GST()
+function HydroSight()
 
     % Add Paths
     addpath(genpath(pwd));
@@ -7,7 +7,7 @@ function GST()
     rmpath(genpath( fullfile( pwd, '.git')));
     
     % Load GUI
-     GST_GUI();
+     HydroSight_GUI();
 
 
 end
