@@ -1,0 +1,18 @@
+This file documents changes to HydroSight from version 1.2.6 onwards.
+----------------------------------------------------------------------
+
+13 Feb 2016:
+* doIRFconvolution.c: Simpsons 3/8 integration was fund to produce numerical artefacts at daily simulations. This is due to the switching of the integraion for even and odd number of convolution days. This was overcome by use of the Simpsons extended rule. NOTE: the Xeon Phi verion has NOT yet been recompiled.
+
+20 Feb 2017:
+* HydroSightModel:integrateData(): local search procedure for kriging edit to ensure points both sides of the estimation time point are included in the temporal kriging.
+
+2 Mar 2017:
+* HydroSightModel:integrateData(): Universal kriging equations changed from variogram values to covariances.
+* HydroSightModel:calibrateModel(): residuals converted to single data type only when there are >1 parameter sets.
+
+17 Mar 2017
+* doDataQualityAnalysis(): rate of change analysis edits to look at rate of change forward in time. Originally a bug caused it to look backward.
+
+17 Mar 2017
+* HydroSight_GUI. Version number updated to 1.2.7

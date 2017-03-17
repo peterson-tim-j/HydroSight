@@ -166,7 +166,9 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
         end
         
         function [variable_names] = outputForcingdata_options(inputForcingDataColNames)
-            variable_names = {'drainage';'drainage_bypassFlow';'drainage_normalised';'infiltration';'evap_soil';'evap_gw_potential';'runoff';'SMS'};
+            variable_names = {'drainage';'drainage_bypassFlow';'drainage_normalised';'infiltration';'evap_soil';'evap_gw_potential';'runoff';'SMS'; ...
+                              'drainage_tree';'drainage_bypassFlow_tree';'drainage_normalised_tree';'infiltration_tree';'evap_soil_tree';'evap_gw_potential_tree';'runoff_tree';'SMS_tree'; ...
+                              'drainage_nontree';'drainage_bypassFlow_nontree';'drainage_normalised_nontree';'infiltration_nontree';'evap_soil_nontree';'evap_gw_potential_nontree';'runoff_nontree';'SMS_nontree'};
         end
         
         function [options, colNames, colFormats, colEdits, toolTip] = modelOptions()
@@ -1082,18 +1084,38 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                     isDailyIntegralFlux = false;
                     
                 otherwise
-                    error('The requested transformed forcing variable is not known.');
+                    if  isfield(obj.settings,'simulateLandCover') && obj.settings.simulateLandCover && nargin==2 
+                        if isempty(strfind(variableName, '_nontree')) && isempty(strfind(variableName, '_tree'))
+                            error('The requested transformed forcing variable is not known.');
+                        end
+                    else                            
+                        error('The requested transformed forcing variable is not known.');
+                    end
             end
             
             % Get flixes for tree soil unit (if required) and weight the
             % flux from the two units
             if  isfield(obj.settings,'simulateLandCover') && obj.settings.simulateLandCover && nargin==2
-                % Get flux for tree SMS
-                forcingData_trees = getTransformedForcing(obj, variableName, 2) ;
-                
-                % Do weighting
-                forcingData = (1-obj.treeArea_frac .* obj.variables.treeFrac) .* forcingData + ...
-                              obj.treeArea_frac .* obj.variables.treeFrac .* forcingData_trees;
+                if ~isempty(strfind(variableName, '_nontree'))
+                    % Get flux for non-tree componant
+                    ind = strfind(variableName, '_nontree');
+                    variableName = variableName(1:ind-1);
+                    [forcingData,isDailyIntegralFlux]  = getTransformedForcing(obj, variableName, 1) ;
+                    forcingData =  (1-obj.treeArea_frac .* obj.variables.treeFrac) .* forcingData;
+                elseif ~isempty(strfind(variableName, '_tree'))
+                    % Get flux for non-tree componant
+                    ind = strfind(variableName, '_tree');
+                    variableName = variableName(1:ind-1);
+                    [forcingData,isDailyIntegralFlux] = getTransformedForcing(obj, variableName, 2);                
+                    forcingData = obj.treeArea_frac .* obj.variables.treeFrac .* forcingData;
+                else
+                    % Get flux for tree SMS
+                    forcingData_trees = getTransformedForcing(obj, variableName, 2);                    
+
+                    % Do weighting
+                    forcingData = (1-obj.treeArea_frac .* obj.variables.treeFrac) .* forcingData + ...
+                                  obj.treeArea_frac .* obj.variables.treeFrac .* forcingData_trees;
+                end
             end
         end
 

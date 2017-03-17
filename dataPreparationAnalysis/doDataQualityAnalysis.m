@@ -1,4 +1,4 @@
-function headData = doDataQualityAnalysis( headData, boreDepth, surface_elevation, casing_length, constuction_date, ...
+function [headData,noise_sigma, ARMA_params, exp_model] = doDataQualityAnalysis( headData, boreDepth, surface_elevation, casing_length, constuction_date, ...
    checkMinSartDate, checkMaxEndDate, chechDuplicateDates, checkMinHead, checkMaxHead, RateofChangeThreshold, ConstHeadThreshold, outlierNumStDevs )
 %EXPORTDATATABLE Summary of this function goes here
 %   Detailed explanation goes here
@@ -43,7 +43,7 @@ function headData = doDataQualityAnalysis( headData, boreDepth, surface_elevatio
     filt_duplicates = false(size(headData,1),1);
     if chechDuplicateDates
         timeStep = [diff( headData(:,1)); inf];
-        filt_duplicates = timeStep==0;    
+        filt_duplicates = abs(timeStep) <sqrt(eps);    
         filt_duplicates(isErrorObs) = false;        
     end
     isErrorObs = filt_date | filt_duplicates;
@@ -72,7 +72,7 @@ function headData = doDataQualityAnalysis( headData, boreDepth, surface_elevatio
     % Filter for rapd change in headData
     filt_rapid = false(size(headData,1),1);    
     d_headData_dt = diff( headData(~isErrorObs,2))./ diff( headData(~isErrorObs,1));
-    filt_rapid(~isErrorObs) = [abs(d_headData_dt) >= RateofChangeThreshold; false];          
+    filt_rapid(~isErrorObs) = [false; abs(d_headData_dt) >= RateofChangeThreshold];          
     isErrorObs = filt_date | filt_duplicates | filt_minHead | filt_maxHead | filt_rapid;
             
     % Filter out bore with a constant head for > 'ConstHeadThreshold' days. First the
@@ -140,7 +140,14 @@ function headData = doDataQualityAnalysis( headData, boreDepth, surface_elevatio
     % Detect remaining outliers using a calibrated ARMA(1) model.            
     if sum(~isErrorObs)>minObsforOutlierDetection && outlierNumStDevs>0
         try
-            [ isOutlierObs, noise_sigma, ARMA_params, exp_model ] = outlierDetection(  headData, isErrorObs, outlierNumStDevs);
+            [ isOutlierObs_forward, noise_sigma, ARMA_params, exp_model ] = outlierDetection(  headData, isErrorObs, outlierNumStDevs);
+            isOutlierObs = isOutlierObs_forward;
+            
+            %headData_reverse = headData(size(headData,1):-1:1,:);
+            %headData_reverse(:,1) = headData(end,1) - headData_reverse(:,1);
+            %isOutlierObs_reverse = outlierDetection(  headData_reverse, isErrorObs, outlierNumStDevs);
+            %isOutlierObs_reverse = isOutlierObs_reverse(size(headData,1):-1:1,:);            
+            %isOutlierObs = isOutlierObs_forward & isOutlierObs_reverse;
         catch ME
             display(['    WARNING: Outlier detection failed.']); 
             isOutlierObs = false(size(isErrorObs));

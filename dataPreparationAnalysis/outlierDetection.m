@@ -22,13 +22,15 @@ function [ isOutlier, noise_sigma, x_opt, model_calib ] = outlierDetection( head
     h_obs_model = [year(t), month(t), day(t), hour(t), minute(t), second(t), h_obs];
     
     % Calibrate exponential smoothing model
+    summaryStr={};
     noise_sigma = 0;
     i=1;
     doFinalCalibration = false;
-    while i==1 || sum(isNewOutlier)/size(isNewOutlier,1) > normpdf(nSigma_threshold*noise_sigma,0.0,noise_sigma) || doFinalCalibration
+    el=0;
+    while i==1 || sum(isNewOutlier)>0 || doFinalCalibration
 
         % Build model        
-        model_calib = HydroSight('Outlier detection', dummyBoreID, 'ExpSmooth', h_obs_model(~isOutlier,:), -999, forcingData, coordinates, false);
+        model_calib = HydroSightModel('Outlier detection', dummyBoreID, 'ExpSmooth', h_obs_model(~isOutlier,:), -999, forcingData, coordinates, false);
         
         % Calibrate model
         calibrateModel(model_calib, 0, inf, 'SPUCI',2)
@@ -70,7 +72,7 @@ function [ isOutlier, noise_sigma, x_opt, model_calib ] = outlierDetection( head
 
             % Rebuild the model without the current time point, assign the
             % calibrated parameters and solve the model.
-            model = HydroSight('Outlier detection', dummyBoreID, 'ExpSmooth', h_obs_trim, -999, forcingData, coordinates, false);
+            model = HydroSightModel('Outlier detection', dummyBoreID, 'ExpSmooth', h_obs_trim, -999, forcingData, coordinates, false);
             model.model.parameters.alpha = alpha;
             model.model.parameters.beta = beta;
             model.model.parameters.gamma = gamma;
@@ -106,7 +108,24 @@ function [ isOutlier, noise_sigma, x_opt, model_calib ] = outlierDetection( head
             
             % Break for-loop if an outlier is detected.
             if abs(resid_point) >= nSigma_threshold* sigma_n_trimmed;
+%                 
+%                 figure();
+%                 noise = [h_mod_trim(:,1),h_mod_trim(:,2) - sigma_n_trimmed * norminv(0.95,0,1),h_mod_trim(:,2) + sigma_n_trimmed * norminv(0.95,0,1)];
+%                 XFill = [noise(:,1)', fliplr( noise(:,1)')];
+%                 YFill = [noise(:,3)' fliplr(noise(:,2)')];
+%                 fill(XFill, YFill,[0.8 0.8 0.8]);                
+%                 hold on;
+%                 plot(datenum(h_obs_trim(:,1),h_obs_trim(:,2),h_obs_trim(:,3)), h_obs_trim(:,end), h_mod_trim(:,1),h_mod_trim(:,2));                
+%                 scatter(time_points_trimExtended(k,1),  h_forecast_trim(k),'ro');
+%                 scatter(t(j),h_obs(j),'bo');
+%                 legend('noise','obs. TS','smoothed TS','forecast point','obs. point');
+%                 hold off;
+                
                 isNewOutlier(j) = true;
+                el=el+1;
+                 summaryStr{el} = ['Date : ',datestr(t(j)),', Head : ',num2str(h_obs(j)), ...
+                       ', Smoothed forecast head : ',num2str( h_forecast_trim(k)),', Residual head : ',num2str(resid_point), ...
+                       ', St. dev of noise : ',num2str(sigma_n_trimmed)];
                 break;
             end
         end
@@ -116,13 +135,12 @@ function [ isOutlier, noise_sigma, x_opt, model_calib ] = outlierDetection( head
         
         % If the while loop is to exit, then set flag to do one last
         % calibration so that the noise is best estimated.
-        if sum(isNewOutlier)/size(isNewOutlier,1) < normpdf(nSigma_threshold*noise_sigma,0.0,noise_sigma)
+        if sum(isNewOutlier)==0
             doFinalCalibration = true;
         end
         
         %update counter
-        i=i+1;
-        
+        i=i+1;        
     end
 
     % Assign the final parameters 
@@ -131,5 +149,13 @@ function [ isOutlier, noise_sigma, x_opt, model_calib ] = outlierDetection( head
     % Exclude input outliers from those input. That is, only return the
     % outliers identified from the exponential smoothing model
     isOutlier(isOutlier_input) = false;
+    
+    % Print summary:
+    display('Summary of Outiers Detected');
+    display('---------------------------');
+    for i=1:el
+        display(summaryStr{i});
+    end
+    display('---------------------------');
 end
 

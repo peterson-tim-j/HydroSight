@@ -49,10 +49,8 @@ classdef HydroSightModel < handle
 %   Engineering, The University of Melbourne, Australia
 %
 % Date:
-%   26 Sept 2014
+%   2 Mar 2017
 %
-% Version:
-%   3.30
 %
 % License:
 %   GNU GPL3 or later.
@@ -811,6 +809,8 @@ classdef HydroSightModel < handle
            elseif nModelComponants>0
               h = subplot(2+nModelComponants+doClimateLagCalcuations,1,1:2, 'Parent',figHandle);  
               h_legend = [];
+           else
+              h = gca();
            end
             
             % Plot time series of heads.                        
@@ -935,8 +935,8 @@ classdef HydroSightModel < handle
 %
 %   Importantly, if interpolation is to a date very close to an observed
 %   value then the uncertainty should be less than that estimated by the 
-%   linear prediction error. To achieve this, this method implements simple
-%   kriging on the simulation residuals to weight the linear prediction
+%   linear prediction error. To achieve this, this method implements
+%   univeral kriging on the simulation residuals to weight the linear prediction
 %   errror.
 %
 % Input:
@@ -1075,15 +1075,30 @@ classdef HydroSightModel < handle
                 % Get pre-calc distance (1-D in units of days) between the closest
                 % 'maxObs'
                 dist_to_target =  krigingData(:,1) - targetDates(ii);
-                
+
+                % Find the closest observations. This is somewhat convoluted. The
+                % closest 1/4 of obs on either side of the target date are
+                % first found. The remaining 1/2 of the max obs are then
+                % selected by finding the remaining obs and finding the
+                % closest. This was required to ensure the kriging
+                % trends are smooth when there the data is very
+                % irregularly sampled. The approch is very similar to the
+                % max-octant search of spatial kriging.
                 indNegDuration = find(dist_to_target<0, maxKrigingObs, 'last');
                 indPosDuration = find(dist_to_target>=0, maxKrigingObs, 'first');
-                indNegClosestQuaterObObs = 1:length(indNegDuration)<=ceil(maxKrigingObs/4);
+                indNegClosestQuaterObObs = 1:length(indNegDuration)>length(indNegDuration) - ceil(maxKrigingObs/4);
                 indPosClosestQuaterObObs = 1:length(indPosDuration)<=ceil(maxKrigingObs/4);
-                ind = [indNegDuration(indNegClosestQuaterObObs) ; indPosDuration(indPosClosestQuaterObObs); ...
-                        indNegDuration(~indNegClosestQuaterObObs) ; indPosDuration(~indPosClosestQuaterObObs)]; 
+                ind_closestHalf = [indNegDuration(indNegClosestQuaterObObs) ; indPosDuration(indPosClosestQuaterObObs)]; ...
+                dist_furthestHalf = [dist_to_target(indNegDuration(~indNegClosestQuaterObObs)); ...
+                                     dist_to_target(indPosDuration(~indPosClosestQuaterObObs))];
+                ind_furthestHalf = [indNegDuration(~indNegClosestQuaterObObs); ...
+                                    indPosDuration(~indPosClosestQuaterObObs)];                                 
+                [~,ind_furthestHalf_sorted] = sort(abs(dist_furthestHalf));
+                ind_furthestHalf = ind_furthestHalf(ind_furthestHalf_sorted);
+                ind = [ind_closestHalf; ind_furthestHalf];                        
                 ind = ind(1: min(length(ind), maxKrigingObs));    
                 
+                % Get the distance to the selected obs.
                 dist = dist_allObs(ind, ind);
                 dist_to_target = dist_to_target(ind);
                 nobs = length(ind);
@@ -1092,29 +1107,33 @@ classdef HydroSightModel < handle
                 G_mod = zeros(nobs+2, nobs+2); 
                 G_mod(: , nobs+1) = 1;
                 G_mod(nobs+1, :) = 1;
-                G_mod(nobs+1:end, nobs+1:end) = 0;
+                %G_mod(nobs+1:end, nobs+1:end) = 0;
                 G_target = zeros(nobs+2,1);
                                 
                 % Calculate kriging matrix for obs data from avriogram, then
-                % expand g_mod matrix for kriging and finally invert.
-                G_mod(1:nobs,1:nobs) = nugget + sill*(1-exp(-3.*abs(dist)./range));
+                % expand g_mod matrix for kriging and finally invert.               
+                %G_mod(1:nobs,1:nobs) = nugget + sill*(1-exp(-abs(dist)./range));
+                %G_mod( logical(eye(nobs+2)) ) = 0; 
+                G_mod(1:nobs,1:nobs) = sill*exp(-3.*abs(dist)./range);
+                G_mod( logical(eye(nobs+2)) ) = nugget + sill; 
+                G_mod(nobs+1:end, nobs+1:end) = 0;
                 G_mod(nobs+2 , 1:nobs) = krigingData(ind,1)-targetDates(ii);
                 G_mod(1:nobs,nobs+2) = krigingData(ind,1)-targetDates(ii);
                 
                 % Calculate the distance from the cloest maxObs to the
-                % target obs.
-                
-                G_target(1:nobs) = nugget + sill*(1-exp(-3.*abs(dist_to_target)./range));
+                % target obs.                
+                %G_target(1:nobs) =nugget + sill*(1-exp(-abs(dist_to_target)./range));
+                G_target(1:nobs) =sill*exp(-3.*abs(dist_to_target)./range);
+                G_target(dist_to_target==0) = nugget + sill;
                 G_target(nobs+1) = 1;
                 G_target(nobs+2) = 0;
                 kriging_weights = G_mod \ G_target;
                 
                 % Estimate residual at target date
-                head_estimates(ii,5) = sum( kriging_weights(1:nobs,1) .* krigingData(ind,2)) ...
-                    + (1-sum(kriging_weights(1:end-1,1))) .* mean(krigingData(ind,2) );                    
+                head_estimates(ii,5) = sum( kriging_weights(1:nobs,1) .* krigingData(ind,2));                    
                 
                 % Estimate kriging variance of the residual at target date.
-                head_estimates(ii,6) = sum( kriging_weights(1:nobs,1) .* G_target(1:nobs,1)) + kriging_weights(end,1);
+                head_estimates(ii,6) = nugget + sill - sum( kriging_weights(1:nobs,1) .* G_target(1:nobs,1)) - sum(kriging_weights(nobs+1:end,1).*G_target(nobs+1:end,1));
             end
             warning on;                   
             %----------------------------
@@ -1658,7 +1677,7 @@ classdef HydroSightModel < handle
                             ' and recommended is at least ',num2str(reqMinParamSamples)];                        
                     end
 
-                    convergedParamSamplesThreshold = floor(convergedParamSamplesThreshold/nparams);
+                    convergedParamSamplesThreshold = floor(convergedParamSamplesThreshold/DREAMPar.N);
                     params = params(convergedParamSamplesThreshold:end,:,:);
                     params = genparset(params);
                     paramsTmp = params(:,1:nparams)';
@@ -1731,7 +1750,9 @@ classdef HydroSightModel < handle
                     obj.evaluationResults.data.modelledHead_residuals = obsHead(~t_filt,2) -obj.evaluationResults.data.modelledHead(:,2);
                     head_eval_resid = obj.evaluationResults.data.modelledHead_residuals;
                 end
-                obj.evaluationResults.data.modelledHead_residuals = single(obj.evaluationResults.data.modelledHead_residuals);
+                if size(head_est,3)>1
+                    obj.evaluationResults.data.modelledHead_residuals = single(obj.evaluationResults.data.modelledHead_residuals);
+                end
             else
                 obj.evaluationResults =[];
             end
@@ -1748,7 +1769,9 @@ classdef HydroSightModel < handle
                 obj.calibrationResults.data.modelledHead_residuals = obsHead(t_filt,2) -obj.calibrationResults.data.modelledHead(:,2);
                 head_calib_resid = obj.calibrationResults.data.modelledHead_residuals;
             end
-            obj.calibrationResults.data.modelledHead_residuals = single(obj.calibrationResults.data.modelledHead_residuals);  % to reduce RAM from DREAM runs
+            if size(head_est,3)>1
+                obj.calibrationResults.data.modelledHead_residuals = single(obj.calibrationResults.data.modelledHead_residuals);  % to reduce RAM from DREAM runs
+            end
                                                 
             nparams = size(params,1);
             nobs = size(obj.calibrationResults.data.modelledHead,1);            

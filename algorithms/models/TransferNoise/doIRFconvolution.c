@@ -6,25 +6,28 @@
  *
  * Load compiled (only required on a PBS cluster where code is to be compiled)
  * Also, edit for the required version of intel icc compiler
-      module load intel/2013.1
-   
+      module load icc      
+      module load MATLAB 
 
  * Intel compiler commands for compiling with offload
       cp doIRFconvolution.c doIRFconvolutionPhi.c
-      icc -c -offload -restrict -I/usr/local/matlab/R2014a/extern/include -I/usr/local/matlab/R2014a/simulink/include -DMATLAB_MEX_FILE -ansi -D_GNU_SOURCE  -fexceptions -fPIC -fno-omit-frame-pointer -pthread -std=c99 -fopenmp  -DMX_COMPAT_32 -O3 -DNDEBUG  "doIRFconvolutionPhi.c"
-      icc -O3 -pthread -shared -Wl,--version-script,/usr/local/matlab/R2014a/extern/lib/glnxa64/mexFunction.map -Wl,--no-undefined -fopenmp -o  "doIRFconvolutionPhi.mexa64"  doIRFconvolutionPhi.o  -Wl,-rpath-link,/usr/local/matlab/R2014a/bin/glnxa64 -L/usr/local/matlab/R2014a/bin/glnxa64 -lmx -lmex -lmat -lm -lstdc++ -Wl,-rpath,/usr/local/intel/2013.1/composer_xe_2013_sp1.2.144/compiler/lib/intel64 -lintlc
+      icc -c -qoffload -restrict -I/usr/local/easybuild/software/MATLAB/2016a/extern/include -I/usr/local/easybuild/software/MATLAB/2016a/simulink/include -DMATLAB_MEX_FILE -ansi -D_GNU_SOURCE  -fexceptions -fPIC -fno-omit-frame-pointer -pthread -std=c99 -fopenmp  -DMX_COMPAT_32 -O3 -DNDEBUG  "doIRFconvolutionPhi.c"
+      icc -O3 -pthread -shared -Wl,--version-script,/usr/local/easybuild/software/MATLAB/2016a/extern/lib/glnxa64/mexFunction.map -Wl,--no-undefined -fopenmp -o  "doIRFconvolutionPhi.mexa64"  doIRFconvolutionPhi.o  -Wl,-rpath-link,/usr/local/easybuild/software/MATLAB/2016a/bin/glnxa64 -L/usr/local/easybuild/software/MATLAB/2016a/bin/glnxa64 -lmx -lmex -lmat -lm -lstdc++ -Wl,-rpath,/usr/local/easybuild/software/icc/icc-2016.u3-GCC-4.9.2/compilers_and_libraries_2016.3.210/linux/bin/intel64 -lintlc
       rm doIRFconvolutionPhi.c
 
  * Intel compiler commands for compiling with NO offload
-      icc -c -no-offload -I/usr/local/matlab/R2014a/extern/include -I/usr/local/matlab/R2014a/simulink/include -DMATLAB_MEX_FILE -ansi -D_GNU_SOURCE  -fexceptions -fPIC -fno-omit-frame-pointer -pthread -std=c99 -fopenmp  -DMX_COMPAT_32 -O3 -DNDEBUG  "doIRFconvolution.c"
-      icc -O3 -pthread -shared -static-intel -openmp-link=static -Wl,--version-script,/usr/local/matlab/R2014a/extern/lib/glnxa64/mexFunction.map -Wl,--no-undefined -fopenmp -o  "doIRFconvolution.mexa64"  doIRFconvolution.o  -Wl,-rpath-link,/usr/local/matlab/R2014a/bin/glnxa64 -L/usr/local/matlab/R2014a/bin/glnxa64 -lmx -lmex -lmat -lm -lstdc++ -Wl,-rpath,/usr/local/intel/2013.1/composer_xe_2013_sp1.2.144/compiler/lib/intel64 -lintlc -liomp5
+      icc -c -no-qoffload -I/usr/local/easybuild/software/MATLAB/2016a/extern/include -I/usr/local/matlab/R2014a/simulink/include -DMATLAB_MEX_FILE -ansi -D_GNU_SOURCE  -fexceptions -fPIC -fno-omit-frame-pointer -pthread -std=c99 -fopenmp  -DMX_COMPAT_32 -O3 -DNDEBUG  "doIRFconvolution.c"
+      icc -O3 -pthread -shared -static-intel -openmp-link=static -Wl,--version-script,/usr/local/easybuild/software/MATLAB/2016a/extern/lib/glnxa64/mexFunction.map -Wl,--no-undefined -fopenmp -o  "doIRFconvolution.mexa64"  doIRFconvolution.o  -Wl,-rpath-link,/usr/local/easybuild/software/MATLAB/2016a/bin/glnxa64 -L/usr/local/easybuild/software/MATLAB/2016a/bin/glnxa64 -lmx -lmex -lmat -lm -lstdc++ -Wl,-rpath,/usr/local/easybuild/software/icc/icc-2016.u3-GCC-4.9.2/compilers_and_libraries_2016.3.210/linux/bin/intel64 -lintlc -liomp5
    
 
  * Additionally, to run Xeon Phi jobs on a cluster the following commands
  * will most likely be required prior to running the job:
-      source /usr/local/intel/2013.1/composer_xe_2013_sp1.2.144/bin/compilervars.sh intel64; 
-      module load matlab/R2014a; 
-
+      source /usr/local/easybuild/software/icc/icc-2016.u3-GCC-4.9.2/compilers_and_libraries_2016.3.210/linux/mkl/bin/mklvars.sh intel64
+      source /usr/local/easybuild/software/icc/icc-2016.u3-GCC-4.9.2/bin/compilervars.sh intel64      
+             
+      source /usr/local/easybuild/software/icc/2016.u3-GCC-4.9.2/compilers_and_libraries_2016.3.210/linux/mkl/bin/mklvars.sh intel64
+      source /usr/local/easybuild/software/icc/2016.u3-GCC-4.9.2/compilers_and_libraries_2016.3.210/linux/bin/compilervars.sh intel64    
+ 
  * To monitor Xeon Phi usage, the following command is also useful: micsmc
 */
 
@@ -76,11 +79,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 #if defined(__INTEL_COMPILER) && defined(__INTEL_OFFLOAD)
    /* Delacre offloaded functions */
    __declspec(target(mic:coprocessorNum))  double trapazoidal(const int theta_index_start, const int theta_index_end, const double *dx, const double *dy, const double *intTheta);
-   __declspec(target(mic:coprocessorNum))  double Simpsons_3_8(const int theta_index_start, const int theta_index_end, const double *dx, const double *dy, const double *intTheta);          
+   __declspec(target(mic:coprocessorNum))  double Simpsons_ExtendedRule(const int theta_index_start, const int theta_index_end, const double *dx, const double *dy, const double *intTheta);          
 #else
    /* Delacre on CPU functions */   
     double trapazoidal(const int theta_index_start, const int theta_index_end, const double *dx, const double *dy, const double *intTheta);
-    double Simpsons_3_8(const int theta_index_start, const int theta_index_end, const double *dx, const double *dy, const double *intTheta);      
+    double Simpsons_ExtendedRule(const int theta_index_start, const int theta_index_end, const double *dx, const double *dy, const double *intTheta);      
 #endif
     
     /* Declare output vectors for results*/
@@ -215,7 +218,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             int iIndex;
             #pragma omp parallel for
             for(iIndex=0;iIndex<nIndex_offload; iIndex++) 
-                result_offload[iIndex] = Simpsons_3_8((int)theta_indexes_start_offload[iIndex], theta_indexes_end_offload, theta_offload + (int)theta_indexes_start_offload[iIndex]- 1, forcing_offload, &inteTheta_0to1_offload);
+                result_offload[iIndex] = Simpsons_ExtendedRule((int)theta_indexes_start_offload[iIndex], theta_indexes_end_offload, theta_offload + (int)theta_indexes_start_offload[iIndex]- 1, forcing_offload, &inteTheta_0to1_offload);
         }        
         if (x.result != OFFLOAD_SUCCESS) {  
             if (debugOffload==1) 
@@ -258,7 +261,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
                mexPrintf("Running CPU only calculation. \n");
             
             for(iIndex=0;iIndex<nIndex; iIndex++) 
-                result[iIndex] = Simpsons_3_8((int)theta_indexes_start[iIndex], theta_indexes_end, theta + (int)theta_indexes_start[iIndex]- 1, forcing, &inteTheta_0to1);
+                result[iIndex] = Simpsons_ExtendedRule((int)theta_indexes_start[iIndex], theta_indexes_end, theta + (int)theta_indexes_start[iIndex]- 1, forcing, &inteTheta_0to1);
         }
         else if (debugOffload==1)
             mexPrintf("Offload successful! \n");        
@@ -341,7 +344,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     if (isForcingAnIntegral==0 ) {      
         /*for(int iIndex=0;iIndex<nIndex; iIndex++) */
         for(iIndex=nIndex; iIndex--;) 
-            result[iIndex] = Simpsons_3_8((int)theta_indexes_start[iIndex], theta_indexes_end, theta + (int)theta_indexes_start[iIndex]- 1, forcing, &inteTheta_0to1);
+            result[iIndex] = Simpsons_ExtendedRule((int)theta_indexes_start[iIndex], theta_indexes_end, theta + (int)theta_indexes_start[iIndex]- 1, forcing, &inteTheta_0to1);
     }
     else {
         /*for(int iIndex=0;iIndex<nIndex; iIndex++) */
@@ -361,11 +364,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 double trapazoidal(const int theta_index_start, const int theta_index_end, const double *dx, const double *dy, const double *intTheta)
 {           
     int i;
-    const int n = (int)(theta_index_end - theta_index_start);      /*number of elements*/
+    const int n = (int)(theta_index_end - theta_index_start);     /*number of elements using Matlab indexes - hence no + 1 required.*/
     const int endIndex = n - 1;                                   /*index to the last element*/
     double ret_val;
      
-    /* Use high precision estimate over the first time step */
+    /* Use high precision estimate over the first time step 
+     NOTE: the 2* term is bacause of the returned value being halved!.*/
     ret_val =  2 * *intTheta * dy[endIndex];
 
     /* Integrate remaining points*/
@@ -376,51 +380,33 @@ double trapazoidal(const int theta_index_start, const int theta_index_end, const
     return 0.5*ret_val;
 } /* trapazoidal_ */
 
-
-/* Integration using Simpson's 3.8 rule
-*/
-double Simpsons_3_8(const int theta_index_start, const int theta_index_end, const double *dx, const double *dy, const double *intTheta)
+/* Integreation using Simspsons composite rule (Eq 4.1.14, p160, sec 4.1.3 in Press et al (2007) Numerical Recipes.) */
+double Simpsons_ExtendedRule(const int theta_index_start, const int theta_index_end, const double *dx, const double *dy, const double *intTheta)
 {
-    int i,j, k, el, m, endIndex_endLoop;
-    const int n =  (int)(theta_index_end - theta_index_start);     /*number of elements*/
-    const int endIndex = n - 1;                                   /*index to the last element*/
-    double ret_val;
-    const double twoThirds = 2./3.;
-    
-    /* Integrate first term of Simpson's 3/8 composite rule
-     NOTE: This is from t=1. The integration from 0 to 1 is
-     undertaken after the Simpson's integration. */
-    ret_val = 1./3. * dx[endIndex-1] * dy[endIndex-1];
-    
-    /* Check if the "number of rows -2" are multiplire of 3  and set end of for loop*/
-    m = (endIndex-1) % 3;        
-    endIndex_endLoop = n - 3 - m;
-    
-    /* Calculate internal triples repeating sequance for Simpon's 3/8 composire rule */
-    for (i = 2; i < endIndex_endLoop; i += 3) {
-        j = endIndex-i;
-        k = j-1;
-        el=k-1;
-        ret_val +=  dx[j]* dy[j] + 
-                dx[k] * dy[k] + 
-                twoThirds * dx[el] * dy[el];
-    }
+    int i;
+    const int n =  (int)(theta_index_end - theta_index_start);    /*number of elements using Matlab indexes - hence no + 1 required.*/
+    const int endIndex = n - 1;                                   /*C index to the last element*/
+    double ret_val;   
 
-    /* Calculate last term of Simpson's 3/8 compiste rule*/
-    i = i + 3;
-    ret_val += 1./3. * dx[endIndex-i] * dy[endIndex-i];
-    ret_val = 3. * 3./8.*ret_val;
-    
-    /* Use high precision estimate over the first time step */
-    ret_val +=  *intTheta * 0.5 * (dy[endIndex] + dy[endIndex-1]);
-            
-    /* Calculate integration for any remaining points */
-    if (i == endIndex_endLoop && m!=0) {
-        if (m==1)  /* Do trapazoidal integration on last point */      
-            ret_val +=  dx[endIndex-i] * dy[endIndex-i] +  dx[endIndex-i-1]* dy[endIndex-i-1];
-        else /* Do standard Simpson's integration on last 2 points */
-            ret_val +=  1./.3 * ( dx[endIndex-i] * dy[endIndex-i] +  4. * dx[endIndex-i-1] * dy[endIndex-i-1] + dx[endIndex-i-2] * dy[endIndex-i-2]);
+    /* Integrate first three term.
+    % NOTE: This is from t=1. The integration from 0 to 1 is
+    % undertaken after the Simpson's integration. */
+    ret_val = 3./8. * dx[endIndex-1] * dy[endIndex-1] + 
+              7./6. * dx[endIndex-2] * dy[endIndex-2] + 
+              23./24. * dx[endIndex-3] * dy[endIndex-3];
+ 
+    /* Calculate internal points for Simpon's composite rule */
+    for (i = 3; i <= endIndex-4; i++) {
+        ret_val += dx[i] * dy[i];        
     }
-
+    
+    /* Integrate last three term.*/
+    ret_val += 23./24. * dx[2] * dy[2] + 
+              7./6. * dx[1] * dy[1] + 
+              3./8. * dx[0] * dy[0];
+    
+    /* Add high precision estimate over the first time step */
+    ret_val +=  *intTheta * 0.5 * (dy[endIndex] + dy[endIndex-1]);     
+    
     return ret_val;
-} /* Simpsons_3_8 */
+}
