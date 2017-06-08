@@ -1353,11 +1353,11 @@ classdef model_TFN < model_abstract
                 % because the drainage value is approximated assuming n-bar = 0.
                 obj.variables.n_bar(j) = real(mean( obj.variables.resid(:,j) ));
 
-                % Calculate drainage level.
-                %obj.variables.d = obj.variables.h_bar - mean(real(obj.variables.h_star(:,2))) - obj.variables.n_bar;
+                % Calculate innovations
+                innov = obj.variables.resid(2:end) - obj.variables.resid(1:end-1).*exp( -10.^obj.parameters.noise.alpha .* obj.variables.delta_time );
 
                 % Calculate noise standard deviation.
-                obj.variables.sigma_n(j) = sqrt(mean( obj.variables.resid(1:end-1,j).^2 ./ (1 - exp( -2 .* 10.^obj.parameters.noise.alpha .* obj.variables.delta_time ))));
+                obj.variables.sigma_n(j) = sqrt(mean( innov.^2 ./ (1 - exp( -2 .* 10.^obj.parameters.noise.alpha .* obj.variables.delta_time ))));
             end
             
             % Set a flag to indicate that calibration is complete.

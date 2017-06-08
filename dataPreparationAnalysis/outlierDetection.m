@@ -67,6 +67,7 @@ function [ isOutlier, noise_sigma, x_opt, model_calib ] = outlierDetection( head
             k=k+1;
             filt(j) = true;
             time_points_trim =  headData(~filt,1);
+            delta_t = headData(j,1) - headData(j-1,1);
             h_obs_trim = headData(~filt,2);
             h_obs_trim = [year(time_points_trim), month(time_points_trim), day(time_points_trim), hour(time_points_trim), minute(time_points_trim), second(time_points_trim), h_obs_trim];
 
@@ -101,26 +102,24 @@ function [ isOutlier, noise_sigma, x_opt, model_calib ] = outlierDetection( head
             resid_trim = resid_trim(resid_filt);
             time_points_trim = time_points_trim(resid_filt);
             
-            sigma_n_trimmed = sqrt(mean(resid_trim(1:end-1).^2 ./ (1 - exp( -2 .* 10.^model.model.parameters.beta .* diff(time_points_trim) ))));        
+            % Calculate innovations
+            innov = resid_trim(2:end) - resid_trim(1:end-1).*exp( -10.^model.model.parameters.beta .*diff(time_points_trim) );      
+                        
+            % Calculate st. dev. of residuals noise
+            %sigma_n_trimmed = sqrt(mean(innov.^2 ./ (1 - exp( -2 .* 10.^model.model.parameters.beta .* diff(time_points_trim) ))));        
             
+            % Calculate st. dev. of residual for the current forecast only
+            % Note: estimate of sigma_n at a spacific time step is derived
+            % from von Asmuth 2015  doi:10.1029/2004WR00372 eqn A7 but with
+            % the innovations at t, v_t, replaced with the mean. The was
+            % undertaken so that sigma_n,t is independent from the residual forecast.
+            sigma_n_trimmed = sqrt(mean(innov.^2) ./ (1 - exp( -2 .* 10.^model.model.parameters.beta .* delta_t )));        
+                        
             % Calculate residual for omitted obs point.
             resid_point = h_obs(j) - h_forecast_trim(k);
             
             % Break for-loop if an outlier is detected.
             if abs(resid_point) >= nSigma_threshold* sigma_n_trimmed;
-%                 
-%                 figure();
-%                 noise = [h_mod_trim(:,1),h_mod_trim(:,2) - sigma_n_trimmed * norminv(0.95,0,1),h_mod_trim(:,2) + sigma_n_trimmed * norminv(0.95,0,1)];
-%                 XFill = [noise(:,1)', fliplr( noise(:,1)')];
-%                 YFill = [noise(:,3)' fliplr(noise(:,2)')];
-%                 fill(XFill, YFill,[0.8 0.8 0.8]);                
-%                 hold on;
-%                 plot(datenum(h_obs_trim(:,1),h_obs_trim(:,2),h_obs_trim(:,3)), h_obs_trim(:,end), h_mod_trim(:,1),h_mod_trim(:,2));                
-%                 scatter(time_points_trimExtended(k,1),  h_forecast_trim(k),'ro');
-%                 scatter(t(j),h_obs(j),'bo');
-%                 legend('noise','obs. TS','smoothed TS','forecast point','obs. point');
-%                 hold off;
-                
                 isNewOutlier(j) = true;
                 el=el+1;
                  summaryStr{el} = ['Date : ',datestr(t(j)),', Head : ',num2str(h_obs(j)), ...

@@ -254,8 +254,11 @@ classdef ExpSmooth < model_abstract
             % because the drainage value is approximated assuming n-bar = 0.
             obj.variables.n_bar = real(mean( obj.variables.resid ));
             
+            % Calculate innovations
+            innov = obj.variables.resid(2:end) - obj.variables.resid(1:end-1).*exp( -10.^obj.parameters.beta .* obj.variables.delta_t );            
+            
             % Calculate noise standard deviation.
-            obj.variables.sigma_n = sqrt(mean( obj.variables.resid(1:end-1).^2 ./ (1 - exp( -2 .* 10.^obj.parameters.beta .* obj.variables.delta_t))));                    
+            obj.variables.sigma_n = sqrt(mean( innov.^2 ./ (1 - exp( -2 .* 10.^obj.parameters.beta .* obj.variables.delta_t))));                    
             
             % Set a flag to indicate that calibration is complete.
             obj.variables.doingCalibration = false;

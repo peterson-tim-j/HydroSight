@@ -125,7 +125,7 @@ function [headData,noise_sigma, ARMA_params, exp_model] = doDataQualityAnalysis(
                         startheadData = nan;                            
                     end
                 catch
-                   display('errr'); 
+                   display('err'); 
                 end
             end     
             filt_flatExtendedDuration = false(size(isErrorObs,1),1);
@@ -140,13 +140,17 @@ function [headData,noise_sigma, ARMA_params, exp_model] = doDataQualityAnalysis(
     % Detect remaining outliers using a calibrated ARMA(1) model.            
     if sum(~isErrorObs)>minObsforOutlierDetection && outlierNumStDevs>0
         try
-            [ isOutlierObs_forward, noise_sigma, ARMA_params, exp_model ] = outlierDetection(  headData, isErrorObs, outlierNumStDevs);
-            isOutlierObs = isOutlierObs_forward;
-            
+            % Analyse outliers in reverse time.
             %headData_reverse = headData(size(headData,1):-1:1,:);
             %headData_reverse(:,1) = headData(end,1) - headData_reverse(:,1);
             %isOutlierObs_reverse = outlierDetection(  headData_reverse, isErrorObs, outlierNumStDevs);
             %isOutlierObs_reverse = isOutlierObs_reverse(size(headData,1):-1:1,:);            
+            
+            % Analyse outliers in forward time.
+            [ isOutlierObs_forward, noise_sigma, ARMA_params, exp_model ] = outlierDetection(  headData, isErrorObs, outlierNumStDevs);
+            isOutlierObs = isOutlierObs_forward;            
+            
+            % Define as outlier if detected forward and reverse in time.
             %isOutlierObs = isOutlierObs_forward & isOutlierObs_reverse;
         catch ME
             display(['    WARNING: Outlier detection failed.']); 

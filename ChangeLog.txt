@@ -16,3 +16,7 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 
 17 Mar 2017
 * HydroSight_GUI. Version number updated to 1.2.7
+
+22 May 2017
+* Error fixed in estimate of residual noise, sigma_n, for TFN and exp. models. It is now derived using the innovations, not residuals.
+* Outlier detection now uses an estimate of the residual noise that is a function of time i.e the time between prior observation and the point being assesed.
