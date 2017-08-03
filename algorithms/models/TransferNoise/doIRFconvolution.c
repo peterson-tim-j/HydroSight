@@ -7,7 +7,8 @@
  * Load compiled (only required on a PBS cluster where code is to be compiled)
  * Also, edit for the required version of intel icc compiler
       module load icc      
-      module load MATLAB 
+      module load MATLAB/2016a 
+      source /usr/local/easybuild/software/icc/icc-2016.u3-GCC-4.9.2/bin/compilervars.sh intel64      
 
  * Intel compiler commands for compiling with offload
       cp doIRFconvolution.c doIRFconvolutionPhi.c
@@ -16,7 +17,7 @@
       rm doIRFconvolutionPhi.c
 
  * Intel compiler commands for compiling with NO offload
-      icc -c -no-qoffload -I/usr/local/easybuild/software/MATLAB/2016a/extern/include -I/usr/local/matlab/R2014a/simulink/include -DMATLAB_MEX_FILE -ansi -D_GNU_SOURCE  -fexceptions -fPIC -fno-omit-frame-pointer -pthread -std=c99 -fopenmp  -DMX_COMPAT_32 -O3 -DNDEBUG  "doIRFconvolution.c"
+      icc -c -qno-offload -I/usr/local/easybuild/software/MATLAB/2016a/extern/include -I/usr/local/matlab/R2014a/simulink/include -DMATLAB_MEX_FILE -ansi -D_GNU_SOURCE  -fexceptions -fPIC -fno-omit-frame-pointer -pthread -std=c99 -fopenmp  -DMX_COMPAT_32 -O3 -DNDEBUG  "doIRFconvolution.c"
       icc -O3 -pthread -shared -static-intel -openmp-link=static -Wl,--version-script,/usr/local/easybuild/software/MATLAB/2016a/extern/lib/glnxa64/mexFunction.map -Wl,--no-undefined -fopenmp -o  "doIRFconvolution.mexa64"  doIRFconvolution.o  -Wl,-rpath-link,/usr/local/easybuild/software/MATLAB/2016a/bin/glnxa64 -L/usr/local/easybuild/software/MATLAB/2016a/bin/glnxa64 -lmx -lmex -lmat -lm -lstdc++ -Wl,-rpath,/usr/local/easybuild/software/icc/icc-2016.u3-GCC-4.9.2/compilers_and_libraries_2016.3.210/linux/bin/intel64 -lintlc -liomp5
    
 

@@ -296,10 +296,10 @@ classdef  responseFunction_FerrisKnowles < responseFunction_abstract
     
                     % Calculate the drawdown from the production well plus
                     % the influence from each image well.
-                    result(i,:) = - 10^obj.alpha * expint(10^obj.beta * (pumpDistancesSqr./t)) ...
+                    result(:,i) = - 10^obj.alpha * expint(10^obj.beta * (pumpDistancesSqr./t)) ...
                                  + sum( imageWellMultiplier' .* 10^obj.alpha.* expint(10^obj.beta * ((imageDistancesSqr')./t) ));
                 else
-                    result(i,:) = - 10^obj.alpha.* expint(10^obj.beta * (pumpDistancesSqr./t));
+                    result(:,i) = - 10^obj.alpha.* expint(10^obj.beta * (pumpDistancesSqr./t));
                 end
                 
                 % TEMP: CHECK integral using trapz

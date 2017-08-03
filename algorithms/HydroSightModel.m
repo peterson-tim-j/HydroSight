@@ -1301,10 +1301,15 @@ classdef HydroSightModel < handle
                     if ~isscalar(SchemeSetting) || (isscalar(SchemeSetting) && (SchemeSetting<1 || floor(SchemeSetting)~=ceil(SchemeSetting) ))
                         error('The SP-UCI calibration scheme requires an input scalar integer >=1 for the number of complexes per model parameter.');
                     end
-                case {'DREAM', 'dream','Dream'}
+                case 'DREAM'
                     if ~isscalar(SchemeSetting) || (isscalar(SchemeSetting) && (SchemeSetting<1 || floor(SchemeSetting)~=ceil(SchemeSetting) ))
                         error('The DREAM calibration scheme requires an input scalar integer >=1 for the number of Markov cahins per model parameter.');
                     end                    
+
+                case {'GLUE-LOA', 'Glue-Loa', 'glue-loa'}
+                    if ~isscalar(SchemeSetting) || (isscalar(SchemeSetting) && (SchemeSetting<1 || floor(SchemeSetting)~=ceil(SchemeSetting) ))
+                        error('The GLUE-LOA calibration scheme requires an input scalar integer >=1 for the number of Markov cahins per model parameter.');
+                    end                                                            
                 otherwise
                     error('The requested calibration scheme is unknown.');
             end
@@ -1448,8 +1453,12 @@ classdef HydroSightModel < handle
                 case {'SP UCI','SP_UCI','SPUCI','SP-UCI'}
                     display( '      - Calibration scheme: Shuffled complex evolution with principal components analysis–University of California at Irvine (SP-UCI)');                    
                     display(['      - Number of complexes per parameter = ',num2str(SchemeSetting)]);  
-                case {'DREAM', 'Dream','dream'}
+                case 'DREAM'
                     display( '      - Calibration scheme: DiffeRential Evolution Adaptive Metropolis algorithm (DREAM)');                    
+                    display(['      - Number of generations per parameter = ',num2str(10000*SchemeSetting)]);  
+                    
+                case {'GLUE-LOA', 'Glue-Loa', 'glue-loa'}
+                    display( '      - Calibration scheme: Generlaized Liklihood Estimation Limits of Acceptability using DiffeRential Evolution Adaptive Metropolis ABC algorithm (DREAM-ABC)');                    
                     display(['      - Number of generations per parameter = ',num2str(10000*SchemeSetting)]);  
                     
              end             
@@ -1473,7 +1482,7 @@ classdef HydroSightModel < handle
 
             % Do SCE calibration using the objective function SSE.m
             log_L=[];
-            switch calibrationSchemeName
+            switch upper(calibrationSchemeName)
                 case {'CMA ES','CMA_ES','CMAES','CMA-ES'}
                     
                     cmaes_options.LBounds = params_lowerPhysBound;
@@ -1577,7 +1586,7 @@ classdef HydroSightModel < handle
                     end
 
                     
-                case {'DREAM', 'Dream','dream'}
+                case {'DREAM','GLUE-ABC'}
               
                     % Application specific settings.
                     % -------------------------------------------------------------------------
@@ -1612,6 +1621,12 @@ classdef HydroSightModel < handle
                     DREAMPar.restart = 'no';
                     DREAMPar.modout='no';
                     DREAMPar.save='no';
+                    
+                    % Add settings if undertaking GLUE LOA using DREAM
+                    if strcmp(upper(calibrationSchemeName), 'GLUE-ABC')                       
+                        DREAMPar.ABC = 'yes';                   % Specify that we perform ABC
+                    end
+                    
                     % -------------------------------------------------------------------------
                     %                      OPTIONAL (DEFAULT = 'no'  / not used )
                     % -------------------------------------------------------------------------
@@ -1688,7 +1703,7 @@ classdef HydroSightModel < handle
                     filt = ~isinf(log_L);
                     if any(~filt)
                         exitStatus = [exitStatus, ' WARNING: ', num2str(sum(~filt)), ' parameter sets with liklihood value of inf were removed.'];
-                        params = params(filt,:);                    
+                        params = params(:,filt);                    
                         log_L = log_L(filt);
                     end;                    
                     
@@ -2439,7 +2454,7 @@ classdef HydroSightModel < handle
                     % Calcule sume of squared errors
                     objectiveFunctionValue(i) =  objectiveFunction( params(:,i), time_points, obj.model, getLikelihood );
                 catch ME
-                    objectiveFunctionValue(i) = NaN;
+                    objectiveFunctionValue(i) = inf;
                 end
             end
         end        
@@ -2570,6 +2585,39 @@ classdef HydroSightModel < handle
 %             
             [forcingData, forcingData_colnames] = getForcingData(obj.model);
         end
+        
+        function forcingData = getStochForcingData(obj)
+           
+            if any(strcmp(methods(obj.model),'getStochForcingData'))
+                forcingData = getStochForcingData(obj.model);
+            else
+                forcingData = [];
+            end
+            
+        end
+        
+        function updateStochForcingData(obj,forcingData, objFuncVal, objFuncVal_prior)
+            %isValidDerivedForcing =false;
+            if any(strcmp(methods(obj.model),'updateStochForcingData'))           
+                if nargin==1
+                    updateStochForcingData(obj.model);                    
+                elseif nargin==3
+                    updateStochForcingData(obj.model, forcingData);
+                elseif nargin==5
+                    updateStochForcingData(obj.model, forcingData, objFuncVal, objFuncVal_prior);                    
+                end
+            end            
+        end        
+        
+        function accepted= acceptStochForcingSolution(obj, objFuncVal, objFuncVal_prior, derivedForcingData_prior)
+           
+            if any(strcmp(methods(obj.model),'acceptStochForcingSolution'))
+                accepted = acceptStochForcingSolution(obj.model, objFuncVal, objFuncVal_prior, derivedForcingData_prior);
+            else
+                accepted  = true;
+            end
+            
+        end        
         
         %% Get the forcing data from the model
         function setForcingData(obj, forcingData, forcingData_colnames)

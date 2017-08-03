@@ -197,6 +197,12 @@ classdef derivedForcing_logisticScaling < derivedForcingTransform_abstract
             param_names = cell(0,2);
         end
       
+        % Return coordinates for forcing variable
+        function coordinates = getCoordinates(obj, variableName)
+            % Get the coordinates from the dource transformation object.
+            coordinates = getCoordinates(obj.settings.sourceObject, variableName);           
+        end               
+        
         function delete(obj)
 % delete class destructor
 %

@@ -35,8 +35,8 @@ classdef model_TFN_gui < model_gui_abstract
             % Get the available modle options
             %--------------------------------------------------------------
             % Get the types of weighting function and derived weighting function
-            doFullBoot=false;
-            if ~isdeployed && doFullBoot
+            quickload = false;
+            if ~isdeployed && ~quickload
                 warning('off');
                 forcingFunctions = findClassDefsUsingAbstractName( 'forcingTransform_abstract', 'model_TFN');
                 derivedForcingFunctions = findClassDefsUsingAbstractName( 'derivedForcingTransform_abstract', 'model_TFN');
@@ -49,8 +49,10 @@ classdef model_TFN_gui < model_gui_abstract
                 % Hard code in function names if the code is deployed. This
                 % is required because depfun does not dunction in deployed
                 % code.                
-                forcingFunctions = {'climateTransform_soilMoistureModels', 'climateTransform_soilMoistureModels_2layer'};                
-                derivedForcingFunctions = {'derivedForcing_linearUnconstrainedScaling'};                
+                forcingFunctions = {'climateTransform_soilMoistureModels', 'climateTransform_soilMoistureModels_2layer','pumpingRate_SAestimation'};                
+                derivedForcingFunctions = { 'derivedForcing_linearUnconstrainedScaling', ...
+                                            'derivedForcing_linearUnconstrainedScaling_dup', ...
+                                            'derivedForcing_logisticScaling'};                
                 derivedWeightFunctions = {  'derivedResponseFunction_abstract', ...
                                             'derivedweighting_UnconstrainedRescaled', ...
                                             'derivedweighting_PearsonsNegativeRescaled', ...
@@ -639,32 +641,73 @@ classdef model_TFN_gui < model_gui_abstract
                 % empty, then assign the required input data.
                 hasTransformFunction = false;
                 isFullTransformationFunction = false;
-                if ~isempty(forcingdataName) && iscell(forcingdataName) && size(forcingdataName,2)==2
+                if ~isempty(forcingdataName) && iscell(forcingdataName) && ...
+                (size(forcingdataName,2)==2 || (size(forcingdataName,2)==1 && size(forcingdataName{1},2)==2))
                     hasTransformFunction = true;
                     
-                    transformFunctionName_filt = cellfun( @(x) strcmp(x, 'transformfunction'), forcingdataName(:,1));
-                    if any(transformFunctionName_filt)
-                        transformFunctionName = forcingdataName{transformFunctionName_filt,2};
-                    end
-                                    
-                    transformForcingdata_filt = cellfun( @(x) strcmp(x, 'forcingdata'), forcingdataName(:,1));
-                    if any(transformForcingdata_filt)
-                        transformForcingdata = forcingdataName{transformForcingdata_filt,2};
-                    end
-                
-                    forcingDataforWeighting_filt = cellfun( @(x) strcmp(x, 'outputdata'), forcingdataName(:,1));
-                    if any(forcingDataforWeighting_filt )
-                        forcingDataforWeighting = forcingdataName{forcingDataforWeighting_filt,2};
-                    end
-                                        
-                    transformOptions_filt = cellfun( @(x) strcmp(x, 'options'), forcingdataName(:,1));
-                    if any(transformOptions_filt)
-                        transformOptions = forcingdataName{transformOptions_filt,2};
-                    end
-                    
-                    transformInputcomponent_filt = cellfun( @(x) strcmp(x, 'inputcomponent'), forcingdataName(:,1));
-                    if any(transformInputcomponent_filt)
-                        transformInputcomponent = forcingdataName{transformInputcomponent_filt,2};                    
+                    % If there are multiple input forcing data (eg
+                    % multiple groundwater pumps) then find the one that
+                    % lists all of the required inputs.
+                    forcingDataforWeighting={};
+                    if (size(forcingdataName,2)==1 && size(forcingdataName{1},2)==2)                    
+                        for k=1:size(forcingdataName,1)
+                            forcingdataNameTmp = forcingdataName{k};
+                            transformFunctionName_filt = cellfun( @(x) strcmp(x, 'transformfunction'), forcingdataNameTmp(:,1));
+                            if any(transformFunctionName_filt)
+                                transformFunctionName = forcingdataNameTmp{transformFunctionName_filt,2};
+                            end
+
+                            transformForcingdata_filt = cellfun( @(x) strcmp(x, 'forcingdata'), forcingdataNameTmp(:,1));
+                            if any(transformForcingdata_filt)
+                                transformForcingdata = forcingdataNameTmp{transformForcingdata_filt,2};
+                            end
+
+                            forcingDataforWeighting_filt = cellfun( @(x) strcmp(x, 'outputdata'), forcingdataNameTmp(:,1));
+                            if any(forcingDataforWeighting_filt )
+                                if isempty(forcingDataforWeighting)
+                                    forcingDataforWeighting{1,1} = forcingdataNameTmp{forcingDataforWeighting_filt,2};
+                                else
+                                    forcingDataforWeighting{k,1} = forcingdataNameTmp{forcingDataforWeighting_filt,2};
+                                end
+                            end
+
+                            transformOptions_filt = cellfun( @(x) strcmp(x, 'options'), forcingdataNameTmp(:,1));
+                            if any(transformOptions_filt)
+                                transformOptions = forcingdataNameTmp{transformOptions_filt,2};
+                            end
+
+                            transformInputcomponent_filt = cellfun( @(x) strcmp(x, 'inputcomponent'), forcingdataNameTmp(:,1));
+                            if any(transformInputcomponent_filt)
+                                transformInputcomponent = forcingdataNameTmp{transformInputcomponent_filt,2};                    
+                            end                           
+  
+                        end
+                        
+                    else
+                        transformFunctionName_filt = cellfun( @(x) strcmp(x, 'transformfunction'), forcingdataName(:,1));
+                        if any(transformFunctionName_filt)
+                            transformFunctionName = forcingdataName{transformFunctionName_filt,2};
+                        end
+
+                        transformForcingdata_filt = cellfun( @(x) strcmp(x, 'forcingdata'), forcingdataName(:,1));
+                        if any(transformForcingdata_filt)
+                            transformForcingdata = forcingdataName{transformForcingdata_filt,2};
+                        end
+
+                        forcingDataforWeighting_filt = cellfun( @(x) strcmp(x, 'outputdata'), forcingdataName(:,1));
+                        if any(forcingDataforWeighting_filt )
+                            forcingDataforWeighting = forcingdataName{forcingDataforWeighting_filt,2};
+                        end
+
+                        transformOptions_filt = cellfun( @(x) strcmp(x, 'options'), forcingdataName(:,1));
+                        if any(transformOptions_filt)
+                            transformOptions = forcingdataName{transformOptions_filt,2};
+                        end
+
+                        transformInputcomponent_filt = cellfun( @(x) strcmp(x, 'inputcomponent'), forcingdataName(:,1));
+                        if any(transformInputcomponent_filt)
+                            transformInputcomponent = forcingdataName{transformInputcomponent_filt,2};                    
+                        end                        
                     end
                     
                     % Check if the full transformation model is defined or

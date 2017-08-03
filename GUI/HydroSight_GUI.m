@@ -10,6 +10,7 @@ classdef HydroSight_GUI < handle
         versionDate= '17 March 2017';
         
         % Model types supported
+        %modelTypes = {'model_TFN','model_TFN_LOA', 'ExpSmooth'};
         modelTypes = {'model_TFN', 'ExpSmooth'};
         
         % GUI properies for the overall figure.
@@ -389,12 +390,12 @@ classdef HydroSight_GUI < handle
             for i=1:length(this.modelTypes);
                 switch this.modelTypes{i}
                     case 'model_TFN'
-                        this.tab_ModelConstruction.modelTypes.model_TFN.hbox = uiextras.HBox('Parent',this.tab_ModelConstruction.modelOptions.vbox,'Padding', 3, 'Spacing', 3);
-                        this.tab_ModelConstruction.modelTypes.model_TFN.buttons = uiextras.VButtonBox('Parent',this.tab_ModelConstruction.modelTypes.model_TFN.hbox,'Padding', 3, 'Spacing', 3);
-                        uicontrol('Parent',this.tab_ModelConstruction.modelTypes.model_TFN.buttons,'String','<','Callback', @this.onApplyModelOptions, 'TooltipString','Copy model option to current model.');
-                        uicontrol('Parent',this.tab_ModelConstruction.modelTypes.model_TFN.buttons,'String','<<','Callback', @this.onApplyModelOptions_selectedBores, 'TooltipString','Copy model option to selected models (of the current model type).');
-                        this.tab_ModelConstruction.modelTypes.model_TFN.obj = model_TFN_gui( this.tab_ModelConstruction.modelTypes.model_TFN.hbox);
-                        this.tab_ModelConstruction.modelTypes.model_TFN.hbox.Widths=[40 -1];
+                        this.tab_ModelConstruction.modelTypes.(this.modelTypes{i}).hbox = uiextras.HBox('Parent',this.tab_ModelConstruction.modelOptions.vbox,'Padding', 3, 'Spacing', 3);
+                        this.tab_ModelConstruction.modelTypes.(this.modelTypes{i}).buttons = uiextras.VButtonBox('Parent',this.tab_ModelConstruction.modelTypes.(this.modelTypes{i}).hbox,'Padding', 3, 'Spacing', 3);
+                        uicontrol('Parent',this.tab_ModelConstruction.modelTypes.(this.modelTypes{i}).buttons,'String','<','Callback', @this.onApplyModelOptions, 'TooltipString','Copy model option to current model.');
+                        uicontrol('Parent',this.tab_ModelConstruction.modelTypes.(this.modelTypes{i}).buttons,'String','<<','Callback', @this.onApplyModelOptions_selectedBores, 'TooltipString','Copy model option to selected models (of the current model type).');
+                        this.tab_ModelConstruction.modelTypes.(this.modelTypes{i}).obj = model_TFN_gui( this.tab_ModelConstruction.modelTypes.model_TFN.hbox);
+                        this.tab_ModelConstruction.modelTypes.(this.modelTypes{i}).hbox.Widths=[40 -1];
                         includeModelOption(i) = true;
                     case 'ExpSmooth'  
                         this.tab_ModelConstruction.modelTypes.ExpSmooth.hbox = uiextras.HBox('Parent',this.tab_ModelConstruction.modelOptions.vbox,'Padding', 3, 'Spacing', 3);                        
@@ -526,7 +527,19 @@ classdef HydroSight_GUI < handle
             vbox2t4 = uiextras.VBox('Parent',this.tab_ModelCalibration.modelOptions.vbox, 'Padding', 3, 'Spacing', 3, 'Visible','on');
             uicontrol('Parent',vbox2t4,'Style','text','String','Select calibration results to display:' );
             this.tab_ModelCalibration.resultsOptions.popup = uicontrol('Parent',vbox2t4,'Style','popupmenu', ...
-                'String',{'Data & residuals', 'Parameter values','Derived variables', 'Plot parameters','Plot derived parameters','Simulation time series plot','Residuals time series plot','Histogram of calib. residuals','Histogram of eval. residuals','Scatter plot of obs. vs model','Scatter plot of residuals vs obs','Variogram of residuals','(none)'}, ...
+                'String',{  'Data & residuals', ...
+                            'Parameter values', ...
+                            'Derived variables', ...
+                            'Plot parameters', ...
+                            'Plot derived parameters', ...
+                            'Simulation time series plot', ...
+                            'Residuals time series plot', ...
+                            'Histogram of calib. residuals', ...
+                            'Histogram of eval. residuals', ...
+                            'Scatter plot of obs. vs model', ...
+                            'Scatter plot of residuals vs obs', ...
+                            'Variogram of residuals', ...
+                            '(none)'}, ...
                 'Value',13,'Callback', @this.modelCalibration_onResultsSelection);         
             this.tab_ModelCalibration.resultsOptions.box = vbox2t4;
             this.tab_ModelCalibration.resultsOptions.plots.panel = uiextras.BoxPanel('Parent', vbox2t4 );            
@@ -1939,7 +1952,7 @@ classdef HydroSight_GUI < handle
                      this.tab_ModelConstruction.modelDescriptions.String = modelDecription; 
 
                      % Show the description.
-                     this.tab_ModelConstruction.modelOptions.vbox.Heights = [0; -1 ; 0; 0];
+                     this.tab_ModelConstruction.modelOptions.vbox.Heights = [0; -1 ; 0; 0; 0];
 
                 case 'Model Options'
                     % Check the preceeding inputs have been defined.
@@ -1987,11 +2000,11 @@ classdef HydroSight_GUI < handle
                      % Show model type options.
                      switch modelType
                          case 'model_TFN'
-                            this.tab_ModelConstruction.modelOptions.vbox.Heights = [0; 0;  -1; 0];
+                            this.tab_ModelConstruction.modelOptions.vbox.Heights = [0; 0;-1; 0];
                          case 'ExpSmooth'
-                            this.tab_ModelConstruction.modelOptions.vbox.Heights = [0; 0;  0; -1];
+                            this.tab_ModelConstruction.modelOptions.vbox.Heights = [0; 0; 0; -1];
                          otherwise
-                             this.tab_ModelConstruction.modelOptions.vbox.Heights = [0; 0;  0; 0];
+                             this.tab_ModelConstruction.modelOptions.vbox.Heights =[0; 0; 0; 0];
                      end
 
                 otherwise
@@ -2138,7 +2151,13 @@ classdef HydroSight_GUI < handle
                         hObject.Data{irow,2} = newLabel;
                         
                     case 'Model Options'
-                        modelOptionsArray = getModelOptions(this.tab_ModelConstruction.modelTypes.model_TFN.obj);
+                        if any(strcmp(hObject.Data{irow,7},{'model_TFN'}))
+                            modelOptionsArray = getModelOptions(this.tab_ModelConstruction.modelTypes.(hObject.Data{irow,7}).obj);
+                        elseif strcmp(hObject.Data{irow,7},'expSmooth') 
+                            % do nothing
+                        else
+                            error('Model type unmkown.')
+                        end
                         hObject.Data(irow,icol) = modelOptionsArray;
 
                     case 'Model Type'                        
@@ -2157,7 +2176,7 @@ classdef HydroSight_GUI < handle
                          this.tab_ModelConstruction.modelDescriptions.String = modelDecription; 
                          
                          % Show the description.
-                         this.tab_ModelConstruction.modelOptions.vbox.Heights = [0; -1 ; 0; 0];                        
+                         this.tab_ModelConstruction.modelOptions.vbox.Heights = [0; -1 ; 0; 0; 0];                        
                     otherwise
                             % Do nothing                                             
                 end
@@ -2978,12 +2997,13 @@ classdef HydroSight_GUI < handle
             
             try
                 % get the new model options
-                modelOptionsArray = getModelOptions(this.tab_ModelConstruction.modelTypes.model_TFN.obj);            
+                irow = this.tab_ModelConstruction.currentRow;
+                modelType = this.tab_ModelConstruction.Table.Data{irow,7};
+                modelOptionsArray = getModelOptions(this.tab_ModelConstruction.modelTypes.(modelType).obj);            
 
                 % Warn the user if the model is already built and the
                 % inputs are to change - reuiring the model object to be
-                % removed.            
-                irow = this.tab_ModelConstruction.currentRow;
+                % removed.                            
                 if ~isempty(this.tab_ModelConstruction.Table.Data{irow,8}) && ...
                 ~strcmp(modelOptionsArray, this.tab_ModelConstruction.Table.Data{irow,8} )
 
@@ -3079,7 +3099,7 @@ classdef HydroSight_GUI < handle
                 end
 
                 % Get the model options.
-                modelOptionsArray = getModelOptions(this.tab_ModelConstruction.modelTypes.model_TFN.obj);
+                modelOptionsArray = getModelOptions(this.tab_ModelConstruction.modelTypes.(currentModelType).obj);
 
                 % Change cursor
                 set(this.Figure, 'pointer', 'watch');   
@@ -3936,7 +3956,7 @@ classdef HydroSight_GUI < handle
                     try
                         calibrateModel( tmpModel, calibStartDate, calibEndDate, calibMethod,  calibMethodSetting);
 
-                        % Delete CMAES working files
+                        % Delete CMAES working filescopl                        
                         switch calibMethod
                             case {'CMA ES','CMA_ES','CMAES','CMA-ES'}
                                 delete('*.dat');

@@ -44,8 +44,12 @@ classdef derivedForcingTransform_abstract < handle
         % Get tranformed forcing data
         [forcingData, isDailyIntegralFlux] = getTransformedForcing(obj, outputVariableName)        
 
+        % Set the input forcing data
+        setForcingData(obj, forcingData, forcingData_colnames)        
+        
+        % Get the spatial coordinates for the input forcing variables.
+        coordinates = getCoordinates(obj, variableName)         
         
     end
     
 end
-

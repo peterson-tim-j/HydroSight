@@ -1,5 +1,5 @@
 classdef climateTransform_soilMoistureModels < forcingTransform_abstract 
-% Class definition for building a time-series model of groundwater head.
+% Class definition for soil moisture transformation of climate forcing.
 %
 % Description        
 %   climateTransform_soilMoistureModels is a generalised vertically lumped 1-D
@@ -1126,6 +1126,34 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
             param_names = cell(0,2);
         end
 
+        % Return coordinates for forcing variable
+        function coordinates = getCoordinates(obj, variableName)
+
+            if ~iscell(variableName)
+                variableNameTmp{1}=variableName;
+                variableName = variableNameTmp;
+                clear variableNameTmp;
+            end
+                
+            coordinates = cell(length(variableName),3);
+            for i=1:length(variableName)
+                % Find row within the list of required containing variabeName
+                filt = strcmp(obj.settings.forcingData_cols(:,1), variableName{i});
+
+                % If empty, then it is likely to be a model output variable os use the precip coordinate.
+                if ~any(filt)
+                    filt = strcmp(obj.settings.forcingData_cols(:,1), 'precip');
+                end
+                sourceColNumber = obj.settings.forcingData_cols{filt,2};
+                sourceColName = obj.settings.forcingData_colnames{sourceColNumber};
+
+                % Get coordinates
+                filt = strcmp(obj.settings.siteCoordinates(:,1), sourceColName);
+                coordinates(i,:) = obj.settings.siteCoordinates(filt,:);
+                coordinates{i,1} = variableName{i};
+            end    
+        end        
+        
         function delete(obj)
 % delete class destructor
 %

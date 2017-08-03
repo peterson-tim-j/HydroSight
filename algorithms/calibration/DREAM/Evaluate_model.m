@@ -73,12 +73,18 @@ elseif ( DREAMPar.CPU > 1 )      % Parallel evaluation
         end
         
         % Loop over each d-vector of parameter values of x using N workers    
-        parfor ii = 1:DREAMPar.N,
-            
-            % Execute the model and return the model simulation
-            fx(:,ii) = f_handle(x(ii,:), varargin{:});
-            
-        end;
+        %parfor ii = 1:DREAMPar.N,
+        %    
+        %    % Execute the model and return the model simulation
+        %    fx(:,ii) = f_handle(x(ii,:), varargin{:});
+        %    
+        %end;
+
+        % Above for loop is redundant because
+        % HydroSightModel.objectiveFunctionValue() is parallelised.
+        % Edited by tjp
+        fx = f_handle(x', varargin{:});
+
 
         if ~isempty(DREAM_dir)
             cd(DREAM_dir)

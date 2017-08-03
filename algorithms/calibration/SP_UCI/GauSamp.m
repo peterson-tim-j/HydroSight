@@ -1,4 +1,4 @@
-function [Snew,Sfnew,icall]=GauSamp(funcHandle, funcHangle_validParams, S,Sf,bl,bu,icall, varargin)
+function [Snew,Sfnew,icall, forcingData]=GauSamp(funcHandle, funcHangle_validParams, S,Sf,bl,bu,icall, forcingData, varargin)
 %subroutine for restoring the population using multinormal distribution
         
     [N,D]=size(S);
@@ -49,14 +49,32 @@ function [Snew,Sfnew,icall]=GauSamp(funcHandle, funcHangle_validParams, S,Sf,bl,
     
     
     Sfrand=zeros(1,N);
-    parfor k=1:N
+    Sf_best = min(Sf);
+    for k=1:N
+        %setDerivedForcingData(varargin{1},forcingData);  
         Sfrand(k)= feval(funcHandle,Srand(k,:)', varargin{:});
         icall = icall + 1;
+        
+        if Sfrand(k) < Sf_best 
+            Sf_best = Sfrand(k);
+            forcingData = getDerivedForcingData(varargin{1});       
+        end
     end
-
+    if min(Sfrand) < min(Sf)
+         setDerivedForcingData(varargin{1},forcingData);  
+    end
+    
+    
     Stotal=[S; Srand];
     Sftotal=[Sf Sfrand];
     [Sftotal,idx]=sort(Sftotal); Stotal=Stotal(idx,:);
     Snew=Stotal(1:Norig,:);
-    Sfnew=Sftotal(1:Norig);
+    Sfnew=Sftotal(1:Norig);  
+    
+%     % Update forcingData is required
+%     if min(Sfnew) < min(Sf)
+%         setDerivedForcingData(varargin{1},forcingData);  
+%         Sfnew(1) = feval(funcHandle,Snew(1,:)', varargin{:});
+%         forcingData = getDerivedForcingData(varargin{1});       
+%     end
 return

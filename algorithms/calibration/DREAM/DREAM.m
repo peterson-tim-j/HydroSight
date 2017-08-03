@@ -188,10 +188,6 @@ for t = T_start : DREAMPar.T,
         % Store the current sample in chain
         iloc = iloc + 1; chain(iloc,1:DREAMPar.d+2,1:DREAMPar.N) = reshape(X',1,DREAMPar.d+2,DREAMPar.N);
         
-        % kf added 16/10/2015
-        % store the distance between the simualted and observed signatures
-        
-        
         % Store the model simulations (if appropriate)
         DREAM_store_results ( DREAMPar , fx , Meas_info , 'a+' );
     end

@@ -1,5 +1,5 @@
 classdef forcingTransform_abstract < dynamicprops
-    %   Detailed explanation goes here
+    % forcingTransform_abstract abstract for forcing transformations..
     
     properties
         
@@ -10,9 +10,11 @@ classdef forcingTransform_abstract < dynamicprops
     end
     
     methods(Static, Abstract=true)
-         [variable_names, isOptionalInput] = inputForcingData_required()
-         [variable_names] = outputForcingdata_options(inputForcingDataColNames)
-    end
+        [variable_names, isOptionalInput] = inputForcingData_required()
+        [variable_names] = outputForcingdata_options(inputForcingDataColNames)
+        [options, colNames, colFormats, colEdits, toolTip] = modelOptions(sourceForcingTransformName)
+        modelDescription = modelDescription()
+    end  
     
     methods(Abstract)
         % Set parameters
@@ -21,7 +23,13 @@ classdef forcingTransform_abstract < dynamicprops
         % Get model parameters
         [params, param_names] = getParameters(obj)
 
-        %% Assess if matrix of parameters is valid. This is used by the calibration ansl allows for 
+        % Return pre-set physical limits to the function parameters.
+        [params_upperLimit, params_lowerLimit] = getParameters_physicalLimit(obj, param_name)        
+        
+        % Return pre-set plausible limits to the function parameters.
+        [params_upperLimit, params_lowerLimit] = getParameters_plausibleLimit(obj)                
+        
+        % Assess if matrix of parameters is valid. This is used by the calibration ansl allows for 
         % complex parameter constraints to be met.
         isValidParameter = getParameterValidity(obj, params, param_names)
 
@@ -35,8 +43,11 @@ classdef forcingTransform_abstract < dynamicprops
         % Get tranformed forcing data
         [forcingData, isDailyIntegralFlux] = getTransformedForcing(obj, t)        
         
-        % Return pre-set physical limits to the function parameters.
-        [params_upperLimit, params_lowerLimit] = getParameters_physicalLimit(obj, param_name)
+        % Set the input forcing data
+        setForcingData(obj, forcingData, forcingData_colnames)        
+        
+        % Get the spatial coordinates for the input forcing variables.
+        coordinates = getCoordinates(obj, variableName)                
     end
     
 end

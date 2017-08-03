@@ -1,10 +1,11 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [S,Sf,icall]=MCCE(funcHandle,funcHangle_validParams,s,sf,bl,bu,icall, varargin)
+function [S,Sf,icall,stochDerivedForcingData]=MCCE(funcHandle,funcHangle_validParams,s,sf,bl,bu,icall, useDerivedForcing, stochDerivedForcingData, varargin)
 % This is the subroutine implementing the simplex algorithm
 
 % Definition of input/output variables
 %  s/S = simplex members(vertices)in order of increasing function values
 %  sf/Sf = objective functions at simplex vertices
+
 
 nps = size(s,1);
 n = nps;
@@ -32,16 +33,28 @@ snew(snew<bl)=bl(snew<bl);
 % Check if the point is valid
 isValid = feval(funcHangle_validParams,snew', varargin{:});
 isValid = all(isValid);
-
+doneFeval=false;
 if isValid
+    if useDerivedForcing
+        updateStochForcingData(varargin{1});            
+    end
     fnew = feval(funcHandle,snew', varargin{:});
+    doneFeval = true;
     icall = icall + 1;
 else
     fnew = inf;
 end
 
-if fnew < fN;
+if fnew < fN
+    
+    % Reflect around snew to get the extension point snew1.
     if fnew < fb
+        
+        % Get derived forcing from improved solution
+        if useDerivedForcing
+            stochDerivedForcingData = getStochForcingData(varargin{1});
+        end
+        
         snew1 = snew + alpha*(snew-ce);
         snew1(snew1>bu)=2*bu(snew1>bu)-snew1(snew1>bu) ;
         snew1(snew1<bl)=2*bl(snew1<bl)-snew(snew1<bl);
@@ -53,46 +66,79 @@ if fnew < fN;
         isValid = all(isValid);        
         
         if isValid
+            if useDerivedForcing
+                updateStochForcingData(varargin{1});            
+            end
             fnew1 = feval(funcHandle,snew1', varargin{:});
             icall = icall + 1;
 
             if fnew1 < fnew
                 fnew=fnew1;
                 snew=snew1;
+                
+                % Get derived forcing from improved solution
+                if useDerivedForcing
+                    stochDerivedForcingData = getStochForcingData(varargin{1});                
+                end
+            elseif useDerivedForcing
+                acceptStochForcingSolution(varargin{1}, fnew1, fnew, stochDerivedForcingData);
             end
         end
+    elseif useDerivedForcing
+        acceptStochForcingSolution(varargin{1}, fnew, fb, stochDerivedForcingData);        
     end
     
 else % Contraction point
-    
+
     if fnew < fw
+        if useDerivedForcing
+            stochDerivedForcingData = getStochForcingData(varargin{1});                
+        end
+
         snew1 = ce + beta*(snew-ce);
 
-        % Check the new point is valid
+        % Check the new point is valid        
         isValid = feval(funcHangle_validParams,snew1', varargin{:});
         isValid = all(isValid);        
         
-        if isValid                
+        if isValid  
+            if useDerivedForcing
+                updateStochForcingData(varargin{1});            
+            end
             fnew1 = feval(funcHandle,snew1', varargin{:});
             icall = icall + 1;
             if fnew1 < fnew
                 fnew=fnew1;
-                snew=snew1;
+                snew=snew1;                
+            end
+            
+            % Get derived forcing from improved solution
+            if useDerivedForcing
+                acceptStochForcingSolution(varargin{1}, fnew1, fb, stochDerivedForcingData);
             end
         end
         
     else        
+        if useDerivedForcing
+            acceptStochForcingSolution(varargin{1}, fnew, fw, stochDerivedForcingData);
+        end
+                
         snew = sw + beta*(ce-sw);
         
         % Check if the point is valid
         isValid = feval(funcHangle_validParams,snew', varargin{:});
         isValid = all(isValid);        
         
-        if isValid
+        if isValid    
+            if useDerivedForcing
+                updateStochForcingData(varargin{1});            
+            end
             fnew = feval(funcHandle,snew', varargin{:});
             icall = icall + 1;
         end
         if ~isValid || fnew > fw
+            
+            % Find valid parameter set.
             while 1
                 sig=cov(s);
                 Dia=diag(sig);
@@ -110,11 +156,15 @@ else % Contraction point
                 end                
             end
             
+            % Evaluate valid parameter set.
             fnew = feval(funcHandle,snew', varargin{:});
             icall = icall + 1;
+        elseif useDerivedForcing        
+            acceptStochForcingSolution(varargin{1}, fnew, fw, stochDerivedForcingData);
         end
+        
     end
-end;
+end
 
 S=s;
 Sf=sf;
@@ -122,5 +172,3 @@ S(n,:)=snew;
 Sf(n)=fnew;
 
 return;
-
-

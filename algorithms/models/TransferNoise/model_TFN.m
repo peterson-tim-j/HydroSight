@@ -429,7 +429,7 @@ classdef model_TFN < model_abstract
                             
                             % Get a list of valid output forcing variable names.
                             filt  =  strcmp(propertyValue(:,1), valid_transformProperties{1});
-                            [optionalFocingOutputs] = feval([propertyValue{filt,2},'.outputForcingdata_options'],forcingData_colnames);
+                            [optionalFocingOutputs] = feval([propertyValue{filt,2},'.outputForcingdata_options']);
                                                         
                             % Check that the output variable a char or cell vector.
                             filt  =  strcmp(propertyValue(:,1), valid_transformProperties{3});                              
@@ -456,7 +456,7 @@ classdef model_TFN < model_abstract
                             k=0;
                             for j=1: size(varargin,1)
                                 if  strcmp( varargin{j,2}, valid_properties{2}) ...
-                                && iscell(varargin{j,3}) & ~isvector(varargin{j,3})
+                                && iscell(varargin{j,3}) && ~isvector(varargin{j,3})
                             
                                     % Check if the transformation model
                                     % input as the required inputs and does
@@ -548,60 +548,113 @@ classdef model_TFN < model_abstract
                   % required format, the componant uses transformed forcing
                   % data so store the transformation object name and the
                   % required output variable names.
-                  if isvector(varargin{ii,3})
+                  if isvector(varargin{ii,3}) && ~iscell(varargin{ii,3}{1})
                     for j=1:size(varargin{ii,3},1)
                         filt_forcingCols = cellfun(@(x,y)(strcmp(x,varargin{ii,3}{j})), forcingData_colnames);
                         obj.inputData.componentData.(modelComponent).dataColumn(j,1) = find(filt_forcingCols);                                    
                     end
-                  elseif size(varargin{ii,3},2) == 2 ...
+                  elseif (size(varargin{ii,3},2) == 2 ...
                   && any(strcmp(varargin{ii,3}(:,1), valid_transformProperties{1})) ...
-                  && any(strcmp(varargin{ii,3}(:,1), valid_transformProperties{3}))
+                  && any(strcmp(varargin{ii,3}(:,1), valid_transformProperties{3}))) ...
+                  || (size(varargin{ii,3}{1},2) == 2 ...
+                  && any(strcmp(varargin{ii,3}{1}(:,1), valid_transformProperties{1})) ...
+                  && any(strcmp(varargin{ii,3}{1}(:,1), valid_transformProperties{3})))
+              
+                    
                     % Record the transformation model name and required
                     % output forcing data from the transformation model for
                     % input to the model component.
-                    filt = strcmp(varargin{ii,3}(:,1), valid_transformProperties{1});
-                    obj.inputData.componentData.(modelComponent).forcing_object = varargin{ii,3}{filt,2};
-                    filt = strcmp(varargin{ii,3}(:,1), valid_transformProperties{3});
-                    obj.inputData.componentData.(modelComponent).outputVariable = varargin{ii,3}{filt,2};
-                    
+                    if size(varargin{ii,3},2) == 2
+                        filt = strcmp(varargin{ii,3}(:,1), valid_transformProperties{1});
+                        obj.inputData.componentData.(modelComponent).forcing_object = varargin{ii,3}{filt,2};
+                        filt = strcmp(varargin{ii,3}(:,1), valid_transformProperties{3});
+                        obj.inputData.componentData.(modelComponent).outputVariable = varargin{ii,3}{filt,2};
+                    else
+                        for j=1:size(varargin{ii,3},1)                           
+                            filt = strcmp(varargin{ii,3}{j}(:,1), valid_transformProperties{1});
+                            obj.inputData.componentData.(modelComponent).forcing_object = varargin{ii,3}{j}{filt,2};
+                            filt = strcmp(varargin{ii,3}{j}(:,1), valid_transformProperties{3});
+                            obj.inputData.componentData.(modelComponent).outputVariable{j,1} = varargin{ii,3}{j}{filt,2};                        
+                        end
+                    end
                     % Record the input forcing data columns for the 
                     % transforamtion model if provided. Else, seach the other
                     % transforamtion componants for the forcing data
                     % columns.
-                    filt = strcmp(varargin{ii,3}(:,1), valid_transformProperties{2});                    
-                    if any(filt)
-                        obj.inputData.componentData.(modelComponent).inputForcing = varargin{ii,3}{filt,2};
-                    else
-                        
-                        % Get the name of the source transforamtion
-                        % model.
-                        filt_transf = strcmp(varargin{ii,3}(:,1), valid_transformProperties{1});
-                        sourceTransformModel = varargin{ii,3}(filt_transf,2);
+                    if size(varargin{ii,3},2) == 2
+                        filt = strcmp(varargin{ii,3}(:,1), valid_transformProperties{2});                    
+                        if any(filt)
+                            obj.inputData.componentData.(modelComponent).inputForcing = varargin{ii,3}{filt,2};
+                        else
 
-                        % Create a filter for the forcingData property.
-                        filt_transf = find(strcmp(varargin(:,2), valid_properties{2}));
-                        
-                        % Loop through all forcingData inputs to find the
-                        % transformationModel that is the source to the
-                        % current transformation model.
-                        for j=filt_transf'
-                           if size(varargin{j,3},2) == 2 ...
-                           && iscell(varargin{j,3}) ...        
-                           && any(strcmp(varargin{j,3}(:,1), valid_transformProperties{1})) ...
-                           && any(strcmp(varargin{j,3}(:,1), valid_transformProperties{2})) ...
-                           && any(strcmp(varargin{j,3}(:,1), valid_transformProperties{3})) ...
-                           && any(strcmp(varargin{j,3}(:,2), sourceTransformModel))
-                               % Get the row containing the input forcing data
-                               filt = strcmp(varargin{j,3}(:,1), valid_transformProperties{2});
-                               
-                               % Assign source forcing names to the current
-                               % model component.
-                               obj.inputData.componentData.(modelComponent).inputForcing = varargin{j,3}{filt,2};                               
-                           end
+                            % Get the name of the source transforamtion
+                            % model.
+                            filt_transf = strcmp(varargin{ii,3}(:,1), valid_transformProperties{1});
+                            sourceTransformModel = varargin{ii,3}(filt_transf,2);
+
+                            % Create a filter for the forcingData property.
+                            filt_transf = find(strcmp(varargin(:,2), valid_properties{2}));
+
+                            % Loop through all forcingData inputs to find the
+                            % transformationModel that is the source to the
+                            % current transformation model.
+                            for j=filt_transf'
+                               if size(varargin{j,3},2) == 2 ...
+                               && iscell(varargin{j,3}) ...        
+                               && any(strcmp(varargin{j,3}(:,1), valid_transformProperties{1})) ...
+                               && any(strcmp(varargin{j,3}(:,1), valid_transformProperties{2})) ...
+                               && any(strcmp(varargin{j,3}(:,1), valid_transformProperties{3})) ...
+                               && any(strcmp(varargin{j,3}(:,2), sourceTransformModel))
+                                   % Get the row containing the input forcing data
+                                   filt = strcmp(varargin{j,3}(:,1), valid_transformProperties{2});
+
+                                   % Assign source forcing names to the current
+                                   % model component.
+                                   obj.inputData.componentData.(modelComponent).inputForcing = varargin{j,3}{filt,2};                               
+                               end
+                            end
+
                         end
-                        
+                    else
+                        for j=1:size(varargin{ii,3},1)  
+                            filt = strcmp(varargin{ii,3}{j}(:,1), valid_transformProperties{2});                    
+                            if any(filt)
+                                inputForcing = varargin{ii,3}{j}{filt,2};
+                                filt = cellfun( @(x) ~isempty(x), inputForcing(:,2));
+                                inputForcing = inputForcing(filt,:);                                
+                                obj.inputData.componentData.(modelComponent).inputForcing = inputForcing ;
+%                             else
+%                                 error('Inheritated transformation models with multiple outputs is not operational.');
+%                                 % Get the name of the source transforamtion
+%                                 % model.
+%                                 filt_transf = strcmp(varargin{ii,3}(:,1), valid_transformProperties{1});
+%                                 sourceTransformModel = varargin{ii,3}(filt_transf,2);
+% 
+%                                 % Create a filter for the forcingData property.
+%                                 filt_transf = find(strcmp(varargin(:,2), valid_properties{2}));
+% 
+%                                 % Loop through all forcingData inputs to find the
+%                                 % transformationModel that is the source to the
+%                                 % current transformation model.
+%                                 for j=filt_transf'
+%                                    if size(varargin{j,3},2) == 2 ...
+%                                    && iscell(varargin{j,3}) ...        
+%                                    && any(strcmp(varargin{j,3}(:,1), valid_transformProperties{1})) ...
+%                                    && any(strcmp(varargin{j,3}(:,1), valid_transformProperties{2})) ...
+%                                    && any(strcmp(varargin{j,3}(:,1), valid_transformProperties{3})) ...
+%                                    && any(strcmp(varargin{j,3}(:,2), sourceTransformModel))
+%                                        % Get the row containing the input forcing data
+%                                        filt = strcmp(varargin{j,3}(:,1), valid_transformProperties{2});
+% 
+%                                        % Assign source forcing names to the current
+%                                        % model component.
+%                                        obj.inputData.componentData.(modelComponent).inputForcing = varargin{j,3}{filt,2};                               
+%                                    end
+%                                 end
+
+                            end                                                        
+                        end
                     end
-                    
                     % Check that forcing data was identified for the
                     % current component.
                     if ~isfield(obj.inputData.componentData.(modelComponent),'inputForcing')
@@ -627,41 +680,82 @@ classdef model_TFN < model_abstract
                     % transformation model and the type of model.
                     % Additionally, if the transformation model uses inputs
                     % from a transformation model, then also record this data.
-                    filt = strcmp(varargin{ii,3}(:,1), valid_transformProperties{5});
-                    if any(filt)
-                        
-                        % Only add an index for the creation the
-                        % transformation object if input and output forcing
-                        % is defined. If only output is defined, then the 
-                        % transforamtion is assumed to be simply calling
-                        % a transformation object created for another
-                        % component.
-                        filt_inputForcing = strcmp(varargin{ii,3}(:,1), valid_transformProperties{2});
-                        filt_outputForcing = strcmp(varargin{ii,3}(:,1), valid_transformProperties{3});
-                        if any(filt_inputForcing) && any(filt_outputForcing)
-                            obj.inputData.componentData.(modelComponent).isForcingModel2BeRun = true;
-                            obj.inputData.componentData.(modelComponent).inputForcingComponent = varargin{ii,3}{filt,2};
-                            transformFunctionIndexes_inputComponents = [transformFunctionIndexes_inputComponents; ii];
+                    if size(varargin{ii,3},2) == 2
+                        filt = strcmp(varargin{ii,3}(:,1), valid_transformProperties{5});
+                        if any(filt)
+
+                            % Only add an index for the creation the
+                            % transformation object if input and output forcing
+                            % is defined. If only output is defined, then the 
+                            % transforamtion is assumed to be simply calling
+                            % a transformation object created for another
+                            % component.
+                            filt_inputForcing = strcmp(varargin{ii,3}(:,1), valid_transformProperties{2});
+                            filt_outputForcing = strcmp(varargin{ii,3}(:,1), valid_transformProperties{3});
+                            if any(filt_inputForcing) && any(filt_outputForcing)
+                                obj.inputData.componentData.(modelComponent).isForcingModel2BeRun = true;
+                                obj.inputData.componentData.(modelComponent).inputForcingComponent = varargin{ii,3}{filt,2};
+                                transformFunctionIndexes_inputComponents = [transformFunctionIndexes_inputComponents; ii];
+                            else
+                                error(['Invalid forcing transformation for component:', modelComponent,'. When a transformation model uses another transformation model as an input then the forcing data and the output variable must be specified.' ]);
+                            end
                         else
-                            error(['Invalid forcing transformation for component:', modelComponent,'. When a transformation model uses another transformation model as an input then the forcing data and the output variable must be specified.' ]);
+
+                            % Only add an index for the creation of the
+                            % transformation object if input and output forcing
+                            % is defined. If only output is defined, then the 
+                            % transforamtion is assumed to be simply calling
+                            % a transformation object created for another
+                            % component.
+                            filt_inputForcing = strcmp(varargin{ii,3}(:,1), valid_transformProperties{2});
+                            filt_outputForcing = strcmp(varargin{ii,3}(:,1), valid_transformProperties{3});
+                            if any(filt_inputForcing) && any(filt_outputForcing)
+                                obj.inputData.componentData.(modelComponent).isForcingModel2BeRun = true;
+                                transformFunctionIndexes_noInputComponents = [transformFunctionIndexes_noInputComponents; ii];                            
+                            elseif ~any(filt_inputForcing) && any(filt_outputForcing)
+                                obj.inputData.componentData.(modelComponent).isForcingModel2BeRun = false;
+                            end
                         end
                     else
-                        
-                        % Only add an index for the creation of the
-                        % transformation object if input and output forcing
-                        % is defined. If only output is defined, then the 
-                        % transforamtion is assumed to be simply calling
-                        % a transformation object created for another
-                        % component.
-                        filt_inputForcing = strcmp(varargin{ii,3}(:,1), valid_transformProperties{2});
-                        filt_outputForcing = strcmp(varargin{ii,3}(:,1), valid_transformProperties{3});
-                        if any(filt_inputForcing) && any(filt_outputForcing)
-                            obj.inputData.componentData.(modelComponent).isForcingModel2BeRun = true;
-                            transformFunctionIndexes_noInputComponents = [transformFunctionIndexes_noInputComponents; ii];                            
-                        elseif ~any(filt_inputForcing) && any(filt_outputForcing)
-                            obj.inputData.componentData.(modelComponent).isForcingModel2BeRun = false;
+                        for j=1:size(varargin{ii,3},1)  
+                            filt = strcmp(varargin{ii,3}{j}(:,1), valid_transformProperties{5});
+                            if any(filt)
+
+                                % Only add an index for the creation the
+                                % transformation object if input and output forcing
+                                % is defined. If only output is defined, then the 
+                                % transforamtion is assumed to be simply calling
+                                % a transformation object created for another
+                                % component.
+                                filt_inputForcing = strcmp(varargin{ii,3}{j}(:,1), valid_transformProperties{2});
+                                filt_outputForcing = strcmp(varargin{ii,3}{j}(:,1), valid_transformProperties{3});
+                                if any(filt_inputForcing) && any(filt_outputForcing)
+                                    obj.inputData.componentData.(modelComponent).isForcingModel2BeRun = true;
+                                    obj.inputData.componentData.(modelComponent).inputForcingComponent = varargin{ii,3}{j}{filt,2};
+                                    transformFunctionIndexes_inputComponents = [transformFunctionIndexes_inputComponents; ii];
+                                else
+                                    error(['Invalid forcing transformation for component:', modelComponent,'. When a transformation model uses another transformation model as an input then the forcing data and the output variable must be specified.' ]);
+                                end
+                            else
+
+                                % Only add an index for the creation of the
+                                % transformation object if input and output forcing
+                                % is defined. If only output is defined, then the 
+                                % transforamtion is assumed to be simply calling
+                                % a transformation object created for another
+                                % component.
+                                filt_inputForcing = strcmp(varargin{ii,3}{j}(:,1), valid_transformProperties{2});
+                                filt_outputForcing = strcmp(varargin{ii,3}{j}(:,1), valid_transformProperties{3});
+                                if any(filt_inputForcing) && any(filt_outputForcing)
+                                    obj.inputData.componentData.(modelComponent).isForcingModel2BeRun = true;
+                                    transformFunctionIndexes_noInputComponents = [transformFunctionIndexes_noInputComponents; ii];                            
+%                                 elseif ~any(filt_inputForcing) && any(filt_outputForcing)
+%                                     obj.inputData.componentData.(modelComponent).isForcingModel2BeRun = false;
+                                end
+                            end                        
                         end
                     end
+                    
                   else
                     error(['An unexpected error occured for component :', modelComponent,'. The input for "forcingdata" should be either a forcing data site name(s) or number(s) or a cell array for an input transformation model.' ]);
                   end
@@ -683,143 +777,6 @@ classdef model_TFN < model_abstract
             % function names.
             weightingFunctionIndexes = find(strcmpi(varargin(:,2), valid_properties{1}));
                                    
-            % Build the component weighting object for each component that DO NOT require an input weighting function object
-            for ii = weightingFunctionIndexes'
-            
-                modelComponent = varargin{ii,1};
-                propertyValue = varargin{ii,3};
-
-                % Check if the current model object requires input of
-                % another weighting function object.
-                inputWeightingFunctionIndex = find( strcmpi(varargin(:,1),modelComponent) & strcmpi(varargin(:,2),valid_properties{4}));
-                
-                % Build weighting function for those NOT requiring the
-                % input of other weighting function objects.
-                if isempty(inputWeightingFunctionIndex)
-                    try                       
-                        % Get the column number for forcing data
-                        colNum = 1;
-                        if isfield(obj.inputData.componentData.(modelComponent),'dataColumn')
-                            colNum = obj.inputData.componentData.(modelComponent).dataColumn;
-                        elseif isfield(obj.inputData.componentData.(modelComponent),'inputForcing')
-
-                            % Get the names (or column numbers) of the input forcing data. 
-                            forcingData_inputs = obj.inputData.componentData.(modelComponent).inputForcing(:,2);
-                            
-                            for j=1:size(forcingData_inputs,1)
-                                % Skip if optional forcing input
-                                if strcmp(forcingData_inputs{j,1},'(none)')
-                                    continue
-                                end
-                                if isnumeric(forcingData_inputs{j,1})
-                                    colNum = [colNum; forcingData_inputs{j,1}];             
-                                elseif ischar(forcingData_inputs{j,1})
-                                    filt = find(strcmpi(forcingData_colnames, forcingData_inputs{j,1}));
-                                    if sum(filt)==0
-                                        error(['An unexpected error occured for component :', modelComponent,'. Within the input cell array for "forcingdata", the second column contains a forcing site name that is not listed within the input forcing data column names.' ]);
-                                    end
-                                    colNum = [colNum; filt];                                
-                                else
-                                    error(['An unexpected error occured for component :', modelComponent,'. Within the input cell array for "forcingdata", the second column contains a forcing data column number or site name that is listed within the input forcing data column names.' ]);
-                                end
-                            end
-                        end
-
-                        % Check that the response 
-                        % function name is consistent with the abstract
-                        % 'responseFunction_abstract'.
-                        try
-                            if ~strcmp(findAbstractName( propertyValue),'responseFunction_abstract')
-                                error(['The following response function function class definition is not derived from the "responseFunction_abstract.m" anstract:',propertyValue]);
-                            end
-                        catch
-                            display('... Warning: Checking that the required abstract for the response function transform class definition was used failed. This is may be because the version of matlab is pre-2014a.');
-                        end                        
-
-                        % Filter for options.
-                        filt = find( strcmpi(varargin(:,1),modelComponent) & strcmpi(varargin(:,2),valid_properties{3}));                       
-                        
-                        % Call the object 
-                        if any(filt)
-                            obj.parameters.(modelComponent) = feval(propertyValue, bore_ID, forcingData_colnames(colNum), siteCoordinates, varargin{filt,3} ); 
-                        else
-                            obj.parameters.(modelComponent) = feval(propertyValue, bore_ID, forcingData_colnames(colNum), siteCoordinates, {}); 
-                        end
-                    catch exception
-                         display(['ERROR: Invalid weighting function class object name: ',char(propertyValue),'. The weighting function object could not be created.']);
-                         rethrow(exception);
-                    end                            
-                end
-            end
-            
-            % Build the component weighting object for each component that DO require an input weighting function object
-            for ii = weightingFunctionIndexes'
-            
-                modelComponent = varargin{ii,1};
-                propertyValue = varargin{ii,3};
-
-                % Check if the current model object requires input of
-                % another weighting function object.
-                inputWeightingFunctionIndex = find( strcmpi(varargin(:,1),modelComponent) & strcmpi(varargin(:,2),valid_properties{4}));
-                
-                % Build weighting function for those that DO require the
-                % input of other weighting function objects.
-                if ~isempty(inputWeightingFunctionIndex)
-                    
-                    % Get the name of the component to be input to the
-                    % weighting function.
-                    inputWeightingFunctionName = varargin{inputWeightingFunctionIndex,3};                    
-                    
-                    % Add input component name to input data fields
-                    obj.inputData.componentData.(modelComponent).inputWeightingComponent = inputWeightingFunctionName;
-                    
-                    % Check that the input weighting function has been
-                    % created.
-                    if ~isfield(obj.parameters,inputWeightingFunctionName)
-                        error(['The input component name for component "', modelComponent,'" must be a component that itself is not derived from another componant.' ]);
-                    end
-                    
-                    try
-                        % Get the column number for forcing data
-                        colNum = 1;
-                        if isfield(obj.inputData.componentData.(modelComponent),'dataColumn')
-                            colNum = obj.inputData.componentData.(modelComponent).dataColumn;
-                        elseif isfield(obj.inputData.componentData.(modelComponent),'inputForcing')
-
-                            % Get the names (or column numbers) of the input forcing data. 
-                            forcingData_inputs = obj.inputData.componentData.(modelComponent).inputForcing(:,2);
-                            
-                            for j=1:size(forcingData_inputs,1)
-                                if isnumeric(forcingData_inputs{j,1})
-                                    colNum = [colNum; forcingData_inputs{j,1}];             
-                                elseif ischar(forcingData_inputs{j,1})
-                                    filt = find(strcmpi(forcingData_colnames, forcingData_inputs{j,1}));
-                                    if sum(filt)==0
-                                        error(['An unexpected error occured for component :', modelComponent,'. Within the input cell array for "forcingdata", the second column contains a forcing site name that is not listed within the input forcing data column names.' ]);
-                                    end
-                                    colNum = [colNum; filt];                                
-                                else
-                                    error(['An unexpected error occured for component :', modelComponent,'. Within the input cell array for "forcingdata", the second column contains a forcing data column number or site name that is listed within the input forcing data column names.' ]);
-                                end
-                            end
-                        end                    
-
-                        % Filter for options.
-                        filt = find( strcmpi(varargin(:,1),modelComponent) & strcmpi(varargin(:,2),valid_properties{3}));
-                        
-                        % Call the object. 
-                        % NOTE: these objects have an additional input
-                        % (compared to those created above) for the input
-                        % of a previously build model weighting function
-                        % object.
-                        obj.parameters.(modelComponent) = feval(propertyValue, bore_ID,forcingData_colnames(colNum), siteCoordinates, obj.parameters.(inputWeightingFunctionName), varargin(filt,3)); 
-                    catch exception
-                         display(['ERROR: Invalid weighting function class object name: ',char(propertyValue),'. The weighting function object could not be created.']);
-                         rethrow(exception);
-                    end                            
-                end
-            end                        
-
             % Build the objects for forcing transformations that DO NOT
             % require an input weighting function object.            
             for ii = transformFunctionIndexes_noInputComponents'
@@ -831,16 +788,39 @@ classdef model_TFN < model_abstract
                 % transformation function name, input data column names,
                 % the variables to which the input data is to be assigned
                 % too, and additional transformation model options.
-                filt = strcmp(varargin{ii,3}(:,1), valid_transformProperties{1});
-                transformObject_name = varargin{ii,3}{filt,2};
-                filt = strcmp(varargin{ii,3}(:,1), valid_transformProperties{2});
-                transformObject_inputs = varargin{ii,3}{filt,2};
-                filt = strcmp(varargin{ii,3}(:,1), valid_transformProperties{4});
-                if any(filt)
-                    transformObject_options = varargin{ii,3}{filt,2};
+                if size(varargin{ii,3},2) == 2
+                    filt = strcmp(varargin{ii,3}(:,1), valid_transformProperties{1});
+                    transformObject_name = varargin{ii,3}{filt,2};
+                    filt = strcmp(varargin{ii,3}(:,1), valid_transformProperties{2});
+                    transformObject_inputs = varargin{ii,3}{filt,2};
+                    filt = strcmp(varargin{ii,3}(:,1), valid_transformProperties{4});
+                    if any(filt)
+                        transformObject_options = varargin{ii,3}{filt,2};
+                    else
+                        transformObject_options ={};
+                    end
                 else
-                    transformObject_options ={};
+                    for j=1:size(varargin{ii,3},1)  
+                        filt = strcmp(varargin{ii,3}{j}(:,1), valid_transformProperties{1});
+                        transformObject_name = varargin{ii,3}{j}{filt,2};
+                        filt = strcmp(varargin{ii,3}{j}(:,1), valid_transformProperties{2});
+                        transformObject_inputs = varargin{ii,3}{j}{filt,2};
+                        filt = strcmp(varargin{ii,3}{j}(:,1), valid_transformProperties{4});
+                        if any(filt)
+                            transformObject_options = varargin{ii,3}{j}{filt,2};
+                            break;
+                        end                    
+                    end
                 end
+                
+                % Get the names (or column numbers) of the input forcing data. 
+                forcingData_inputs = obj.inputData.componentData.(modelComponent).inputForcing(:,2);                            
+                
+                % Remove empty rows
+                filt = cellfun( @(x) ~isempty(x) && ~strcmp(x,'(none)'), forcingData_inputs);
+                forcingData_inputs = forcingData_inputs(filt);
+                filt = cellfun( @(x) ~isempty(x) && ~strcmp(x,'(none)'),transformObject_inputs(:,2));
+                transformObject_inputs = transformObject_inputs(filt,:);
                 
                 % Find the required columns in forcing data so that only the
                 % required data is input.
@@ -872,13 +852,18 @@ classdef model_TFN < model_abstract
                 transformObject_inputs = transformObject_inputs(rowFilt,:);
                 
                 try
-                    colNum_extras = true(length(forcingData_colnames),1);
-                    colNum_extras(colNum) = false;
-                    colNum_extras = find(colNum_extras);
-                    forcingData_colnamesTmp = forcingData_colnames([colNum;colNum_extras]);
-                    forcingData_dataTmp = forcingData_data(:,[colNum;colNum_extras]);
-                    obj.parameters.(transformObject_name) = feval(transformObject_name, bore_ID, forcingData_dataTmp, forcingData_colnamesTmp, siteCoordinates, transformObject_inputs, transformObject_options);
-                                                                                                
+                    %colNum_extras = true(length(forcingData_colnames),1);
+                    %colNum_extras(colNum) = false;
+                    %colNum_extras = find(colNum_extras);
+                    %forcingData_colnamesTmp = forcingData_colnames([colNum;colNum_extras]);
+                    %forcingData_dataTmp = forcingData_data(:,[colNum;colNum_extras]);
+                    obj.parameters.(transformObject_name) = feval(transformObject_name, bore_ID, forcingData_data(:,colNum), forcingData_colnames(colNum), siteCoordinates, transformObject_inputs, transformObject_options);
+                     
+                    % Add coordinates for the output variable
+                    variableName = obj.inputData.componentData.(modelComponent).outputVariable;
+                    coordinatesTmp = getCoordinates(obj.parameters.(transformObject_name), variableName);
+                    siteCoordinates(size(siteCoordinates,1)+1: size(siteCoordinates,1) + size(coordinatesTmp,1),1:3) = coordinatesTmp;
+                    
                 catch exception
                     display(['ERROR: Invalid model component class object for forcing transform: ', transformObject_name ]);
                     rethrow(exception);
@@ -938,19 +923,197 @@ classdef model_TFN < model_abstract
                 end
                 
                 try                
-                    colNum_extras = true(length(forcingData_colnames),1);
-                    colNum_extras(colNum) = false;
-                    colNum_extras = find(colNum_extras);
-                    forcingData_colnamesTmp = forcingData_colnames([colNum;colNum_extras]);
-                    forcingData_dataTmp = forcingData_data(:,[colNum;colNum_extras]);
-                                                                                    
-                    obj.parameters.(transformObject_name) = feval(transformObject_name, bore_ID, forcingData_dataTmp, forcingData_colnamesTmp, siteCoordinates, transformObject_inputs, obj.parameters.(transformObject_sourceName), transformObject_options);
+                    %colNum_extras = true(length(forcingData_colnames),1);
+                    %colNum_extras(colNum) = false;
+                    %colNum_extras = find(colNum_extras);
+                    %forcingData_colnamesTmp = forcingData_colnames([colNum;colNum_extras]);
+                    %forcingData_dataTmp = forcingData_data(:,[colNum;colNum_extras]);                                                                                    
+                    obj.parameters.(transformObject_name) = feval(transformObject_name, bore_ID, forcingData_data(:,colNum), forcingData_colnames(colNum), siteCoordinates, transformObject_inputs, obj.parameters.(transformObject_sourceName), transformObject_options);
+                    
+                    % Add coordinates for the output variable
+                    variableName = obj.inputData.componentData.(modelComponent).outputVariable;
+                    coordinatesTmp = getCoordinates(obj.parameters.(transformObject_name), variableName);
+                    siteCoordinates(size(siteCoordinates,1)+1: size(siteCoordinates,1) + size(coordinatesTmp,1),1:3) = coordinatesTmp;
+                                        
                 catch exception
                     display(['ERROR: Invalid model component class object for forcing transform: ', transformObject_name ]);
                     rethrow(exception);
                 end                     
             end
+
+            % Build the component weighting object for each component that DO NOT require an input weighting function object
+            for ii = weightingFunctionIndexes'
+            
+                modelComponent = varargin{ii,1};
+                propertyValue = varargin{ii,3};
+
+                % Check if the current model object requires input of
+                % another weighting function object.
+                inputWeightingFunctionIndex = find( strcmpi(varargin(:,1),modelComponent) & strcmpi(varargin(:,2),valid_properties{4}));
+                
+                % Build weighting function for those NOT requiring the
+                % input of other weighting function objects.
+                if isempty(inputWeightingFunctionIndex)
+                    try                       
+                        % Get the column number for forcing data
+                        if isfield(obj.inputData.componentData.(modelComponent),'dataColumn')
+                            colNum = obj.inputData.componentData.(modelComponent).dataColumn;
+                            forcingData_inputs = forcingData_colnames(colNum);
+                        elseif isfield(obj.inputData.componentData.(modelComponent),'inputForcing')
+
+                            % Get the names (or column numbers) of the input forcing data. 
+                            forcingData_inputs = obj.inputData.componentData.(modelComponent).outputVariable;
+                            
+                            % Remove empty rows
+                            if iscell(forcingData_inputs)
+                                filt = cellfun( @(x) ~isempty(x), forcingData_inputs);
+                                forcingData_inputs = forcingData_inputs(filt);
+                            end
+%                             for j=1:size(forcingData_inputs,1)
+%                                 % Skip if optional forcing input
+%                                 if strcmp(forcingData_inputs{j,1},'(none)')
+%                                     continue
+%                                 end
+%                                 if isnumeric(forcingData_inputs{j,1})
+%                                     colNum = [colNum; forcingData_inputs{j,1}];             
+%                                 elseif ischar(forcingData_inputs{j,1})
+%                                     filt = find(strcmpi(forcingData_colnames, forcingData_inputs{j,1}));
+%                                     if sum(filt)==0
+%                                         error(['An unexpected error occured for component :', modelComponent,'. Within the input cell array for "forcingdata", the second column contains a forcing site name that is not listed within the input forcing data column names.' ]);
+%                                     end
+%                                     colNum = [colNum; filt];                                
+%                                 else
+%                                     error(['An unexpected error occured for component :', modelComponent,'. Within the input cell array for "forcingdata", the second column contains a forcing data column number or site name that is listed within the input forcing data column names.' ]);
+%                                 end
+%                             end
+                        end
+
+                        % Check that the response 
+                        % function name is consistent with the abstract
+                        % 'responseFunction_abstract'.
+                        try
+                            if ~strcmp(findAbstractName( propertyValue),'responseFunction_abstract')
+                                error(['The following response function function class definition is not derived from the "responseFunction_abstract.m" anstract:',propertyValue]);
+                            end
+                        catch
+                            display('... Warning: Checking that the required abstract for the response function transform class definition was used failed. This is may be because the version of matlab is pre-2014a.');
+                        end                        
+
+                        % Filter for options.
+                        filt = find( strcmpi(varargin(:,1),modelComponent) & strcmpi(varargin(:,2),valid_properties{3}));                       
                         
+                        % Convert input forcing data to cell if string
+                        if ischar(forcingData_inputs);
+                            forcingData_inputs_tmp{1}=forcingData_inputs;
+                            forcingData_inputs = forcingData_inputs_tmp;
+                            clear forcingData_inputs_tmp;
+                        end
+                        
+                        % Call the object 
+                        if any(filt)
+                            obj.parameters.(modelComponent) = feval(propertyValue, bore_ID, forcingData_inputs, siteCoordinates, varargin{filt,3} );                             
+                        else
+                            obj.parameters.(modelComponent) = feval(propertyValue, bore_ID, forcingData_inputs, siteCoordinates, {}); 
+                        end
+                    catch exception
+                         display(['ERROR: Invalid weighting function class object name: ',char(propertyValue),'. The weighting function object could not be created.']);
+                         rethrow(exception);
+                    end                            
+                end
+            end
+            
+            % Build the component weighting object for each component that DO require an input weighting function object
+            for ii = weightingFunctionIndexes'
+            
+                modelComponent = varargin{ii,1};
+                propertyValue = varargin{ii,3};
+
+                % Check if the current model object requires input of
+                % another weighting function object.
+                inputWeightingFunctionIndex = find( strcmpi(varargin(:,1),modelComponent) & strcmpi(varargin(:,2),valid_properties{4}));
+                
+                % Build weighting function for those that DO require the
+                % input of other weighting function objects.
+                if ~isempty(inputWeightingFunctionIndex)
+                    
+                    % Get the name of the component to be input to the
+                    % weighting function.
+                    inputWeightingFunctionName = varargin{inputWeightingFunctionIndex,3};                    
+                    
+                    % Add input component name to input data fields
+                    obj.inputData.componentData.(modelComponent).inputWeightingComponent = inputWeightingFunctionName;
+                    
+                    % Check that the input weighting function has been
+                    % created.
+                    if ~isfield(obj.parameters,inputWeightingFunctionName)
+                        error(['The input component name for component "', modelComponent,'" must be a component that itself is not derived from another componant.' ]);
+                    end
+                    
+                    try
+
+                        % Get the column number for forcing data
+                        if isfield(obj.inputData.componentData.(modelComponent),'dataColumn')
+                            colNum = obj.inputData.componentData.(modelComponent).dataColumn;
+                            forcingData_inputs = forcingData_colnames(colNum);
+                        elseif isfield(obj.inputData.componentData.(modelComponent),'inputForcing')
+
+                            % Get the names (or column numbers) of the input forcing data. 
+                            forcingData_inputs = obj.inputData.componentData.(modelComponent).outputVariable;
+                            
+                            % Remove empty rows
+                            if iscell(forcingData_inputs)
+                                filt = cellfun( @(x) ~isempty(x), forcingData_inputs);
+                                forcingData_inputs = forcingData_inputs(filt);
+                            end
+                        end
+                        
+%                         % Get the column number for forcing data
+%                         colNum = 1;
+%                         if isfield(obj.inputData.componentData.(modelComponent),'dataColumn')
+%                             colNum = obj.inputData.componentData.(modelComponent).dataColumn;
+%                         elseif isfield(obj.inputData.componentData.(modelComponent),'inputForcing')
+% 
+%                             % Get the names (or column numbers) of the input forcing data. 
+%                             forcingData_inputs = obj.inputData.componentData.(modelComponent).inputForcing(:,2);
+%                             
+%                             for j=1:size(forcingData_inputs,1)
+%                                 if isnumeric(forcingData_inputs{j,1})
+%                                     colNum = [colNum; forcingData_inputs{j,1}];             
+%                                 elseif ischar(forcingData_inputs{j,1})
+%                                     filt = find(strcmpi(forcingData_colnames, forcingData_inputs{j,1}));
+%                                     if sum(filt)==0
+%                                         error(['An unexpected error occured for component :', modelComponent,'. Within the input cell array for "forcingdata", the second column contains a forcing site name that is not listed within the input forcing data column names.' ]);
+%                                     end
+%                                     colNum = [colNum; filt];                                
+%                                 else
+%                                     error(['An unexpected error occured for component :', modelComponent,'. Within the input cell array for "forcingdata", the second column contains a forcing data column number or site name that is listed within the input forcing data column names.' ]);
+%                                 end
+%                             end
+%                         end                    
+
+                        % Convert input forcing data to cell if string
+                        if ischar(forcingData_inputs);
+                            forcingData_inputs_tmp{1}=forcingData_inputs;
+                            forcingData_inputs = forcingData_inputs_tmp;
+                            clear forcingData_inputs_tmp;
+                        end
+
+                        % Filter for options.
+                        filt = find( strcmpi(varargin(:,1),modelComponent) & strcmpi(varargin(:,2),valid_properties{3}));
+                        
+                        % Call the object. 
+                        % NOTE: these objects have an additional input
+                        % (compared to those created above) for the input
+                        % of a previously build model weighting function
+                        % object.
+                        obj.parameters.(modelComponent) = feval(propertyValue, bore_ID,forcingData_inputs, siteCoordinates, obj.parameters.(inputWeightingFunctionName), varargin(filt,3)); 
+                    catch exception
+                         display(['ERROR: Invalid weighting function class object name: ',char(propertyValue),'. The weighting function object could not be created.']);
+                         rethrow(exception);
+                    end                            
+                end
+            end                        
+            
             % Add noise component
             obj.parameters.noise.type = 'transferfunction';
             obj.parameters.noise.alpha = log10(0.1);    
@@ -993,6 +1156,47 @@ classdef model_TFN < model_abstract
                 end
             end
             
+        end        
+        
+        function stochForcingData = getStochForcingData(obj)
+            stochForcingData = [];
+            % Get derived forcing data in the sub-model objects
+            if ~isempty(obj.parameters)
+                modelnames = fieldnames(obj.parameters);
+                for i=1:length(modelnames)
+                    if isobject(obj.parameters.(modelnames{i}))
+                        if any(strcmp('getStochForcingData',methods(obj.parameters.(modelnames{i}))))
+                            forcingData_tmp =getStochForcingData(obj.parameters.(modelnames{i}));
+                            stochForcingData.(modelnames{i}) = forcingData_tmp;
+                        end
+                    end
+                end
+            end            
+        end
+           
+        function  updateStochForcingData(obj, stochForcingData, objFuncVal, objFuncVal_prior)
+            % Set derived forcing data in the sub-model objects
+            %isValidDerivedForcing =false;
+            componantNames = fieldnames(obj.parameters);
+            for i=1:length(componantNames)
+                if isobject(obj.parameters.(componantNames{i}))
+                    if any(strcmp('updateStochForcingData',methods(obj.parameters.(componantNames{i}))))
+                        if nargin==1
+                            updateStochForcingData(obj.parameters.(componantNames{i}));                                
+                        elseif nargin == 3
+                            forcingDataComponant = fieldnames(stochForcingData);
+                            filt = strcmp(forcingDataComponant,componantNames{i});
+                            forcingDataComponant=forcingDataComponant{filt};
+                            updateStochForcingData(obj.parameters.(componantNames{i}),stochForcingData.(forcingDataComponant));
+                        elseif nargin==5
+                            forcingDataComponant = fieldnames(stochForcingData);
+                            filt = strcmp(forcingDataComponant,componantNames{i});
+                            forcingDataComponant=forcingDataComponant{filt};
+                            updateStochForcingData(obj.parameters.(componantNames{i}),stochForcingData.(forcingDataComponant),objFuncVal, objFuncVal_prior);                            
+                        end
+                    end
+                end
+            end
         end        
         
 %% Solve the model for the input time points
@@ -1052,16 +1256,16 @@ classdef model_TFN < model_abstract
             % Clear obj.variables of temporary variables.
             if isfield(obj.variables, 'theta_est_indexes_min'), obj.variables = rmfield(obj.variables, 'theta_est_indexes_min'); end
             if isfield(obj.variables, 'theta_est_indexes_max'), obj.variables = rmfield(obj.variables, 'theta_est_indexes_max'); end
-            if isfield(obj.variables, 'SMS_frac'), obj.variables = rmfield(obj.variables, 'SMS_frac'); end            
-            if isfield(obj.variables, 'recharge'), obj.variables = rmfield(obj.variables, 'recharge'); end            
-            if isfield(obj.variables, 'SMSC'), obj.variables = rmfield(obj.variables, 'SMSC'); end            
-            if isfield(obj.variables, 'SMSC_1'), obj.variables = rmfield(obj.variables, 'SMSC_1'); end            
-            if isfield(obj.variables, 'SMSC_2'), obj.variables = rmfield(obj.variables, 'SMSC_2'); end            
-            if isfield(obj.variables, 'f'), obj.variables = rmfield(obj.variables, 'f'); end            
-            if isfield(obj.variables, 'b'), obj.variables = rmfield(obj.variables, 'b'); end                                    
-            if isfield(obj.variables, 'ksat'), obj.variables = rmfield(obj.variables, 'ksat'); end
-            if isfield(obj.variables, 'ksat_1'), obj.variables = rmfield(obj.variables, 'ksat_1'); end
-            if isfield(obj.variables, 'ksat_2'), obj.variables = rmfield(obj.variables, 'ksat_2'); end
+            %if isfield(obj.variables, 'SMS_frac'), obj.variables = rmfield(obj.variables, 'SMS_frac'); end            
+            %if isfield(obj.variables, 'recharge'), obj.variables = rmfield(obj.variables, 'recharge'); end            
+            %if isfield(obj.variables, 'SMSC'), obj.variables = rmfield(obj.variables, 'SMSC'); end            
+            %if isfield(obj.variables, 'SMSC_1'), obj.variables = rmfield(obj.variables, 'SMSC_1'); end            
+            %if isfield(obj.variables, 'SMSC_2'), obj.variables = rmfield(obj.variables, 'SMSC_2'); end            
+            %if isfield(obj.variables, 'f'), obj.variables = rmfield(obj.variables, 'f'); end            
+            %if isfield(obj.variables, 'b'), obj.variables = rmfield(obj.variables, 'b'); end                                    
+            %if isfield(obj.variables, 'ksat'), obj.variables = rmfield(obj.variables, 'ksat'); end
+            %if isfield(obj.variables, 'ksat_1'), obj.variables = rmfield(obj.variables, 'ksat_1'); end
+            %if isfield(obj.variables, 'ksat_2'), obj.variables = rmfield(obj.variables, 'ksat_2'); end
             
             % Set a flag to indicate that calibration is NOT being undertaken.
             % obj.variables.doingCalibration = getInnovations;
@@ -1354,7 +1558,7 @@ classdef model_TFN < model_abstract
                 obj.variables.n_bar(j) = real(mean( obj.variables.resid(:,j) ));
 
                 % Calculate innovations
-                innov = obj.variables.resid(2:end) - obj.variables.resid(1:end-1).*exp( -10.^obj.parameters.noise.alpha .* obj.variables.delta_time );
+                innov = obj.variables.resid(2:end,j) - obj.variables.resid(1:end-1,j).*exp( -10.^obj.parameters.noise.alpha .* obj.variables.delta_time );
 
                 % Calculate noise standard deviation.
                 obj.variables.sigma_n(j) = sqrt(mean( innov.^2 ./ (1 - exp( -2 .* 10.^obj.parameters.noise.alpha .* obj.variables.delta_time ))));
@@ -1475,7 +1679,7 @@ classdef model_TFN < model_abstract
             
             % Return of there are nan or inf value
             if any(isnan(h_star(:,2)) | isinf(h_star(:,2)));
-                objFn = nan(size(h_star,1)-1,1);
+                objFn = inf;
                 return;
             end
                             
@@ -1782,7 +1986,42 @@ classdef model_TFN < model_abstract
                 end
             end
         end
-                
+             
+        
+        function accepted = acceptStochForcingSolution(obj, objFuncVal, objFuncVal_prior, stochForcingData)
+
+            % Get model componants
+            companants = fieldnames(obj.parameters);
+            accepted = true(size(companants,1),1);
+            for ii=1: size(companants,1)
+                currentField = char( companants(ii) ) ;
+                % Get model parameters for each componant.
+                % If the componant is an object, then call the objects
+                % getParameters method.
+                if isobject( obj.parameters.( currentField ) ) && ...
+                any(strcmp(methods(obj.parameters.( currentField )),'acceptStochForcingSolution'))
+
+                    % Check if the current componant is listed within the
+                    % input stochastic forcing data.
+                    forcingDataComponant = fieldnames(stochForcingData);
+                    filt = strcmp(forcingDataComponant,companants{ii});
+                    
+                    % Test if the solution should be accepted. Pass the
+                    % stochastic forcing data is required.
+                    if isempty(filt)
+                        accepted(ii) = acceptStochForcingSolution(obj.parameters.(currentField), objFuncVal, objFuncVal_prior);
+                    else
+                        forcingDataComponant=forcingDataComponant{filt};
+                        accepted(ii) = acceptStochForcingSolution(obj.parameters.(currentField), objFuncVal, objFuncVal_prior, stochForcingData.(forcingDataComponant));
+                    end
+                end                
+            end
+            if any(~accepted)
+                accepted=false;
+            else
+                accepted=true;
+            end
+        end               
         
         function [params_upperLimit, params_lowerLimit] = getParameters_physicalLimit(obj)
 % getParameters_physicalLimit returns the physical limits to each model parameter.
@@ -2148,7 +2387,7 @@ classdef model_TFN < model_abstract
 %%  END PUBLIC METHODS    
 
 %%  PRIVATE METHODS    
-    methods(Access=private)
+    methods(Access=protected)
        
 %% Main method calculating the contribution to the head from each model componant.
         function [h_star, colnames] = get_h_star(obj, time_points, varargin)
