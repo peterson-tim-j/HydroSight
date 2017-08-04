@@ -20,3 +20,6 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 22 May 2017
 * Error fixed in estimate of residual noise, sigma_n, for TFN and exp. models. It is now derived using the innovations, not residuals.
 * Outlier detection now uses an estimate of the residual noise that is a function of time i.e the time between prior observation and the point being assesed.
+
+4 August 2017
+* pumpingRate_SAestimation() updated and SP-UCI code and model_TFN.m edited to allow downscaling of infrequent (>daily) groundwater pumping data to daily, weeekly or monthly rates.
