@@ -855,7 +855,7 @@ classdef pumpingRate_SAestimation < forcingTransform_abstract
         end
 
 %% Simulated annealing assessment to accept or reject a calibration iteration.       
-        function accepted = acceptStochForcingSolution(obj, objFuncVal, objFuncVal_prior, stochForcingData)
+        function [stochForcingData_new, accepted] = acceptStochForcingSolution(obj, objFuncVal, objFuncVal_prior, stochForcingData)
 % acceptSolution assesses if a worse calibration iteration solution should be accepted.
 %
 % Syntax:
@@ -897,30 +897,46 @@ classdef pumpingRate_SAestimation < forcingTransform_abstract
             SAtemperatureVariables = fieldnames(obj.variables);
             filt = cellfun(@(x) ~isempty(strfind(x,'_SAtemperature')), SAtemperatureVariables);
             SAtemperatureVariables  = SAtemperatureVariables (filt);
-                
+            
+            % Get the object's current stochastic derived forcing.
+            stochForcingData_new = getStochForcingData(obj);
+            
+            % Accept stochastic forcing if the objective function is
+            % improved.
             accepted = false;
             if objFuncVal <= objFuncVal_prior
                 accepted = true;
                 
-                % Assign all input stochastic forcings to the object.
-                updateStochForcingData(obj, stochForcingData);
+                % Do nothing else. The model object already contains the 'new'
+                % stochastic derived forcing, which is in 'stochForcingData_new'.
                 
                 return;
             end
             
-            stochForcingData_tmp = struct;
-            for i=1:size(SAtemperatureVariables ,1)                                
-                acceptanceProb =  exp(-(objFuncVal-objFuncVal_prior)./obj.variables.(SAtemperatureVariables{i}));
-                if rand(1) < acceptanceProb
-                    accepted = true;
-                    pumpName = SAtemperatureVariables{i}(1:end-14);
-                    stochForcingData_tmp.(pumpName) = stochForcingData.(pumpName);
+            % This following loop assess if the stochastic forcing for each
+            % pump (as is within the class object) should be accepted or else
+            % replaced by the input stochastic forcing. 
+            if nargin>3
+                accepted = true;            
+                for i=1:size(SAtemperatureVariables ,1)                                
+                    acceptanceProb =  exp(-(objFuncVal-objFuncVal_prior)./obj.variables.(SAtemperatureVariables{i}));
+                    if rand(1) < acceptanceProb
+                        % Do nothing. The model object already contains the 'new'
+                        % stochastic derived forcing, which is in 'stochForcingData_new'.
+                    else
+                        % Stochastic forcing for pump i within the object is
+                        % rejected, so replace pump i with the input stochastuc
+                        % forcing.
+                        accepted = false;
+                        pumpName = SAtemperatureVariables{i}(1:end-14);
+                        stochForcingData_new.(pumpName) = stochForcingData.(pumpName);
+                    end
                 end
-            end
-            
-            % Update stochastic forcing for the accepted pumps. 
-            if any(accepted)
-                updateStochForcingData(obj, stochForcingData_tmp);                
+
+                % Update stochastic forcing for the accepted pumps. 
+                if ~accepted
+                    updateStochForcingData(obj, stochForcingData_new);                
+                end
             end
         end
            

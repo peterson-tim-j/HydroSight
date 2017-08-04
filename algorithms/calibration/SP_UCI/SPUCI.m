@@ -135,11 +135,6 @@ x=x(idx,:);
 % Get the initial derived forcing data
 stochDerivedForcingData_best = getStochForcingData(varargin{1});
 
-%if any(~isempty(stochDerivedForcingData_prior(:)))
-%    kstop=  kstop*5;
-%end
-
-
 % Get the derived forcing data and then conduct Gaussian Resampling 
 %[stochDerivedForcingData] = getStochForcingData(varargin{1});
 %[x, xf, icall]=GauSamp(funcHandle,funcHangle_validParams, x,xf,bl_plausible, bu_plausible,icall, stochDerivedForcingData_prior, varargin{:});
@@ -182,6 +177,7 @@ criter=[];
 criter_change=1e+5;
 xigs = [];
 bestf_ever=bestf;
+bestx_ever=bestx;
 while icall<maxn && gnrng>peps && criter_change>pcento;
     nloop=nloop+1;
     %%%%%%%%%%%%%%%%%%%%%%%%

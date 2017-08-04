@@ -1183,12 +1183,12 @@ classdef model_TFN < model_abstract
                     if any(strcmp('updateStochForcingData',methods(obj.parameters.(componantNames{i}))))
                         if nargin==1
                             updateStochForcingData(obj.parameters.(componantNames{i}));                                
-                        elseif nargin == 3
+                        elseif nargin == 2
                             forcingDataComponant = fieldnames(stochForcingData);
                             filt = strcmp(forcingDataComponant,componantNames{i});
                             forcingDataComponant=forcingDataComponant{filt};
                             updateStochForcingData(obj.parameters.(componantNames{i}),stochForcingData.(forcingDataComponant));
-                        elseif nargin==5
+                        elseif nargin==4
                             forcingDataComponant = fieldnames(stochForcingData);
                             filt = strcmp(forcingDataComponant,componantNames{i});
                             forcingDataComponant=forcingDataComponant{filt};
@@ -1988,8 +1988,12 @@ classdef model_TFN < model_abstract
         end
              
         
-        function accepted = acceptStochForcingSolution(obj, objFuncVal, objFuncVal_prior, stochForcingData)
+        function [stochForcingData_new, accepted] = acceptStochForcingSolution(obj, objFuncVal, objFuncVal_prior, stochForcingData)
 
+            % Initialse some outputs
+            %stochForcingData_new = stochForcingData;
+            stochForcingData_new=[];
+            
             % Get model componants
             companants = fieldnames(obj.parameters);
             accepted = true(size(companants,1),1);
@@ -2012,7 +2016,7 @@ classdef model_TFN < model_abstract
                         accepted(ii) = acceptStochForcingSolution(obj.parameters.(currentField), objFuncVal, objFuncVal_prior);
                     else
                         forcingDataComponant=forcingDataComponant{filt};
-                        accepted(ii) = acceptStochForcingSolution(obj.parameters.(currentField), objFuncVal, objFuncVal_prior, stochForcingData.(forcingDataComponant));
+                        [stochForcingData_new.(forcingDataComponant), accepted(ii)] = acceptStochForcingSolution(obj.parameters.(currentField), objFuncVal, objFuncVal_prior, stochForcingData.(forcingDataComponant));
                     end
                 end                
             end

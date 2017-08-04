@@ -1315,6 +1315,17 @@ classdef HydroSightModel < handle
             end
             
             
+            % Check if the model uses stochastic derived forcing. If so,
+            % then check SP-UCI is used            
+            hasStochDerivedForcing = false;
+            if ~isempty(getStochForcingData(obj))
+                hasStochDerivedForcing=true;
+            end
+            if hasStochDerivedForcing && ~any(strcmp({'SP UCI','SP_UCI','SPUCI','SP-UCI'}, calibrationSchemeName))
+                error('SP-UCI must be used for stochastic derived forcing models (e.g. pumpingRate_SAestimation()).');
+            end
+                
+            
             % Set general constants.
             obj.calibrationResults = [];
             obj.evaluationResults = [];            
@@ -1479,7 +1490,6 @@ classdef HydroSightModel < handle
             rand('seed',seed);
             
             %--------------------------------------------------------------
-
             % Do SCE calibration using the objective function SSE.m
             log_L=[];
             switch upper(calibrationSchemeName)
@@ -1570,6 +1580,10 @@ classdef HydroSightModel < handle
                     iniflg =  1;                
                     useLikelihood=false;
 
+                    if hasStochDerivedForcing
+                        kstop = kstop*5;
+                    end
+                    
                     % Do calibration                                        
                     doParamTranspose = false;
                     [params, fmin,numFunctionEvals, exitFlag, exitStatus] = SPUCI(@calibrationObjectiveFunction, @calibrationValidParameters, ...
@@ -2601,19 +2615,20 @@ classdef HydroSightModel < handle
             if any(strcmp(methods(obj.model),'updateStochForcingData'))           
                 if nargin==1
                     updateStochForcingData(obj.model);                    
-                elseif nargin==3
+                elseif nargin==2
                     updateStochForcingData(obj.model, forcingData);
-                elseif nargin==5
+                elseif nargin==4
                     updateStochForcingData(obj.model, forcingData, objFuncVal, objFuncVal_prior);                    
                 end
             end            
         end        
         
-        function accepted= acceptStochForcingSolution(obj, objFuncVal, objFuncVal_prior, derivedForcingData_prior)
-           
+        function [stochForcingData_new, accepted] = acceptStochForcingSolution(obj, objFuncVal, objFuncVal_prior, stochForcingData)
+                       
             if any(strcmp(methods(obj.model),'acceptStochForcingSolution'))
-                accepted = acceptStochForcingSolution(obj.model, objFuncVal, objFuncVal_prior, derivedForcingData_prior);
+                [stochForcingData_new, accepted] = acceptStochForcingSolution(obj.model, objFuncVal, objFuncVal_prior, stochForcingData);
             else
+                stochForcingData_new = stochForcingData; 
                 accepted  = true;
             end
             

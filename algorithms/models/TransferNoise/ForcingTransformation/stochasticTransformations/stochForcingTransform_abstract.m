@@ -20,7 +20,10 @@ classdef stochForcingTransform_abstract < forcingTransform_abstract
         
         % Assess if the current objtive function solution (objFuncVal and associated
         % parameter set) should be accepted. objFuncVal_prior should be the prior best solution. 
-        accepted = acceptSolution(obj, objFuncVal, objFuncVal_prior, stochDerivedForcingData)
+        % If objFuncVal_prior<objFuncVal, then the method may update each
+        % element of stochDerivedForcingData and return an updated
+        % stochastic derived data.
+        [stochDerivedForcingData_new, accepted] = acceptSolution(obj, objFuncVal, objFuncVal_prior, stochDerivedForcingData)
     end
     
 end
