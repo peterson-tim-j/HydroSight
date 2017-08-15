@@ -146,7 +146,9 @@ else % Contraction point
         if ~isValid || fnew > fw
             
             % Find valid parameter set.
-            while 1
+            maxIts = 100;
+            nIts=0;
+            while nIts<=maxIts 
                 sig=cov(s);
                 Dia=diag(sig);
                 sig=diag((Dia+mean(Dia))*2);
@@ -160,12 +162,19 @@ else % Contraction point
                 isValid = feval(funcHangle_validParams,snew', varargin{:});
                 if all(isValid)
                     break;
-                end                
+                end   
+                
+                % Update counter
+                nIts = nIts + 1;
             end
             
-            % Evaluate valid parameter set.
-            fnew = feval(funcHandle,snew', varargin{:});
-            icall = icall + 1;
+            % Evaluate valid parameter set, else return Inf.
+            if all(isValid)
+                fnew = feval(funcHandle,snew', varargin{:});
+                icall = icall + 1;
+            else
+                fnew = Inf;                
+            end
         elseif useDerivedForcing        
             [stochDerivedForcingData, isAccepted] = acceptStochForcingSolution(varargin{1}, fnew, fw, stochDerivedForcingData);
             %if ~isAccepted
