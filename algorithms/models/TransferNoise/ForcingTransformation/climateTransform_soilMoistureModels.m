@@ -168,7 +168,8 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
         function [variable_names] = outputForcingdata_options(inputForcingDataColNames)
             variable_names = {'drainage';'drainage_bypassFlow';'drainage_normalised';'infiltration';'evap_soil';'evap_gw_potential';'runoff';'SMS'; ...
                               'drainage_tree';'drainage_bypassFlow_tree';'drainage_normalised_tree';'infiltration_tree';'evap_soil_tree';'evap_gw_potential_tree';'runoff_tree';'SMS_tree'; ...
-                              'drainage_nontree';'drainage_bypassFlow_nontree';'drainage_normalised_nontree';'infiltration_nontree';'evap_soil_nontree';'evap_gw_potential_nontree';'runoff_nontree';'SMS_nontree'};
+                              'drainage_nontree';'drainage_bypassFlow_nontree';'drainage_normalised_nontree';'infiltration_nontree';'evap_soil_nontree'; ...
+                              'evap_gw_potential_nontree';'runoff_nontree';'SMS_nontree'};
         end
         
         function [options, colNames, colFormats, colEdits, toolTip] = modelOptions()
@@ -956,6 +957,9 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                 else
                     S_initial = obj.S_initialfrac * 10^(obj.SMSC);
                 end
+                
+                % Store the time points
+                obj.variables.t = t(filt_time);
                 
                 % Call MEX function containing soil moisture model.
                 obj.variables.SMS = forcingTransform_soilMoisture(S_initial, obj.variables.precip, obj.variables.evap, ...

@@ -848,9 +848,11 @@ classdef pumpingRate_SAestimation < forcingTransform_abstract
 % Date:
 %   June 2017
 
-            % Do nothing. The updating of the pump state in undertaken by
-            % updateStochForcingData().
-            
+            % Filter the forcing data to input t.
+            filt_time = obj.settings.forcingData(:,1) >= t(1) & obj.settings.forcingData(:,1) <= t(end);
+
+            % Store the time points
+            obj.variables.t = t(filt_time);
 
         end
 

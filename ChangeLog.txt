@@ -23,3 +23,12 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 
 4 August 2017
 * pumpingRate_SAestimation() updated and SP-UCI code and model_TFN.m edited to allow downscaling of infrequent (>daily) groundwater pumping data to daily, weeekly or monthly rates.
+
+16 August 2017
+* Bug fixed with SCE-UI while-loop for invalid params.
+
+18 August 2017
+* responseFunction_Pearsons.getParameters_physicalLimit() upperlimit for 'A' reduced to log(1/1000) in an attempt to improve est. of free drainage.
+
+18 August 2017
+* Alpha version of a new calibration results GUI. It now allows the plotting of the forcing data.

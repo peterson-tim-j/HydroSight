@@ -98,7 +98,8 @@ classdef responseFunction_Pearsons < responseFunction_abstract
         function [params_upperLimit, params_lowerLimit] = getParameters_physicalLimit(obj)
             % NOTE: The upper limit for 'b' is set to that at which
             % exp(-10^b * t) <= sqrt(eps()) where t = 1 day.
-            params_upperLimit = [inf; log10(-log(sqrt(eps()))); inf];
+            %params_upperLimit = [inf; log10(-log(sqrt(eps()))); inf];
+            params_upperLimit = [log10(1/1000); log10(-log(sqrt(eps()))); inf];        %NOTE, A upper limit set assuming, say, drainage is in mm and head in m. Hence, 1mm drainage cannot produce more than a 0.001m head rise.
             params_lowerLimit = [log10(sqrt(eps())); log10(sqrt(eps())); log10(sqrt(eps()))];
         end        
         
@@ -107,7 +108,7 @@ classdef responseFunction_Pearsons < responseFunction_abstract
         % for the calibration. These parameter ranges are only used in the 
         % calibration if the user does not input parameter ranges.
         function [params_upperLimit, params_lowerLimit] = getParameters_plausibleLimit(obj)
-            params_upperLimit = [log10(1); log10(0.1);         log10(10)          ];
+            params_upperLimit = [log10(1/1000); log10(0.1);         log10(10)          ];
             %params_lowerLimit = [log10(sqrt(eps()))+2;    log10(sqrt(eps()))+2; log10(sqrt(eps()))+2 ];
             params_lowerLimit = [-5;    -5; -2 ];
         end

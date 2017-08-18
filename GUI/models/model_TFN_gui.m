@@ -35,7 +35,7 @@ classdef model_TFN_gui < model_gui_abstract
             % Get the available modle options
             %--------------------------------------------------------------
             % Get the types of weighting function and derived weighting function
-            quickload = false;
+            quickload = true;
             if ~isdeployed && ~quickload
                 warning('off');
                 forcingFunctions = findClassDefsUsingAbstractName( 'forcingTransform_abstract', 'model_TFN');

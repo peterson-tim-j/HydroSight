@@ -6,8 +6,8 @@ classdef HydroSight_GUI < handle
     %variables. Useful in different sitionations
     properties
         % Version number
-        versionNumber = '1.2.8';
-        versionDate= '4 Aug 2017';
+        versionNumber = '1.2.7';
+        versionDate= '17 March 2017';
         
         % Model types supported
         %modelTypes = {'model_TFN','model_TFN_LOA', 'ExpSmooth'};
@@ -65,6 +65,7 @@ classdef HydroSight_GUI < handle
                 'Toolbar', 'none', ...
                 'HandleVisibility', 'off', ...
                 'Visible','off', ...
+                'Toolbar','figure', ...
                 'CloseRequestFcn',@this.onExit); 
             
             % Show splash (if code not deployed)
@@ -122,6 +123,100 @@ classdef HydroSight_GUI < handle
             uimenu(this.figure_Help, 'Label', 'Version', 'Tag','doc_Version','Callback', @this.onVersion);
             uimenu(this.figure_Help, 'Label', 'About', 'Callback', @this.onAbout );
 
+            
+            % Add tool bar
+            hToolbar = findall(this.Figure,'tag','FigureToolBar');
+            hToolbutton = findall(hToolbar,'tag','Plottools.PlottoolsOn');                        
+            hToolbutton.Visible = 'off';
+            hToolbutton.UserData = 'Plot';	
+            hToolbutton.Separator = 'off';
+            hToolbutton = findall(hToolbar,'tag','Plottools.PlottoolsOff');            
+            hToolbutton.Visible = 'off';
+            hToolbutton.UserData = 'Never';	
+            hToolbutton.Separator = 'off';
+            hToolbutton = findall(hToolbar,'tag','Annotation.InsertLegend');            
+            hToolbutton.Visible = 'off';
+            hToolbutton.UserData = 'Never';
+            hToolbutton.Separator = 'off';
+            hToolbutton = findall(hToolbar,'tag','Annotation.InsertColorbar');            
+            hToolbutton.Visible = 'off';
+            hToolbutton.UserData = 'Never';
+            hToolbutton.Separator = 'off';
+            hToolbutton = findall(hToolbar,'tag','DataManager.Linking');            
+            hToolbutton.Visible = 'off';
+            hToolbutton.UserData = 'Never';	
+            hToolbutton.Separator = 'off';
+
+            hToolbutton = findall(hToolbar,'tag','Exploration.Brushing');            
+            hToolbutton.Visible = 'off';
+            hToolbutton.UserData = 'Plot';
+            hToolbutton.Separator = 'off';
+            hToolbutton = findall(hToolbar,'tag','Exploration.DataCursor');            
+            hToolbutton.Visible = 'off';
+            hToolbutton.UserData = 'Plot';
+            hToolbutton.Separator = 'off';
+            hToolbutton = findall(hToolbar,'tag','Exploration.Rotate');            
+            hToolbutton.Visible = 'off';
+            hToolbutton.UserData = 'Never';
+            hToolbutton.Separator = 'off';
+            hToolbutton = findall(hToolbar,'tag','Exploration.Pan');            
+            hToolbutton.Visible = 'off';
+            hToolbutton.UserData = 'Plot';
+            hToolbutton.Separator = 'off';
+            hToolbutton = findall(hToolbar,'tag','Exploration.ZoomOut');            
+            hToolbutton.Visible = 'off';
+            hToolbutton.UserData = 'Plot';
+            hToolbutton.Separator = 'off';
+            hToolbutton = findall(hToolbar,'tag','Exploration.ZoomIn');            
+            hToolbutton.Visible = 'off';
+            hToolbutton.UserData = 'Plot';
+            hToolbutton.Separator = 'off';
+            hToolbutton = findall(hToolbar,'tag','Standard.PrintFigure');            
+            set(hToolbutton, 'ClickedCallback',@this.onPrint, 'TooltipString','Open the print preview window for the displayed plot ...');
+            hToolbutton.Visible = 'off';
+            hToolbutton.UserData = 'Plot';
+            hToolbutton.Separator = 'off';
+            hToolbutton = findall(hToolbar,'tag','Standard.EditPlot');            
+            hToolbutton.Visible = 'off';
+            hToolbutton.UserData = 'Plot';
+            hToolbutton.Separator = 'off';
+            
+            hToolbutton = findall(hToolbar,'tag','Standard.FileOpen');            
+            hToolbutton.Visible = 'on';
+            hToolbutton.UserData = 'Always';	                            
+            set(hToolbutton, 'ClickedCallback',@this.onOpen, 'TooltipString','Open a new project ...');
+
+            hToolbutton = findall(hToolbar,'tag','Standard.SaveFigure');            
+            hToolbutton.Visible = 'on';
+            hToolbutton.UserData = 'Always';	                            
+            set(hToolbutton, 'ClickedCallback',@this.onSave, 'TooltipString','Save current project ...');            
+            
+            % Get hidden state and show hidden children
+            oldState = get(0,'ShowHiddenHandles');
+            set(0,'ShowHiddenHandles','on')
+            
+            % Add new button for 'st folder and shift new button to the far left.
+            icon = 'foldericon.gif';
+            [cdata,map] = imread(icon);
+            map(find(map(:,1)+map(:,2)+map(:,3)==3)) = NaN;
+            cdata = ind2rgb(cdata,map);
+            uipushtool(hToolbar,'cdata',cdata, 'tooltip','Set the project folder ...','Tag','Standard.SetFolder','ClickedCallback',@this.onSetProjectFolder);
+            hToolbutton = findall(hToolbar);            
+            set(hToolbar,'Children',hToolbutton([3:length(hToolbutton), 2]));            
+                                    
+            % Add new button for help.
+            icon = 'helpicon.gif';
+            [cdata,map] = imread(icon);
+            map(find(map(:,1)+map(:,2)+map(:,3)==3)) = NaN;
+            cdata = ind2rgb(cdata,map);
+            uipushtool(hToolbar,'cdata',cdata, 'tooltip','Open help for the current tab ...', 'ClickedCallback',@this.onDocumentation);
+            
+            % Add separator.
+            hToolbar.Children(13).Separator = 'on';
+            
+            % Reset hidden state
+            set(0,'ShowHiddenHandles',oldState);
+            
             %Create Panels for different windows       
             this.figure_Layout = uiextras.TabPanel( 'Parent', this.Figure, 'Padding', ...
                 5, 'TabSize',127,'FontSize',8);
@@ -143,14 +238,16 @@ classdef HydroSight_GUI < handle
             % Project title
             hbox1t1 = uiextras.VBoxFlex('Parent', this.tab_Project.Panel,'Padding', 3, 'Spacing', 3);
             uicontrol( 'Parent', hbox1t1,'Style','text','String','Project Title: ','HorizontalAlignment','left', 'Units','normalized');            
-            this.tab_Project.project_name = uicontrol( 'Parent', hbox1t1,'Style','edit','HorizontalAlignment','left', 'Units','normalized','TooltipString','Input a project title. This is an optional input to assist project management.');            
+            this.tab_Project.project_name = uicontrol( 'Parent', hbox1t1,'Style','edit','HorizontalAlignment','left', 'Units','normalized',...
+                'TooltipString','Input a project title. This is an optional input to assist project management.');            
             
             % Empty row spacer
             uicontrol( 'Parent', hbox1t1,'Style','text','String','','Units','normalized');                      
                         
             % Project description
             uicontrol( 'Parent', hbox1t1,'Style','text','String','Project Description: ','HorizontalAlignment','left', 'Units','normalized');                      
-            this.tab_Project.project_description = uicontrol( 'Parent', hbox1t1,'Style','edit','HorizontalAlignment','left', 'Units','normalized','Min',1,'Max',100,'TooltipString','Input an extended project description. This is an optional input to assist project management.');            
+            this.tab_Project.project_description = uicontrol( 'Parent', hbox1t1,'Style','edit','HorizontalAlignment','left', 'Units','normalized', ...
+                'Min',1,'Max',100,'TooltipString','Input an extended project description. This is an optional input to assist project management.');            
             
             % Set sizes
             set(hbox1t1, 'Sizes', [20 20 20 20 -1]);
@@ -276,7 +373,7 @@ classdef HydroSight_GUI < handle
             set(this.tab_DataPrep.modelOptions.vbox,'Heights',[0 0]);
             
 %           Add context menu
-            this.Figure.UIContextMenu = uicontextmenu(this.Figure,'Visible','on');
+            this.Figure.UIContextMenu = uicontextmenu(this.Figure,'Visible','off');
             
             % Add items
             uimenu(this.Figure.UIContextMenu,'Label','Copy selected row','Callback',@this.rowAddDelete);
@@ -423,7 +520,7 @@ classdef HydroSight_GUI < handle
 
 %           Add context menu
             % Create menu
-            this.Figure.UIContextMenu = uicontextmenu(this.Figure,'Visible','on');
+            this.Figure.UIContextMenu = uicontextmenu(this.Figure,'Visible','off');
             
             % Add items
             uimenu(this.Figure.UIContextMenu,'Label','Copy selected row','Callback',@this.rowAddDelete);
@@ -486,6 +583,8 @@ classdef HydroSight_GUI < handle
             % Add table. Importantly, this is done using createTable, not
             % uitable. This was required to achieve acceptable perforamnce
             % for large tables.
+            this.tab_ModelCalibration.resultsOptions.currentTab = [];
+            this.tab_ModelCalibration.resultsOptions.currentPlot = [];                        
             this.tab_ModelCalibration.Table = createTable(vbox1t4,cnames1t4, data, false, ...
                 'ColumnFormat', cformats1t4, 'ColumnEditable', cedit1t4, ...
                 'RowName', rnames1t4, 'Tag','Model Calibration', ...
@@ -519,63 +618,129 @@ classdef HydroSight_GUI < handle
             uicontrol('Parent',hbox2t4,'String','Calibrate Selected Models','Callback', @this.onCalibModels,'Tag','useLocal', 'TooltipString', sprintf('Use the tick-box below to select the models to calibrate then click here. \n During and after calibration, the status is given in the 9th column.') );            
             uicontrol('Parent',hbox2t4,'String','Export Selected Results','Callback', @this.onExportResults, 'Tag','Model Calibration', 'TooltipString', sprintf('Export a .csv file of the calibration results from all models.') );            
             hbox2t4.ButtonSize(1) = 225;
+            
+            % Size boxe
+            set(vbox1t4, 'Sizes', [30 -1]);
                         
-            % Create vbox for the various model options
-            this.tab_ModelCalibration.modelOptions.vbox = uiextras.VBoxFlex('Parent',hbox1t4,'Padding', 3, 'Spacing', 3, 'DividerMarkings','off');
+            % Create vbox for the various model options            
+            resultsvbox = uiextras.VBoxFlex('Parent',hbox1t4,'Padding', 3, 'Spacing', 3, 'DividerMarkings','off');
                         
-            % Add drop-down for the results box
-            vbox2t4 = uiextras.VBox('Parent',this.tab_ModelCalibration.modelOptions.vbox, 'Padding', 3, 'Spacing', 3, 'Visible','on');
-            uicontrol('Parent',vbox2t4,'Style','text','String','Select calibration results to display:' );
-            this.tab_ModelCalibration.resultsOptions.popup = uicontrol('Parent',vbox2t4,'Style','popupmenu', ...
-                'String',{  'Data & residuals', ...
-                            'Parameter values', ...
-                            'Derived variables', ...
-                            'Plot parameters', ...
-                            'Plot derived parameters', ...
-                            'Simulation time series plot', ...
-                            'Residuals time series plot', ...
-                            'Histogram of calib. residuals', ...
-                            'Histogram of eval. residuals', ...
-                            'Scatter plot of obs. vs model', ...
-                            'Scatter plot of residuals vs obs', ...
-                            'Variogram of residuals', ...
+            % Add tabs for various types of results            
+            this.tab_ModelCalibration.resultsTabs = uiextras.TabPanel( 'Parent',resultsvbox, 'Padding', 5, 'TabSize',127,'FontSize',8);
+            this.tab_ModelCalibration.resultsOptions.calibPanel = uiextras.Panel( 'Parent', this.tab_ModelCalibration.resultsTabs, 'Padding', 5, ...
+                'Title', 'Calibration Results', 'Tag','CalibrationResults');            
+            this.tab_ModelCalibration.resultsOptions.forcingPanel = uiextras.Panel( 'Parent', this.tab_ModelCalibration.resultsTabs, 'Padding', 5, ...
+                'Title', 'Model Forcing Data', 'Tag','ForcingData');            
+            this.tab_ModelCalibration.resultsOptions.paramsPanel = uiextras.Panel( 'Parent', this.tab_ModelCalibration.resultsTabs, 'Padding', 5, ...
+                'Title', 'Calibrated Model Parameters', 'Tag','Parameters');            
+            this.tab_ModelCalibration.resultsOptions.modelSpecificsPanel = uiextras.Panel( 'Parent', this.tab_ModelCalibration.resultsTabs, 'Padding', 5, ...
+                'Title', 'Model Specific Results', 'Tag','ModelSpecifics');            
+            this.tab_ModelCalibration.resultsTabs.TabNames = {'Calib. Results','Forcing Data','Parameters','Model Specifics'};
+            this.tab_ModelCalibration.resultsTabs.SelectedChild = 1;
+            
+            % Build calibration results tab            
+            resultsvbox= uiextras.VBoxFlex('Parent', this.tab_ModelCalibration.resultsOptions.calibPanel,'Padding', 3, 'Spacing', 3);
+            resultsvboxTable = uiextras.Grid('Parent', resultsvbox ,'Padding', 3, 'Spacing', 3);            
+            uitable('Parent',resultsvboxTable , 'ColumnName',{'Year','Month', 'Day','Hour','Minute', 'Obs. Head','Is Calib. Point?','Mod. Head','Model Err.','Noise Lower','Noise Upper'}, ... 
+                'Data',cell(0,11), 'ColumnFormat', {'numeric','numeric','numeric','numeric', 'numeric','numeric','logical','numeric','numeric','numeric','numeric'}, ...
+                'ColumnEditable', true(1,11), 'Tag','Model Calibration - results table', ...
+                'TooltipString', 'Results data from the model calibration and evaluation.');         
+            
+            resultsvboxDropDown = uiextras.Grid('Parent', resultsvboxTable ,'Padding', 3, 'Spacing', 3);            
+            uicontrol('Parent',resultsvboxDropDown,'Style','text','String','Select the plot type:','HorizontalAlignment','left' );
+            uicontrol('Parent',resultsvboxDropDown,'Style','popupmenu', ...
+                'String',{  'Time-series of Heads', ...
+                            'Time-series of Residuals', ...
+                            'Histogram of Calib. Residuals', ...
+                            'Histogram of Eval. Residuals', ...
+                            'Obs. Head vs Modelled Head', ...
+                            'Obs. Head vs Residuals', ...
+                            'Variogram of Residuals', ...
                             '(none)'}, ...
-                'Value',13,'Callback', @this.modelCalibration_onResultsSelection);         
-            this.tab_ModelCalibration.resultsOptions.box = vbox2t4;
-            this.tab_ModelCalibration.resultsOptions.plots.panel = uiextras.BoxPanel('Parent', vbox2t4 );            
+                'Value',1,'Callback', @this.modelCalibration_onUpdatePlotSetting);                                                
+            set(resultsvboxTable, 'ColumnSizes', -1, 'RowSizes', [-1 20] );
+            uiextras.Panel('Parent', resultsvbox,'BackgroundColor',[1 1 1] );  
+            set(resultsvbox, 'Sizes', [-1 -1]);
             
-            this.tab_ModelCalibration.resultsOptions.dataTable.box = uiextras.Grid('Parent', vbox2t4,'Padding', 3, 'Spacing', 3);
-            this.tab_ModelCalibration.resultsOptions.dataTable.table = uitable('Parent',this.tab_ModelCalibration.resultsOptions.dataTable.box, ...
-                'ColumnName',{'Year','Month', 'Day','Hour','Minute', 'Obs. Head','Is Calib. Point?','Mod. Head','Model Err.','Noise Lower','Noise Upper'}, ... 
-                'Data',cell(0,11), ...
-                'ColumnFormat', {'numeric','numeric','numeric','numeric', 'numeric','numeric','logical','numeric','numeric','numeric','numeric'}, ...
-                'ColumnEditable', true(1,11), ...
-                'Tag','Model Calibration - results table', ...
-                'TooltipString', 'Results data from the model calibration and evaluation.');            
+            % Building forcing data
+            resultsvbox= uiextras.VBoxFlex('Parent', this.tab_ModelCalibration.resultsOptions.forcingPanel,'Padding', 3, 'Spacing', 3);
+            resultsvboxOptions = uiextras.Grid('Parent', resultsvbox,'Padding', 3, 'Spacing', 3);
+            uicontrol('Parent',resultsvboxOptions,'Style','text','String','Data time step:','HorizontalAlignment','left' );
+            uicontrol('Parent',resultsvboxOptions,'Style','popupmenu', 'String',{'daily','weekly','monthly','quarterly','annual','full-record'}, ...
+                'Value',1, 'Callback', @this.modelCalibration_onUpdateForcingData, ...
+                'TooltipString', ['<html>Select the time-scale for presentation of the forcing data.  <br>', ...
+                'Note, all time-scales >daily are reported as daily mean.'],'HorizontalAlignment','right');    
+            uicontrol('Parent',resultsvboxOptions,'Style','text','String','Time step metric:','HorizontalAlignment','left' );
+            uicontrol('Parent',resultsvboxOptions,'Style','popupmenu', ...
+                'String',{'sum','mean','st. dev.','variance','skew','min','5th %ile','10th %ile','25th %ile','50th %ile','75th %ile','90th %ile','95th %ile', 'max', ...
+                'inter-quantile range', 'No. zero days', 'No. <0 days', 'No. >0 day'}, ...
+                'Value',1, 'Callback', @this.modelCalibration_onUpdateForcingData, ...
+                'TooltipString', ['<html>Select calculation to apply when aggregating the daily data.  <br>', ...
+                'Note, all plots will use the resulting data.'],'HorizontalAlignment','right');    
+
+            uicontrol('Parent',resultsvboxOptions,'Style','text','String','Start date:','HorizontalAlignment','left');
+            uicontrol('Parent',resultsvboxOptions,'Style','edit','String','01/01/0001','TooltipString','Filter the data and plot to that above a data (as dd/mm/yyyy).', 'Callback', @this.modelCalibration_onUpdateForcingData );
+
+            uicontrol('Parent',resultsvboxOptions,'Style','text','String','End date:','HorizontalAlignment','left');
+            uicontrol('Parent',resultsvboxOptions,'Style','edit','String','31/12/9999','TooltipString','Filter the data and plot to that below a data (as dd/mm/yyyy).', 'Callback', @this.modelCalibration_onUpdateForcingData );
+                   
+            set(resultsvboxOptions, 'ColumnSizes', [-1 -1 -1 -1 -1 -1 -1 -1], 'RowSizes', [25] );
             
-            this.tab_ModelCalibration.resultsOptions.paramTable.box = uiextras.Grid('Parent', vbox2t4,'Padding', 3, 'Spacing', 3);
-            this.tab_ModelCalibration.resultsOptions.paramTable.table = uitable('Parent',this.tab_ModelCalibration.resultsOptions.paramTable.box, ...
+            uitable('Parent',resultsvbox, 'ColumnName',{'Year','Month', 'Day'}, ... 
+                'Data',cell(0,3), 'ColumnFormat', {'numeric','numeric','numeric'}, ...
+                'ColumnEditable', true(1,3), 'Tag','Model Calibration - forcing table', ...
+                'TooltipString', 'Forcing data from the model calibration and evaluation.');       
+            
+            resultsvboxOptions = uiextras.Grid('Parent', resultsvbox,'Padding', 3, 'Spacing', 3);
+            uicontrol('Parent',resultsvboxOptions,'Style','text','String','Plot type:' );
+            uicontrol('Parent',resultsvboxOptions,'Style','popupmenu', 'String',{'line','scatter','bar','histogram','cdf','box-plot (daily metric)', ...
+                'box-plot (monthly metric)','box-plot (quarterly metric)','box-plot (annually metric)'}, 'Value',1,'HorizontalAlignment','right', ...
+                'Callback',@this.modelCalibration_onUpdateForcingPlotType);    
+            uicontrol('Parent',resultsvboxOptions,'Style','text','String','x-axis:' );
+            uicontrol('Parent',resultsvboxOptions,'Style','popupmenu', 'String',{'Date', '(none)'}, 'Value',1,'HorizontalAlignment','right');    
+            uicontrol('Parent',resultsvboxOptions,'Style','text','String','y-axis:' );
+            uicontrol('Parent',resultsvboxOptions,'Style','popupmenu', 'String',{'Date', '(none)'}, 'Value',1,'HorizontalAlignment','right');                
+            uicontrol('Parent',resultsvboxOptions,'Style','pushbutton','String','Build plot','Callback', @this.modelCalibration_onUpdateForcingPlot, ...
+                'Tag','Model Calibration - forcing plot', 'TooltipString', 'Build the forcing plot.','ForegroundColor','blue');            
+            set(resultsvboxOptions, 'ColumnSizes', [-1 -2 -1 -2 -1 -2 -2], 'RowSizes', [25] );
+            %hbuttons = uiextras.HButtonBox('Parent',resultsvboxOptions,'Padding', 3, 'Spacing', 3);  
+            %uicontrol('Parent',hbuttons,'String','Build plot','Callback', @this.modelCalibration_onUpdatePlotSetting, ...
+            %    'Tag','Model Calibration - forcing plot', 'TooltipString', 'Build the forcing plot.','ForegroundColor','blue');            
+            
+            uiextras.Panel('Parent', resultsvbox,'BackgroundColor',[1 1 1] );             
+            set(resultsvbox, 'Sizes', [30 -1 30 -1]);
+            
+            % set selected tab and plot to 
+            this.tab_ModelCalibration.resultsOptions.currentTab = 1;
+            this.tab_ModelCalibration.resultsOptions.currentPlot = 7;
+            
+            % Build parameters tab
+            resultsvbox= uiextras.VBoxFlex('Parent', this.tab_ModelCalibration.resultsOptions.paramsPanel,'Padding', 3, 'Spacing', 3);  
+            uitable('Parent',resultsvbox, ...
                 'ColumnName',{'Component Name','Parameter Name','Value'}, ... 
                 'ColumnFormat', {'char','char','numeric'}, ...
                 'ColumnEditable', true(1,3), ...
                 'Tag','Model Calibration - parameter table', ...
-                'TooltipString', 'Model parameter estimates from the calibration.');            
+                'TooltipString', 'Model parameter estimates from the calibration.');                
+            uiextras.Panel('Parent', resultsvbox,'BackgroundColor',[1 1 1] );  
+            set(resultsvbox, 'Sizes', [-1 -2]);
             
-            this.tab_ModelCalibration.resultsOptions.derivedVariableTable.box = uiextras.Grid('Parent', vbox2t4,'Padding', 3, 'Spacing', 3);
-            this.tab_ModelCalibration.resultsOptions.derivedVariableTable.table = uitable('Parent',this.tab_ModelCalibration.resultsOptions.derivedVariableTable.box, ...
+            % Build model specific outputs tab.
+            resultsvbox= uiextras.VBoxFlex('Parent', this.tab_ModelCalibration.resultsOptions.modelSpecificsPanel,'Padding', 3, 'Spacing', 3);                        
+            resultsvboxOptions = uiextras.Grid('Parent', resultsvbox,'Padding', 3, 'Spacing', 3);            
+            uicontrol('Parent',resultsvboxOptions,'Style','text','String','Select model specific output:' );
+            uicontrol('Parent',resultsvboxOptions,'Style','popupmenu', 'String',{'(none)'},'Value',1,'Callback', @this.modelCalibration_onUpdatePlotSetting);                         
+            uitable('Parent',resultsvbox, ...
                 'ColumnName',{'Component Name','Variable Name','Derived Value'}, ... 
                 'ColumnFormat', {'char','char','numeric'}, ...
                 'ColumnEditable', true(1,3), ...
                 'Tag','Model Calibration - parameter table', ...
                 'TooltipString', 'Derived variables from the calibrated model parameter.'); 
-            
-            % Set box sizes
-            set(hbox1t4, 'Sizes', [-2 -1]);
-            set(vbox1t4, 'Sizes', [30 -1]);
-            set(vbox2t4, 'Sizes', [30 20 0 0 0 0]);
+            uiextras.Panel('Parent', resultsvbox,'BackgroundColor',[1 1 1] );  
+            set(resultsvbox, 'Sizes', [30 -1 -2]);                                                            
                         
 %           Add context menu
-            this.Figure.UIContextMenu = uicontextmenu(this.Figure,'Visible','on');
+            this.Figure.UIContextMenu = uicontextmenu(this.Figure,'Visible','off');
             uimenu(this.Figure.UIContextMenu,'Label','Copy selected row','Callback',@this.rowAddDelete);
             uimenu(this.Figure.UIContextMenu,'Label','Paste rows','Callback',@this.rowAddDelete,'Separator','on');
             uimenu(this.Figure.UIContextMenu,'Label','Select all','Callback',@this.rowSelection);
@@ -690,7 +855,7 @@ classdef HydroSight_GUI < handle
             set(vbox2t5, 'Sizes', [30 20 0 0]);
                         
 %           Add context menu
-            this.Figure.UIContextMenu = uicontextmenu(this.Figure,'Visible','on');
+            this.Figure.UIContextMenu = uicontextmenu(this.Figure,'Visible','off');
             uimenu(this.Figure.UIContextMenu,'Label','Copy selected row','Callback',@this.rowAddDelete);
             uimenu(this.Figure.UIContextMenu,'Label','Paste rows','Callback',@this.rowAddDelete,'Separator','on');
             uimenu(this.Figure.UIContextMenu,'Label','Insert row above selection','Callback',@this.rowAddDelete);
@@ -721,6 +886,29 @@ classdef HydroSight_GUI < handle
             this.figure_Layout.Selection = 1;
             set(this.Figure,'Visible','on');
         end
+
+        % Show show plotting icons
+        function plotToolbarState(this,iconState)
+            hToolbar = findall(this.Figure,'tag','FigureToolBar');
+            hToolbutton = findall(hToolbar,'tag','Exploration.Brushing');            
+            hToolbutton.Visible = 'off';
+            hToolbutton = findall(hToolbar,'tag','Exploration.DataCursor');            
+            hToolbutton.Visible = iconState;
+            hToolbutton = findall(hToolbar,'tag','Exploration.Rotate');            
+            hToolbutton.Visible = 'off';
+            hToolbutton = findall(hToolbar,'tag','Exploration.Pan');            
+            hToolbutton.Visible = iconState;
+            hToolbutton = findall(hToolbar,'tag','Exploration.ZoomOut');            
+            hToolbutton.Visible = iconState;
+            hToolbutton = findall(hToolbar,'tag','Exploration.ZoomIn');            
+            hToolbutton.Visible = iconState;
+            hToolbutton = findall(hToolbar,'tag','Standard.PrintFigure');            
+            hToolbutton.Visible = iconState;
+            hToolbutton = findall(hToolbar,'tag','Standard.EditPlot');            
+            hToolbutton.Visible = 'off';            
+            hToolbutton = findall(hToolbar,'tag','Plottools.PlottoolsOn');            
+            hToolbutton.Visible = 'off';          
+        end        
         
         % Set project folder
         function onSetProjectFolder(this,hObject,eventdata)
@@ -1651,6 +1839,9 @@ classdef HydroSight_GUI < handle
                             
                             % SHow results
                             this.tab_DataPrep.modelOptions.resultsOptions.box.Heights = [-1 -1];
+                            
+                            % SHow plot icons
+                            plotToolbarState(this,'on');
                         else
                             this.tab_DataPrep.modelOptions.vbox.Heights = [0; 0];
                         end
@@ -1811,6 +2002,9 @@ classdef HydroSight_GUI < handle
         %Cell selection response for tab 1 - model construction
         function modelConstruction_tableSelection(this, hObject, eventdata)
             
+            % Hide plotting toolbars
+            plotToolbarState(this, 'off');
+            
             % Get table indexes
             icol=eventdata.Indices(:,2);
             irow=eventdata.Indices(:,1);                        
@@ -1820,6 +2014,9 @@ classdef HydroSight_GUI < handle
                 return
             end
             
+            % Hide the adjacent panels
+            this.tab_ModelConstruction.modelOptions.vbox.Heights = [0; 0; 0; 0];
+                        
             % Remove HTML tags from the column name
             columnName = HydroSight_GUI.removeHTMLTags(eventdata.Source.ColumnName{icol});
 
@@ -1952,7 +2149,7 @@ classdef HydroSight_GUI < handle
                      this.tab_ModelConstruction.modelDescriptions.String = modelDecription; 
 
                      % Show the description.
-                     this.tab_ModelConstruction.modelOptions.vbox.Heights = [0; -1 ; 0; 0; 0];
+                     this.tab_ModelConstruction.modelOptions.vbox.Heights = [0; -1 ; 0; 0];
 
                 case 'Model Options'
                     % Check the preceeding inputs have been defined.
@@ -2002,7 +2199,7 @@ classdef HydroSight_GUI < handle
                          case 'model_TFN'
                             this.tab_ModelConstruction.modelOptions.vbox.Heights = [0; 0;-1; 0];
                          case 'ExpSmooth'
-                            this.tab_ModelConstruction.modelOptions.vbox.Heights = [0; 0; 0; -1];
+                            this.tab_ModelConstruction.modelOptions.vbox.Heights = [0; 0; 0; 0];
                          otherwise
                              this.tab_ModelConstruction.modelOptions.vbox.Heights =[0; 0; 0; 0];
                      end
@@ -2040,6 +2237,10 @@ classdef HydroSight_GUI < handle
         end
         
         function modelConstruction_tableEdit(this, hObject, eventdata)
+            
+            % Hide plotting toolbars
+            plotToolbarState(this, 'off');            
+            
             icol=eventdata.Indices(:,2);
             irow=eventdata.Indices(:,1);                        
             
@@ -2190,6 +2391,13 @@ classdef HydroSight_GUI < handle
             irow=eventdata.Indices(:,1);            
             data=get(hObject,'Data'); % get the data cell array of the table
             
+            % Reset stored daily forcing data.
+            this.tab_ModelCalibration.resultsOptions.forcingData.data_input = [];
+            this.tab_ModelCalibration.resultsOptions.forcingData.data_derived = [];
+            this.tab_ModelCalibration.resultsOptions.forcingData.colnames_input = {};
+            this.tab_ModelCalibration.resultsOptions.forcingData.colnames_derived = {};
+            this.tab_ModelCalibration.resultsOptions.forcingData.filt=[];
+            
             % Exit if no cell is selected.
             if isempty(icol) && isempty(irow)
                 return
@@ -2205,7 +2413,8 @@ classdef HydroSight_GUI < handle
             % Exit if no results are to be viewed and none of the following are to columns edits
             if ~(strcmp(columnName, 'Calib. Start Date') || strcmp(columnName, 'Calib. End Date'))                  
                 if isfield(this.tab_ModelCalibration,'resultsOptions')
-                    if this.tab_ModelCalibration.resultsOptions.popup.Value==13
+                    if isempty(this.tab_ModelCalibration.resultsOptions.currentTab) || ...
+                    isempty(this.tab_ModelCalibration.resultsOptions.currentPlot)
                         return;                    
                     end
                 else
@@ -2295,13 +2504,7 @@ classdef HydroSight_GUI < handle
                 drawnow update;                   
                 return;
             end            
-            
-            % If no results are requested to be displayed then exit.
-            if this.tab_ModelCalibration.resultsOptions.popup.Value==13
-                set(this.Figure, 'pointer', 'arrow');   
-                drawnow update;                                   
-                return;
-            end                        
+                         
                         
             % Find index to the calibrated model label within the
             % list of constructed models.
@@ -2309,20 +2512,211 @@ classdef HydroSight_GUI < handle
                 set(this.Figure, 'pointer', 'arrow');   
                 drawnow update;                                   
                 return;
-            end                        
-            calibLabel = HydroSight_GUI.removeHTMLTags(data{irow,2}); 
+            end
+            
+            % Find the curretn model label
+            calibLabel = HydroSight_GUI.removeHTMLTags(data{this.tab_ModelConstruction.currentRow,2});             
+            this.tab_ModelConstruction.currentModel = calibLabel;
             
             % Get a copy of the model object. This is only done to
             % minimise HDD read when the models are off loaded to HDD using
             % matfile();
             tmpModel = getModel(this, calibLabel);
+            
+            
+            % Update table of data
+            %-------------------------------------------------------------
+            % Display the requested calibration results if the model object
+            % exists and there are calibration results.
+            if ~isempty(tmpModel) ...
+            && isfield(tmpModel.calibrationResults,'isCalibrated') ...
+            && tmpModel.calibrationResults.isCalibrated        
+                        
+                    % Show a table of calibration data
+                    %---------------------------------
+                    % Get the model calibration data.
+                    tableData = tmpModel.calibrationResults.data.obsHead;
+                    hasModelledDistn = false;
+                    if size(tmpModel.calibrationResults.data.modelledHead,2)>2
+                        hasModelledDistn = true;
+                    end
+                    if hasModelledDistn
+                        tableData = [tableData, ones(size(tableData,1),1), tmpModel.calibrationResults.data.modelledHead(:,2), ...
+                            tmpModel.calibrationResults.data.modelledHead(:,3),tmpModel.calibrationResults.data.modelledHead(:,4), ...                                
+                            double(tmpModel.calibrationResults.data.modelledHead_residuals(:,2:4)), ...
+                            tmpModel.calibrationResults.data.modelledNoiseBounds(:,end-1:end)];                            
+                    else
+                        tableData = [tableData, ones(size(tableData,1),1), tmpModel.calibrationResults.data.modelledHead(:,2), ...
+                            double(tmpModel.calibrationResults.data.modelledHead_residuals(:,end)), ...
+                            tmpModel.calibrationResults.data.modelledNoiseBounds(:,end-1:end)];
+                    end
+                    % Get evaluation data
+                    if isfield(tmpModel.evaluationResults,'data')
+                        % Get data
+                        evalData = tmpModel.evaluationResults.data.obsHead;
+                        if hasModelledDistn
+                            evalData = [evalData, zeros(size(evalData,1),1), tmpModel.evaluationResults.data.modelledHead(:,2), ...
+                                tmpModel.evaluationResults.data.modelledHead(:,3), tmpModel.evaluationResults.data.modelledHead(:,4), ...
+                                double(tmpModel.evaluationResults.data.modelledHead_residuals(:,2:4)), ...
+                                tmpModel.evaluationResults.data.modelledNoiseBounds(:,end-1:end)];
+
+                        else
+                            evalData = [evalData, zeros(size(evalData,1),1), tmpModel.evaluationResults.data.modelledHead(:,2), ...
+                                double(tmpModel.evaluationResults.data.modelledHead_residuals(:,end)), ...
+                                tmpModel.evaluationResults.data.modelledNoiseBounds(:,end-1:end)];
+                        end
+                        % Append to table of calibration data and sort
+                        % by time.
+                        tableData = [tableData; evalData];
+                        tableData = sortrows(tableData, 1);
+                    end
+
+                    % Calculate year, month, day etc
+                    tableData = [year(tableData(:,1)), month(tableData(:,1)), day(tableData(:,1)), hour(tableData(:,1)), minute(tableData(:,1)), tableData(:,2:end)];
+
+                    % COnvert table to a cell array so that the logical
+                    % variables can be displayed.
+                    tableData = [num2cell(tableData(:,1:6)), num2cell( tableData(:,7)==true), num2cell(tableData(:,8:end))];
+
+                    % Add data to the table.
+                    this.tab_ModelCalibration.resultsOptions.calibPanel.Children.Contents(1).Contents(1).Data = tableData;  
+
+                    if hasModelledDistn
+                        this.tab_ModelCalibration.resultsOptions.dataTable.table.ColumnName = {'Year','Month', 'Day','Hour','Minute', 'Obs. Head','Is Calib. Point?','Mod. Head (50th %ile)','Mod. Head (5th %ile)','Mod. Head (95th %ile)','Model Residual (50th %ile)','Model Residual (5th %ile)','Model Residual (95th %ile)','Total Err. (5th %ile)','Total Err. (95th %ile)'};
+                    else
+                        this.tab_ModelCalibration.resultsOptions.dataTable.table.ColumnName = {'Year','Month', 'Day','Hour','Minute', 'Obs. Head','Is Calib. Point?','Mod. Head','Model Residual','Total Err. (5th %ile)','Total Err. (95th %ile)'};
+                    end
+                    
+                    % Update calibration plot
+                    modelCalibration_onUpdatePlotSetting(this);
+                    %---------------------------------
+
+                    % Show model parameter data
+                    %---------------------------------
+                    %Get parameters and names 
+                    [paramValues, paramsNames] = getParameters(tmpModel.model);  
+
+                    % Add to the table
+                    this.tab_ModelCalibration.resultsOptions.paramsPanel.Children.Children(2).Data = cell(size(paramValues,1),size(paramValues,2)+2);
+                    this.tab_ModelCalibration.resultsOptions.paramsPanel.Children.Children(2).Data(:,1) = paramsNames(:,1);
+                    this.tab_ModelCalibration.resultsOptions.paramsPanel.Children.Children(2).Data(:,2) = paramsNames(:,2);
+                    this.tab_ModelCalibration.resultsOptions.paramsPanel.Children.Children(2).Data(:,3:end) = num2cell(paramValues);
+
+                    nparams=size(paramValues,2);                        
+                    colnames = cell(nparams+2,1);
+                    colnames{1,1}='Component Name';
+                    colnames{2,1}='Parameter Name';
+                    colnames(3:end,1) = strcat(repmat({'Parm. Set '},1,nparams)',num2str([1:nparams]'));
+                    this.tab_ModelCalibration.resultsOptions.paramsPanel.Children.Children(2).ColumnName = colnames;
+                    %---------------------------------                    
+                    
+                    % Show model forcing data
+                    %---------------------------------                                        
+                    % Get the input forcing data
+                    [tableData, forcingData_colnames] = getForcingData(tmpModel);
+                    
+                    % Get the model derived forcing data
+                    if size(paramValues,2)>1
+                        % Get forcing data from the first parameter set
+                        setParameters(tmpModel.model,paramValues(:,1), paramsNames);  
+                        [tableData_derived_tmp, forcingData_colnames_derived] = getDerivedForcingData(tmpModel.model,tableData(:,1));                                        
+
+                        % Initialise derived forcing data matrix
+                        tableData_derived = nan(size(tableData_derived_tmp,1),size(tableData_derived_tmp,2), size(paramValues,2));
+                        tableData_derived(:,:,1) = tableData_derived_tmp;
+                        clear tableData_derived_tmp;
+                        
+                        % Change cursor
+                        set(this.Figure, 'pointer', 'watch');   
+                        drawnow update;                         
+                        
+                        % Derive forcing using parfor. 
+                        % Note, the use of a waitbar with parfor is adapted
+                        % from http://au.mathworks.com/matlabcentral/newsreader/view_thread/166139                        
+                        poolobj = gcp('nocreate');
+                        matlabpoolsize = max(1,poolobj.NumWorkers);
+                        nparamSets = size(paramValues,2);
+                        nLoops = 10;
+                        nparamSetsPerLoop =  ceil(nparamSets/nLoops);
+                        startInd = 0;
+                        h = waitbar(0, ['Calculating transformed forcing for ', num2str(size(paramValues,2)), ' parameter sets. Please wait ...']);
+                        t = tableData(:,1);                        
+                        % do a for loop that is big enough to do all necessary iterations
+                        
+                        for n=1:nLoops ;
+                            startInd = min(startInd + (n-1)*nparamSetsPerLoop+1,nparamSets);
+                            endInd = min(startInd +nparamSetsPerLoop,nparamSets);
+                            parfor z = startInd:endInd 
+                                setParameters(tmpModel.model,paramValues(:,z), paramsNames);  
+                                tableData_derived(:,:,z) = getDerivedForcingData(tmpModel.model,t);    
+                            end
+                            % update waitbar each "matlabpoolsize"th iteration
+                            waitbar(n/nLoops);
+                        end
+                        close(h);                                                                    
+
+                        % Change cursor
+                        set(this.Figure, 'pointer', 'watch');   
+                        drawnow update;                         
+                        
+                        % Reset all parameters
+                        setParameters(tmpModel.model,paramValues, paramsNames);  
+                       
+                        % Clear model object
+                        clear tmpModel
+                        
+                    else
+                        [tableData_derived, forcingData_colnames_derived] = getDerivedForcingData(tmpModel.model,tableData(:,1)); 
+                    end
+
+                    % Calculate year, month, day etc
+                    t = datetime(tableData(:,1), 'ConvertFrom','datenum');
+                    tableData = [year(t), quarter(t), month(t), week(t,'weekofyear'), day(t), tableData(:,2:end)];                    
+                    forcingData_colnames = {'Year','Quarter','Month','Week','Day', forcingData_colnames{2:end}};
+                    
+                    % Store the daily forcing data. This is just done to
+                    % avoid re-loading the model within updateForcingData()
+                    % and updateForcinfPlot().
+                    this.tab_ModelCalibration.resultsOptions.forcingData.data_input = tableData;
+                    this.tab_ModelCalibration.resultsOptions.forcingData.data_derived = tableData_derived;
+                    this.tab_ModelCalibration.resultsOptions.forcingData.colnames_input = forcingData_colnames;
+                    this.tab_ModelCalibration.resultsOptions.forcingData.colnames_derived = forcingData_colnames_derived;
+                    this.tab_ModelCalibration.resultsOptions.forcingData.filt=true(size(tableData,1),1);
+                                  
+                    % Free up RAM
+                    clear tableData_derived tableData
+                    
+                    % Update table and plots
+                    modelCalibration_onUpdateForcingData(this)
+                    %---------------------------------
+                                        
+            end
+                           
+            % Change cursor
+            set(this.Figure, 'pointer', 'arrow');      
+            drawnow update;            
+        end                
+        
+        function modelCalibration_onUpdatePlotSetting(this, hObject, eventdata)
+            
+            % Get selected popup menu item
+            plotID = this.tab_ModelCalibration.resultsOptions.calibPanel.Children.Contents(1).Contents(2).Contents(2).Value;
+            
+            % Get a copy of the model object. This is only done to
+            % minimise HDD read when the models are off loaded to HDD using
+            % matfile();
+            tmpModel = getModel(this, this.tab_ModelConstruction.currentModel);
 
             % Exit if model not found.
             if isempty(tmpModel)    
+                % Turn off plot icons
+                plotToolbarState(this,'off');  
+                
+                % Change cursor
                 set(this.Figure, 'pointer', 'arrow');   
-                drawnow update;                                   
+                drawnow update;                                                   
                 return;
-            end                                  
+            end                                             
             
             % Display the requested calibration results if the model object
             % exists and there are calibration results.
@@ -2330,210 +2724,935 @@ classdef HydroSight_GUI < handle
             && isfield(tmpModel.calibrationResults,'isCalibrated') ...
             && tmpModel.calibrationResults.isCalibrated        
                 
-                % Get pop up menu item for the selection of results to
-                % display.
-                results_item = this.tab_ModelCalibration.resultsOptions.popup.Value;
+                % Plot calibration result.
+                %-----------------------
+                % Create an axis handle for the figure.
+                delete( findobj(this.tab_ModelCalibration.resultsOptions.calibPanel.Children.Children(1).Children,'type','axes'));
+                delete( findobj(this.tab_ModelCalibration.resultsOptions.calibPanel.Children.Children(1).Children,'type','legend'));     
+                delete( findobj(this.tab_ModelCalibration.resultsOptions.calibPanel.Children.Children(1).Children,'type','uipanel'));     
                 
-        
-                switch results_item
-                    case 1
-                        % Show a table of calibration data
-                        
-                        % Get the model calibration data.
-                        tableData = tmpModel.calibrationResults.data.obsHead;
-                        hasModelledDistn = false;
-                        if size(tmpModel.calibrationResults.data.modelledHead,2)>2
-                            hasModelledDistn = true;
-                        end
-                        if hasModelledDistn
-                            tableData = [tableData, ones(size(tableData,1),1), tmpModel.calibrationResults.data.modelledHead(:,2), ...
-                                tmpModel.calibrationResults.data.modelledHead(:,3),tmpModel.calibrationResults.data.modelledHead(:,4), ...                                
-                                double(tmpModel.calibrationResults.data.modelledHead_residuals(:,2:4)), ...
-                                tmpModel.calibrationResults.data.modelledNoiseBounds(:,end-1:end)];                            
-                        else
-                            tableData = [tableData, ones(size(tableData,1),1), tmpModel.calibrationResults.data.modelledHead(:,2), ...
-                                double(tmpModel.calibrationResults.data.modelledHead_residuals(:,end)), ...
-                                tmpModel.calibrationResults.data.modelledNoiseBounds(:,end-1:end)];
-                        end
-                        % Get evaluation data
-                        if isfield(tmpModel.evaluationResults,'data')
-                            % Get data
-                            evalData = tmpModel.evaluationResults.data.obsHead;
-                            if hasModelledDistn
-                                evalData = [evalData, zeros(size(evalData,1),1), tmpModel.evaluationResults.data.modelledHead(:,2), ...
-                                    tmpModel.evaluationResults.data.modelledHead(:,3), tmpModel.evaluationResults.data.modelledHead(:,4), ...
-                                    double(tmpModel.evaluationResults.data.modelledHead_residuals(:,2:4)), ...
-                                    tmpModel.evaluationResults.data.modelledNoiseBounds(:,end-1:end)];
-                                
-                            else
-                                evalData = [evalData, zeros(size(evalData,1),1), tmpModel.evaluationResults.data.modelledHead(:,2), ...
-                                    double(tmpModel.evaluationResults.data.modelledHead_residuals(:,end)), ...
-                                    tmpModel.evaluationResults.data.modelledNoiseBounds(:,end-1:end)];
-                            end
-                            % Append to table of calibration data and sort
-                            % by time.
-                            tableData = [tableData; evalData];
-                            tableData = sortrows(tableData, 1);
-                        end
-                        
-                        % Calculate year, month, day etc
-                        tableData = [year(tableData(:,1)), month(tableData(:,1)), day(tableData(:,1)), hour(tableData(:,1)), minute(tableData(:,1)), tableData(:,2:end)];
-                        
-                        % COnvert table to a cell array so that the logical
-                        % variables can be displayed.
-                        tableData = [num2cell(tableData(:,1:6)), num2cell( tableData(:,7)==true), num2cell(tableData(:,8:end))];
-                        
-                        % Add data to the table.
-                        this.tab_ModelCalibration.resultsOptions.dataTable.table.Data = tableData;  
-                        
-                        if hasModelledDistn
-                            this.tab_ModelCalibration.resultsOptions.dataTable.table.ColumnName = {'Year','Month', 'Day','Hour','Minute', 'Obs. Head','Is Calib. Point?','Mod. Head (50th %ile)','Mod. Head (5th %ile)','Mod. Head (95th %ile)','Model Residual (50th %ile)','Model Residual (5th %ile)','Model Residual (95th %ile)','Total Err. (5th %ile)','Total Err. (95th %ile)'};
-                        else
-                            this.tab_ModelCalibration.resultsOptions.dataTable.table.ColumnName = {'Year','Month', 'Day','Hour','Minute', 'Obs. Head','Is Calib. Point?','Mod. Head','Model Residual','Total Err. (5th %ile)','Total Err. (95th %ile)'};
-                        end
-                    case 2
-                        % Show model parameters
-                        
-                        %Get parameters and names 
-                        [paramValues, paramsNames] = getParameters(tmpModel.model);  
-                        
-                        % Add to the table
-                        this.tab_ModelCalibration.resultsOptions.paramTable.table.Data = cell(size(paramValues,1),size(paramValues,2)+2);
-                        this.tab_ModelCalibration.resultsOptions.paramTable.table.Data(:,1) = paramsNames(:,1);
-                        this.tab_ModelCalibration.resultsOptions.paramTable.table.Data(:,2) = paramsNames(:,2);
-                        this.tab_ModelCalibration.resultsOptions.paramTable.table.Data(:,3:end) = num2cell(paramValues);
-                        
-                        nparams=size(paramValues,2);                        
-                        colnames = cell(nparams+2,1);
-                        colnames{1,1}='Component Name';
-                        colnames{2,1}='Parameter Name';
-                        colnames(3:end,1) = strcat(repmat({'Parm. Set '},1,nparams)',num2str([1:nparams]'));
-                        this.tab_ModelCalibration.resultsOptions.paramTable.table.ColumnName = colnames;
-                        
-                    case 3
-                        % Show derived model variables
-                        
-                        %Get parameters and names 
-                        [paramValues, paramsNames] = getDerivedParameters(tmpModel.model);  
-                        
-                        % Add to the table
-                        this.tab_ModelCalibration.resultsOptions.derivedVariableTable.table.Data = cell(size(paramValues,1),size(paramValues,2)+2);                        
-                        this.tab_ModelCalibration.resultsOptions.derivedVariableTable.table.Data(:,1) = paramsNames(:,1);
-                        this.tab_ModelCalibration.resultsOptions.derivedVariableTable.table.Data(:,2) = paramsNames(:,2);
-                        this.tab_ModelCalibration.resultsOptions.derivedVariableTable.table.Data(:,3:end) = num2cell(paramValues);                        
-                        
-                        nparams=size(paramValues,2);                        
-                        colnames = cell(nparams+2,1);
-                        colnames{1,1}='Component Name';
-                        colnames{2,1}='Derived Variable Name';
-                        colnames(3:end,1) = strcat(repmat({'Parm. Set '},1,nparams)',num2str([1:nparams]'));
-                        this.tab_ModelCalibration.resultsOptions.derivedVariableTable.table.ColumnName = colnames;                        
-                                                                        
-                    case 4
-                        %Get parameters and names 
-                        [paramValues, paramsNames] = getParameters(tmpModel.model);                          
-                        paramsNames  = strrep(paramsNames(:,2), '_',' ');
-                        
-                        % Create an axis handle for the figure.
-                        delete( findobj(this.tab_ModelCalibration.resultsOptions.plots.panel.Children,'type','axes'));
-                        delete( findobj(this.tab_ModelCalibration.resultsOptions.plots.panel.Children,'type','legend'));     
-                        delete( findobj(this.tab_ModelCalibration.resultsOptions.plots.panel.Children,'type','uipanel'));     
-                        h = uipanel('Parent', this.tab_ModelCalibration.resultsOptions.plots.panel );
-                        axisHandle = axes( 'Parent', h);
-                        
-                        if size(paramValues,2)==1
-                            bar(axisHandle,paramValues);
-                            set(axisHandle, 'xTickLabel', paramsNames,'FontSize',8,'xTickLabelRotation',45);
-                            ylabel(axisHandle,'Param. value');
-                        else
-                            % A bug seems to occur when the builtin plotmatrix is ran to produce a plot inside a GUI 
-                            % whereby the default fig menu items and icons
-                            % appear. The version of plotmatrix below has a
-                            % a few lines commented out to supress this
-                            % proble,m (see lines 232-236)                            
-                            [~, ax] = plotmatrix(axisHandle,paramValues', '.');      
-                            for i=1:size(ax,1)
-                                ylabel(ax(i,1), paramsNames(i),'FontSize',8);
-                                xlabel(ax(end,i), paramsNames(i),'FontSize',8);
-                            end
-                        end
-                        
-                    case 5
-                        %Get derived parameters and names 
-                        [paramValues, paramsNames] = getDerivedParameters(tmpModel.model);  
-                        paramsNames  = strrep(paramsNames(:,2), '_',' ');
+                h = uipanel('Parent', this.tab_ModelCalibration.resultsOptions.calibPanel.Children.Children(1));
+                %h = uipanel('Parent', this.tab_ModelCalibration.resultsOptions.plots.panel );
+                axisHandle = axes( 'Parent', h);
+                % Show the calibration plots. NOTE: QQ plot type
+                % fails so is skipped
+                if plotID<=4
+                    calibrateModelPlotResults(tmpModel, plotID, axisHandle);
+                else
+                    calibrateModelPlotResults(tmpModel, plotID+1, axisHandle);
+                end                                
+                
+                % Plot parameters
+                %-----------------------
+                [paramValues, paramsNames] = getParameters(tmpModel.model);                          
+                paramsNames  = strrep(paramsNames(:,2), '_',' ');
 
-                        % Create an axis handle for the figure.
-                        delete( findobj(this.tab_ModelCalibration.resultsOptions.plots.panel.Children,'type','axes'));
-                        delete( findobj(this.tab_ModelCalibration.resultsOptions.plots.panel.Children,'type','legend'));     
-                        delete( findobj(this.tab_ModelCalibration.resultsOptions.plots.panel.Children,'type','uipanel'));     
-                        h = uipanel('Parent', this.tab_ModelCalibration.resultsOptions.plots.panel );
-                        axisHandle = axes( 'Parent', h);
-                        
-                        if size(paramValues,2)==1
-                            bar(axisHandle,paramValues);
-                            set(axisHandle, 'xTickLabel', paramsNames,'FontSize',8,'xTickLabelRotation',45);
-                        else
-                            % A bug seems to occur when the builtin plotmatrix is ran to produce a plot inside a GUI 
-                            % whereby the default fig menu items and icons
-                            % appear. The version of plotmatrix below has a
-                            % a few lines commented out to supress this
-                            % proble,m (see lines 232-236)                            
-                            [~, ax] = plotmatrix(axisHandle,paramValues', '.');      
-                            for i=1:size(ax,1)
-                                ylabel(ax(i,1), paramsNames(i),'FontSize',8);
-                                xlabel(ax(end,i), paramsNames(i),'FontSize',8);
-                            end
-                        end
-                        
-                    case {6, 7, 8, 9, 10, 11, 12}
-                        % Create an axis handle for the figure.
-                        delete( findobj(this.tab_ModelCalibration.resultsOptions.plots.panel.Children,'type','axes'));
-                        delete( findobj(this.tab_ModelCalibration.resultsOptions.plots.panel.Children,'type','legend'));     
-                        delete( findobj(this.tab_ModelCalibration.resultsOptions.plots.panel.Children,'type','uipanel'));     
-                        h = uipanel('Parent', this.tab_ModelCalibration.resultsOptions.plots.panel );
-                        axisHandle = axes( 'Parent', h);
-                        % Show the calibration plots. NOTE: QQ plot type
-                        % fails so is skipped
-                        if results_item<=9
-                            calibrateModelPlotResults(tmpModel, results_item-5, axisHandle);
-                        else
-                            calibrateModelPlotResults(tmpModel, results_item-4, axisHandle);
-                        end
+                % Create an axis handle for the figure.
+                delete( findobj(this.tab_ModelCalibration.resultsOptions.paramsPanel.Children.Children(1),'type','axes'));
+                %delete( findobj(this.tab_ModelCalibration.resultsOptions.paramsPanel.Children.Children(2),'type','legend'));     
+                %delete( findobj(this.tab_ModelCalibration.resultsOptions.paramsPanel.Children.Children(2),'type','uipanel'));     
+                %h = uipanel('Parent', this.tab_ModelCalibration.resultsOptions.paramsPanel.Children.Children(2));
+                axisHandle = axes( 'Parent',this.tab_ModelCalibration.resultsOptions.paramsPanel.Children.Children(1));
 
-                    case 13
-                        % do nothing
-                end
-                % update figure;
+                if size(paramValues,2)==1
+                    bar(axisHandle,paramValues);
+                    set(axisHandle, 'xTickLabel', paramsNames,'FontSize',8,'xTickLabelRotation',45);
+                    ylabel(axisHandle,'Param. value');
+                else
+                    % A bug seems to occur when the builtin plotmatrix is ran to produce a plot inside a GUI 
+                    % whereby the default fig menu items and icons
+                    % appear. The version of plotmatrix below has a
+                    % a few lines commented out to supress this
+                    % proble,m (see lines 232-236)                            
+                    [~, ax] = plotmatrix(axisHandle,paramValues', '.');      
+                    for i=1:size(ax,1)
+                        ylabel(ax(i,1), paramsNames(i),'FontSize',8);
+                        xlabel(ax(end,i), paramsNames(i),'FontSize',8);
+                    end
+                end                
+                
                 drawnow update;
-            else
-                this.tab_ModelCalibration.resultsOptions.box.Heights = [30 20 0 0 0 0];
+            end
+           
+            % Turn on plot icons
+            plotToolbarState(this,'on');            
+
+            % Chane cursor
+            set(this.Figure, 'pointer', 'arrow');   
+            drawnow update;           
+        end
+        
+        function modelCalibration_onUpdateForcingData(this, hObject, eventdata)
+            
+            % Get time step value
+            timestepID = this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(1).Contents(2).Value;
+            
+            % Get the calculate for the time stepa aggregation
+            calcID = this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(1).Contents(4).Value;
+            calcString = this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(1).Contents(4).String;
+            calcString = calcString{calcID};
+            
+            % check the start and end dates
+            sdate = this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(1).Contents(6).String;
+            edate = this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(1).Contents(8).String;
+            try
+                if isempty(sdate)
+                    sdate = datetime('01/01/0001','InputFormat','dd/MM/yyyy');
+                else
+                    sdate=datetime(sdate,'InputFormat','dd/MM/yyyy');
+                end
+            catch me
+               errordlg('The start date does not appear to be in the correct format of dd/mm/yyy.','Input date error ...');
+               return;
+            end
+            try
+                if isempty(edate)
+                    edate= datetime('31/12/9999','InputFormat','dd/MM/yyyy');
+                else                
+                    edate = datetime(edate,'InputFormat','dd/MM/yyyy');
+                end
+            catch me
+               errordlg('The end date does not appear to be in the correct format of dd/mm/yyy.','Input date error ...');
+               return;
+            end            
+            if sdate > edate
+               errordlg('The end date must be after the start date.','Input date error ...');
+               return;                
+            end            
+                        
+            % Get daily input forcing data.
+            tableData = this.tab_ModelCalibration.resultsOptions.forcingData.data_input;
+            forcingData_colnames = this.tab_ModelCalibration.resultsOptions.forcingData.colnames_input;
+                       
+            % Exit if no data
+            if isempty(tableData)
+                return;
             end
             
-            set(this.Figure, 'pointer', 'arrow');   
-            drawnow update;                   
+            % Change cursor
+            set(this.Figure, 'pointer', 'watch');      
+            drawnow update;
             
-        end                
-        
-        function modelCalibration_onResultsSelection(this, hObject, eventdata)
+            % Get daily model derived forcing data.
+            tableData_derived = this.tab_ModelCalibration.resultsOptions.forcingData.data_derived;
+            forcingData_colnames_derived = this.tab_ModelCalibration.resultsOptions.forcingData.colnames_derived;            
+                        
+            % Filter the table data by the input dates
+            t = datetime(tableData(:,1),tableData(:,2),tableData(:,3));
+            filt = t>=sdate & t<=edate;
+            tableData = tableData(filt,:);
+            if length(size(tableData_derived))==3
+                tableData_derived = tableData_derived(filt,:,:);
+            else
+                tableData_derived = tableData_derived(filt,:);
+            end
             
-            % Get selected popup menu item
-            listSelection = get(hObject,'Value');
-                         
-            switch listSelection
-                case 1 %Data & residuals
-                    this.tab_ModelCalibration.resultsOptions.box.Heights = [30 20 0 -1 0 0];
-                case 2 %Parameters
-                    this.tab_ModelCalibration.resultsOptions.box.Heights = [30 20 0 0 -1 0];                    
-                case 3 %Derived variables
-                    this.tab_ModelCalibration.resultsOptions.box.Heights = [30 20 0 0 0 -1];                                                           
-                case {4, 5, 6, 7, 8, 9, 10, 11, 12} %Summary plots
-                    this.tab_ModelCalibration.resultsOptions.box.Heights = [30 20 -1 0 0 0];
-                otherwise %None
-                    this.tab_ModelCalibration.resultsOptions.box.Heights = [30 20 0 0 0 0];
+            % Add filter to object for plotting            
+            this.tab_ModelCalibration.resultsOptions.forcingData.filt = filt;                        
+            
+            % Build foring data at requtested time step
+            switch timestepID
+                case 1  %daily
+                    ind = [1:size(tableData,1)]';
+                case 2  % weekly
+                     [~,~,ind] = unique(tableData(:,[1,4]),'rows');                           
+                case 3  % monthly
+                    [~,~,ind] = unique(tableData(:,[1,3]),'rows');                        
+                case 4  % quarterly
+                    [~,~,ind] = unique(tableData(:,[1,2]),'rows');                        
+                case 5  % annually
+                    [~,~,ind] = unique(tableData(:,1),'rows');                        
+                case 6  % all data
+                    ind = ones(size(tableData,1),1);
+                otherwise
+                    error('Unknown forcing data time ste.')
             end
 
+            % Set function for aggregation equation
+            switch calcID             
+                case 1  % sum
+                    fhandle = @sum;                    
+                case 2
+                    fhandle = @mean;
+                case 3
+                    fhandle = @std;
+                case 4
+                    fhandle = @var;
+                case 5
+                    fhandle = @skewness;
+                case 6
+                    fhandle = @min;
+                case {7,8,9,10,11,12,13}
+                    p = str2num(calcString(1:length(calcString)-7));
+                    fhandle = @(x) prctile(x,p);
+                case 14
+                    fhandle = @max;
+                case 15
+                    fhandle = @iqr;                    
+                case 16
+                    fhandle = @(x) sum(x==0);
+                case 17
+                    fhandle = @(x) sum(x<0);
+                case 18
+                    fhandle = @(x) sum(x>0);
+                otherwise
+                    error('Equation for the aggregation of daily data is unkown.');
+            end
+            
+            % Upscale input data
+            %----------
+            % Only upacale the data if the time step is greater than daily
+            if timestepID>1            
+                tableData_noDates = tableData(:,6:end);
+                [rowidx, colidx] = ndgrid(ind, 1:size(tableData_noDates, 2)) ;
+                upscaledData = accumarray([rowidx(:) colidx(:)], tableData_noDates(:), [], fhandle);                
+            else
+                upscaledData = tableData(:,6:end);
+            end
+            
+            % Upscale derived data and compine with upscaled input data
+            if length(size(tableData_derived))==3
+                % Build colume names without %iles
+                forcingData_colnames_yaxis = {forcingData_colnames{:}, forcingData_colnames_derived{:}};
+                
+                % Upscale derived data
+                for i=1:1:size(tableData_derived, 2)
+                    % Only upscale the data if the time step is greater than daily
+                    if timestepID>1                                
+                        [rowidx, colidx, depthidx] = ndgrid(ind, 1, 1:size(tableData_derived, 3));
+                        upscaledData_derived_prctiles = tableData_derived(:,i,:);
+                        upscaledData_derived_prctiles = accumarray([rowidx(:) colidx(:) depthidx(:)], upscaledData_derived_prctiles(:), [], fhandle);                
+                    else
+                        upscaledData_derived_prctiles = tableData_derived(:,i,:);
+                    end
+                
+                    % Calculate percentiles for the upscaled data
+                    upscaledData_derived_prctiles = prctile( upscaledData_derived_prctiles,[5 10 25 50 75 90 95],3);
+                    upscaledData_derived_prctiles = permute(upscaledData_derived_prctiles,[1 3 2]);
+
+                    % Merge input forcing and percentiles of upsaled derived
+                    % forcing
+                    upscaledData = [upscaledData, upscaledData_derived_prctiles];
+                    
+                    
+                    % Build column names
+                    forcingData_colnames = {forcingData_colnames{:}, ...
+                                            [forcingData_colnames_derived{i},'-05th%ile'], ...
+                                            [forcingData_colnames_derived{i},'-10th%ile'], ...
+                                            [forcingData_colnames_derived{i},'-25th%ile'], ...
+                                            [forcingData_colnames_derived{i},'-50th%ile'], ...
+                                            [forcingData_colnames_derived{i},'-75th%ile'], ...
+                                            [forcingData_colnames_derived{i},'-90th%ile'], ...
+                                            [forcingData_colnames_derived{i},'-95th%ile']};                
+                end
+                                                            
+            else    % Upscale derived data
+                                
+                % Only upscale the data if the time step is greater than daily
+                if timestepID>1                                                
+                    [rowidx, colidx] = ndgrid(ind, 1:size(tableData_derived, 2)) ;
+                    upscaledData_derived = accumarray([rowidx(:) colidx(:)], tableData_derived(:), [], fhandle);                
+                    upscaledData = [upscaledData, upscaledData_derived];
+                else
+                    upscaledData = [upscaledData, tableData_derived];
+                end
+                
+                forcingData_colnames = {forcingData_colnames{:}, forcingData_colnames_derived{:}};
+                forcingData_colnames_yaxis = forcingData_colnames;
+            end
+            
+            % Build date column.
+            tableData_year = accumarray(ind,tableData(:,1),[],@max);
+            tableData_quarter = accumarray(ind,tableData(:,2),[],@max);
+            tableData_month = accumarray(ind,tableData(:,3),[],@max);            
+            tableData_week = accumarray(ind,tableData(:,4),[],@max);                            
+            tableData_day = accumarray(ind,tableData(:,5),[],@max);
+            
+            % Build new table
+            tableData = [tableData_year, tableData_quarter, tableData_month, tableData_week, tableData_day, upscaledData];
+            
+            % Add to the table
+            this.tab_ModelCalibration.resultsOptions.forcingPanel.Children.Children(3).Data = tableData;
+            this.tab_ModelCalibration.resultsOptions.forcingPanel.Children.Children(3).ColumnName = forcingData_colnames;
+
+            % Get the plotting type
+            plotType_val = this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(3).Contents(2).Value;
+            plotType = this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(3).Contents(2).String;
+            plotType = plotType{plotType_val};            
+                        
+            % Update the drop-down x and y axis options
+            if any(strfind(plotType,'box-plot'))
+                forcingData_colnames_xaxis = {'Date','(none)'};
+            else
+                %ind = strfind(forcingData_colnames,'th%ile');
+                %forcingData_colnames(k>0)=forcingData_colnames(k>0){1:k-3};
+                forcingData_colnames_xaxis = {'Date', forcingData_colnames_yaxis{6:end},'(none)'};
+            end
+            forcingData_colnames_yaxis = {'Date', forcingData_colnames_yaxis{6:end},'(none)'};
+            this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(3).Contents(4).String = forcingData_colnames_xaxis;
+            this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(3).Contents(6).String = forcingData_colnames_yaxis;
+
+            % Update forcing plot
+            modelCalibration_onUpdateForcingPlot(this)
+            
+            % Change cursor
+            set(this.Figure, 'pointer', 'arrow');      
+            drawnow update;
+            
         end
+
+        function modelCalibration_onUpdateForcingPlotType(this, hObject, eventdata)
+            
+            % Get the forcing data columns
+            forcingData_colnames = {this.tab_ModelCalibration.resultsOptions.forcingData.colnames_input{:}, ...
+                this.tab_ModelCalibration.resultsOptions.forcingData.colnames_derived{:} };            
+            
+           % Remove those with %iles
+           filt = cellfun(@(x) ~isempty(strfind(x,'-05th%ile')) || ...
+                  ~isempty(strfind(x,'-10th%ile')) || ...
+                  ~isempty(strfind(x,'-25th%ile')) || ...                                   
+                  ~isempty(strfind(x,'-50th%ile')) || ...                                   
+                  ~isempty(strfind(x,'-75th%ile')) || ...                                   
+                  ~isempty(strfind(x,'-90th%ile')) || ...                                   
+                  ~isempty(strfind(x,'-95th%ile')) ...                                   
+                  ,forcingData_colnames);       
+            if any(filt)
+                forcingData_colnames_wpcntiles = forcingData_colnames(filt);  
+                forcingData_colnames_wpcntiles = cellfun(@(x) x(1:length(x) - 9),forcingData_colnames_wpcntiles);
+                forcingData_colnames_wpcntiles = unique(forcingData_colnames_wpcntiles );
+                forcingData_colnames = {forcingData_colnames{~filt}, forcingData_colnames_wpcntiles{:}};
+            end
+              
+              
+            % Get the plotting type
+            plotType_val = this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(3).Contents(2).Value;
+            plotType = this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(3).Contents(2).String;
+            plotType = plotType{plotType_val};
+            
+            % Update the drop-down x and y axis options
+            if any(strfind(plotType,'box-plot'))
+                this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(3).Contents(4).Value = 1;
+                forcingData_colnames_xaxis = {'Date','(none)'};
+            else
+                forcingData_colnames_xaxis = {'Date', forcingData_colnames{6:end},'(none)'};
+            end
+            forcingData_colnames_yaxis = {'Date', forcingData_colnames{6:end},'(none)'};
+            
+            
+            this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(3).Contents(4).String = forcingData_colnames_xaxis ;
+            this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(3).Contents(6).String = forcingData_colnames_yaxis;
+            
+        end
+        
+        function modelCalibration_onUpdateForcingPlot(this, hObject, eventdata)
+            
+            % Change cursor
+            set(this.Figure, 'pointer', 'watch');      
+            drawnow update;
+                        
+            % Turn on plot icons
+            plotToolbarState(this,'on');
+            
+            % Get the calculate for the time step aggregation
+            calcID = this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(1).Contents(4).Value;
+            calcString = this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(1).Contents(4).String;
+            calcString = calcString{calcID};            
+            
+            % Get the user plotting settings
+            plotType_options = this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(3).Contents(2).String;
+            plotType_val = this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(3).Contents(2).Value;
+            
+            xaxis_options = this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(3).Contents(4).String;
+            xaxis_val = min(this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(3).Contents(4).Value, ...
+                        length(this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(3).Contents(4).String));
+            
+            yaxis_options = this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(3).Contents(6).String;
+            yaxis_val = min(this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(3).Contents(6).Value, ...
+                        length(this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(3).Contents(6).String));
+                        
+            % Get the data
+            tableData = this.tab_ModelCalibration.resultsOptions.forcingPanel.Children.Children(3).Data;
+            forcingData_colnames = this.tab_ModelCalibration.resultsOptions.forcingPanel.Children.Children(3).ColumnName;
+            
+            % Calc date
+            if xaxis_val==1 || yaxis_val==1
+                forcingDates = datetime(tableData(:,1), tableData(:,3), tableData(:,5));
+            end
+            
+            %Check if a box plot is to be created
+            plotType_isBoxPlot = false;
+            if plotType_val>=6 && plotType_val<=9
+                plotType_isBoxPlot = true;
+            end
+            
+            % Get axis data
+            xdataHasErrorVals =  false;
+            ydataHasErrorVals =  false;
+            if xaxis_val==1
+                xdata = forcingDates;
+                xdataLabel = 'Date';
+            elseif xaxis_val~=length(xaxis_options)
+                
+               % Get the data type to plot
+               xdataLabel = xaxis_options{xaxis_val};
+                
+               % Find the  data columns with the requsted name and extract
+               % comulns of data.
+               filt = cellfun(@(x) ~isempty(strfind(x,[xdataLabel,'-05th%ile'])) || ...
+                      ~isempty(strfind(x,[xdataLabel,'-10th%ile'])) || ...
+                      ~isempty(strfind(x,[xdataLabel,'-25th%ile'])) || ...                                   
+                      ~isempty(strfind(x,[xdataLabel,'-50th%ile'])) || ...                                   
+                      ~isempty(strfind(x,[xdataLabel,'-75th%ile'])) || ...                                   
+                      ~isempty(strfind(x,[xdataLabel,'-90th%ile'])) || ...                                   
+                      ~isempty(strfind(x,[xdataLabel,'-95th%ile'])) ...                                   
+                      ,forcingData_colnames);   
+               if ~any(filt)
+                    filt =  strcmp(forcingData_colnames,xdataLabel);
+               end                  
+               xdata =  tableData(:,filt);
+               xdataHasErrorVals = sum(filt)>1;
+                               
+               % Build the y-label
+               xSeriesLabel = forcingData_colnames(filt);               
+               xSeriesLabel = strrep(xSeriesLabel,'_',' ');
+               xdataLabel = strrep(xdataLabel,'_',' ');
+               if ~plotType_isBoxPlot 
+                xdataLabel = [calcString,' of ',xaxis_options{xaxis_val}];
+                xdataLabel = strrep(xdataLabel,'_',' ');
+               end
+            else
+               xdata = [];
+               xdataLabel = '(none)';
+            end
+            if yaxis_val==1
+                ydata = forcingDates;
+                ydataLabel = 'Date';
+            elseif yaxis_val~=length(yaxis_options)
+               % Get the data type to plot
+               ydataLabel = yaxis_options{yaxis_val};
+                
+               % Find the  data columns with the requsted name and extract
+               % comulns of data.
+               filt = cellfun(@(x) ~isempty(strfind(x,[ydataLabel,'-05th%ile'])) || ...
+                      ~isempty(strfind(x,[ydataLabel,'-10th%ile'])) || ...
+                      ~isempty(strfind(x,[ydataLabel,'-25th%ile'])) || ...                                   
+                      ~isempty(strfind(x,[ydataLabel,'-50th%ile'])) || ...                                   
+                      ~isempty(strfind(x,[ydataLabel,'-75th%ile'])) || ...                                   
+                      ~isempty(strfind(x,[ydataLabel,'-90th%ile'])) || ...                                   
+                      ~isempty(strfind(x,[ydataLabel,'-95th%ile'])) ...                                   
+                      ,forcingData_colnames);               
+               if ~any(filt)
+                    filt =  strcmp(forcingData_colnames,ydataLabel);
+               end
+               ydata =  tableData(:,filt);
+               ydataHasErrorVals = sum(filt)>1;
+               
+               % Build the y-label and series label
+               ySeriesLabel = forcingData_colnames(filt);               
+               ySeriesLabel = strrep(ySeriesLabel,'_',' ');
+               ydataLabel = strrep(ydataLabel,'_',' ');
+               if ~plotType_isBoxPlot 
+                ydataLabel = [calcString,' of ',ydataLabel];
+               end
+            else
+               ydata = [];
+               ydataLabel = '(none)';                
+            end
+            
+            % Check if uss date for either axis            
+            xdata_isdate=false;
+            ydata_isdate=false;
+            if isdatetime(xdata)                        
+                xdata_isdate=true;
+            end
+            if isdatetime(ydata)            
+                ydata_isdate=true;
+            end            
+            
+            % Create an axis handle for the figure.
+            delete( findobj(this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(4),'type','axes'));
+            %h = uipanel('Parent', this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(4),'BackgroundColor','white');            
+            axisHandle = axes( 'Parent',this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(4));            
+                        
+            switch plotType_val
+                case {1,2}     
+                    plotSymbol = 'b.-';
+                    if plotType_val==2
+                        plotSymbol = 'b.';
+                    end
+                    if xdataHasErrorVals && ydataHasErrorVals
+                        plot(axisHandle,xdata, ydata(:,4),plotSymbol);
+                        hold(axisHandle,'on');
+                        try
+                            errorbar(axisHandle,xdata(:,4), ydata(:,4), abs(ydata(:,1)-ydata(:,4)), abs(ydata(:,7)-ydata(:,4)), ...
+                            abs(xdata(:,1)-xdata(:,4)), abs(xdata(:,7)-xdata(:,4)),'linestyle','none','color',[0.6 0.6 0.6]);                        
+                        catch
+                            errorbar(axisHandle,xdata(:,4), ydata(:,4), abs(ydata(:,1)-ydata(:,4)), abs(ydata(:,7)-ydata(:,4)), ...
+                                'linestyle','none','color',[0.6 0.6 0.6]);                                                    
+                        end
+                        legend(axisHandle, 'median','5-95th%ile','Location', 'northeastoutside');
+                        hold(axisHandle,'off');
+                    elseif ~xdataHasErrorVals && xdata_isdate && ydataHasErrorVals
+
+                        if xdata_isdate
+                            xdata = datenum(xdata);
+                        end
+                        XFill = [xdata' fliplr(xdata')];
+                        YFill = [ydata(:,1)', fliplr(ydata(:,7)')];                   
+                        fill(XFill, YFill,[0.8 0.8 0.8],'Parent',axisHandle);
+                        hold(axisHandle,'on');                    
+                        YFill = [ydata(:,2)', fliplr(ydata(:,6)')];                   
+                        fill(XFill, YFill,[0.6 0.6 0.6],'Parent',axisHandle);                    
+                        hold(axisHandle,'on');
+                        YFill = [ydata(:,3)', fliplr(ydata(:,5)')];                   
+                        fill(XFill, YFill,[0.4 0.4 0.4],'Parent',axisHandle);                    
+                        hold(axisHandle,'on');
+                        clear XFill YFill     
+
+                        plot(axisHandle,xdata, ydata(:,4),plotSymbol);
+                        hold(axisHandle,'off');
+                        
+                        % Date date axis. NOTE, code adaopted from dateaxis.m.
+                        % Pre-2016B dateaxis did not allow input of axis
+                        % handle.                        
+                        if xdata_isdate;
+                            dateaxis_local(axisHandle,'x');
+                        end
+                        if ydata_isdate;
+                            dateaxis_local(axisHandle,'y');
+                        end                
+                        legend(axisHandle, '5-95th%ile','10-90th%ile','25-75th%ile','median','Location', 'northeastoutside');
+                    elseif ~xdataHasErrorVals && ~xdata_isdate && ydataHasErrorVals                        
+                        plot(axisHandle,xdata, ydata(:,4),plotSymbol);
+                        hold(axisHandle,'on');
+                        errorbar(axisHandle,xdata, ydata(:,4), abs(ydata(:,1)-ydata(:,4)), abs(ydata(:,7)-ydata(:,4)),'linestyle','none','color',[0.6 0.6 0.6]);
+                        legend(axisHandle, 'median','5-95th%ile','Location', 'northeastoutside');
+                        hold(axisHandle,'off');                 
+                    elseif xdataHasErrorVals && ~ydataHasErrorVals            
+                        plot(axisHandle,xdata, ydata(:,4),plotSymbol);
+                        try
+                            hold(axisHandle,'on');
+                            errorbar(axisHandle,xdata(:,4), ydata, ...
+                            abs(xdata(:,1)-xdata(:,4)), abs(xdata(:,7)-xdata(:,4)), 'ornt','horizontal','linestyle','none','color',[0.6 0.6 0.6]);                                                
+                        catch
+                            % do nothing
+                        end           
+                        legend(axisHandle, 'median','5-95th%ile','Location', 'northeastoutside');
+                        hold(axisHandle,'off');
+                    else
+                        plot(axisHandle,xdata, ydata,plotSymbol);
+                        axis(axisHandle,'tight');                                                
+                    end
+                    xlabel(axisHandle,xdataLabel);  
+                    ylabel(axisHandle,ydataLabel);             
+                    
+                case 3
+                    if strcmp(xdataLabel,'(none)') || strcmp(ydataLabel,'(none)')
+                        errordlg('A bar plot requires both x-axis and y-axis inputs.','Axis selection error...');
+                        
+                        % Change cursor
+                        set(this.Figure, 'pointer', 'arrow');      
+                        drawnow update;
+                                                
+                        return;
+                    end
+                    if xdata_isdate
+                        xdata=datenum(xdata);
+                        if ydataHasErrorVals
+                            bar(axisHandle,xdata, ydata(:,4)); 
+                        else
+                            bar(axisHandle,xdata, ydata);
+                        end
+                    end
+                    if ydata_isdate
+                        ydata=datenum(ydata);
+                        if xdataHasErrorVals
+                            barh(axisHandle,ydata, xdata(:,4));
+                        else
+                            barh(axisHandle,ydata, xdata);
+                        end
+                    end                
+                    if ~xdata_isdate && ~ydata_isdate
+                        errordlg('A bar plot requires either the x-axis or y-axis to be "Date".','Axis selection error...');
+                        
+                        % Change cursor
+                        set(this.Figure, 'pointer', 'arrow');      
+                        drawnow update;                        
+                        
+                        return;
+                    end
+                    
+                    if xdataHasErrorVals && ~xdata_isdate
+                        try
+                            hold(axisHandle,'on');
+                            errorbar(axisHandle,xdata(:,4), ydata, ...
+                            abs(xdata(:,1)-xdata(:,4)), abs(xdata(:,7)-xdata(:,4)), 'ornt','horizontal','linestyle','none','color',[0.6 0.6 0.6]);                                                
+                            legend(axisHandle, 'median','5-95th%ile','Location', 'northeastoutside');
+                        catch
+                            % do nothing
+                        end           
+                        hold(axisHandle,'off');
+                    elseif ydataHasErrorVals && ~ydata_isdate
+                        hold(axisHandle,'on');
+                        errorbar(axisHandle,xdata, ydata(:,4), ...
+                        abs(ydata(:,1)-ydata(:,4)), abs(ydata(:,7)-ydata(:,4)),'linestyle','none','color',[0.6 0.6 0.6]);                                                
+                        legend(axisHandle, 'median','5-95th%ile','Location', 'northeastoutside');
+                        hold(axisHandle,'off');
+                    end
+                                                            
+                    xlabel(axisHandle,xdataLabel);  
+                    ylabel(axisHandle,ydataLabel);    
+                    % Date date axis. NOTE, code adaopted from dateaxis.m.
+                    % Pre-2016B dateaxis did not allow input of axis
+                    % handle.
+                    if xdata_isdate;
+                        dateaxis_local(axisHandle,'x');
+                    end
+                    if ydata_isdate;
+                        dateaxis_local(axisHandle,'y');
+                    end
+                    axis(axisHandle,'tight');
+                case 4                    
+                    if strcmp(ydataLabel,'(none)')
+                        if xdataHasErrorVals
+                            xdata=xdata(:,4);
+                        end
+                        histogram(axisHandle,xdata, floor(sqrt(length(xdata))),'Normalization','probability');
+                        ylabel(axisHandle,'Probability');             
+                        xlabel(axisHandle,xdataLabel);     
+                        if xdataHasErrorVals
+                            legend(axisHandle, 'Distribution of median','Location', 'northeastoutside');
+                        end
+                    elseif strcmp(xdataLabel,'(none)')
+                        if ydataHasErrorVals
+                            ydata=ydata(:,4);
+                        end                        
+                        histogram(axisHandle,ydata, floor(sqrt(length(ydata))),'Normalization','probability');
+                        ylabel(axisHandle,'Probability');             
+                        xlabel(axisHandle,ydataLabel);                  
+                        if ydataHasErrorVals
+                            legend(axisHandle, 'Distribution of median','Location', 'northeastoutside');
+                        end                        
+                    elseif ~strcmp(xdataLabel,'(none)') && ~strcmp(xdataLabel,'(none)')
+                        % Plot median value
+                        if xdataHasErrorVals
+                            xdata=xdata(:,4);
+                        end                        
+                        if ydataHasErrorVals
+                            ydata=ydata(:,4);
+                        end                        
+                                                
+                        % Convert date is to be plotted
+                        if xdata_isdate
+                            xdata=datenum(xdata);
+                        end
+                        if ydata_isdate
+                            ydata=datenum(ydata);
+                        end
+                        
+                        % Make bivariate histogram
+                        histogram2(axisHandle,xdata,ydata, floor(sqrt(length(xdata))), 'DisplayStyle','tile','ShowEmptyBins','on','Normalization','probability');
+                        h = colorbar(axisHandle);
+                        xlabel(axisHandle,xdataLabel);  
+                        ylabel(axisHandle,ydataLabel);                  
+                        ylabel(h,'Probability'); 
+                        box(axisHandle,'on');
+                        
+                        % Date date axis. NOTE, code adaopted from dateaxis.m.
+                        % Pre-2016B dateaxis did not allow input of axis
+                        % handle.                        
+                        if xdata_isdate;
+                            dateaxis_local(axisHandle,'x');
+                        end
+                        if ydata_isdate;
+                            dateaxis_local(axisHandle,'y');
+                        end
+                        if xdataHasErrorVals || ydataHasErrorVals
+                            legend(axisHandle, 'Distribution of median','Location', 'northeastoutside');
+                        end                        
+                    end
+                case 5
+                    % Convert date is to be plotted
+                    if xdata_isdate
+                        xdata=datenum(xdata);
+                    end
+                    if ydata_isdate
+                        ydata=datenum(ydata);
+                    end
+
+                    % Make CDF plot
+                    if strcmp(ydataLabel,'(none)')
+                        if xdataHasErrorVals
+                            [f, xtmp] = ecdf(xdata(:,1));                            
+                            plot(axisHandle, xtmp, f,'linestyle',':','color',[0.8 0.8 0.8]);                            
+                            hold(axisHandle,'on');
+                            [f, xtmp] = ecdf(xdata(:,2));                            
+                            plot(axisHandle, xtmp, f,'linestyle','-.','color',[0.6 0.6 0.6]);                            
+                            [f, xtmp] = ecdf(xdata(:,3));                            
+                            plot(axisHandle, xtmp, f,'linestyle','--','color',[0.4 0.4 0.4]);                                                        
+                            [f, xtmp] = ecdf(xdata(:,4));
+                            plot(axisHandle, xtmp, f,'b.-');
+                            [f, xtmp] = ecdf(xdata(:,5));                            
+                            plot(axisHandle, xtmp, f,'linestyle','--','color',[0.4 0.4 0.4]);                            
+                            [f, xtmp] = ecdf(xdata(:,6));                            
+                            plot(axisHandle, xtmp, f,'linestyle','-.','color',[0.6 0.6 0.6]);                                                        
+                            [f, xtmp] = ecdf(xdata(:,7));                            
+                            plot(axisHandle, xtmp, f,'linestyle',':','color',[0.8 0.8 0.8]);                            
+                            legend(axisHandle,' 5th%ile','10th%ile','25th%ile','50th%ile','75th%ile','90th%ile','95th%ile','Location', 'northeastoutside');
+                            hold(axisHandle,'off');
+                        else
+                            [f, xdata] = ecdf(xdata);
+                            stairs(axisHandle, xdata, f,'b.-');
+                        end
+                        ylabel(axisHandle,'Probability');             
+                        xlabel(axisHandle,xdataLabel);                  
+                    elseif strcmp(xdataLabel,'(none)')
+                        [f, xdata] = ecdf(ydata);
+                        stairs(axisHandle, xdata, f,'b.-');
+                        ylabel(axisHandle,'Probability');  
+                        xlabel(axisHandle,ydataLabel);                  
+                    elseif ~strcmp(xdataLabel,'(none)') && ~strcmp(xdataLabel,'(none)')
+                        % Plot median value
+                        if xdataHasErrorVals
+                            xdata=xdata(:,4);
+                        end                        
+                        if ydataHasErrorVals
+                            ydata=ydata(:,4);
+                        end                        
+                                                
+                        histogram2(axisHandle,xdata,ydata, floor(sqrt(length(xdata))), 'DisplayStyle','tile','ShowEmptyBins','on','Normalization','cdf');
+                        h = colorbar(axisHandle);
+                        xlabel(axisHandle,xdataLabel);                  
+                        ylabel(axisHandle,ydataLabel);                  
+                        ylabel(h,'Probability'); 
+                        box(axisHandle,'on');
+                        
+                        if xdataHasErrorVals || ydataHasErrorVals
+                            legend(axisHandle, 'Distribution of median','Location', 'northeastoutside');
+                        end                            
+                    end
+                    
+                    % Date date axis. NOTE, code adaopted from dateaxis.m.
+                    % Pre-2016B dateaxis did not allow input of axis
+                    % handle.                        
+                    if xdata_isdate;
+                        dateaxis_local(axisHandle,'x');
+                    end
+                    if ydata_isdate;
+                        dateaxis_local(axisHandle,'y');
+                    end                       
+                case {6,7,8,9}      % Box plots at daily sum, monthly sum, 1/4 sum, annual sum
+                    
+                    if ydataHasErrorVals || xdataHasErrorVals
+                        errordlg('HydroSight cannot create box plots of ensemble data (ie as derived from DREAM calibation).', 'Feature unavailable ...')
+                        
+                        % Change cursor
+                        set(this.Figure, 'pointer', 'arrow');      
+                        drawnow update;                        
+                        
+                        return
+                    end
+                    
+                    % Check the x-axis is date
+                    if xdata_isdate                  
+                        xdata=datenum(xdata);
+                    else
+                        errordlg('The x-axis must plot the "Date" for box plots.','Axis selection error...');
+                        
+                        % Change cursor
+                        set(this.Figure, 'pointer', 'arrow');      
+                        drawnow update;                        
+                        
+                        return;
+                    end
+                    if isdatetime(ydata)
+                        errordlg('Only the x-axis can set to "Date" for box plots.','Axis selection error...');
+
+                        % Change cursor
+                        set(this.Figure, 'pointer', 'arrow');      
+                        drawnow update;                        
+                        
+                        return;
+                    end
+
+                    % Get the daily data and apply time filter
+                    tableData = [this.tab_ModelCalibration.resultsOptions.forcingData.data_input, ...
+                                 this.tab_ModelCalibration.resultsOptions.forcingData.data_derived];                    
+                    forcingData_colnames = {this.tab_ModelCalibration.resultsOptions.forcingData.colnames_input{:}, ...
+                                this.tab_ModelCalibration.resultsOptions.forcingData.colnames_derived{:} };            
+
+                    filt  = this.tab_ModelCalibration.resultsOptions.forcingData.filt;
+                    tableData = tableData(filt,:);
+                    
+                    % re-extract ydata
+                    ydata = tableData(:,yaxis_val+4);
+    
+                    % Calculate time steps                    
+                    tableData = [tableData(:,1:5),ydata];                    
+                    forcingData_colnames = {forcingData_colnames{1:5}, ydataLabel};                    
+                 
+                    % Get the calculate for the time stepa aggregation
+                    calcID = this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(1).Contents(4).Value;
+                    calcString = this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(1).Contents(4).String;
+                    calcString = calcString{calcID};                    
+                    
+                    % Set function for aggregation equation
+                    switch calcID             
+                        case 1  % sum
+                            fhandle = @sum;                    
+                        case 2
+                            fhandle = @mean;
+                        case 3
+                            fhandle = @std;
+                        case 4
+                            fhandle = @var;
+                        case 5
+                            fhandle = @skewness;
+                        case 6
+                            fhandle = @min;
+                        case {7,8,9,10,11,12,13}
+                            p = str2num(calcString(1:length(calcString)-7));
+                            fhandle = @(x) prctile(x,p);
+                        case 14
+                            fhandle = @max;
+                        case 15
+                            fhandle = @iqr;                    
+                        otherwise
+                            error('Equation for the aggregation of daily data is unkown.');
+                    end
+
+                    
+                    % Sum the data to the required sum time step
+                    switch plotType_val
+                        case 6  %daily
+                            ind = [1:size(tableData,1)]';
+                            ydataLabel = [ydataLabel, ' (daily rate)'];
+                        case 7  % monthly
+                            [~,~,ind] = unique(tableData(:,[1,3]),'rows');
+                            ydataLabel = [ydataLabel, ' (monthly ',calcString,')'];
+                        case 8  % quarterly
+                            [~,~,ind] = unique(tableData(:,[1,2]),'rows');   
+                            ydataLabel = [ydataLabel, ' (quarterly ',calcString,')'];
+                        case 9  % annually
+                            [~,~,ind] = unique(tableData(:,1),'rows');                        
+                            ydataLabel = [ydataLabel, ' (annual ',calcString,')'];
+                        otherwise
+                            error('Unknown type of box plot.')
+                    end
+                    tableData_sum = accumarray(ind,tableData(:,end),[],fhandle);
+
+                    % Build date column and new tableData.
+                    tableData_year = accumarray(ind,tableData(:,1),[],@max);
+                    tableData_quarter = accumarray(ind,tableData(:,2),[],@max);
+                    tableData_month = accumarray(ind,tableData(:,3),[],@max);            
+                    tableData_week = accumarray(ind,tableData(:,4),[],@max);                            
+                    tableData_day = accumarray(ind,tableData(:,5),[],@max);
+                    tableData = [tableData_year, tableData_quarter, tableData_month, tableData_week, tableData_day, tableData_sum];
+                    
+                    % Get time step value
+                    timestepID = this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(1).Contents(2).Value;
+                    
+                    % Group the y-data to the next greatest time step
+                    % Build foring data at requtested time step
+
+                    % Build foring data at requtested time step
+                    switch timestepID
+                        case 1  %daily
+                            ind = [1:size(tableData,1)]';                            
+                        case 2  % weekly
+                             [~,~,ind] = unique(tableData(:,[1,4]),'rows');                         
+                             xdataTickLabels = 'dd/mm/yy'; 
+                             xdataLabel = 'Date';
+                        case 3  % monthly
+                            [~,~,ind] = unique(tableData(:,[1,3]),'rows');                        
+                            xdataTickLabels = 'mmyy';      
+                            xdataLabel = 'Month-Year';
+                        case 4  % quarterly
+                            [~,~,ind] = unique(tableData(:,[1,2]),'rows');                            
+                            xdataTickLabels = 'QQ-YY';
+                            xdataLabel = 'Quarter-Year';
+                        case 5  % annually
+                            [~,~,ind] = unique(tableData(:,1),'rows');                              
+                            xdataTickLabels = 'YY';
+                            xdataLabel = 'Year';
+                        case 6  % all data
+                            ind = ones(size(tableData,1),1);
+                            xdataTickLabels = '';
+                            xdataLabel = '';
+                        otherwise
+                            error('Unknown forcing data time step.')
+                    end                                        
+
+                    % Build box plot
+                    if plotType_val==6
+                        boxplot(axisHandle,tableData(:,end), ind,'notch','on','ExtremeMode','clip','Jitter',0.75,'symbol','.');                    
+                    else
+                        boxplot(axisHandle,tableData(:,end), ind,'notch','off','ExtremeMode','clip','Jitter',0.75,'symbol','.');                    
+                    end
+                    
+                    %Add x tick labels
+                    if timestepID<6
+                        tableData_year = accumarray(ind,tableData(:,1),[],@max);
+                        tableData_month = accumarray(ind,tableData(:,3),[],@max);            
+                        tableData_day = accumarray(ind,tableData(:,5),[],@max);
+                        t = unique(datenum(tableData_year, tableData_month, tableData_day));
+                        xdataTickLabels = datestr(t,xdataTickLabels);
+                        set(axisHandle, 'XTickLabel',xdataTickLabels);
+                        xlabel(axisHandle,xdataLabel); 
+                    else
+                        set(axisHandle, 'XTickLabel',xdataTickLabels);
+                        xlabel(axisHandle,xdataLabel);                         
+                    end                   
+                    ylabel(axisHandle,ydataLabel);                  
+                    
+                otherwise
+                    error('Unknown forcing data plot type.')                    
+            end                      
+            hold(axisHandle,'off');
+            
+            % Change cursor
+            set(this.Figure, 'pointer', 'arrow');      
+            drawnow update;            
+            
+            function dateaxis_local(ax, tickaxis)
+                % Determine range of data and choose appropriate label format 
+                Lim= get(ax, [tickaxis,'lim']);
+                Cond = Lim(2)-Lim(1); 
+
+                if Cond <= 14 % Range less than 15 days, day of week   
+                    dateform = 7;  
+                elseif Cond > 14 && Cond <= 31 % Range less than 32 days, day of month 
+                    dateform = 6; 
+                elseif Cond > 31 && Cond <= 180 % Range less than 181 days, month/day 
+                    dateform = 5; 
+                elseif Cond > 180 && Cond <= 365  % Range less than 366 days, 3 letter month 
+                    dateform = 3; 
+                elseif Cond > 365 && Cond <= 365*3 % Range less than 3 years, month year  
+                    dateform = 11; 
+                else % Range greater than 3 years, 2 digit year 
+                    dateform = 10; 
+                end 
+
+                % Get axis tick values and add appropriate start date. 
+                xl = get(ax,[tickaxis,'tick'])'; 
+                set(ax,[tickaxis,'tickmode'],'manual',[tickaxis,'limmode'],'manual') 
+                n = length(xl); 
+
+                % Guarantee that the day, month, and year strings have the 
+                % the same number of characters
+                switch dateform
+                  case {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16} 
+                    dstr = datestr(xl,dateform);
+                  case 17 % Year/Month/Day  (ISO format)    
+                    dstr = datestr(xl,25);
+                  otherwise
+                    error(message('finance:calendar:dateAxis'))       
+                end 
+
+                % Set axis tick labels 
+                set(ax,[tickaxis,'ticklabel'],dstr)                         
+            end
+        end       
         
         function modelSimulation_tableEdit(this, hObject, eventdata)
 
@@ -2630,6 +3749,9 @@ classdef HydroSight_GUI < handle
         
         function modelSimulation_tableSelection(this, hObject, eventdata)
             
+            % Hide plotting toolbar
+            plotToolbarState(this,'off');
+                       
             % Get GUI table indexes            
             icol=eventdata.Indices(:,2);
             irow=eventdata.Indices(:,1);                        
@@ -2933,9 +4055,10 @@ classdef HydroSight_GUI < handle
                         
 
                     case 2
-                        % Determine the number of plots to create.
+                       % Show plotting toolbar
+                       plotToolbarState(this,'on');
                         
-
+                       % Determine the number of plots to create.
                        if size(tmpModel.calibrationResults.parameters.params_final,2)==1
                             nsubPlots = size(tmpModel.simulationResults{simInd,1}.head,2) - 1;
                        else                            
@@ -3208,7 +4331,13 @@ classdef HydroSight_GUI < handle
 
         function onAnalyseBores(this, hObject, eventdata)
            
-                        % Get table data
+            % Hide the results window.
+            this.tab_DataPrep.modelOptions.resultsOptions.box.Heights = [0 0];
+                            
+            % Hide plot icons
+            plotToolbarState(this,'off');            
+            
+            % Get table data
             data = this.tab_DataPrep.Table.Data;
             
             % Get list of selected bores.
@@ -3522,6 +4651,9 @@ classdef HydroSight_GUI < handle
         
         function onBuildModels(this, hObject, eventdata)
 
+            % Hide plotting toolbars
+            plotToolbarState(this, 'off');            
+            
             % Change cursor to arrow
             set(this.Figure, 'pointer', 'watch');
             drawnow update            
@@ -5593,9 +6725,26 @@ classdef HydroSight_GUI < handle
         end
         
         function onDocumentation(this, hObject, eventdata)
-           if strcmp(hObject.Tag,'Algorithms') 
-                doc HydroSight
-           else
+            if strcmp(hObject.Tag,'Algorithms') 
+                doc HydroSight                   
+            else
+                if isempty(hObject.Tag)  % Open the help on the curretn tab
+                    switch this.figure_Layout.Selection
+                        case 1
+                            hObject.Tag = 'doc_GUI_projectDescription';
+                        case 2 
+                            hObject.Tag = 'doc_GUI_dataPrep';
+                        case 3
+                            hObject.Tag = 'doc_GUI_ModelConstruct';
+                        case 4    
+                            hObject.Tag = 'doc_GUI_ModelCalib';
+                        case 5    
+                            hObject.Tag = 'doc_GUI_ModelSimulate';                            
+                        otherwise
+                            hObject.Tag = 'doc_GUI';
+                    end
+               end               
+               
                web([hObject.Tag,'.html']);
            end
         end       
@@ -5615,8 +6764,42 @@ classdef HydroSight_GUI < handle
         
         function onLicenseDisclaimer(this, hObject, eventdata)
            web('doc_License_Disclaimer.html');
-        end               
+        end                       
         
+        function onPrint(this, hObject, eventdata)
+            switch this.figure_Layout.Selection
+                case {1,3}
+                    errordlg('No plot is displayed within the current tab.');
+                    return;
+                case 2      % Data prep.
+                    f=figure('Visible','off');
+                    copyobj(this.tab_DataPrep.modelOptions.resultsOptions.plots,f);
+                    printpreview(f);
+                    close(f);                    
+                case 4      % Model Calib.
+                    f=figure('Visible','off');
+                    switch this.tab_ModelCalibration.resultsTabs.SelectedChild
+                        case 1
+                            copyobj(this.tab_ModelCalibration.resultsOptions.calibPanel.Children.Children(1).Children.Children(2),f);
+                        case 2
+                            copyobj(this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(4).Children(end),f);
+                        case 3
+                            copyobj(this.tab_ModelCalibration.resultsOptions.paramsPanel.Children.Children(1).Children,f);                             
+                        case 4
+                            
+                    end
+                    printpreview(f);
+                    close(f);
+                case 5      % Model Simulation.    
+                    f=figure('Visible','off');
+                    nplots = length(this.tab_ModelSimulation.resultsOptions.plots.panel.Children);
+                    copyobj(this.tab_ModelSimulation.resultsOptions.plots.panel.Children(1:nplots),f);
+                    printpreview(f);
+                    close(f);                    
+                otherwise
+                    return;
+            end            
+        end
         
         % Show splash 
         function onAbout(this, hObject, eventdata)

@@ -1137,6 +1137,43 @@ classdef model_TFN < model_abstract
             forcingData_colnames = obj.inputData.forcingData_colnames;            
         end
         
+        function [forcingData, forcingData_colnames] = getDerivedForcingData(obj, t)
+           
+            % Initialise outputs
+            forcingData = [];
+            forcingData_colnames = {};                        
+            
+            % Get the derived forcing data in the sub-model objects
+            if ~isempty(obj.parameters)
+                modelnames = fieldnames(obj.parameters);
+                for i=1:length(modelnames)
+                    if isobject(obj.parameters.(modelnames{i}))
+                        forcingData_colnames_tmp = {};
+                        forcingData_tmp = [];
+                        if any(strcmp(methods(obj.parameters.(modelnames{i})),'setTransformedForcing')) && ...
+                        any(strcmp(methods(obj.parameters.(modelnames{i})),'getTransformedForcing'))
+                            % Get the list of all possible forcing data
+                            % outputs.                                
+                            variable_names = feval([modelnames{i},'.outputForcingdata_options']);
+
+                            % Set the forcing
+                            setTransformedForcing(obj.parameters.(modelnames{i}),t);
+                            
+                            % Get the forcing for each variable
+                            for j=1:length(variable_names)
+                                try
+                                    forcingData = [forcingData, getTransformedForcing(obj.parameters.(modelnames{i}),variable_names{j})];
+                                    forcingData_colnames = {forcingData_colnames{:}, variable_names{j}};
+                                catch ME
+                                    continue;
+                                end
+                            end                            
+                        end
+                    end
+                end
+            end                
+        end
+        
         %% Set the forcing data from the model
         function setForcingData(obj, forcingData, forcingData_colnames)
             obj.inputData.forcingData = forcingData;

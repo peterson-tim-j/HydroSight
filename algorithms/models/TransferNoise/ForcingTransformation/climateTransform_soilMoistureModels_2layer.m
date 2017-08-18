@@ -181,7 +181,7 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
         
         function [variable_names] = outputForcingdata_options(inputForcingDataColNames)
             variable_names = {'drainage';'drainage_bypassFlow';'drainage_normalised';'infiltration';'evap_soil';'evap_gw_potential';'runoff';'SMS'; ...
-                'drainage_deep';'drainage_bypassFlow_deep';'drainage_normalised_deep';'SMS_deep' };
+                'drainage_deep';'drainage_bypassFlow_deep';'drainage_normalised_deep';'SMS_deep';'time'};
         end
         
         function [options, colNames, colFormats, colEdits, toolTip] = modelOptions()
@@ -866,7 +866,10 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
                 else
                     S_deep_initial = obj.S_initialfrac^(obj.SMSC_deep);
                 end                
-                        
+
+                % Store the time points
+                obj.variables.t = t(filt_time);                                
+                
                 % Call MEX function for SHALLOW soil moisture model.
                 obj.variables.SMS = forcingTransform_soilMoisture(S_initial, obj.variables.precip, obj.variables.evap, ...
                         10^(obj.SMSC), 10.^obj.k_sat, obj.alpha, 10.^obj.beta, obj.gamma);                                
@@ -987,6 +990,9 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
             end
              
             switch variableName
+                case 'time'
+                    forcingData = obj.variables.t;
+                    isDailyIntegralFlux = false;                                
                 case 'drainage'
                     forcingData = (1-obj.interflow_frac) .* 10.^obj.k_sat .* getTransformedForcing(obj, 'drainage_normalised',SMSnumber);
                     isDailyIntegralFlux = false;
