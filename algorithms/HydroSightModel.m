@@ -2607,6 +2607,42 @@ classdef HydroSightModel < handle
 %             
             [forcingData, forcingData_colnames] = getForcingData(obj.model);
         end
+
+        function derivedData_types = getDerivedDataTypes(obj)
+            if any(strcmp(methods(obj.model),'getDerivedDataTypes'))
+                derivedData_types = getDerivedDataTypes(obj.model);
+            else
+                derivedData_types = {};
+            end            
+        end        
+        
+        function [params, param_names] = getDerivedParameters(obj)
+            if any(strcmp(methods(obj.model),'getStochForcingData'))
+                [params, param_names] = getDerivedParameters(obj.model);
+            else
+                params = [];
+                param_names = {};
+            end            
+        end
+        
+        function [derivedData, derivedData_names] = getDerivedData(obj, modelComponant, derivedData_variable, t, plot_axes)
+            if any(strcmp(methods(obj.model),'getDerivedData'))
+                [derivedData, derivedData_names] = getDerivedData(obj.model, modelComponant, derivedData_variable, t, plot_axes);
+            else
+                derivedData = [];
+                derivedData_names = {};
+            end                    
+        end
+        
+        function [forcingData, forcingData_colnames] = getDerivedForcingData(obj, t)
+            if any(strcmp(methods(obj.model),'getDerivedForcingData'))
+                [forcingData, forcingData_colnames] = getDerivedForcingData(obj.model, t);
+            else
+                forcingData = [];
+                forcingData_colnames = {};
+            end            
+        end
+            
         
         function forcingData = getStochForcingData(obj)
            

@@ -2174,8 +2174,8 @@ classdef HydroSight_GUI < handle
             switch columnName;
                 case 'Obs. Head File'
                     % Get file name and remove project folder from
-                    % preceeding full path.
-                    fName = getFileName(this, 'Select the Observed Head file.');                        
+                    % preceeding full path.                    
+                    fName = getFileName(this, 'Select the Observed Head file.');               
                     if fName~=0;
                         % Assign file name to date cell array
                         data{eventdata.Indices(1),eventdata.Indices(2)} = fName;
@@ -2512,7 +2512,7 @@ classdef HydroSight_GUI < handle
                          this.tab_ModelConstruction.modelDescriptions.String = modelDecription; 
                          
                          % Show the description.
-                         this.tab_ModelConstruction.modelOptions.vbox.Heights = [0; -1 ; 0; 0; 0];                        
+                         this.tab_ModelConstruction.modelOptions.vbox.Heights = [0; -1 ; 0; 0];                        
                     otherwise
                             % Do nothing                                             
                 end
@@ -2725,16 +2725,32 @@ classdef HydroSight_GUI < handle
                     % Add drop-down options for the derived data and update
                     % plot etc
                     %---------------------------------            
-                    % Set the model derived drop-down options.
-                    derivedData_types = getDerivedDataTypes(tmpModel.model);  
-                    derivedData_types = strcat(derivedData_types(:,1), ':', derivedData_types(:,2));
-                    obj = findobj(this.tab_ModelCalibration.resultsOptions.modelSpecificsPanel, 'Tag','Model Calibration - derived data dropdown');                    
-                    obj.String = derivedData_types;
-                    if obj.Value>length(obj.String)
-                        obj.Value = min(1,length(obj.String));
-                    end   
+                    % Get index to the model specific outpus tab
+                    tab_ind = strcmp(this.tab_ModelCalibration.resultsTabs.TabTitles,'Model Specifics');
                     
-                    modelCalibration_onUpdateDerivedData(this, hObject, eventdata)                
+                    % Set the model derived drop-down options.
+                    obj = findobj(this.tab_ModelCalibration.resultsOptions.modelSpecificsPanel, 'Tag','Model Calibration - derived data dropdown');                    
+                    derivedData_types = getDerivedDataTypes(tmpModel);  
+                    if isempty(derivedData_types)                        
+                        obj.String = {'(none)'};
+                        obj.Value = 1;
+                        
+                        % Disable tab
+                        this.tab_ModelCalibration.resultsTabs.TabEnables{tab_ind}='off';                        
+                    else
+                        % Enable tab
+                        this.tab_ModelCalibration.resultsTabs.TabEnables{tab_ind}='on';
+                        
+                        % Build drop-down data
+                        derivedData_types = strcat(derivedData_types(:,1), ':', derivedData_types(:,2));
+
+                        obj.String = derivedData_types;
+                        if obj.Value>length(obj.String)
+                            obj.Value = min(1,length(obj.String));
+                        end   
+
+                        modelCalibration_onUpdateDerivedData(this, hObject, eventdata)                
+                    end
     
                     %---------------------------------
                     
@@ -2763,22 +2779,38 @@ classdef HydroSight_GUI < handle
                                         
                     % Show derived parameter data
                     %---------------------------------
-                    %Get parameters and names 
-                    [derivedParamValues, derivedParamsNames] = getDerivedParameters(tmpModel.model);        
-
-                    % Add to the table
+                    % Get table
                     obj = findobj(this.tab_ModelCalibration.resultsOptions.derivedParamsPanel, 'Tag','Model Calibration - derived parameter table');
-                    obj.Data = cell(size(derivedParamValues,1),size(derivedParamValues,2)+2);
-                    obj.Data(:,1) = derivedParamsNames(:,1);
-                    obj.Data(:,2) = derivedParamsNames(:,2);
-                    obj.Data(:,3:end) = num2cell(derivedParamValues);
+                    
+                    %Get parameters and names 
+                    [derivedParamValues, derivedParamsNames] = getDerivedParameters(tmpModel);        
 
-                    nderivedParams=size(derivedParamValues,2);                        
-                    colnames = cell(nderivedParams+2,1);
-                    colnames{1,1}='Component Name';
-                    colnames{2,1}='Parameter Name';
-                    colnames(3:end,1) = strcat(repmat({'Parm. Set '},1,nderivedParams)',num2str([1:nderivedParams]'));
-                    obj.ColumnName = colnames;
+                    % Get tab index for the forcing data tab.
+                    tab_ind = strcmp(this.tab_ModelCalibration.resultsTabs.TabTitles,'Derived Parameters');                                        
+                    
+                    % Add to the table (if not empty)
+                    if isempty(derivedParamValues)
+                        obj.Data = [];
+                        obj.ColumnName = {};
+                        
+                        % Disable tab if there is no data 
+                        this.tab_ModelCalibration.resultsTabs.TabEnables{tab_ind} = 'off';  
+                    else
+                        % Enable tab if there is no data 
+                        this.tab_ModelCalibration.resultsTabs.TabEnables{tab_ind} = 'on';
+                        
+                        obj.Data = cell(size(derivedParamValues,1),size(derivedParamValues,2)+2);
+                        obj.Data(:,1) = derivedParamsNames(:,1);
+                        obj.Data(:,2) = derivedParamsNames(:,2);
+                        obj.Data(:,3:end) = num2cell(derivedParamValues);
+
+                        nderivedParams=size(derivedParamValues,2);                        
+                        colnames = cell(nderivedParams+2,1);
+                        colnames{1,1}='Component Name';
+                        colnames{2,1}='Parameter Name';
+                        colnames(3:end,1) = strcat(repmat({'Parm. Set '},1,nderivedParams)',num2str([1:nderivedParams]'));
+                        obj.ColumnName = colnames;
+                    end
                     %---------------------------------                               
                     
                     % Show model forcing data
@@ -2786,64 +2818,83 @@ classdef HydroSight_GUI < handle
                     % Get the input forcing data
                     [tableData, forcingData_colnames] = getForcingData(tmpModel);
                     
-                    % Get the model derived forcing data
-                    if size(paramValues,2)>1
-                        % Get forcing data from the first parameter set
-                        setParameters(tmpModel.model,paramValues(:,1), paramsNames);  
-                        [tableData_derived_tmp, forcingData_colnames_derived] = getDerivedForcingData(tmpModel.model,tableData(:,1));                                        
-
-                        % Initialise derived forcing data matrix
-                        tableData_derived = nan(size(tableData_derived_tmp,1),size(tableData_derived_tmp,2), size(paramValues,2));
-                        tableData_derived(:,:,1) = tableData_derived_tmp;
-                        clear tableData_derived_tmp;
+                    % Get tab index for the forcing data tab.
+                    tab_ind = strcmp(this.tab_ModelCalibration.resultsTabs.TabTitles,'Forcing Data');                    
+                    
+                    % Get the model derived forcing data (if not empty)
+                    if isempty(tableData)
+                        tableData = [];
+                        tableData_derived = [];
+                        forcingData_colnames = {};
+                        forcingData_colnames_derived= {};
+                        this.tab_ModelCalibration.resultsOptions.forcingData.filt = [];
                         
-                        % Change cursor
-                        set(this.Figure, 'pointer', 'watch');   
-                        drawnow update;                         
-                        
-                        % Derive forcing using parfor. 
-                        % Note, the use of a waitbar with parfor is adapted
-                        % from http://au.mathworks.com/matlabcentral/newsreader/view_thread/166139                        
-                        poolobj = gcp('nocreate');
-                        matlabpoolsize = max(1,poolobj.NumWorkers);
-                        nparamSets = size(paramValues,2);
-                        nLoops = 10;
-                        nparamSetsPerLoop =  ceil(nparamSets/nLoops);
-                        startInd = 0;
-                        h = waitbar(0, ['Calculating transformed forcing for ', num2str(size(paramValues,2)), ' parameter sets. Please wait ...']);
-                        t = tableData(:,1);                        
-                        % do a for loop that is big enough to do all necessary iterations
-                        
-                        for n=1:nLoops ;
-                            startInd = min(startInd + (n-1)*nparamSetsPerLoop+1,nparamSets);
-                            endInd = min(startInd +nparamSetsPerLoop,nparamSets);
-                            parfor z = startInd:endInd 
-                                setParameters(tmpModel.model,paramValues(:,z), paramsNames);  
-                                tableData_derived(:,:,z) = getDerivedForcingData(tmpModel.model,t);    
-                            end
-                            % update waitbar each "matlabpoolsize"th iteration
-                            waitbar(n/nLoops);
-                        end
-                        close(h);                                                                    
-
-                        % Change cursor
-                        set(this.Figure, 'pointer', 'watch');   
-                        drawnow update;                         
-                        
-                        % Reset all parameters
-                        setParameters(tmpModel.model,paramValues, paramsNames);  
-                       
-                        % Clear model object
-                        clear tmpModel
-                        
+                        % Disable tab if there is no data 
+                        this.tab_ModelCalibration.resultsTabs.TabEnables{tab_ind} = 'off';
                     else
-                        [tableData_derived, forcingData_colnames_derived] = getDerivedForcingData(tmpModel.model,tableData(:,1)); 
+                        % Enable tab if there is no data 
+                        this.tab_ModelCalibration.resultsTabs.TabEnables{tab_ind} = 'on';
+                        
+                        
+                        if size(paramValues,2)>1
+                            % Get forcing data from the first parameter set
+                            setParameters(tmpModel.model,paramValues(:,1), paramsNames);  
+                            [tableData_derived_tmp, forcingData_colnames_derived] = getDerivedForcingData(tmpModel,tableData(:,1));                                        
+
+                            % Initialise derived forcing data matrix
+                            tableData_derived = nan(size(tableData_derived_tmp,1),size(tableData_derived_tmp,2), size(paramValues,2));
+                            tableData_derived(:,:,1) = tableData_derived_tmp;
+                            clear tableData_derived_tmp;
+
+                            % Change cursor
+                            set(this.Figure, 'pointer', 'watch');   
+                            drawnow update;                         
+
+                            % Derive forcing using parfor. 
+                            % Note, the use of a waitbar with parfor is adapted
+                            % from http://au.mathworks.com/matlabcentral/newsreader/view_thread/166139                        
+                            poolobj = gcp('nocreate');
+                            matlabpoolsize = max(1,poolobj.NumWorkers);
+                            nparamSets = size(paramValues,2);
+                            nLoops = 10;
+                            nparamSetsPerLoop =  ceil(nparamSets/nLoops);
+                            startInd = 0;
+                            h = waitbar(0, ['Calculating transformed forcing for ', num2str(size(paramValues,2)), ' parameter sets. Please wait ...']);
+                            t = tableData(:,1);                        
+                            % do a for loop that is big enough to do all necessary iterations
+
+                            for n=1:nLoops ;
+                                startInd = min(startInd + (n-1)*nparamSetsPerLoop+1,nparamSets);
+                                endInd = min(startInd +nparamSetsPerLoop,nparamSets);
+                                parfor z = startInd:endInd 
+                                    setParameters(tmpModel.model,paramValues(:,z), paramsNames);  
+                                    tableData_derived(:,:,z) = getDerivedForcingData(tmpModel,t);    
+                                end
+                                % update waitbar each "matlabpoolsize"th iteration
+                                waitbar(n/nLoops);
+                            end
+                            close(h);                                                                    
+
+                            % Change cursor
+                            set(this.Figure, 'pointer', 'watch');   
+                            drawnow update;                         
+
+                            % Reset all parameters
+                            setParameters(tmpModel.model,paramValues, paramsNames);  
+
+                            % Clear model object
+                            clear tmpModel
+
+                        else
+                            [tableData_derived, forcingData_colnames_derived] = getDerivedForcingData(tmpModel,tableData(:,1)); 
+                        end
+
+                        % Calculate year, month, day etc
+                        t = datetime(tableData(:,1), 'ConvertFrom','datenum');
+                        tableData = [year(t), quarter(t), month(t), week(t,'weekofyear'), day(t), tableData(:,2:end)];                    
+                        forcingData_colnames = {'Year','Quarter','Month','Week','Day', forcingData_colnames{2:end}};                        
                     end
 
-                    % Calculate year, month, day etc
-                    t = datetime(tableData(:,1), 'ConvertFrom','datenum');
-                    tableData = [year(t), quarter(t), month(t), week(t,'weekofyear'), day(t), tableData(:,2:end)];                    
-                    forcingData_colnames = {'Year','Quarter','Month','Week','Day', forcingData_colnames{2:end}};
                     
                     % Store the daily forcing data. This is just done to
                     % avoid re-loading the model within updateForcingData()
@@ -2858,7 +2909,9 @@ classdef HydroSight_GUI < handle
                     clear tableData_derived tableData
                     
                     % Update table and plots
-                    modelCalibration_onUpdateForcingData(this)
+                    if ~isempty(this.tab_ModelCalibration.resultsOptions.forcingData.data_input)
+                        modelCalibration_onUpdateForcingData(this)
+                    end
                     %---------------------------------
             end
                            
@@ -2944,33 +2997,35 @@ classdef HydroSight_GUI < handle
                 
                 % Plot derived parameters
                 %-----------------------
-                [paramValues, paramsNames] = getDerivedParameters(tmpModel.model);                          
-                paramsNames  = strrep(paramsNames(:,2), '_',' ');
-
                 % Create an axis handle for the figure.
                 obj = findobj(this.tab_ModelCalibration.resultsOptions.derivedParamsPanel, 'Tag','Model Calibration - derived parameter plot');
                 delete( findobj(obj ,'type','axes'));
-                %delete( findobj(this.tab_ModelCalibration.resultsOptions.paramsPanel.Children.Children(2),'type','legend'));     
-                %delete( findobj(this.tab_ModelCalibration.resultsOptions.paramsPanel.Children.Children(2),'type','uipanel'));     
-                %h = uipanel('Parent', this.tab_ModelCalibration.resultsOptions.paramsPanel.Children.Children(2));
                 axisHandle = axes( 'Parent',obj);
 
-                if size(paramValues,2)==1
-                    bar(axisHandle,paramValues);
-                    set(axisHandle, 'xTickLabel', paramsNames,'FontSize',8,'xTickLabelRotation',45);
-                    ylabel(axisHandle,'Derived param. value');
-                else
-                    % A bug seems to occur when the builtin plotmatrix is ran to produce a plot inside a GUI 
-                    % whereby the default fig menu items and icons
-                    % appear. The version of plotmatrix below has a
-                    % a few lines commented out to supress this
-                    % proble,m (see lines 232-236)                            
-                    [~, ax] = plotmatrix(axisHandle,paramValues', '.');      
-                    for i=1:size(ax,1)
-                        ylabel(ax(i,1), paramsNames(i),'FontSize',8);
-                        xlabel(ax(end,i), paramsNames(i),'FontSize',8);
-                    end
-                end                                              
+                % Get data and show
+                [paramValues, paramsNames] = getDerivedParameters(tmpModel);                          
+                if ~isempty(paramValues)
+                    
+                    paramsNames  = strrep(paramsNames(:,2), '_',' ');
+
+                    if size(paramValues,2)==1
+                        bar(axisHandle,paramValues);
+                        set(axisHandle, 'xTickLabel', paramsNames,'FontSize',8,'xTickLabelRotation',45);
+                        ylabel(axisHandle,'Derived param. value');
+                    else
+                        % A bug seems to occur when the builtin plotmatrix is ran to produce a plot inside a GUI 
+                        % whereby the default fig menu items and icons
+                        % appear. The version of plotmatrix below has a
+                        % a few lines commented out to supress this
+                        % proble,m (see lines 232-236)                            
+                        [~, ax] = plotmatrix(axisHandle,paramValues', '.');      
+                        for i=1:size(ax,1)
+                            ylabel(ax(i,1), paramsNames(i),'FontSize',8);
+                            xlabel(ax(end,i), paramsNames(i),'FontSize',8);
+                        end
+                    end                       
+                    
+                end                                           
                 %-----------------------         
                                 
                 drawnow update;
@@ -3887,7 +3942,7 @@ classdef HydroSight_GUI < handle
             % matfile();
             tmpModel = getModel(this, calibLabel);            
             
-          % Display the requested calibration results if the model object
+            % Display the requested calibration results if the model object
             % exists and there are calibration results.
             if ~isempty(tmpModel) ...
             && isfield(tmpModel.calibrationResults,'isCalibrated') ...
@@ -3910,7 +3965,7 @@ classdef HydroSight_GUI < handle
                 ind = strfind(derivedData_type,':');
                 modelComponant = derivedData_type(1:ind(1)-1);
                 derivedData_variable = derivedData_type(ind(1)+1:end);
-                [derivedData, derivedData_names] = getDerivedData(tmpModel.model, modelComponant, derivedData_variable, t, axisHandle);
+                [derivedData, derivedData_names] = getDerivedData(tmpModel, modelComponant, derivedData_variable, t, axisHandle);
 
                 obj = findobj(this.tab_ModelCalibration.resultsOptions.modelSpecificsPanel, 'Tag','Model Calibration - derived data table');                    
                 obj.Data = derivedData;
@@ -7630,7 +7685,8 @@ classdef HydroSight_GUI < handle
            
             % If project folder is not set, exit
             if isempty(this.project_fileName)
-                errordlg('The project folder must be set before files can be input.')
+                errordlg('The project folder must be set before files can be input.');
+                fName=0;
                 return
             end                        
 
