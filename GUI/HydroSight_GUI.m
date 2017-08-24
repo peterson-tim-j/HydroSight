@@ -62,7 +62,6 @@ classdef HydroSight_GUI < handle
                 'Name', 'HydroSight', ...
                 'NumberTitle', 'off', ...
                 'MenuBar', 'none', ...
-                'Toolbar', 'none', ...
                 'HandleVisibility', 'off', ...
                 'Visible','off', ...
                 'Toolbar','figure', ...
@@ -89,6 +88,7 @@ classdef HydroSight_GUI < handle
             
             % + File menu
             this.figure_Menu = uimenu( this.Figure, 'Label', 'File' );
+            uimenu( this.figure_Menu, 'Label', 'New Project', 'Callback', @this.onNew);
             uimenu( this.figure_Menu, 'Label', 'Set Project Folder ...', 'Callback', @this.onSetProjectFolder);
             uimenu( this.figure_Menu, 'Label', 'Open Project...', 'Callback', @this.onOpen);
             uimenu( this.figure_Menu, 'Label', 'Save Project as ...', 'Callback', @this.onSaveAs );
@@ -180,6 +180,11 @@ classdef HydroSight_GUI < handle
             hToolbutton.Visible = 'off';
             hToolbutton.UserData = 'Plot';
             hToolbutton.Separator = 'off';
+
+            hToolbutton = findall(hToolbar,'tag','Standard.NewFigure');            
+            hToolbutton.Visible = 'on';
+            hToolbutton.UserData = 'Always';	                            
+            set(hToolbutton, 'ClickedCallback',@this.onNew, 'TooltipString','Start a new project.');            
             
             hToolbutton = findall(hToolbar,'tag','Standard.FileOpen');            
             hToolbutton.Visible = 'on';
@@ -220,16 +225,11 @@ classdef HydroSight_GUI < handle
             %Create Panels for different windows       
             this.figure_Layout = uiextras.TabPanel( 'Parent', this.Figure, 'Padding', ...
                 5, 'TabSize',127,'FontSize',8);
-            this.tab_Project.Panel = uiextras.Panel( 'Parent', this.figure_Layout, 'Padding', 5, ...
-                'Title', 'Project Description', 'Tag','ProjectDescription');            
-            this.tab_DataPrep.Panel = uiextras.Panel( 'Parent', this.figure_Layout, 'Padding', 5, ...
-                'Title', 'Data Preparation', 'Tag','DataPreparation');
-            this.tab_ModelConstruction.Panel = uiextras.Panel( 'Parent', this.figure_Layout, 'Padding', 5, ...
-                'Title', 'Model Construction', 'Tag','ModelConstruction');
-            this.tab_ModelCalibration.Panel = uiextras.Panel( 'Parent', this.figure_Layout, 'Padding', 5, ...
-                'Title', 'Model Calibration', 'Tag','ModelCalibration');
-            this.tab_ModelSimulation.Panel = uiextras.Panel( 'Parent', this.figure_Layout, 'Padding', 5, ...
-                'Title', 'Model Simulation', 'Tag','ModelSimulation');
+            this.tab_Project.Panel = uiextras.Panel( 'Parent', this.figure_Layout, 'Padding', 5, 'Tag','ProjectDescription');            
+            this.tab_DataPrep.Panel = uiextras.Panel( 'Parent', this.figure_Layout, 'Padding', 5, 'Tag','DataPreparation');
+            this.tab_ModelConstruction.Panel = uiextras.Panel( 'Parent', this.figure_Layout, 'Padding', 5, 'Tag','ModelConstruction');
+            this.tab_ModelCalibration.Panel = uiextras.Panel( 'Parent', this.figure_Layout, 'Padding', 5, 'Tag','ModelCalibration');
+            this.tab_ModelSimulation.Panel = uiextras.Panel( 'Parent', this.figure_Layout, 'Padding', 5, 'Tag','ModelSimulation');
             this.figure_Layout.TabNames = {'Project Description', 'Data Preparation','Model Construction', 'Model Calibration','Model Simulation'};
             this.figure_Layout.SelectedChild = 1;
            
@@ -237,20 +237,22 @@ classdef HydroSight_GUI < handle
             %------------------------------------------------------------------
             % Project title
             hbox1t1 = uiextras.VBoxFlex('Parent', this.tab_Project.Panel,'Padding', 3, 'Spacing', 3);
-            uicontrol( 'Parent', hbox1t1,'Style','text','String','Project Title: ','HorizontalAlignment','left', 'Units','normalized');            
-            this.tab_Project.project_name = uicontrol( 'Parent', hbox1t1,'Style','edit','HorizontalAlignment','left', 'Units','normalized',...
+            uicontrol(hbox1t1,'Style','text','String','Project Title: ','HorizontalAlignment','left', 'Units','normalized');            
+            this.tab_Project.project_name = uicontrol(hbox1t1,'Style','edit','HorizontalAlignment','left', 'Units','normalized',...
                 'TooltipString','Input a project title. This is an optional input to assist project management.');            
             
             % Empty row spacer
-            uicontrol( 'Parent', hbox1t1,'Style','text','String','','Units','normalized');                      
+            uicontrol(hbox1t1,'Style','text','String','','Units','normalized');                      
                         
             % Project description
-            uicontrol( 'Parent', hbox1t1,'Style','text','String','Project Description: ','HorizontalAlignment','left', 'Units','normalized');                      
-            this.tab_Project.project_description = uicontrol( 'Parent', hbox1t1,'Style','edit','HorizontalAlignment','left', 'Units','normalized', ...
+            uicontrol(hbox1t1,'Style','text','String','Project Description: ','HorizontalAlignment','left', 'Units','normalized');                      
+            this.tab_Project.project_description = uicontrol(hbox1t1,'Style','edit','HorizontalAlignment','left', 'Units','normalized', ...
                 'Min',1,'Max',100,'TooltipString','Input an extended project description. This is an optional input to assist project management.');            
             
             % Set sizes
-            set(hbox1t1, 'Sizes', [20 20 20 20 -1]);
+            set(hbox1t1, 'Sizes', [20 20 20 20 -1]);            
+            
+            
 
 %%          Layout Tab2 - Data Preparation
             % -----------------------------------------------------------------
@@ -305,26 +307,31 @@ classdef HydroSight_GUI < handle
             % Add table. Importantly, this is done using createTable, not
             % uitable. This was required to achieve acceptable perforamnce
             % for large tables.            
-            this.tab_DataPrep.Table = createTable(vbox1t2,cnames1t2,data, false, ...
+%             this.tab_DataPrep.Table = createTable(vbox1t2,cnames1t2,data, false, ...
+%                 'ColumnEditable',cedit1t2,'ColumnFormat',cformats1t2,'RowName', rnames1t2, ...
+%                 'CellSelectionCallback', @this.dataPrep_tableSelection,...
+%                 'Tag','Data Preparation', 'TooltipString', toolTipStr);     
+
+            this.tab_DataPrep.Table = uitable(vbox1t2 , 'ColumnName', cnames1t2,'Data', data, ...
                 'ColumnEditable',cedit1t2,'ColumnFormat',cformats1t2,'RowName', rnames1t2, ...
                 'CellSelectionCallback', @this.dataPrep_tableSelection,...
-                'Tag','Data Preparation', 'TooltipString', toolTipStr);     
-
-            % Find java sorting object in table
-            try
-                this.figure_Layout.Selection = 2;
-                drawnow update;
-                jscrollpane = findjobj(this.tab_DataPrep.Table);
-                jtable = jscrollpane.getViewport.getView;
-
-                % Turn the JIDE sorting on
-                jtable.setSortable(true);
-                jtable.setAutoResort(true);
-                jtable.setMultiColumnSortable(true);
-                jtable.setPreserveSelectionsAfterSorting(true);            
-            catch
-                warndlg('Creating of the GUI row-sorting module failed for the data preparation table.');
-            end            
+                'Tag','Data Preparation', 'TooltipString', toolTipStr);
+                        
+%             % Find java sorting object in table
+%             try
+%                 this.figure_Layout.Selection = 2;
+%                 drawnow update;
+%                 jscrollpane = findjobj(this.tab_DataPrep.Table);
+%                 jtable = jscrollpane.getViewport.getView;
+% 
+%                 % Turn the JIDE sorting on
+%                 jtable.setSortable(true);
+%                 jtable.setAutoResort(true);
+%                 jtable.setMultiColumnSortable(true);
+%                 jtable.setPreserveSelectionsAfterSorting(true);            
+%             catch
+%                 warndlg('Creating of the GUI row-sorting module failed for the data preparation table.');
+%             end            
                         
             % Add buttons to top left panel               
             uicontrol('Parent',vbox3t2,'String','Append Table Data','Callback', @this.onImportTable, 'Tag','Data Preparation', 'TooltipString', sprintf('Append a .csv file of table data to the table below. \n Use this feature to efficiently analyse a large number of bores.') );
@@ -352,15 +359,25 @@ classdef HydroSight_GUI < handle
             % Add table. Importantly, this is done using createTable, not
             % uitable. This was required to achieve acceptable perforamnce
             % for large tables.            
-            this.tab_DataPrep.modelOptions.resultsOptions.table = createTable(this.tab_DataPrep.modelOptions.resultsOptions.box, ...
-                {'Year', 'Month', 'Day', 'Hour', 'Minute', 'Head', 'Date_Error', 'Duplicate_Date_Error', 'Min_Head_Error','Max_Head_Error','Rate_of_Change_Error','Const_Hear_Error','Outlier_Obs'}, ... 
-                cell(0,13), false, ...
+%             this.tab_DataPrep.modelOptions.resultsOptions.table = createTable(this.tab_DataPrep.modelOptions.resultsOptions.box, ...
+%                 {'Year', 'Month', 'Day', 'Hour', 'Minute', 'Head', 'Date_Error', 'Duplicate_Date_Error', 'Min_Head_Error','Max_Head_Error','Rate_of_Change_Error','Const_Hear_Error','Outlier_Obs'}, ... 
+%                 cell(0,13), false, ...
+%                 'ColumnFormat', {'numeric','numeric','numeric','numeric', 'numeric','numeric','logical','logical','logical','logical','logical','logical','logical'}, ...
+%                 'ColumnEditable', [false(1,6) true(1,7)], ...
+%                 'Tag','Data Preparation - results table', ...
+%                 'CellEditCallback', @this.dataPrep_resultsTableEdit, ...,
+%                 'TooltipString', 'Results data from the bore data analysis for erroneous observations and outliers.');   
+%             
+%             
+            this.tab_DataPrep.modelOptions.resultsOptions.table = uitable(this.tab_DataPrep.modelOptions.resultsOptions.box, ...
+                'ColumnName',{'Year', 'Month', 'Day', 'Hour', 'Minute', 'Head', 'Date_Error', 'Duplicate_Date_Error', 'Min_Head_Error','Max_Head_Error','Rate_of_Change_Error','Const_Hear_Error','Outlier_Obs'}, ... 
+                'Data',cell(0,13), ...
                 'ColumnFormat', {'numeric','numeric','numeric','numeric', 'numeric','numeric','logical','logical','logical','logical','logical','logical','logical'}, ...
                 'ColumnEditable', [false(1,6) true(1,7)], ...
                 'Tag','Data Preparation - results table', ...
                 'CellEditCallback', @this.dataPrep_resultsTableEdit, ...,
                 'TooltipString', 'Results data from the bore data analysis for erroneous observations and outliers.');   
-            
+                        
             
             % Resize the panels            
             set(vbox1t2, 'Sizes', [30 -1]);
@@ -430,28 +447,36 @@ classdef HydroSight_GUI < handle
             % Add table. Importantly, this is done using createTable, not
             % uitable. This was required to achieve acceptable perforamnce
             % for large tables.
-            this.tab_ModelConstruction.Table = createTable(vbox1t3,cnames1t3,data, false, ...
+%             this.tab_ModelConstruction.Table = createTable(vbox1t3,cnames1t3,data, false, ...
+%                 'ColumnEditable',cedit1t3,'ColumnFormat',cformats1t3,'RowName', rnames1t3, ...
+%                 'CellSelectionCallback', @this.modelConstruction_tableSelection,...
+%                 'CellEditCallback', @this.modelConstruction_tableEdit,...
+%                 'Tag','Model Construction', ...
+%                 'TooltipString', toolTipStr);                        
+%             
+            this.tab_ModelConstruction.Table = uitable(vbox1t3,'ColumnName',cnames1t3,'Data',data,  ...
                 'ColumnEditable',cedit1t3,'ColumnFormat',cformats1t3,'RowName', rnames1t3, ...
                 'CellSelectionCallback', @this.modelConstruction_tableSelection,...
                 'CellEditCallback', @this.modelConstruction_tableEdit,...
                 'Tag','Model Construction', ...
                 'TooltipString', toolTipStr);                        
+                        
             
-            % Find java sorting object in table
-            try
-                this.figure_Layout.Selection = 3;
-                drawnow update;
-                jscrollpane = findjobj(this.tab_ModelConstruction.Table);
-                jtable = jscrollpane.getViewport.getView;
-
-                % Turn the JIDE sorting on
-                jtable.setSortable(true);
-                jtable.setAutoResort(true);
-                jtable.setMultiColumnSortable(true);
-                jtable.setPreserveSelectionsAfterSorting(true);            
-            catch
-                warndlg('Creating of the GUI row-sorting module failed for the model construction table.');
-            end
+%             % Find java sorting object in table
+%             try
+%                 this.figure_Layout.Selection = 3;
+%                 drawnow update;
+%                 jscrollpane = findjobj(this.tab_ModelConstruction.Table);
+%                 jtable = jscrollpane.getViewport.getView;
+% 
+%                 % Turn the JIDE sorting on
+%                 jtable.setSortable(true);
+%                 jtable.setAutoResort(true);
+%                 jtable.setMultiColumnSortable(true);
+%                 jtable.setPreserveSelectionsAfterSorting(true);            
+%             catch
+%                 warndlg('Creating of the GUI row-sorting module failed for the model construction table.');
+%             end
                         
             % Add buttons to top left panel               
             uicontrol('Parent',vbox3t3,'String','Append Table Data','Callback', @this.onImportTable, 'Tag','Model Construction', 'TooltipString', sprintf('Append a .csv file of table data to the table below. \n Use this feature to efficiently build a large number of models.') );
@@ -544,8 +569,6 @@ classdef HydroSight_GUI < handle
 %%          Layout Tab4 - Calibrate models
             %------------------------------------------------------------------
             hbox1t4 = uiextras.HBoxFlex('Parent', this.tab_ModelCalibration.Panel,'Padding', 3, 'Spacing', 3);
-            %vbox1t4 = uiextras.VBox('Parent',hbox1t4,'Padding', 3, 'Spacing', 3);
-            %vbox2t4 = uiextras.VBox('Parent',hbox1t4,'Padding', 3, 'Spacing', 3);
             vbox1t4 = uiextras.VBoxFlex('Parent',hbox1t4,'Padding', 3, 'Spacing', 3);
             hbox2t4 = uiextras.HButtonBox('Parent',vbox1t4,'Padding', 3, 'Spacing', 3);  
                         
@@ -585,28 +608,34 @@ classdef HydroSight_GUI < handle
             % for large tables.
             this.tab_ModelCalibration.resultsOptions.currentTab = [];
             this.tab_ModelCalibration.resultsOptions.currentPlot = [];                        
-            this.tab_ModelCalibration.Table = createTable(vbox1t4,cnames1t4, data, false, ...
+%             this.tab_ModelCalibration.Table = createTable(vbox1t4,cnames1t4, data, false, ...
+%                 'ColumnFormat', cformats1t4, 'ColumnEditable', cedit1t4, ...
+%                 'RowName', rnames1t4, 'Tag','Model Calibration', ...
+%                 'CellSelectionCallback', @this.modelCalibration_tableSelection,...
+%                 'TooltipString', toolTipStr, ...
+%                 'Interruptible','off');              
+            this.tab_ModelCalibration.Table = uitable(vbox1t4,'ColumnName',cnames1t4,'Data',data,  ...
                 'ColumnFormat', cformats1t4, 'ColumnEditable', cedit1t4, ...
                 'RowName', rnames1t4, 'Tag','Model Calibration', ...
                 'CellSelectionCallback', @this.modelCalibration_tableSelection,...
                 'TooltipString', toolTipStr, ...
-                'Interruptible','off');              
-
-            % Find java sorting object in table
-            try
-                this.figure_Layout.Selection = 4;
-                drawnow update;
-                jscrollpane = findjobj(this.tab_ModelCalibration.Table);
-                jtable = jscrollpane.getViewport.getView;
-
-                % Turn the JIDE sorting on
-                jtable.setSortable(true);
-                jtable.setAutoResort(true);
-                jtable.setMultiColumnSortable(true);
-                jtable.setPreserveSelectionsAfterSorting(true);            
-            catch
-                warndlg('Creating of the GUI row-sorting module failed for the model calibration table.');
-            end                
+                'Interruptible','off');   
+            
+%             % Find java sorting object in table
+%             try
+%                 this.figure_Layout.Selection = 4;
+%                 drawnow update;
+%                 jscrollpane = findjobj(this.tab_ModelCalibration.Table);
+%                 jtable = jscrollpane.getViewport.getView;
+% 
+%                 % Turn the JIDE sorting on
+%                 jtable.setSortable(true);
+%                 jtable.setAutoResort(true);
+%                 jtable.setMultiColumnSortable(true);
+%                 jtable.setPreserveSelectionsAfterSorting(true);            
+%             catch
+%                 warndlg('Creating of the GUI row-sorting module failed for the model calibration table.');
+%             end                
             
             % Add button for calibration
             uicontrol('Parent',hbox2t4,'String','Import Table Data','Callback', @this.onImportTable, 'Tag','Model Calibration', 'TooltipString', sprintf('Import a .csv file of table data to the table below. \n Only rows with a model label and bore ID matching a row within the table will be imported.') );
@@ -628,27 +657,32 @@ classdef HydroSight_GUI < handle
             % Add tabs for various types of results            
             this.tab_ModelCalibration.resultsTabs = uiextras.TabPanel( 'Parent',resultsvbox, 'Padding', 5, 'TabSize',127,'FontSize',8);
             this.tab_ModelCalibration.resultsOptions.calibPanel = uiextras.Panel( 'Parent', this.tab_ModelCalibration.resultsTabs, 'Padding', 5, ...
-                'Title', 'Calibration Results', 'Tag','CalibrationResults');            
+                'Tag','CalibrationResultsTab');            
             this.tab_ModelCalibration.resultsOptions.forcingPanel = uiextras.Panel( 'Parent', this.tab_ModelCalibration.resultsTabs, 'Padding', 5, ...
-                'Title', 'Model Forcing Data', 'Tag','ForcingData');            
+                'Tag','ForcingDataTab');          
             this.tab_ModelCalibration.resultsOptions.paramsPanel = uiextras.Panel( 'Parent', this.tab_ModelCalibration.resultsTabs, 'Padding', 5, ...
-                'Title', 'Calibrated Model Parameters', 'Tag','Parameters');            
+                'Tag','ParametersTab');
+            this.tab_ModelCalibration.resultsOptions.derivedParamsPanel = uiextras.Panel( 'Parent', this.tab_ModelCalibration.resultsTabs, 'Padding', 5, ...
+                'Tag','DerivedParametersTab');                         
             this.tab_ModelCalibration.resultsOptions.modelSpecificsPanel = uiextras.Panel( 'Parent', this.tab_ModelCalibration.resultsTabs, 'Padding', 5, ...
-                'Title', 'Model Specific Results', 'Tag','ModelSpecifics');            
-            this.tab_ModelCalibration.resultsTabs.TabNames = {'Calib. Results','Forcing Data','Parameters','Model Specifics'};
+                'Tag','ModelSpecifics');                       
+            this.tab_ModelCalibration.resultsTabs.TabNames = {'Calib. Results','Forcing Data','Parameters', ...
+                'Derived Parameters','Model Specifics'};
             this.tab_ModelCalibration.resultsTabs.SelectedChild = 1;
-            
+                        
             % Build calibration results tab            
             resultsvbox= uiextras.VBoxFlex('Parent', this.tab_ModelCalibration.resultsOptions.calibPanel,'Padding', 3, 'Spacing', 3);
             resultsvboxTable = uiextras.Grid('Parent', resultsvbox ,'Padding', 3, 'Spacing', 3);            
-            uitable('Parent',resultsvboxTable , 'ColumnName',{'Year','Month', 'Day','Hour','Minute', 'Obs. Head','Is Calib. Point?','Mod. Head','Model Err.','Noise Lower','Noise Upper'}, ... 
+            uitable(resultsvboxTable , 'ColumnName',{'Year','Month', 'Day','Hour','Minute', 'Obs. Head','Is Calib. Point?','Mod. Head','Model Err.','Noise Lower','Noise Upper'}, ... 
                 'Data',cell(0,11), 'ColumnFormat', {'numeric','numeric','numeric','numeric', 'numeric','numeric','logical','numeric','numeric','numeric','numeric'}, ...
                 'ColumnEditable', true(1,11), 'Tag','Model Calibration - results table', ...
-                'TooltipString', 'Results data from the model calibration and evaluation.');         
+                'TooltipString',['<html>This table shows the calibration & evaluation results. <br>', ... 
+                'A range of plots can be used to explore aspects of the calibration.']);   
+
             
             resultsvboxDropDown = uiextras.Grid('Parent', resultsvboxTable ,'Padding', 3, 'Spacing', 3);            
-            uicontrol('Parent',resultsvboxDropDown,'Style','text','String','Select the plot type:','HorizontalAlignment','left' );
-            uicontrol('Parent',resultsvboxDropDown,'Style','popupmenu', ...
+            uicontrol(resultsvboxDropDown,'Style','text','String','Select the plot type:','HorizontalAlignment','left' );
+            uicontrol(resultsvboxDropDown,'Style','popupmenu', ...
                 'String',{  'Time-series of Heads', ...
                             'Time-series of Residuals', ...
                             'Histogram of Calib. Residuals', ...
@@ -659,48 +693,50 @@ classdef HydroSight_GUI < handle
                             '(none)'}, ...
                 'Value',1,'Callback', @this.modelCalibration_onUpdatePlotSetting);                                                
             set(resultsvboxTable, 'ColumnSizes', -1, 'RowSizes', [-1 20] );
-            uiextras.Panel('Parent', resultsvbox,'BackgroundColor',[1 1 1] );  
+            uiextras.Panel('Parent', resultsvbox,'BackgroundColor',[1 1 1], ...
+                'Tag','Model Calibration - results plot');  
             set(resultsvbox, 'Sizes', [-1 -1]);
             
             % Building forcing data
             resultsvbox= uiextras.VBoxFlex('Parent', this.tab_ModelCalibration.resultsOptions.forcingPanel,'Padding', 3, 'Spacing', 3);
             resultsvboxOptions = uiextras.Grid('Parent', resultsvbox,'Padding', 3, 'Spacing', 3);
-            uicontrol('Parent',resultsvboxOptions,'Style','text','String','Data time step:','HorizontalAlignment','left' );
-            uicontrol('Parent',resultsvboxOptions,'Style','popupmenu', 'String',{'daily','weekly','monthly','quarterly','annual','full-record'}, ...
+            uicontrol(resultsvboxOptions,'Style','text','String','Time step:','HorizontalAlignment','left' );
+            uicontrol(resultsvboxOptions,'Style','popupmenu', 'String',{'daily','weekly','monthly','quarterly','annual','full-record'}, ...
                 'Value',1, 'Callback', @this.modelCalibration_onUpdateForcingData, ...
                 'TooltipString', ['<html>Select the time-scale for presentation of the forcing data.  <br>', ...
                 'Note, all time-scales >daily are reported as daily mean.'],'HorizontalAlignment','right');    
-            uicontrol('Parent',resultsvboxOptions,'Style','text','String','Time step metric:','HorizontalAlignment','left' );
-            uicontrol('Parent',resultsvboxOptions,'Style','popupmenu', ...
+            uicontrol(resultsvboxOptions,'Style','text','String','Time step metric:','HorizontalAlignment','left' );
+            uicontrol(resultsvboxOptions,'Style','popupmenu', ...
                 'String',{'sum','mean','st. dev.','variance','skew','min','5th %ile','10th %ile','25th %ile','50th %ile','75th %ile','90th %ile','95th %ile', 'max', ...
                 'inter-quantile range', 'No. zero days', 'No. <0 days', 'No. >0 day'}, ...
                 'Value',1, 'Callback', @this.modelCalibration_onUpdateForcingData, ...
                 'TooltipString', ['<html>Select calculation to apply when aggregating the daily data.  <br>', ...
                 'Note, all plots will use the resulting data.'],'HorizontalAlignment','right');    
 
-            uicontrol('Parent',resultsvboxOptions,'Style','text','String','Start date:','HorizontalAlignment','left');
-            uicontrol('Parent',resultsvboxOptions,'Style','edit','String','01/01/0001','TooltipString','Filter the data and plot to that above a data (as dd/mm/yyyy).', 'Callback', @this.modelCalibration_onUpdateForcingData );
+            uicontrol(resultsvboxOptions,'Style','text','String','Start date:','HorizontalAlignment','left');
+            uicontrol(resultsvboxOptions,'Style','edit','String','01/01/0001','TooltipString','Filter the data and plot to that above a data (as dd/mm/yyyy).', 'Callback', @this.modelCalibration_onUpdateForcingData );
 
-            uicontrol('Parent',resultsvboxOptions,'Style','text','String','End date:','HorizontalAlignment','left');
-            uicontrol('Parent',resultsvboxOptions,'Style','edit','String','31/12/9999','TooltipString','Filter the data and plot to that below a data (as dd/mm/yyyy).', 'Callback', @this.modelCalibration_onUpdateForcingData );
+            uicontrol(resultsvboxOptions,'Style','text','String','End date:','HorizontalAlignment','left');
+            uicontrol(resultsvboxOptions,'Style','edit','String','31/12/9999','TooltipString','Filter the data and plot to that below a data (as dd/mm/yyyy).', 'Callback', @this.modelCalibration_onUpdateForcingData );
                    
             set(resultsvboxOptions, 'ColumnSizes', [-1 -1 -1 -1 -1 -1 -1 -1], 'RowSizes', [25] );
             
-            uitable('Parent',resultsvbox, 'ColumnName',{'Year','Month', 'Day'}, ... 
+            uitable(resultsvbox, 'ColumnName',{'Year','Month', 'Day'}, ... 
                 'Data',cell(0,3), 'ColumnFormat', {'numeric','numeric','numeric'}, ...
                 'ColumnEditable', true(1,3), 'Tag','Model Calibration - forcing table', ...
-                'TooltipString', 'Forcing data from the model calibration and evaluation.');       
-            
+                'TooltipString',['<html>This table allows exploration of the forcing data used for the calibration <br>', ... 
+                     '& evaluation and forcing data derived from the model (e.g. from a soil moisture <br>', ... 
+                     'transformation model). Use the table to explore forcing dynamics at a range of time-steps.']);  
             resultsvboxOptions = uiextras.Grid('Parent', resultsvbox,'Padding', 3, 'Spacing', 3);
-            uicontrol('Parent',resultsvboxOptions,'Style','text','String','Plot type:' );
-            uicontrol('Parent',resultsvboxOptions,'Style','popupmenu', 'String',{'line','scatter','bar','histogram','cdf','box-plot (daily metric)', ...
+            uicontrol(resultsvboxOptions,'Style','text','String','Plot type:' );
+            uicontrol(resultsvboxOptions,'Style','popupmenu', 'String',{'line','scatter','bar','histogram','cdf','box-plot (daily metric)', ...
                 'box-plot (monthly metric)','box-plot (quarterly metric)','box-plot (annually metric)'}, 'Value',1,'HorizontalAlignment','right', ...
                 'Callback',@this.modelCalibration_onUpdateForcingPlotType);    
-            uicontrol('Parent',resultsvboxOptions,'Style','text','String','x-axis:' );
-            uicontrol('Parent',resultsvboxOptions,'Style','popupmenu', 'String',{'Date', '(none)'}, 'Value',1,'HorizontalAlignment','right');    
-            uicontrol('Parent',resultsvboxOptions,'Style','text','String','y-axis:' );
-            uicontrol('Parent',resultsvboxOptions,'Style','popupmenu', 'String',{'Date', '(none)'}, 'Value',1,'HorizontalAlignment','right');                
-            uicontrol('Parent',resultsvboxOptions,'Style','pushbutton','String','Build plot','Callback', @this.modelCalibration_onUpdateForcingPlot, ...
+            uicontrol(resultsvboxOptions,'Style','text','String','x-axis:' );
+            uicontrol(resultsvboxOptions,'Style','popupmenu', 'String',{'Date', '(none)'}, 'Value',1,'HorizontalAlignment','right');    
+            uicontrol(resultsvboxOptions,'Style','text','String','y-axis:' );
+            uicontrol(resultsvboxOptions,'Style','popupmenu', 'String',{'Date', '(none)'}, 'Value',1,'HorizontalAlignment','right');                
+            uicontrol(resultsvboxOptions,'Style','pushbutton','String','Build plot','Callback', @this.modelCalibration_onUpdateForcingPlot, ...
                 'Tag','Model Calibration - forcing plot', 'TooltipString', 'Build the forcing plot.','ForegroundColor','blue');            
             set(resultsvboxOptions, 'ColumnSizes', [-1 -2 -1 -2 -1 -2 -2], 'RowSizes', [25] );
             %hbuttons = uiextras.HButtonBox('Parent',resultsvboxOptions,'Padding', 3, 'Spacing', 3);  
@@ -716,27 +752,51 @@ classdef HydroSight_GUI < handle
             
             % Build parameters tab
             resultsvbox= uiextras.VBoxFlex('Parent', this.tab_ModelCalibration.resultsOptions.paramsPanel,'Padding', 3, 'Spacing', 3);  
-            uitable('Parent',resultsvbox, ...
+            uitable(resultsvbox, ...
                 'ColumnName',{'Component Name','Parameter Name','Value'}, ... 
                 'ColumnFormat', {'char','char','numeric'}, ...
                 'ColumnEditable', true(1,3), ...
                 'Tag','Model Calibration - parameter table', ...
-                'TooltipString', 'Model parameter estimates from the calibration.');                
-            uiextras.Panel('Parent', resultsvbox,'BackgroundColor',[1 1 1] );  
+                'TooltipString',['<html>This table allows exploration of the calibrated model parameters. <br>', ... 
+                 'Use this table to inform assessment of the validity of the model.']);            
+
+            uiextras.Panel('Parent', resultsvbox,'BackgroundColor',[1 1 1], ...
+                'Tag','Model Calibration - parameter plot');  
             set(resultsvbox, 'Sizes', [-1 -2]);
             
+            % Build derived parameters tab
+            resultsvbox= uiextras.VBoxFlex('Parent', this.tab_ModelCalibration.resultsOptions.derivedParamsPanel,'Padding', 3, 'Spacing', 3);  
+            uitable(resultsvbox, ...
+                'ColumnName',{'Component Name','Parameter Name','Derived Value'}, ... 
+                'ColumnFormat', {'char','char','numeric'}, ...
+                'ColumnEditable', true(1,3), ...
+                'Tag','Model Calibration - derived parameter table', ...
+                'TooltipString',['<html>This table allows exploration of the parameters derived from the calibrated <br>', ... 
+                 'parameters. The parameters shown are dependent upon the model structure. <br>', ...
+                 'For example, TFN models having using, say, the Ferris Knowles weighting function <br>', ...
+                 'will show the transmissivity and storativity.']); 
+            uiextras.Panel('Parent', resultsvbox,'BackgroundColor',[1 1 1], ...
+                'Tag','Model Calibration - derived parameter plot');  
+            set(resultsvbox, 'Sizes', [-1 -2]);
+                        
             % Build model specific outputs tab.
             resultsvbox= uiextras.VBoxFlex('Parent', this.tab_ModelCalibration.resultsOptions.modelSpecificsPanel,'Padding', 3, 'Spacing', 3);                        
             resultsvboxOptions = uiextras.Grid('Parent', resultsvbox,'Padding', 3, 'Spacing', 3);            
-            uicontrol('Parent',resultsvboxOptions,'Style','text','String','Select model specific output:' );
-            uicontrol('Parent',resultsvboxOptions,'Style','popupmenu', 'String',{'(none)'},'Value',1,'Callback', @this.modelCalibration_onUpdatePlotSetting);                         
-            uitable('Parent',resultsvbox, ...
-                'ColumnName',{'Component Name','Variable Name','Derived Value'}, ... 
-                'ColumnFormat', {'char','char','numeric'}, ...
-                'ColumnEditable', true(1,3), ...
-                'Tag','Model Calibration - parameter table', ...
-                'TooltipString', 'Derived variables from the calibrated model parameter.'); 
-            uiextras.Panel('Parent', resultsvbox,'BackgroundColor',[1 1 1] );  
+            uicontrol(resultsvboxOptions,'Style','text','String','Select model specific output:' );
+            uicontrol(resultsvboxOptions,'Style','popupmenu', 'String',{'(none)'},'Value',1, ...
+                'Tag','Model Calibration - derived data dropdown', ...
+                'Callback', @this.modelCalibration_onUpdateDerivedData);                         
+            uitable(resultsvbox, ...
+                'ColumnName',{'Variabe 1','Variabe 2'}, ... 
+                'ColumnFormat', {'numeric','numeric'}, ...
+                'ColumnEditable', true(1,2), ...
+                'Tag','Model Calibration - derived data table', ...
+                'TooltipString',['<html>This table allows exploration of the data derived from the calibrated. <br>', ... 
+                 'The data shown are very dependent upon the model structure. <br>', ...
+                 'For example, TFN models having using, say, the Pearsons weighting function <br>', ...
+                 'will show the weighting data and a plot.']);         
+            uiextras.Panel('Parent', resultsvbox,'BackgroundColor',[1 1 1], ...
+                'Tag','Model Calibration - derived data plot');  
             set(resultsvbox, 'Sizes', [30 -1 -2]);                                                            
                         
 %           Add context menu
@@ -766,10 +826,10 @@ classdef HydroSight_GUI < handle
                         
             % Add button for calibration
             % Add buttons to top left panel               
-            uicontrol('Parent',hbox3t5,'String','Append Table Data','Callback', @this.onImportTable, 'Tag','Model Simulation', 'TooltipString', sprintf('Append a .csv file of table data to the table below. \n Only rows where the model label is for a model that have been calibrated will be imported.') );
-            uicontrol('Parent',hbox3t5,'String','Export Table Data','Callback', @this.onExportTable, 'Tag','Model Simulation', 'TooltipString', sprintf('Export a .csv file of the table below.') );                        
-            uicontrol('Parent',hbox3t5,'String','Simulate Selected Models','Callback', @this.onSimModels, 'TooltipString', sprintf('Use the tick-box below to select the models to simulate then click here. \n During and after simulation, the status is given in the 9th column.') );            
-            uicontrol('Parent',hbox3t5,'String','Export Selected Results','Callback', @this.onExportResults, 'Tag','Model Simulation', 'TooltipString', sprintf('Export a .csv file of the simulation results from all models.') );            
+            uicontrol(hbox3t5,'String','Append Table Data','Callback', @this.onImportTable, 'Tag','Model Simulation', 'TooltipString', sprintf('Append a .csv file of table data to the table below. \n Only rows where the model label is for a model that have been calibrated will be imported.') );
+            uicontrol(hbox3t5,'String','Export Table Data','Callback', @this.onExportTable, 'Tag','Model Simulation', 'TooltipString', sprintf('Export a .csv file of the table below.') );                        
+            uicontrol(hbox3t5,'String','Simulate Selected Models','Callback', @this.onSimModels, 'TooltipString', sprintf('Use the tick-box below to select the models to simulate then click here. \n During and after simulation, the status is given in the 9th column.') );            
+            uicontrol(hbox3t5,'String','Export Selected Results','Callback', @this.onExportResults, 'Tag','Model Simulation', 'TooltipString', sprintf('Export a .csv file of the simulation results from all models.') );            
             hbox3t5.ButtonSize(1) = 225;
             
             % Add table
@@ -802,32 +862,40 @@ classdef HydroSight_GUI < handle
             % Add table. Importantly, this is done using createTable, not
             % uitable. This was required to achieve acceptable perforamnce
             % for large tables.
-            this.tab_ModelSimulation.Table = createTable(vbox1t5,cnames1t5, data, false, ...
+%             this.tab_ModelSimulation.Table = createTable(vbox1t5,cnames1t5, data, false, ...
+%                 'ColumnFormat', cformats1t5, 'ColumnEditable', cedit1t5, ...
+%                 'RowName', rnames1t5, 'Tag','Model Simulation', ...
+%                 'CellSelectionCallback', @this.modelSimulation_tableSelection,...
+%                 'CellEditCallback', @this.modelSimulation_tableEdit,...
+%                 'TooltipString', toolTipStr);   
+
+            this.tab_ModelSimulation.Table = uitable(vbox1t5, ...
+                'ColumnName', cnames1t5, 'Data', data, ...
                 'ColumnFormat', cformats1t5, 'ColumnEditable', cedit1t5, ...
                 'RowName', rnames1t5, 'Tag','Model Simulation', ...
                 'CellSelectionCallback', @this.modelSimulation_tableSelection,...
                 'CellEditCallback', @this.modelSimulation_tableEdit,...
-                'TooltipString', toolTipStr);        
-
+                'TooltipString', toolTipStr);            
+                                 
             
-            % Find java sorting object in table
-            try
-                this.figure_Layout.Selection = 5;
-                drawnow update;
-                jscrollpane = findjobj(this.tab_ModelSimulation.Table);
-                jtable = jscrollpane.getViewport.getView;
-
-                % Turn the JIDE sorting on
-                jtable.setSortable(true);
-                jtable.setAutoResort(true);
-                jtable.setMultiColumnSortable(true);
-                jtable.setPreserveSelectionsAfterSorting(true);            
-            catch
-                warndlg('Creating of the GUI row-sorting module failed for the model simulation table.');
-            end                         
+%             % Find java sorting object in table
+%             try
+%                 this.figure_Layout.Selection = 5;
+%                 drawnow update;
+%                 jscrollpane = findjobj(this.tab_ModelSimulation.Table);
+%                 jtable = jscrollpane.getViewport.getView;
+% 
+%                 % Turn the JIDE sorting on
+%                 jtable.setSortable(true);
+%                 jtable.setAutoResort(true);
+%                 jtable.setMultiColumnSortable(true);
+%                 jtable.setPreserveSelectionsAfterSorting(true);            
+%             catch
+%                 warndlg('Creating of the GUI row-sorting module failed for the model simulation table.');
+%             end                         
                         
             % Add drop-down for the results box
-            uicontrol('Parent',vbox2t5,'Style','text','String','Select simulation results to display:' );
+            uicontrol(vbox2t5,'Style','text','String','Select simulation results to display:' );
             this.tab_ModelSimulation.resultsOptions.popup = uicontrol('Parent',vbox2t5,'Style','popupmenu', ...
                 'String',{'Simulation data', 'Simulation & decomposition plots','(none)'}, ...
                 'Value',3,'Callback', @this.modelSimulation_onResultsSelection);         
@@ -837,14 +905,20 @@ classdef HydroSight_GUI < handle
             % Add results table. Importantly, this is done using createTable, not
             % uitable. This was required to achieve acceptable perforamnce
             % for large tables.
-            this.tab_ModelSimulation.resultsOptions.dataTable.table = createTable(this.tab_ModelSimulation.resultsOptions.dataTable.box, ...
-                {'Year','Month', 'Day','Hour','Minute', 'Sim. Head','Noise Lower','Noise Upper'}, ...
-                cell(0,8), false, ...
+%             this.tab_ModelSimulation.resultsOptions.dataTable.table = createTable(this.tab_ModelSimulation.resultsOptions.dataTable.box, ...
+%                 {'Year','Month', 'Day','Hour','Minute', 'Sim. Head','Noise Lower','Noise Upper'}, ...
+%                 cell(0,8), false, ...
+%                 'ColumnFormat', {'numeric','numeric','numeric','numeric', 'numeric','numeric','numeric','numeric'}, ...
+%                 'ColumnEditable', true(1,8), ...
+%                 'Tag','Model Simulation - results table', ...
+%                 'TooltipString', 'Results data from the model simulation.');     
+            this.tab_ModelSimulation.resultsOptions.dataTable.table = uitable(this.tab_ModelSimulation.resultsOptions.dataTable.box, ...
+                'ColumnName',{'Year','Month', 'Day','Hour','Minute', 'Sim. Head','Noise Lower','Noise Upper'}, ...
+                'Data',cell(0,8), ...
                 'ColumnFormat', {'numeric','numeric','numeric','numeric', 'numeric','numeric','numeric','numeric'}, ...
                 'ColumnEditable', true(1,8), ...
                 'Tag','Model Simulation - results table', ...
-                'TooltipString', 'Results data from the model simulation.');     
-            
+                'TooltipString', 'Results data from the model simulation.');                                 
             
             this.tab_ModelSimulation.resultsOptions.box = vbox2t5;
             this.tab_ModelSimulation.resultsOptions.plots.panel = uiextras.BoxPanel('Parent', vbox2t5);                                              
@@ -1091,6 +1165,67 @@ classdef HydroSight_GUI < handle
              set(this.Figure, 'pointer', 'arrow');                
              drawnow update;               
         end
+        
+        % Open saved model
+        function onNew(this,hObject,eventdata)
+
+            % Check if all of the GUI tables are empty. If not, warn the
+            % user the opening the example will delete the existing data.
+            if ~isempty(this.tab_Project.project_name.String) || ...
+            ~isempty(this.tab_Project.project_description.String) || ...
+            (size(this.tab_ModelConstruction.Table.Data,1)~=0 && any(~any(cellfun( @(x) isempty(x), this.tab_ModelConstruction.Table.Data(:,1:8))))) || ...
+            (size(this.tab_ModelCalibration.Table.Data,1)~=0 && any(~any(cellfun( @(x) isempty(x), this.tab_ModelCalibration.Table.Data)))) || ...
+            (size(this.tab_ModelSimulation.Table.Data,1)~=0 && any(~any(cellfun( @(x) isempty(x), this.tab_ModelSimulation.Table.Data))))
+                response = questdlg({'Started a new project will close the current project.','','Do you want to continue?'}, ...
+                 'Close the current project?','Yes','No','No');
+             
+                if strcmp(response,'No')
+                    return;
+                end
+            end              
+            
+            % Initialise project data
+            set(this.Figure, 'pointer', 'watch');
+            drawnow update;              
+            this.project_fileName ='';
+            this.model_labels=[];
+            this.models=[];              
+            this.tab_Project.project_name.String = '';
+            this.tab_Project.project_description.String = '';
+            this.tab_DataPrep.Table.Data = {};
+            this.tab_DataPrep.Table.RowName = {}; 
+            this.tab_ModelConstruction.Table.Data = {};
+            this.tab_ModelConstruction.Table.RowName = {}; 
+            this.tab_ModelCalibration.Table.Data = {};
+            this.tab_ModelCalibration.Table.RowName = {};
+            this.tab_ModelSimulation.Table.Data = {};
+            this.tab_ModelSimulation.Table.RowName = {};
+            this.dataPrep = [];
+            this.copiedData={};
+            this.HPCoffload={};
+            this.modelsOnHDD='';
+            set(this.Figure,'Name','HydroSight');
+            drawnow update;   
+                
+            % Enable file menu items
+            for i=1:size(this.figure_Menu.Children,1)
+                if strcmp(get(this.figure_Menu.Children(i),'Label'), 'Save Project')
+                    set(this.figure_Menu.Children(i),'Enable','on');
+                elseif strcmp(get(this.figure_Menu.Children(i),'Label'), 'Move models from RAM to HDD...') || ...
+                strcmp(get(this.figure_Menu.Children(i),'Label'), 'Move models from HDD to RAM...')
+                    if this.modelsOnHDD
+                        set(this.figure_Menu.Children(i),'Label', 'Move models from HDD to RAM...');
+                    else
+                        set(this.figure_Menu.Children(i),'Label', 'Move models from RAM to HDD...');
+                    end
+                    set(this.figure_Menu.Children(i),'Enable','on');
+                end       
+            end
+
+            set(this.Figure, 'pointer', 'arrow');
+            drawnow update;                               
+        end
+        
         % Open saved model
         function onOpen(this,hObject,eventdata)
             
@@ -2531,7 +2666,7 @@ classdef HydroSight_GUI < handle
             if ~isempty(tmpModel) ...
             && isfield(tmpModel.calibrationResults,'isCalibrated') ...
             && tmpModel.calibrationResults.isCalibrated        
-                        
+        
                     % Show a table of calibration data
                     %---------------------------------
                     % Get the model calibration data.
@@ -2587,28 +2722,64 @@ classdef HydroSight_GUI < handle
                         this.tab_ModelCalibration.resultsOptions.dataTable.table.ColumnName = {'Year','Month', 'Day','Hour','Minute', 'Obs. Head','Is Calib. Point?','Mod. Head','Model Residual','Total Err. (5th %ile)','Total Err. (95th %ile)'};
                     end
                     
+                    % Add drop-down options for the derived data and update
+                    % plot etc
+                    %---------------------------------            
+                    % Set the model derived drop-down options.
+                    derivedData_types = getDerivedDataTypes(tmpModel.model);  
+                    derivedData_types = strcat(derivedData_types(:,1), ':', derivedData_types(:,2));
+                    obj = findobj(this.tab_ModelCalibration.resultsOptions.modelSpecificsPanel, 'Tag','Model Calibration - derived data dropdown');                    
+                    obj.String = derivedData_types;
+                    if obj.Value>length(obj.String)
+                        obj.Value = min(1,length(obj.String));
+                    end   
+                    
+                    modelCalibration_onUpdateDerivedData(this, hObject, eventdata)                
+    
+                    %---------------------------------
+                    
                     % Update calibration plot
                     modelCalibration_onUpdatePlotSetting(this);
-                    %---------------------------------
-
+                    
                     % Show model parameter data
                     %---------------------------------
                     %Get parameters and names 
                     [paramValues, paramsNames] = getParameters(tmpModel.model);  
 
                     % Add to the table
-                    this.tab_ModelCalibration.resultsOptions.paramsPanel.Children.Children(2).Data = cell(size(paramValues,1),size(paramValues,2)+2);
-                    this.tab_ModelCalibration.resultsOptions.paramsPanel.Children.Children(2).Data(:,1) = paramsNames(:,1);
-                    this.tab_ModelCalibration.resultsOptions.paramsPanel.Children.Children(2).Data(:,2) = paramsNames(:,2);
-                    this.tab_ModelCalibration.resultsOptions.paramsPanel.Children.Children(2).Data(:,3:end) = num2cell(paramValues);
+                    obj = findobj(this.tab_ModelCalibration.resultsOptions.paramsPanel, 'Tag','Model Calibration - parameter table');
+                    obj.Data = cell(size(paramValues,1),size(paramValues,2)+2);
+                    obj.Data(:,1) = paramsNames(:,1);
+                    obj.Data(:,2) = paramsNames(:,2);
+                    obj.Data(:,3:end) = num2cell(paramValues);
 
                     nparams=size(paramValues,2);                        
                     colnames = cell(nparams+2,1);
                     colnames{1,1}='Component Name';
                     colnames{2,1}='Parameter Name';
                     colnames(3:end,1) = strcat(repmat({'Parm. Set '},1,nparams)',num2str([1:nparams]'));
-                    this.tab_ModelCalibration.resultsOptions.paramsPanel.Children.Children(2).ColumnName = colnames;
+                    obj.ColumnName = colnames;
                     %---------------------------------                    
+                                        
+                    % Show derived parameter data
+                    %---------------------------------
+                    %Get parameters and names 
+                    [derivedParamValues, derivedParamsNames] = getDerivedParameters(tmpModel.model);        
+
+                    % Add to the table
+                    obj = findobj(this.tab_ModelCalibration.resultsOptions.derivedParamsPanel, 'Tag','Model Calibration - derived parameter table');
+                    obj.Data = cell(size(derivedParamValues,1),size(derivedParamValues,2)+2);
+                    obj.Data(:,1) = derivedParamsNames(:,1);
+                    obj.Data(:,2) = derivedParamsNames(:,2);
+                    obj.Data(:,3:end) = num2cell(derivedParamValues);
+
+                    nderivedParams=size(derivedParamValues,2);                        
+                    colnames = cell(nderivedParams+2,1);
+                    colnames{1,1}='Component Name';
+                    colnames{2,1}='Parameter Name';
+                    colnames(3:end,1) = strcat(repmat({'Parm. Set '},1,nderivedParams)',num2str([1:nderivedParams]'));
+                    obj.ColumnName = colnames;
+                    %---------------------------------                               
                     
                     % Show model forcing data
                     %---------------------------------                                        
@@ -2689,12 +2860,11 @@ classdef HydroSight_GUI < handle
                     % Update table and plots
                     modelCalibration_onUpdateForcingData(this)
                     %---------------------------------
-                                        
             end
                            
             % Change cursor
             set(this.Figure, 'pointer', 'arrow');      
-            drawnow update;            
+            drawnow update;
         end                
         
         function modelCalibration_onUpdatePlotSetting(this, hObject, eventdata)
@@ -2727,13 +2897,13 @@ classdef HydroSight_GUI < handle
                 % Plot calibration result.
                 %-----------------------
                 % Create an axis handle for the figure.
-                delete( findobj(this.tab_ModelCalibration.resultsOptions.calibPanel.Children.Children(1).Children,'type','axes'));
-                delete( findobj(this.tab_ModelCalibration.resultsOptions.calibPanel.Children.Children(1).Children,'type','legend'));     
-                delete( findobj(this.tab_ModelCalibration.resultsOptions.calibPanel.Children.Children(1).Children,'type','uipanel'));     
+                obj = findobj(this.tab_ModelCalibration.resultsOptions.calibPanel,'Tag','Model Calibration - results plot');
+                delete( findobj(obj ,'type','axes'));
+                delete( findobj(obj ,'type','legend'));     
+                %delete( findobj(obj ,'type','uipanel'));     
                 
-                h = uipanel('Parent', this.tab_ModelCalibration.resultsOptions.calibPanel.Children.Children(1));
-                %h = uipanel('Parent', this.tab_ModelCalibration.resultsOptions.plots.panel );
-                axisHandle = axes( 'Parent', h);
+                %h = uipanel('Parent', obj);
+                axisHandle = axes( 'Parent', obj);
                 % Show the calibration plots. NOTE: QQ plot type
                 % fails so is skipped
                 if plotID<=4
@@ -2748,11 +2918,12 @@ classdef HydroSight_GUI < handle
                 paramsNames  = strrep(paramsNames(:,2), '_',' ');
 
                 % Create an axis handle for the figure.
-                delete( findobj(this.tab_ModelCalibration.resultsOptions.paramsPanel.Children.Children(1),'type','axes'));
+                obj = findobj(this.tab_ModelCalibration.resultsOptions.paramsPanel, 'Tag','Model Calibration - parameter plot');
+                delete( findobj(obj ,'type','axes'));
                 %delete( findobj(this.tab_ModelCalibration.resultsOptions.paramsPanel.Children.Children(2),'type','legend'));     
                 %delete( findobj(this.tab_ModelCalibration.resultsOptions.paramsPanel.Children.Children(2),'type','uipanel'));     
                 %h = uipanel('Parent', this.tab_ModelCalibration.resultsOptions.paramsPanel.Children.Children(2));
-                axisHandle = axes( 'Parent',this.tab_ModelCalibration.resultsOptions.paramsPanel.Children.Children(1));
+                axisHandle = axes( 'Parent',obj);
 
                 if size(paramValues,2)==1
                     bar(axisHandle,paramValues);
@@ -2771,6 +2942,37 @@ classdef HydroSight_GUI < handle
                     end
                 end                
                 
+                % Plot derived parameters
+                %-----------------------
+                [paramValues, paramsNames] = getDerivedParameters(tmpModel.model);                          
+                paramsNames  = strrep(paramsNames(:,2), '_',' ');
+
+                % Create an axis handle for the figure.
+                obj = findobj(this.tab_ModelCalibration.resultsOptions.derivedParamsPanel, 'Tag','Model Calibration - derived parameter plot');
+                delete( findobj(obj ,'type','axes'));
+                %delete( findobj(this.tab_ModelCalibration.resultsOptions.paramsPanel.Children.Children(2),'type','legend'));     
+                %delete( findobj(this.tab_ModelCalibration.resultsOptions.paramsPanel.Children.Children(2),'type','uipanel'));     
+                %h = uipanel('Parent', this.tab_ModelCalibration.resultsOptions.paramsPanel.Children.Children(2));
+                axisHandle = axes( 'Parent',obj);
+
+                if size(paramValues,2)==1
+                    bar(axisHandle,paramValues);
+                    set(axisHandle, 'xTickLabel', paramsNames,'FontSize',8,'xTickLabelRotation',45);
+                    ylabel(axisHandle,'Derived param. value');
+                else
+                    % A bug seems to occur when the builtin plotmatrix is ran to produce a plot inside a GUI 
+                    % whereby the default fig menu items and icons
+                    % appear. The version of plotmatrix below has a
+                    % a few lines commented out to supress this
+                    % proble,m (see lines 232-236)                            
+                    [~, ax] = plotmatrix(axisHandle,paramValues', '.');      
+                    for i=1:size(ax,1)
+                        ylabel(ax(i,1), paramsNames(i),'FontSize',8);
+                        xlabel(ax(end,i), paramsNames(i),'FontSize',8);
+                    end
+                end                                              
+                %-----------------------         
+                                
                 drawnow update;
             end
            
@@ -3159,7 +3361,7 @@ classdef HydroSight_GUI < handle
                ydataLabel = '(none)';                
             end
             
-            % Check if uss date for either axis            
+            % Check if usubg date for either axis            
             xdata_isdate=false;
             ydata_isdate=false;
             if isdatetime(xdata)                        
@@ -3212,7 +3414,7 @@ classdef HydroSight_GUI < handle
                         plot(axisHandle,xdata, ydata(:,4),plotSymbol);
                         hold(axisHandle,'off');
                         
-                        % Date date axis. NOTE, code adaopted from dateaxis.m.
+                        % Date date axis. NOTE, code adopted from dateaxis.m.
                         % Pre-2016B dateaxis did not allow input of axis
                         % handle.                        
                         if xdata_isdate;
@@ -3607,7 +3809,10 @@ classdef HydroSight_GUI < handle
                     
                 otherwise
                     error('Unknown forcing data plot type.')                    
-            end                      
+            end                    
+            
+            box(axisHandle,'on');
+            axis(axisHandle,'tight');            
             hold(axisHandle,'off');
             
             % Change cursor
@@ -3653,6 +3858,68 @@ classdef HydroSight_GUI < handle
                 set(ax,[tickaxis,'ticklabel'],dstr)                         
             end
         end       
+        
+        % Get derived data AND add data table and plot.
+        function modelCalibration_onUpdateDerivedData(this, hObject, eventdata)
+       
+            % Record the current row and column numbers
+            irow = this.tab_ModelConstruction.currentRow;
+            icol = this.tab_ModelConstruction.currentCol;
+
+            % Get the calibration table data
+            obj = this.tab_ModelCalibration.Table;
+            data = obj.Data;
+            
+            % Find index to the calibrated model label within the
+            % list of constructed models.
+            if isempty(irow)
+                set(this.Figure, 'pointer', 'arrow');   
+                drawnow update;                                   
+                return;
+            end
+            
+            % Find the curretn model label
+            calibLabel = HydroSight_GUI.removeHTMLTags(data{irow,2});             
+            this.tab_ModelConstruction.currentModel = calibLabel;
+            
+            % Get a copy of the model object. This is only done to
+            % minimise HDD read when the models are off loaded to HDD using
+            % matfile();
+            tmpModel = getModel(this, calibLabel);            
+            
+          % Display the requested calibration results if the model object
+            % exists and there are calibration results.
+            if ~isempty(tmpModel) ...
+            && isfield(tmpModel.calibrationResults,'isCalibrated') ...
+            && tmpModel.calibrationResults.isCalibrated  
+            
+                % Get model specific derived data and plot etc
+                %-----------------------             
+                % Create an axis handle for the figure.
+                obj = findobj(this.tab_ModelCalibration.resultsOptions.modelSpecificsPanel, 'Tag','Model Calibration - derived data plot'); 
+                delete( findobj(obj ,'type','axes'));
+                axisHandle = axes( 'Parent',obj);                
+
+                % Get length of forcing data.
+                t = getForcingData(tmpModel);
+                t = [1:max(t(:,1))-min(t(1,1))]';
+
+                obj = findobj(this.tab_ModelCalibration.resultsOptions.modelSpecificsPanel, 'Tag','Model Calibration - derived data dropdown');                    
+                derivedData_type = obj.String;
+                derivedData_type = derivedData_type{obj.Value};
+                ind = strfind(derivedData_type,':');
+                modelComponant = derivedData_type(1:ind(1)-1);
+                derivedData_variable = derivedData_type(ind(1)+1:end);
+                [derivedData, derivedData_names] = getDerivedData(tmpModel.model, modelComponant, derivedData_variable, t, axisHandle);
+
+                obj = findobj(this.tab_ModelCalibration.resultsOptions.modelSpecificsPanel, 'Tag','Model Calibration - derived data table');                    
+                obj.Data = derivedData;
+                obj.ColumnName = derivedData_names;
+                drawnow update;            
+            else
+                errordlg(['The following selected model must be calibrated to display the results:',calibLabel],'Model not calibrated ...');
+            end            
+        end
         
         function modelSimulation_tableEdit(this, hObject, eventdata)
 
@@ -6811,8 +7078,7 @@ classdef HydroSight_GUI < handle
                 'MenuBar', 'none', ...
                 'Toolbar', 'none', ...
                 'HandleVisibility', 'off', ...
-                'Visible','off', ...
-                'WindowStyle', 'modal');
+                'Visible','off');
 
             % Get window size and set figure to middle
             splashWidth =  1200;
@@ -6829,7 +7095,7 @@ classdef HydroSight_GUI < handle
             axis(h,'off');
             axis(h,'image');  
             axis(h,'tight');
-             
+            drawnow update; 
         end        
         
         % Load example models

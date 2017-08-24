@@ -689,11 +689,18 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                 params_lowerLimit(ind,1) = -inf;                    
             end       
             
+            % Upper and lower bounds taken from Rawls et al 1982 Estimation
+            % of Soil Properties. The values are for sand and clay
+            % respectively and transformed from units of cm/h to the assumed
+            % input units of mm/d.
             if obj.settings.activeParameters.k_sat
                 ind = cellfun(@(x)(strcmp(x,'k_sat')),param_names);
-                params_lowerLimit(ind,1) = -inf;                                    
-            end    
-
+                %params_lowerLimit(ind,1) = log10(10);                    
+                %params_upperLimit(ind,1) = log10(100);
+                params_lowerLimit(ind,1) = floor(log10(0.06*24*10));
+                params_upperLimit(ind,1) = ceil(log10(21*24*10));
+            end             
+            
             if obj.settings.activeParameters.bypass_frac
                 ind = cellfun(@(x)(strcmp(x,'bypass_frac')),param_names);
                 params_lowerLimit(ind,1) = 0;         
@@ -807,10 +814,16 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                 params_upperLimit(ind,1) = log10(100);
             end  
             
+            % Upper and lower bounds taken from Rawls et al 1982 Estimation
+            % of Soil Properties. The values are for sand and clay
+            % respectively and transformed from units of cm/h to the assumed
+            % input units of mm/d.
             if obj.settings.activeParameters.k_sat
                 ind = cellfun(@(x)(strcmp(x,'k_sat')),param_names);
-                params_lowerLimit(ind,1) = log10(10);                    
-                params_upperLimit(ind,1) = log10(100);
+                %params_lowerLimit(ind,1) = log10(10);                    
+                %params_upperLimit(ind,1) = log10(100);
+                params_lowerLimit(ind,1) = log10(0.06*24*10);
+                params_upperLimit(ind,1) = log10(21*24*10);
             end 
             
             if obj.settings.activeParameters.beta
@@ -938,6 +951,9 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                 evap_col = obj.settings.forcingData_cols{filt,2};
                 obj.variables.evap = obj.settings.forcingData(filt_time, evap_col );
                 
+                % Store the time points
+                obj.variables.t = t;
+                 
                 if isfield(obj.settings,'simulateLandCover') && obj.settings.simulateLandCover
                     filt = strcmp(obj.settings.forcingData_cols(:,1),'TreeFraction');
                     tree_col = obj.settings.forcingData_cols{filt,2};

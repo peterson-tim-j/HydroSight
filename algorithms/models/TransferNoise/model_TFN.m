@@ -2024,6 +2024,50 @@ classdef model_TFN < model_abstract
             end
         end
              
+        function derivedData_types = getDerivedDataTypes(obj)
+
+            % Initialise outputs
+            derivedData_types = cell(0,2);
+            
+            % Get model componants
+            companants = fieldnames(obj.parameters);
+            
+            derivedData_types_p1={};
+            derivedData_types_p2={};
+            for ii=1: size(companants,1)
+                modelComponant = char( companants(ii) ) ;
+                % Get derived data for each componant.
+                if isobject( obj.parameters.( modelComponant ))  && ...
+                any(strcmp(methods(obj.parameters.( modelComponant )),'getDerivedData')) && ...
+                any(strcmp(methods(obj.parameters.( modelComponant )),'getDerivedDataTypes'))                    
+            
+                    dataTypes_tmp = getDerivedDataTypes(obj.parameters.( modelComponant ));
+                    if ~iscell(dataTypes_tmp)
+                        dataTypes = cell(1,1);
+                        dataTypes{1}=dataTypes_tmp;
+                    else
+                        dataTypes = dataTypes_tmp;
+                    end
+                    k=size(derivedData_types,1);
+                    for j=1:length(dataTypes)
+                        derivedData_types{k+j,1} = modelComponant;
+                        derivedData_types{k+j,2} = dataTypes{j};
+                    end
+                end
+            end    
+        end
+        
+        function [derivedData, derivedData_names] = getDerivedData(obj, modelComponant, derivedData_variable, t, plot_axes)
+
+            % Initialise outputs
+            derivedData = [];
+            derivedData_names={};
+            
+            if isobject( obj.parameters.( modelComponant ))  && ...
+            any(strcmp(methods(obj.parameters.( modelComponant )),'getDerivedData'))
+                [derivedData, derivedData_names] = getDerivedData( obj.parameters.( modelComponant ),derivedData_variable,t,plot_axes );  
+            end
+        end        
         
         function [stochForcingData_new, accepted] = acceptStochForcingSolution(obj, objFuncVal, objFuncVal_prior, stochForcingData)
 

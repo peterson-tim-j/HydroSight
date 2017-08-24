@@ -326,6 +326,93 @@ classdef  responseFunction_FerrisKnowles < responseFunction_abstract
             param_names = {'Transmissivity (Head units^2/day)'; 'Storativity'};
         end
         
+        function derivedData_types = getDerivedDataTypes(obj)
+            derivedData_types = cell(size(obj.settings.pumpingBores,1),1);
+            for i=1:size(obj.settings.pumpingBores,1)
+                derivedData_types{i,1} = [obj.settings.pumpingBores{i,1}.BoreID,' weighting'];
+            end
+        end        
+        
+        % Return the theta values for the GUI 
+        function [derivedData, derivedData_names] = getDerivedData(obj,derivedData_variable,t,axisHandle)
+           
+            % Find which bore to extract data for.
+            ind = [];
+            for i=1:size(obj.settings.pumpingBores,1)
+                if strcmp([obj.settings.pumpingBores{i,1}.BoreID,' weighting'], derivedData_variable)
+                    ind = i;
+                    break;
+                end                
+            end            
+            if isempty(ind)
+                error(['The following derived variable could not be found:',derivedData_variable]);
+            end
+            
+            [params, param_names] = getParameters(obj);
+            nparamSets = size(params,2);
+            setParameters(obj,params(:,1));
+            derivedData_tmp = theta(obj, t);
+            if nparamSets >1
+                derivedData = zeros(size(derivedData_tmp,1), nparamSets );                
+                derivedData(:,1) = derivedData_tmp(:,ind);
+                for i=2:nparamSets 
+                    setParameters(obj,params(:,i));
+                    derivedData_tmp = theta(obj, t);
+                    derivedData(:,i) = derivedData_tmp(:,ind);
+                end
+                setParameters(obj,params);
+                
+                % Calculate percentiles
+                derivedData_prctiles = prctile( derivedData,[5 10 25 50 75 90 95],2);
+                
+                % Plot percentiles
+                XFill = [t' fliplr(t')];
+                YFill = [derivedData_prctiles(:,1)', fliplr(derivedData_prctiles(:,7)')];                   
+                fill(XFill, YFill,[0.8 0.8 0.8],'Parent',axisHandle);
+                hold(axisHandle,'on');                    
+                YFill = [derivedData_prctiles(:,2)', fliplr(derivedData_prctiles(:,6)')];                   
+                fill(XFill, YFill,[0.6 0.6 0.6],'Parent',axisHandle);                    
+                hold(axisHandle,'on');
+                YFill = [derivedData_prctiles(:,3)', fliplr(derivedData_prctiles(:,5)')];                   
+                fill(XFill, YFill,[0.4 0.4 0.4],'Parent',axisHandle);                    
+                hold(axisHandle,'on');
+                clear XFill YFill     
+
+                % Plot median
+                plot(axisHandle,t, derivedData_prctiles(:,4),'-b');
+                hold(axisHandle,'off');                
+                
+                ind = find(abs(derivedData_prctiles(:,4)) > max(abs(derivedData_prctiles(:,4)))*0.05,1,'last');
+                if isempty(ind);
+                    ind = length(t);
+                end                
+                xlim(axisHandle, [1, t(ind)]);
+                                                
+                % Add legend
+                legend(axisHandle, '5-95th%ile','10-90th%ile','25-75th%ile','median','Location', 'northeastoutside');   
+                
+                % Add data column names
+                derivedData_names = cell(nparamSets+1,1);
+                derivedData_names{1,1}='Time lag (days)';
+                derivedData_names(2:end,1) = strcat(repmat({'Weight-Parm. Set '},1,nparamSets )',num2str([1:nparamSets ]'));                
+                
+                derivedData =[t,derivedData];
+            else
+                plot(axisHandle, t,derivedData_tmp(:,ind),'-b');      
+                t_ind = find(abs(derivedData_tmp(:,ind)) > max(abs(derivedData_tmp(:,ind)))*0.05,1,'last');
+                if isempty(t_ind );
+                    t_ind  = length(t);
+                end
+                xlim(axisHandle, [1, t(t_ind )]);
+                
+                derivedData_names = {'Time lag (days)','Weight'};
+                derivedData =[t,derivedData_tmp(:,ind) ];
+            end
+            xlabel(axisHandle,'Time lag (days)');
+            ylabel(axisHandle,'Weight');
+            box(axisHandle,'on');
+        end      
+        
         function delete(obj)
 % delete class destructor
 %

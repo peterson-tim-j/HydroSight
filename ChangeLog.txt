@@ -32,3 +32,6 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 
 18 August 2017
 * Alpha version of a new calibration results GUI. It now allows the plotting of the forcing data.
+
+24 August 2017
+* Alpha version of a new calibration results GUI extended to handle MCMC outputs and plot model specific outputs eg weighting fucntion plots.

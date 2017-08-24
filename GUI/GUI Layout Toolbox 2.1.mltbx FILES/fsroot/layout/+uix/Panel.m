@@ -99,8 +99,13 @@ classdef Panel < matlab.ui.container.Panel & uix.mixin.Container
             for ii = 1:numel( children )
                 child = children(ii);
                 if ii == selection
-                    child.Visible = 'on';
-                    child.Units = 'pixels';
+                    try
+                        child.Visible = 'on';
+                        child.Units = 'pixels';
+                    catch Me
+                        return;
+                    end
+                    
                     if isa( child, 'matlab.graphics.axis.Axes' )
                         switch child.ActivePositionProperty
                             case 'position'

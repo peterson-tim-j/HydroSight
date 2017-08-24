@@ -99,8 +99,12 @@ classdef responseFunction_Pearsons < responseFunction_abstract
             % NOTE: The upper limit for 'b' is set to that at which
             % exp(-10^b * t) <= sqrt(eps()) where t = 1 day.
             %params_upperLimit = [inf; log10(-log(sqrt(eps()))); inf];
-            params_upperLimit = [log10(1/1000); log10(-log(sqrt(eps()))); inf];        %NOTE, A upper limit set assuming, say, drainage is in mm and head in m. Hence, 1mm drainage cannot produce more than a 0.001m head rise.
-            params_lowerLimit = [log10(sqrt(eps())); log10(sqrt(eps())); log10(sqrt(eps()))];
+            %params_upperLimit = [log10(1/1000); log10(-log(sqrt(eps()))); inf];
+            %params_lowerLimit = [log10(sqrt(eps())); log10(sqrt(eps())); log10(sqrt(eps()))];
+            %params_upperLimit = [log10(1/1000/1e-6); log10(-log(sqrt(eps()))); inf];
+            %params_lowerLimit = [log10(1/1000); log10(sqrt(eps())); log10(sqrt(eps()))];    
+            params_upperLimit = [inf; log10(-log(sqrt(eps()))); inf];
+            params_lowerLimit = [log10(sqrt(eps())); log10(sqrt(eps())); log10(sqrt(eps()))];         
         end        
         
         % Return fixed upper and lower plausible parameter ranges. 
@@ -108,9 +112,11 @@ classdef responseFunction_Pearsons < responseFunction_abstract
         % for the calibration. These parameter ranges are only used in the 
         % calibration if the user does not input parameter ranges.
         function [params_upperLimit, params_lowerLimit] = getParameters_plausibleLimit(obj)
-            params_upperLimit = [log10(1/1000); log10(0.1);         log10(10)          ];
+            %params_upperLimit = [log10(1/1000/1e-4); log10(0.1);         log10(10)          ];
+            params_upperLimit = [log10(1); log10(0.1);         log10(10)          ];
             %params_lowerLimit = [log10(sqrt(eps()))+2;    log10(sqrt(eps()))+2; log10(sqrt(eps()))+2 ];
             params_lowerLimit = [-5;    -5; -2 ];
+            %params_lowerLimit = [log10(1/1000/0.1);    -5; -2 ];
         end
         
         % Calculate impulse-response function.
@@ -371,6 +377,80 @@ classdef responseFunction_Pearsons < responseFunction_abstract
             
         end
 
+        function derivedData_types = getDerivedDataTypes(obj)
+           
+            derivedData_types = 'weighting';
+            
+        end
+        
+        % Return the theta values for the GUI 
+        function [derivedData, derivedData_names] = getDerivedData(obj,derivedData_variable,t,axisHandle)
+           
+            [params, param_names] = getParameters(obj);
+            nparamSets = size(params,2);
+            setParameters(obj,params(:,1));
+            derivedData_tmp = theta(obj, t);            
+            if nparamSets >1
+                derivedData = zeros(size(derivedData_tmp,1), nparamSets );
+                derivedData(:,1) = derivedData_tmp;            
+                parfor i=2:nparamSets 
+                    setParameters(obj,params(:,i));
+                    derivedData(:,i) = theta(obj, t);
+                end
+                setParameters(obj,params);
+                
+                % Calculate percentiles
+                derivedData_prctiles = prctile( derivedData,[5 10 25 50 75 90 95],2);
+                
+                % Plot percentiles
+                XFill = [t' fliplr(t')];
+                YFill = [derivedData_prctiles(:,1)', fliplr(derivedData_prctiles(:,7)')];                   
+                fill(XFill, YFill,[0.8 0.8 0.8],'Parent',axisHandle);
+                hold(axisHandle,'on');                    
+                YFill = [derivedData_prctiles(:,2)', fliplr(derivedData_prctiles(:,6)')];                   
+                fill(XFill, YFill,[0.6 0.6 0.6],'Parent',axisHandle);                    
+                hold(axisHandle,'on');
+                YFill = [derivedData_prctiles(:,3)', fliplr(derivedData_prctiles(:,5)')];                   
+                fill(XFill, YFill,[0.4 0.4 0.4],'Parent',axisHandle);                    
+                hold(axisHandle,'on');
+                clear XFill YFill     
+
+                % Plot median
+                plot(axisHandle,t, derivedData_prctiles(:,4),'-b');
+                hold(axisHandle,'off');                
+                
+                ind = find(abs(derivedData_prctiles(:,4)) > max(abs(derivedData_prctiles(:,4)))*0.05,1,'last');
+                if isempty(ind);
+                    ind = length(t);
+                end                
+                xlim(axisHandle, [1, t(ind)]);
+                
+                % Add legend
+                legend(axisHandle, '5-95th%ile','10-90th%ile','25-75th%ile','median','Location', 'northeastoutside');   
+                
+                % Add data column names
+                derivedData =[t,derivedData];
+                derivedData_names = cell(nparamSets+1,1);
+                derivedData_names{1,1}='Time lag (days)';
+                derivedData_names(2:end,1) = strcat(repmat({'Weight-Parm. Set'},1,nparamSets )',num2str([1:nparamSets ]'));                
+            else
+                plot(axisHandle, t,derivedData_tmp,'-b');                                   
+                ind = find(abs(derivedData_tmp) > max(abs(derivedData_tmp))*0.05,1,'last');
+                if isempty(ind);
+                    ind = length(t);
+                end
+                xlim(axisHandle, [1, t(ind)]);
+                
+                derivedData_names = {'Time lag (days)','Weight'};                
+                derivedData =[t,derivedData_tmp ];
+            end
+
+            xlabel(axisHandle,'Time lag (days)');
+            ylabel(axisHandle,'Weight');            
+            box(axisHandle,'on');
+            
+        end
+        
         function delete(obj)
 % delete class destructor
 %

@@ -2123,7 +2123,8 @@ classdef HydroSightModel < handle
                 end                
 
                 % Finish the first plot!
-                legend(h, legendstr,'Location','best');
+                legend(h, legendstr,'Location','northeastoutside');
+                box(h,'on');
                 hold(h,'off');               
             end
             
@@ -2153,7 +2154,7 @@ classdef HydroSightModel < handle
                     else
                         scatter( h, obj.evaluationResults.data.modelledHead(:,1),  obj.evaluationResults.data.modelledHead_residuals, '.r'  );                
                     end
-                    legend(h,'Calibration','Evaluation','Location','best');                
+                    legend(h,'Calibration','Evaluation','Location','northeastoutside');                
                 end
                 xlabel(h, 'Date');
                 ylabel(h, 'Residuals (obs-est) (m)');
@@ -2163,6 +2164,7 @@ classdef HydroSightModel < handle
                     title(h, 'Time series of residuals');
                 end
                 datetick(h, 'x','yy');
+                box(h,'on');
             end
             
             % Histograms of calibration data
@@ -2178,6 +2180,7 @@ classdef HydroSightModel < handle
                 xlabel(h, 'Calib. residuals (obs-est) (m)');
                 axis(h, 'tight');
                 title(h, 'Histogram of calib. residuals');
+                box(h,'on');
             end
             
             % Histograms of evaluation data
@@ -2194,7 +2197,8 @@ classdef HydroSightModel < handle
                 ylabel(h, 'Freq.');
                 xlabel(h, 'Eval. residuals (obs-est) (m)');
                 axis(h, 'tight');
-                title(h, 'Histogram of eval. residuals');            
+                title(h, 'Histogram of eval. residuals');      
+                box(h,'on');
             end
             
             % QQ plot
@@ -2211,11 +2215,12 @@ classdef HydroSightModel < handle
                     QQdata(:,1) = residuals_cal;
                     QQdata(1:neval,2) = residuals_eval;
                     qqplot(QQdata);
-                    legend('Calibration','Evaluation','Location','best');                
+                    legend('Calibration','Evaluation','Location','northeastoutside');                
                 else
                     qqplot(residuals_cal );
                 end            
                 title(h, 'Quantile-quantile plot of residuals');
+                box(h,'on');
             end
             
             % Scatter plot of obs versus modelled
@@ -2243,7 +2248,7 @@ classdef HydroSightModel < handle
                     else
                         scatter(h, obj.evaluationResults.data.obsHead(:,2),  obj.evaluationResults.data.modelledHead(:,2),'.r');
                     end
-                    legend(h,'Calibration','Evaluation','Location','best');                
+                    legend(h,'Calibration','Evaluation','Location','northeastoutside');                
                     head_min = min([obj.model.inputData.head(:,2);  obj.calibrationResults.data.modelledHead(:,2); obj.evaluationResults.data.modelledHead(:,2)] );
                     head_max = max([obj.model.inputData.head(:,2);  obj.calibrationResults.data.modelledHead(:,2); obj.evaluationResults.data.modelledHead(:,2)] );
                 else
@@ -2260,6 +2265,7 @@ classdef HydroSightModel < handle
                 xlim(h, [head_min , head_max] );
                 ylim(h, [head_min , head_max] );
                 plot(h, [head_min, head_max] , [head_min, head_max],'--k');
+                box(h,'on');
                 hold(h,'off');
             end
             
@@ -2288,7 +2294,7 @@ classdef HydroSightModel < handle
                     else                    
                         scatter(h, obj.evaluationResults.data.obsHead(:,2),  obj.evaluationResults.data.modelledHead_residuals,'.r');
                     end
-                    legend(h,'Calibration','Evaluation','Location','best');                
+                    legend(h,'Calibration','Evaluation','Location','northeastoutside');                
                 end            
                 xlabel(h, 'Obs. head (m)');
                 ylabel(h, 'Residuals (obs-est) (m)'); 
@@ -2297,6 +2303,7 @@ classdef HydroSightModel < handle
                 else                
                     title(h, 'Observed vs. residuals');
                 end
+                box(h,'on');
                 hold(h,'off');        
             end
             
@@ -2359,9 +2366,9 @@ classdef HydroSightModel < handle
                         plot(h, prctile(deltaTime,95,2) , prctile(gammaHat,95,2), '--r');                    
                     
                         legend(h, 'Calib.(5-50-95th %ile)', 'Calib. model-50th %ile','Calib. model-5th %ile','Calib. model-95th %ile', ...
-                            'Eval.(5-50-95th %ile)','Eval. model-50th %ile','Eval. model-5th %ile','Eval. model-95th %ile','Location','best');                
+                            'Eval.(5-50-95th %ile)','Eval. model-50th %ile','Eval. model-5th %ile','Eval. model-95th %ile','Location','northeastoutside');                
                     else
-                        legend(h, 'Calib.(5-50-95th %ile)','Calib. model-50th %ile','Calib. model-5th %ile','Calib. model-95th %ile','Location','best');                        
+                        legend(h, 'Calib.(5-50-95th %ile)','Calib. model-50th %ile','Calib. model-5th %ile','Calib. model-95th %ile','Location','northeastoutside');                        
                     end
                 else
                     if isfield(obj.calibrationResults.performance.variogram_residual,'h')
@@ -2399,14 +2406,15 @@ classdef HydroSightModel < handle
                         
                         scatter(h, deltaTime, gamma, 'or');
                         plot(h, deltaTime,  gammaHat, '-r');                
-                        legend(h, 'Calib.','Calib model','Eval. experimental','Eval. model','Location','best');                
+                        legend(h, 'Calib.','Calib model','Eval. experimental','Eval. model','Location','northeastoutside');                
                     else
-                        legend(h, 'Calib.','Calib model','Location','best');                
+                        legend(h, 'Calib.','Calib model','Location','northeastoutside');                
                     end
                 end
                 xlabel(h, 'Separation distance (days)' );
                 ylabel(h, 'Semi-variance (m^2)' );
                 title(h, 'Semi-variogram of residuals');
+                box(h,'on');
                 hold(h,'off');               
             end
         end

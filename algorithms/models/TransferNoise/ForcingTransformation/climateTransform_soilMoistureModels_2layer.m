@@ -652,7 +652,10 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
                     params_upperLimit(i,1) = log10(1000);                        
                 elseif strcmp(param_names{i}, 'beta_deep')  
                     params_lowerLimit(i,1) = -inf;                    
-                    params_upperLimit(i,1) = inf;                                     
+                    params_upperLimit(i,1) = inf;   
+                elseif strcmp(param_names{i}, 'k_sat_deep')     
+                    params_lowerLimit(i,1) = log10(10^-13*3600*35*1000); % From Freeze and CHerry P29 lower est fot Ksat for unfracture metamorhoic rock (in m/s) 
+                    params_upperLimit(i,1) = inf;
                 end                   
             end
         end  
@@ -685,9 +688,10 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
                     params_upperLimit(i,1) = log10(250);
                     
                 elseif strcmp(param_names{i}, 'k_infilt')  || ...
-                strcmp(param_names{i}, 'k_sat') || strcmp(param_names{i}, 'k_sat_deep')                   
-                    params_lowerLimit(i,1) = 10;                    
-                    params_upperLimit(i,1) = 100;
+                strcmp(param_names{i}, 'k_sat') || strcmp(param_names{i}, 'k_sat_deep')     
+                    params_lowerLimit(ind,1) = log10(10^-13*3600*35*1000); % From Freeze and CHerry P29 lower est fot Ksat for unfracture metamorhoic rock (in m/s) 
+                    params_lowerLimit(i,1) = logo10(10);
+                    params_upperLimit(i,1) = log10(100);
 
                 elseif strcmp(param_names{i}, 'beta') || strcmp(param_names{i}, 'beta_deep') 
                     % Note, To make the parameter range that is explored
@@ -1072,6 +1076,41 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
             end
             
         end
+        
+        
+        % Return the derived variables.
+        function [params, param_names] = getDerivedParameters(obj)
+            params = [];
+            param_names = cell(0,2);
+        end
+
+        % Return coordinates for forcing variable
+        function coordinates = getCoordinates(obj, variableName)
+
+            if ~iscell(variableName)
+                variableNameTmp{1}=variableName;
+                variableName = variableNameTmp;
+                clear variableNameTmp;
+            end
+                
+            coordinates = cell(length(variableName),3);
+            for i=1:length(variableName)
+                % Find row within the list of required containing variabeName
+                filt = strcmp(obj.settings.forcingData_cols(:,1), variableName{i});
+
+                % If empty, then it is likely to be a model output variable os use the precip coordinate.
+                if ~any(filt)
+                    filt = strcmp(obj.settings.forcingData_cols(:,1), 'precip');
+                end
+                sourceColNumber = obj.settings.forcingData_cols{filt,2};
+                sourceColName = obj.settings.forcingData_colnames{sourceColNumber};
+
+                % Get coordinates
+                filt = strcmp(obj.settings.siteCoordinates(:,1), sourceColName);
+                coordinates(i,:) = obj.settings.siteCoordinates(filt,:);
+                coordinates{i,1} = variableName{i};
+            end    
+        end             
         
         function delete(obj)
 % delete class destructor

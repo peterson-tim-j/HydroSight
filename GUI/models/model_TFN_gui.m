@@ -49,7 +49,7 @@ classdef model_TFN_gui < model_gui_abstract
                 % Hard code in function names if the code is deployed. This
                 % is required because depfun does not dunction in deployed
                 % code.                
-                forcingFunctions = {'climateTransform_soilMoistureModels', 'climateTransform_soilMoistureModels_2layer','pumpingRate_SAestimation'};                
+                forcingFunctions = {'climateTransform_soilMoistureModels', 'climateTransform_soilMoistureModels_2layer','climateTransform_soilMoistureModels_ETconstrained','pumpingRate_SAestimation'};                
                 derivedForcingFunctions = { 'derivedForcing_linearUnconstrainedScaling', ...
                                             'derivedForcing_linearUnconstrainedScaling_dup', ...
                                             'derivedForcing_logisticScaling'};                
@@ -218,7 +218,7 @@ classdef model_TFN_gui < model_gui_abstract
             % Build the forcing transformation settings items
             this.forcingTranforms.vbox = uiextras.Grid('Parent', this.modelComponants,'Padding', 3, 'Spacing', 3);
             this.forcingTranforms.lbl = uicontrol( 'Parent', this.forcingTranforms.vbox,'Style','text','String','1. Forcing Transform Function (optional)','Visible','on');
-            this.forcingTranforms.tbl = uitable('Parent',this.forcingTranforms.vbox,'ColumnName',cnames_forcing,...
+            this.forcingTranforms.tbl = uitable(this.forcingTranforms.vbox,'ColumnName',cnames_forcing,...
                 'ColumnEditable',cedit_forcing,'ColumnFormat',cformats_forcing,'RowName',...
                 rnames_forcing ,'Data',cdata_forcing, 'Visible','on', 'Units','normalized', ...
                 'CellSelectionCallback', @this.tableSelection, ...
@@ -228,20 +228,20 @@ classdef model_TFN_gui < model_gui_abstract
             
             set( this.forcingTranforms.vbox, 'ColumnSizes', -1, 'RowSizes', [35 -1] );
 
-            % Find java sorting object in table
-            jscrollpane = findjobj(this.forcingTranforms.tbl);
-            jtable = jscrollpane.getViewport.getView;
-
-            % Turn the JIDE sorting on
-            jtable.setSortable(true);
-            jtable.setAutoResort(true);
-            jtable.setMultiColumnSortable(true);
-            jtable.setPreserveSelectionsAfterSorting(true);            
+%             % Find java sorting object in table
+%             jscrollpane = findjobj(this.forcingTranforms.tbl);
+%             jtable = jscrollpane.getViewport.getView;
+% 
+%             % Turn the JIDE sorting on
+%             jtable.setSortable(true);
+%             jtable.setAutoResort(true);
+%             jtable.setMultiColumnSortable(true);
+%             jtable.setPreserveSelectionsAfterSorting(true);            
                                     
             % Build the derived  forcing transformation settings items
             this.derivedForcingTranforms.vbox = uiextras.Grid('Parent', this.modelComponants,'Padding', 3, 'Spacing', 3);
             this.derivedForcingTranforms.lbl = uicontrol( 'Parent', this.derivedForcingTranforms.vbox,'Style','text','String','3. Derived Forcing Transform Function (optional)','Visible','on');
-            this.derivedForcingTranforms.tbl = uitable('Parent',this.derivedForcingTranforms.vbox,'ColumnName',cnames_forcingDerived, ...
+            this.derivedForcingTranforms.tbl = uitable(this.derivedForcingTranforms.vbox,'ColumnName',cnames_forcingDerived, ...
                 'ColumnEditable',cedit_forcingDerived,'ColumnFormat',cformats_forcingDerived,'RowName',...
                 rnames_forcingDerived ,'Data',cdata_forcingDerived, 'Visible','on', 'Units','normalized', ...
                 'CellSelectionCallback', @this.tableSelection, ...
@@ -251,20 +251,20 @@ classdef model_TFN_gui < model_gui_abstract
             
             set( this.derivedForcingTranforms.vbox, 'ColumnSizes', -1, 'RowSizes', [35 -1] );            
 
-            % Find java sorting object in table
-            jscrollpane = findjobj(this.derivedForcingTranforms.tbl);
-            jtable = jscrollpane.getViewport.getView;
-
-            % Turn the JIDE sorting on
-            jtable.setSortable(true);
-            jtable.setAutoResort(true);
-            jtable.setMultiColumnSortable(true);
-            jtable.setPreserveSelectionsAfterSorting(true);            
+%             % Find java sorting object in table
+%             jscrollpane = findjobj(this.derivedForcingTranforms.tbl);
+%             jtable = jscrollpane.getViewport.getView;
+% 
+%             % Turn the JIDE sorting on
+%             jtable.setSortable(true);
+%             jtable.setAutoResort(true);
+%             jtable.setMultiColumnSortable(true);
+%             jtable.setPreserveSelectionsAfterSorting(true);            
                         
             % Build the weighting function settings items
             this.weightingFunctions.vbox = uiextras.Grid('Parent', this.modelComponants,'Padding', 3, 'Spacing', 3);
             this.weightingFunctions.lbl = uicontrol( 'Parent', this.weightingFunctions.vbox,'Style','text','String','2. Weighting Functions (required)','Visible','on');
-            this.weightingFunctions.tbl = uitable('Parent',this.weightingFunctions.vbox,'ColumnName',cnames_weighting,...
+            this.weightingFunctions.tbl = uitable(this.weightingFunctions.vbox,'ColumnName',cnames_weighting,...
                 'ColumnEditable',cedit_weighting,'ColumnFormat',cformats_weighting,'RowName',...
                 rnames_weighting ,'Data',cdata_weighting, 'Visible','on', 'Units','normalized', ...
                 'CellSelectionCallback', @this.tableSelection, ...
@@ -274,21 +274,21 @@ classdef model_TFN_gui < model_gui_abstract
             
             set( this.weightingFunctions.vbox, 'ColumnSizes', -1, 'RowSizes', [35 -1] );    
 
-            % Find java sorting object in table
-            drawnow();
-            jscrollpane = findjobj(this.weightingFunctions.tbl);
-            jtable = jscrollpane.getViewport.getView;
-
-            % Turn the JIDE sorting on
-            jtable.setSortable(true);
-            jtable.setAutoResort(true);
-            jtable.setMultiColumnSortable(true);
-            jtable.setPreserveSelectionsAfterSorting(true);            
+%             % Find java sorting object in table
+%             drawnow();
+%             jscrollpane = findjobj(this.weightingFunctions.tbl);
+%             jtable = jscrollpane.getViewport.getView;
+% 
+%             % Turn the JIDE sorting on
+%             jtable.setSortable(true);
+%             jtable.setAutoResort(true);
+%             jtable.setMultiColumnSortable(true);
+%             jtable.setPreserveSelectionsAfterSorting(true);            
                         
             % Build the derived weighting functions
             this.derivedWeightingFunctions.vbox = uiextras.Grid('Parent', this.modelComponants,'Padding', 3, 'Spacing', 3);
             this.derivedWeightingFunctions.lbl = uicontrol( 'Parent', this.derivedWeightingFunctions.vbox,'Style','text','String','4. Derived Weighting Functions (optional)','Visible','on');
-            this.derivedWeightingFunctions.tbl = uitable('Parent',this.derivedWeightingFunctions.vbox,'ColumnName',cnames_weightingDerived,...
+            this.derivedWeightingFunctions.tbl = uitable(this.derivedWeightingFunctions.vbox,'ColumnName',cnames_weightingDerived,...
                 'ColumnEditable',cedit_weightingDerived,'ColumnFormat',cformats_weightingDerived,'RowName',...
                 rnames_weightingDerived ,'Data',cdata_weightingDerived, 'Visible','on', 'Units','normalized', ...
                 'CellSelectionCallback', @this.tableSelection, ...
@@ -298,15 +298,15 @@ classdef model_TFN_gui < model_gui_abstract
             
             set( this.derivedWeightingFunctions.vbox, 'ColumnSizes', -1, 'RowSizes', [35 -1] );
             
-            % Find java sorting object in table
-            jscrollpane = findjobj(this.derivedWeightingFunctions.tbl);
-            jtable = jscrollpane.getViewport.getView;
-
-            % Turn the JIDE sorting on
-            jtable.setSortable(true);
-            jtable.setAutoResort(true);
-            jtable.setMultiColumnSortable(true);
-            jtable.setPreserveSelectionsAfterSorting(true);            
+%             % Find java sorting object in table
+%             jscrollpane = findjobj(this.derivedWeightingFunctions.tbl);
+%             jtable = jscrollpane.getViewport.getView;
+% 
+%             % Turn the JIDE sorting on
+%             jtable.setSortable(true);
+%             jtable.setAutoResort(true);
+%             jtable.setMultiColumnSortable(true);
+%             jtable.setPreserveSelectionsAfterSorting(true);            
 
             % Build the forcing transformation and weighting function options
             %----------------------------------------
@@ -324,7 +324,7 @@ classdef model_TFN_gui < model_gui_abstract
             this.modelOptions.options{1,1}.ParentSettingName = 'inputForcing';
             this.modelOptions.options{1,1}.box = uiextras.Grid('Parent', this.modelOptions.grid,'Padding', 3, 'Spacing', 3);                        
             this.modelOptions.options{1,1}.lbl = uicontrol( 'Parent', this.modelOptions.options{1,1}.box,'Style','text','String','1. Forcing Transform - Input Data','Visible','on');     
-            this.modelOptions.options{1,1}.tbl =  uitable('Parent',this.modelOptions.options{1,1}.box,'ColumnName',cnames,...
+            this.modelOptions.options{1,1}.tbl =  uitable(this.modelOptions.options{1,1}.box,'ColumnName',cnames,...
                                                 'ColumnEditable',cedit,'ColumnFormat',cformats,'RowName',...
                                                 rnames,'Data',cdata, 'Visible','on', 'Units','normalized', ...
                                                 'CellEditCallback', @this.optionsSelection, ...                                                
@@ -338,7 +338,7 @@ classdef model_TFN_gui < model_gui_abstract
             this.modelOptions.options{2,1}.ParentSettingName = 'options';            
             this.modelOptions.options{2,1}.box = uiextras.Grid('Parent',  this.modelOptions.grid,'Padding', 3, 'Spacing', 3);                        
             this.modelOptions.options{2,1}.lbl = uicontrol( 'Parent', this.modelOptions.options{2,1}.box,'Style','text','String','1. Forcing Transform - Model Settings','Visible','on');     
-            this.modelOptions.options{2,1}.tbl = uitable( 'Parent', this.modelOptions.options{2,1}.box,'ColumnName',{'Parameter','(none set)'}, ...
+            this.modelOptions.options{2,1}.tbl = uitable(this.modelOptions.options{2,1}.box,'ColumnName',{'Parameter','(none set)'}, ...
                 'ColumnEditable',true,'Data',[], ...
                 'CellEditCallback', @this.optionsSelection, ...    
                 'Tag','Forcing Transform - Model Settings', 'Visible','on');
@@ -361,7 +361,7 @@ classdef model_TFN_gui < model_gui_abstract
             this.modelOptions.options{4,1}.ParentSettingName = 'options';                     
             this.modelOptions.options{4,1}.box = uiextras.Grid('Parent', this.modelOptions.grid,'Padding', 3, 'Spacing', 3);                        
             this.modelOptions.options{4,1}.lbl = uicontrol( 'Parent', this.modelOptions.options{4,1}.box,'Style','text','String','2. Weighting Functions - Model Settings','Visible','on');     
-            this.modelOptions.options{4,1}.tbl = uitable( 'Parent', this.modelOptions.options{4,1}.box,'ColumnName',{'(none)'}, ...
+            this.modelOptions.options{4,1}.tbl = uitable( this.modelOptions.options{4,1}.box,'ColumnName',{'(none)'}, ...
                 'ColumnEditable',true,'Data',[], 'Tag','Weighting Functions - Model Settings', ...
                 'CellEditCallback', @this.optionsSelection, 'Visible','on');
             set(this.modelOptions.options{4,1}.box, 'ColumnSizes', -1, 'RowSizes', [35 -1] );            
@@ -386,7 +386,7 @@ classdef model_TFN_gui < model_gui_abstract
             this.modelOptions.options{6,1}.lbl = uicontrol( 'Parent', this.modelOptions.options{6,1}.box, ...
                 'Style','text', ...
                 'String','3. Derived Forcing Transform - Input Data','Visible','on');     
-            this.modelOptions.options{6,1}.tbl =  uitable('Parent',this.modelOptions.options{6,1}.box,'ColumnName',cnames,...
+            this.modelOptions.options{6,1}.tbl =  uitable(this.modelOptions.options{6,1}.box,'ColumnName',cnames,...
                 'ColumnEditable',cedit,'ColumnFormat',cformats,'RowName',...
                 rnames,'Data',cdata, 'Visible','on', 'Units','normalized', ...
                 'CellEditCallback', @this.optionsSelection, ...                                                
@@ -398,7 +398,7 @@ classdef model_TFN_gui < model_gui_abstract
             this.modelOptions.options{7,1}.ParentSettingName = 'options';            
             this.modelOptions.options{7,1}.box = uiextras.Grid('Parent',  this.modelOptions.grid,'Padding', 3, 'Spacing', 3);                        
             this.modelOptions.options{7,1}.lbl = uicontrol( 'Parent', this.modelOptions.options{7,1}.box,'Style','text','String','3. Derived Forcing Transform - Model Settings','Visible','on');     
-            this.modelOptions.options{7,1}.tbl = uitable( 'Parent', this.modelOptions.options{7,1}.box,'ColumnName',{'Parameter','(none set)'}, ...
+            this.modelOptions.options{7,1}.tbl = uitable(this.modelOptions.options{7,1}.box,'ColumnName',{'Parameter','(none set)'}, ...
                 'ColumnEditable',true,'Data',[], ...
                 'CellEditCallback', @this.optionsSelection, ...    
                 'Tag','Derived Forcing Transform - Model Settings', 'Visible','on');
@@ -421,7 +421,7 @@ classdef model_TFN_gui < model_gui_abstract
             this.modelOptions.options{9,1}.ParentSettingName = 'options';                     
             this.modelOptions.options{9,1}.box = uiextras.Grid('Parent', this.modelOptions.grid,'Padding', 3, 'Spacing', 3);                        
             this.modelOptions.options{9,1}.lbl = uicontrol( 'Parent', this.modelOptions.options{9,1}.box,'Style','text','String','4. Derived Weighting Functions - Model Settings','Visible','on');     
-            this.modelOptions.options{9,1}.tbl = uitable( 'Parent', this.modelOptions.options{9,1}.box,'ColumnName',{'(none)'}, ...
+            this.modelOptions.options{9,1}.tbl = uitable(this.modelOptions.options{9,1}.box,'ColumnName',{'(none)'}, ...
                 'ColumnEditable',true,'Data',[], 'Tag','Derived Weighting Functions - Model Settings', ...
                 'CellEditCallback', @this.optionsSelection, 'Visible','on');
             set(this.modelOptions.options{9,1}.box, 'ColumnSizes', -1, 'RowSizes', [35 -1] );                                   
