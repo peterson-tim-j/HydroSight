@@ -35,3 +35,4 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 
 24 August 2017
 * Alpha version of a new calibration results GUI extended to handle MCMC outputs and plot model specific outputs eg weighting fucntion plots.
+* Bug fixed - deleting data preparation rows now deletes the actual model object.

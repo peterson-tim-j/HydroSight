@@ -7538,6 +7538,17 @@ classdef HydroSight_GUI < handle
                                 % do nothing
                             end
                         end
+                    elseif strcmp(tableObj.Tag,'Data Preparation')                        
+                        for i=indSelected
+                            
+                            % Get model label
+                            boreID= tableObj.Data{i,3};
+                            
+                            % Remove model object
+                            if isfield(this.dataPrep,boreID)
+                                this.dataPrep = rmfield(this.dataPrep,boreID);
+                            end
+                        end                        
                     end
                     
                     % Delete table data
