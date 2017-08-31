@@ -226,6 +226,7 @@ while icall<maxn && gnrng>peps && criter_change>pcento;
         end
         stochDerivedForcingData = stochDerivedForcingData_new;
         clear stochDerivedForcingData_new
+        
     end
         
     
@@ -323,22 +324,27 @@ while icall<maxn && gnrng>peps && criter_change>pcento;
     % Sum the function calls per complex and add to icall
     icall = icall + sum(cicall);            
 
-    % Importantly, with the derived forcing changing then objective
-    % function value for each parameter set is most likely to change. 
-    % Therefore, all parameter sets are re-vealuatted.    
-    if useDerivedForcing                
-        if ~isempty(xigs) && iscell(stochDerivedForcingData) && length(stochDerivedForcingData)==ngs
-            model = varargin{1};
-            stochDerivedForcingData_sliced = stochDerivedForcingData(xigs);
-            parfor i=1:npt
-                % Assign derived forcing using xigs
-                updateStochForcingData(model, stochDerivedForcingData_sliced{i});
-                xf(i) = feval(funcHandle, x(i,:)', varargin{:});
-            end
-            clear stochDerivedForcingData_sliced;
-        end
-        icall = icall + npt;
-    end       
+%
+% NOTE: The code below is required ONLY when the stochastic updating is
+% undertaken within MCCE.m.
+%-----------------
+%     % Importantly, with the derived forcing changing then objective
+%     % function value for each parameter set is most likely to change. 
+%     % Therefore, all parameter sets are re-vealuatted.    
+%     if useDerivedForcing                
+%         if ~isempty(xigs) && iscell(stochDerivedForcingData) && length(stochDerivedForcingData)==ngs
+%             model = varargin{1};
+%             stochDerivedForcingData_sliced = stochDerivedForcingData(xigs);
+%             parfor i=1:npt
+%                 % Assign derived forcing using xigs
+%                 updateStochForcingData(model, stochDerivedForcingData_sliced{i});
+%                 xf(i) = feval(funcHandle, x(i,:)', varargin{:});
+%             end
+%             clear stochDerivedForcingData_sliced;
+%         end
+%         icall = icall + npt;
+%     end       
+%-----------------
     
     % Shuffle the complexes, and record the best and worst points;
     [xf,idx] = sort(xf); 
@@ -377,8 +383,8 @@ while icall<maxn && gnrng>peps && criter_change>pcento;
             stochDerivedForcingData_best = stochDerivedForcingData{xigs(1)};                                             
         else               
             
-            % Set the best derived forcing from this evolution to the model AND
-            % cool annealing scheme!!
+            % Set the derived forcing from the best ever evolution to the model AND
+            % try to the cool annealing scheme!!
             updateStochForcingData(varargin{1},stochDerivedForcingData_best, min(xf), bestf_ever);                
             
            % Use bestf from loop in convergence criteria. Not the best every. 
@@ -479,6 +485,41 @@ function [cx, cf, icall, forcingData] = doComplexEvolution(funcHandle, funcHangl
                 
         % Get the initial best solition
         cfbest=min(cf);
+        
+        % Try to update each stochastic forcing using the best parameter set
+        % atleast 'minTrials'.
+        if useDerivedForcing            
+            icall_initial =icall;
+            maxTrials = 100;
+            minTrials = 10;
+            while icall <= icall_initial + minTrials || (icall < icall_initial + maxTrials && isAccepted)
+                updateStochForcingData(varargin{1});
+                cfbest_new = feval(funcHandle,cx(1,:)', varargin{:});
+                icall = icall +1;
+                [forcingData, isAccepted] = acceptStochForcingSolution(varargin{1}, cfbest_new, cfbest, forcingData);
+                if cfbest_new<cfbest
+                    cfbest = cfbest_new;
+                end            
+            end
+            
+            % Re-evaluate the whole population using the stochastic
+            % forcing. Note the input stochastic forcing was that which
+            % produced the best solution from the complex. The other points
+            % in the complex are likely to have been derived using 
+            % stochastic forcing data sets form other complexes.
+            for loop=1:size(cx,1)
+               cf(loop)= feval(funcHandle,cx(loop,:)', varargin{:});                                
+            end
+            
+            % Resort, because the order may have changed.
+            [cf,idd]=sort(cf);
+            cx=cx(idd,:);            
+            
+            % Turn stochastic updating off within MCCE.m
+            useDerivedForcing=false;
+        end
+        
+        
         
         % Evolve sub-population igs for nspl steps:
         for loop=1:nspl

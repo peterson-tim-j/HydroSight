@@ -18,8 +18,8 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
 %       S       - is the soil moisture storage state variable [L];
 %       t       - is time in units of days [T];
 %       P_inf   - is the precipitation available for infiltration. This can
-%                 be limited to a maximum infiltration rate "k_infilt". Of
-%                 this parameteris not defined then P_inf equals the input
+%                 be limited to a maximum infiltration rate "k_infilt". If
+%                 this parameter is not defined then P_inf equals the input
 %                 daily precipitation rate.
 %       SMSC    - is a parameter for the soil moisture storage capacity [L].
 %                 It is in same units as the input precipitation.
@@ -184,7 +184,7 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                         'interflow_frac',   0, 'Fixed'    ; ...
                         'alpha'         ,   0, 'Fixed'    ; ...
                         'beta'          , 0.5,'Calib.' ; ...
-                        'gamma'         ,   1,  'Fixed'};
+                        'gamma'         ,   0,  'Fixed'};
 
         
             colNames = {'Parameter', 'Initial Value','Fixed or Calibrated?'};
@@ -421,9 +421,9 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                 else
                     obj.settings.fixedParameters.(all_parameter_names{i})=true;
                     obj.settings.activeParameters.(all_parameter_names{i})=false;                    
-                    if strcmp(all_parameter_names{i}, 'alpha') || strcmp(all_parameter_names{i}, 'gamma')                        
+                    if strcmp(all_parameter_names{i}, 'alpha')         
                         obj.(all_parameter_names{i}) = 1;
-                    elseif strcmp(all_parameter_names{i}, 'beta')
+                    elseif strcmp(all_parameter_names{i}, 'beta') || strcmp(all_parameter_names{i}, 'gamma')      
                         % Note, beta is transformed in the soil model to
                         % 10^beta.
                         obj.(all_parameter_names{i}) = 0;
@@ -725,6 +725,13 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                 params_upperLimit(ind,1) = 1;                                    
             end    
                    
+            if obj.settings.activeParameters.beta
+                ind = cellfun(@(x)(strcmp(x,'gamma')),param_names);
+                params_lowerLimit(ind,1) = log10(0.01);
+                params_upperLimit(ind,1) = log10(100);
+            end                  
+            
+            
         end  
         
 %% Return fixed upper and lower plausible parameter ranges. 
@@ -815,22 +822,26 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
             end  
             
             % Upper and lower bounds taken from Rawls et al 1982 Estimation
-            % of Soil Properties. The values are for sand and clay
+            % of Soil Properties. The values are for sand loam and silty clay
             % respectively and transformed from units of cm/h to the assumed
             % input units of mm/d.
             if obj.settings.activeParameters.k_sat
                 ind = cellfun(@(x)(strcmp(x,'k_sat')),param_names);
-                %params_lowerLimit(ind,1) = log10(10);                    
-                %params_upperLimit(ind,1) = log10(100);
-                params_lowerLimit(ind,1) = log10(0.06*24*10);
-                params_upperLimit(ind,1) = log10(21*24*10);
+                params_lowerLimit(ind,1) = log10(0.09*24*10);
+                params_upperLimit(ind,1) = log10(6.11*24*10);
             end 
             
             if obj.settings.activeParameters.beta
                 ind = cellfun(@(x)(strcmp(x,'beta')),param_names);
                 params_lowerLimit(ind,1) = log10(1);
+                params_upperLimit(ind,1) = log10(5);
+            end      
+            
+            if obj.settings.activeParameters.beta
+                ind = cellfun(@(x)(strcmp(x,'gamma')),param_names);
+                params_lowerLimit(ind,1) = log10(0.1);
                 params_upperLimit(ind,1) = log10(10);
-            end                         
+            end                  
         end        
         
 %% Check if the model parameters have chanaged since the last calculated.
@@ -979,7 +990,7 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                 
                 % Call MEX function containing soil moisture model.
                 obj.variables.SMS = forcingTransform_soilMoisture(S_initial, obj.variables.precip, obj.variables.evap, ...
-                        10^(obj.SMSC), 10.^obj.k_sat, obj.alpha, 10.^obj.beta, obj.gamma);                                
+                        10^(obj.SMSC), 10.^obj.k_sat, obj.alpha, 10.^obj.beta, 10.^obj.gamma);                                
                 
                 % Run soil model again if tree cover is to be simulated
                 if  isfield(obj.settings,'simulateLandCover') && obj.settings.simulateLandCover
@@ -990,7 +1001,7 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                     end
                     
                     obj.variables.SMS_trees = forcingTransform_soilMoisture(S_initial, obj.variables.precip, obj.variables.evap, ...
-                            10^(obj.SMSC_trees), 10.^obj.k_sat, obj.alpha, 10.^obj.beta, obj.gamma);                                                                        
+                            10^(obj.SMSC_trees), 10.^obj.k_sat, obj.alpha, 10.^obj.beta, 10.^obj.gamma);                                                                        
                 end
                     
             end
@@ -1074,7 +1085,7 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                     isDailyIntegralFlux = false;
                     
                 case 'evap_soil'    
-                    forcingData = obj.variables.evap .* (SMS/10^(SMSC)).^obj.gamma;                    
+                    forcingData = obj.variables.evap .* (SMS/10^(SMSC)).^(10.^obj.gamma);
                     isDailyIntegralFlux = false;
 
                 case 'infiltration'                       
@@ -1086,7 +1097,7 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                     isDailyIntegralFlux = true;
                     
                 case 'evap_gw_potential'
-                    forcingData = obj.variables.evap .* (1-(SMS/10^(SMSC)).^obj.gamma);                    
+                    forcingData = obj.variables.evap .* (1-(SMS/10^(SMSC)).^(10.^obj.gamma));
                     isDailyIntegralFlux = false;
                     
                 case 'interflow'

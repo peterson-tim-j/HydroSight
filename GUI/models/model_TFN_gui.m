@@ -49,7 +49,9 @@ classdef model_TFN_gui < model_gui_abstract
                 % Hard code in function names if the code is deployed. This
                 % is required because depfun does not dunction in deployed
                 % code.                
-                forcingFunctions = {'climateTransform_soilMoistureModels', 'climateTransform_soilMoistureModels_2layer','climateTransform_soilMoistureModels_ETconstrained','pumpingRate_SAestimation'};                
+                forcingFunctions = {        'climateTransform_soilMoistureModels', ...
+                                            'climateTransform_soilMoistureModels_2layer', ...                                            
+                                            'pumpingRate_SAestimation'};                
                 derivedForcingFunctions = { 'derivedForcing_linearUnconstrainedScaling', ...
                                             'derivedForcing_linearUnconstrainedScaling_dup', ...
                                             'derivedForcing_logisticScaling'};                
@@ -1337,7 +1339,7 @@ classdef model_TFN_gui < model_gui_abstract
                            funName = this.weightingFunctions.tbl.Data{this.currentSelection.row, 3};
 
                            % Get the weighting function options.
-                           [modelSettings, colNames, colFormats, colEdits] = feval(strcat(funName,'.modelOptions'), ...
+                           [modelSettings, colNames, colFormats, colEdits, tooltip] = feval(strcat(funName,'.modelOptions'), ...
                            this.boreID, inputDataNames, this.siteData);
 
                            % If the function has any options the
@@ -1353,7 +1355,8 @@ classdef model_TFN_gui < model_gui_abstract
                                % Assign model properties and data
                                this.modelOptions.options{4,1}.tbl.ColumnName = colNames;
                                this.modelOptions.options{4,1}.tbl.ColumnEditable = colEdits;
-                               this.modelOptions.options{4,1}.tbl.ColumnFormat = colFormats;                               
+                               this.modelOptions.options{4,1}.tbl.ColumnFormat = colFormats;          
+                               this.modelOptions.options{4,1}.tbl.TooltipString = tooltip;
                                
                                % Input the existing data or else the
                                % default settings.
@@ -1641,7 +1644,7 @@ classdef model_TFN_gui < model_gui_abstract
                             funName = this.derivedWeightingFunctions.tbl.Data{this.currentSelection.row, 3};
 
                            % Get the weighting function options.
-                           [modelSettings, colNames, colFormats, colEdits] = feval(strcat(funName,'.modelOptions'), ...
+                           [modelSettings, colNames, colFormats, colEdits, tooltip] = feval(strcat(funName,'.modelOptions'), ...
                            this.boreID, inputDataNames, this.siteData);
 
                            % If the function has any options the
@@ -1658,7 +1661,7 @@ classdef model_TFN_gui < model_gui_abstract
                                this.modelOptions.options{9,1}.tbl.ColumnName = colNames;
                                this.modelOptions.options{9,1}.tbl.ColumnEditable = colEdits;
                                this.modelOptions.options{9,1}.tbl.ColumnFormat = colFormats;                               
-                               
+                               this.modelOptions.options{9,1}.tbl.TooltipString = tooltip;
                                % Input the existing data or else the
                                % default settings.
                                if isempty(this.derivedWeightingFunctions.tbl.Data{this.currentSelection.row ,6})
@@ -1695,7 +1698,7 @@ classdef model_TFN_gui < model_gui_abstract
                                end
                                
                                % Show table
-                               this.modelOptions.grid.Widths = [0 0 0 -1 0 0 0 0 0 0];
+                               this.modelOptions.grid.Widths = [0 0 0 0 0 0 0 0 -1 0];
                            end
                         otherwise
                             this.modelOptions.grid.Widths = zeros(size(this.modelOptions.grid.Widths));

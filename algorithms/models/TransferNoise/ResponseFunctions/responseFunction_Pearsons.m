@@ -12,12 +12,29 @@ classdef responseFunction_Pearsons < responseFunction_abstract
 % Static methods used by the Graphical User Interface to inform the
 % user of the available model options and their input format.
     methods(Static)        
-        function [modelSettings, colNames, colFormats, colEdits] = modelOptions(bore_ID, forcingDataSiteID, siteCoordinates)
-           modelSettings = {};
-           colNames = {};
-           colFormats = {};
-           colEdits = [];           
-        end
+        function [options, colNames, colFormats, colEdits, tooltipString] = modelOptions(bore_ID, forcingDataSiteID, siteCoordinates)
+            % Assign format of table for GUI.
+            colNames = {'Parameter Name', 'Lower Physical Bound', 'Upper Physical Bound'};
+            colFormats = {'char', 'numeric', 'numeric'};
+            colEdits = logical([0 1 1]);
+            tooltipString = ['<html>Use this table to set parameter bounds for the calibration. <br>', ...
+                             'If weighting the drainage from a soil model and, say, the forcing and <br>', ...
+                             'data are in SI units (mm and m respectively), then consider setting <br>', ...
+                             'the bounds for parameter A to reflect plausible values of specific yield. <br>', ...
+                             'For example, log10(1/(1000*0.1)) &le A &le log10(1/(1000*1e-4)) which equals <br>', ...
+                             '-2 &le A &le 1, where 1e-4 &le S &l e0.1'];
+                         
+            % Default parameter bounds
+            params_upperLimit = [inf; log10(-log(sqrt(eps()))); inf];
+            params_lowerLimit = [log10(sqrt(eps())); log10(sqrt(eps())); log10(sqrt(eps()))];    
+            
+            options = {'A', params_lowerLimit(1), params_upperLimit(1); ...
+                       'b', params_lowerLimit(2), params_upperLimit(2); ...
+                       'n', params_lowerLimit(3), params_upperLimit(3)};
+            
+                   
+        end 
+        
         function modelDescription = modelDescription()
            modelDescription = {'Name: responseFunction_Pearsons', ...
                                '', ...               
@@ -52,6 +69,11 @@ classdef responseFunction_Pearsons < responseFunction_abstract
             % repsonse function.
             obj.settings.t_limit = NaN;
             obj.settings.weight_at_limit = NaN;
+            
+            if ~isempty(options) && iscell(options)  
+                obj.settings.params_lowerPhysicalLimit = cell2mat(options(:,2));
+                obj.settings.params_upperPhysicalLimit = cell2mat(options(:,3));
+            end
         end
        
         % Set parameters
@@ -103,8 +125,17 @@ classdef responseFunction_Pearsons < responseFunction_abstract
             %params_lowerLimit = [log10(sqrt(eps())); log10(sqrt(eps())); log10(sqrt(eps()))];
             %params_upperLimit = [log10(1/1000/1e-6); log10(-log(sqrt(eps()))); inf];
             %params_lowerLimit = [log10(1/1000); log10(sqrt(eps())); log10(sqrt(eps()))];    
-            params_upperLimit = [inf; log10(-log(sqrt(eps()))); inf];
-            params_lowerLimit = [log10(sqrt(eps())); log10(sqrt(eps())); log10(sqrt(eps()))];         
+            if isfield(obj.settings,'params_lowerPhysicalLimit')
+                params_lowerLimit = obj.settings.params_lowerPhysicalLimit;
+            else
+                params_lowerLimit = [log10(sqrt(eps())); log10(sqrt(eps())); log10(sqrt(eps()))];         
+            end
+            
+            if isfield(obj.settings,'params_upperPhysicalLimit')
+                params_upperLimit = obj.settings.params_upperPhysicalLimit;
+            else
+                params_upperLimit = [inf; log10(-log(sqrt(eps()))); inf];
+            end
         end        
         
         % Return fixed upper and lower plausible parameter ranges. 

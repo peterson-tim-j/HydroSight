@@ -13,7 +13,7 @@ classdef  responseFunction_FerrisKnowles < responseFunction_abstract
 % in order to be accessable within the GUI.    
     methods(Static)    
         
-        function [options, colNames, colFormats, colEdits] = modelOptions(bore_ID, forcingDataSiteID, siteCoordinates)
+        function [options, colNames, colFormats, colEdits, tooltipString] = modelOptions(bore_ID, forcingDataSiteID, siteCoordinates)
 
             % Get list of site IDs
             if istable(siteCoordinates)
@@ -32,6 +32,9 @@ classdef  responseFunction_FerrisKnowles < responseFunction_abstract
             colNames = {'Select' 'Pumping Bore ID', 'Image Bore ID', 'Image Bore Type'};
             colFormats = {'logical', forcingDataSiteID, siteIDs, {'Recharge','No flow'}};
             colEdits = logical([1 1 1 1]);
+            
+            tooltipString = ['<html>Use this table to set boundary conditions. Note, the coordinate. <br>', ...
+                             'of the boundary must listed within the coordinates input file.'];            
             
         end    
         

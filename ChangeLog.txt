@@ -39,3 +39,11 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 * Boot time significantly increased by removing use of createtable(). Tables can no longer be sorted.
 * Alpha version of a new calibration results GUI edited to work with exponential model ('get' functions for forcing data and derived data moved into HydroSightModel())
 * Alpha version of a new calibration results GUI tabs turn on/off when relevant data is/is not available.
+
+1 September 2017
+* Tool tips added to selected TFN weighting function and derived weighting function option tables.
+* Parameter bounds added to TFN Pearson's weighting function GUI table.
+* climateTransform_soilMoistureModels() and climateTransform_soilMoistureModels_2layer() k_sat parameter bounds reduced to reflect sensible soil values.
+* climateTransform_soilMoistureModels() and climateTransform_soilMoistureModels_2layer() gamma parameter chnnged to have log10() transform (as had been stated in class description).
+* Bug fixed in pumpingRate_SAestimation.m that sometimes caused errors on last day of forcing.
+* The approach for SPUCI calibration of models with stochastic forcing was changed to update the stochastic forcing only prior to the updating of a complex. The change reduced the calibration time.

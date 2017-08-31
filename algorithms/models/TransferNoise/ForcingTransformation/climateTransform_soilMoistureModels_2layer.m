@@ -22,12 +22,12 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
 %   The top soil moisture layer is defined by the following ordinary
 %   diffenential equation (Kavetski et al. 2006):
 %   
-%   DS_1/dt = P_inf (1 - S_1/SMSC)^alpha - k_sat1 (S_1/SMSC)^beta - PET (S_1/SMSC)^gamma
+%   DS_1/dt = P_inf (1 - S_1/SMSC)^alpha - k_sat (S_1/SMSC)^beta - PET (S_1/SMSC)^gamma
 %
 %   And the bototm layet is defined the following ordinary
 %   diffenential equation:
 %
-%   DS_2/dt = k_sat1 (S_1/SMSC)^beta - k_sat2 (S_2/SMSC_deep)^beta_deep
+%   DS_2/dt = k_sat (S_1/SMSC)^beta - k_sat_deep (S_2/SMSC_deep)^beta_deep
 %
 %   where:
 %       S_1     - is the top layer soil moisture storage state variable [L];
@@ -187,19 +187,19 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
         function [options, colNames, colFormats, colEdits, toolTip] = modelOptions()
            
             options = { 'SMSC'           ,    2, 'Calib.';...
-                        'SMSC_trees'    ,   2, 'Calib.';...
-                        'treeArea_frac' , 0.5, 'Calib'; ...
+                        'SMSC_trees'    ,   2, 'Fixed';...
+                        'treeArea_frac' , 0.5, 'Fixed'; ...
                         'S_initialfrac' , 0.5, 'Fixed'  ; ...
                         'k_infilt'      , inf,'Fixed'   ; ...
                         'k_sat'         , 1, 'Calib.'   ; ...
                         'bypass_frac'   , 0, 'Fixed'    ; ...
                         'alpha'         , 0, 'Fixed'    ; ...
                         'beta'          ,  0.5,'Calib.' ; ...
-                        'gamma'         ,  1,  'Fixed'  ; ...
-                        'SMSC_deep'     ,  2, 'Calib'   ;
-                        'SMSC_deep_trees',   2, 'Calib.';...
-                        'k_sat_deep'     , 1, 'Calib'   ;
-                        'beta_deep'     ,  0.5, 'Calib'};
+                        'gamma'         ,  0,  'Fixed'  ; ...
+                        'SMSC_deep'     ,  2, 'Calib.'   ;
+                        'SMSC_deep_trees',   2, 'Fixed';...
+                        'k_sat_deep'     , 1, 'Calib.'   ;
+                        'beta_deep'     ,  0.5, 'Calib.'};
 
         
             colNames = {'Parameter', 'Initial Value','Fixed or Calibrated?'};
@@ -463,9 +463,9 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
                 else
                     obj.settings.fixedParameters.(all_parameter_names{i})=false;
                     obj.settings.activeParameters.(all_parameter_names{i})=false;                    
-                    if strcmp(all_parameter_names{i}, 'alpha') || strcmp(all_parameter_names{i}, 'gamma')                        
+                    if strcmp(all_parameter_names{i}, 'alpha')
                         obj.(all_parameter_names{i}) = 1;
-                    elseif strcmp(all_parameter_names{i}, 'beta') || strcmp(all_parameter_names{i}, 'beta_deep')
+                    elseif strcmp(all_parameter_names{i}, 'beta') || strcmp(all_parameter_names{i}, 'beta_deep') || strcmp(all_parameter_names{i}, 'gamma')
                         % Note, beta is transformed in the soil model to
                         % 10^beta.
                         obj.(all_parameter_names{i}) = 0;
@@ -654,8 +654,8 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
                     params_lowerLimit(i,1) = -inf;                    
                     params_upperLimit(i,1) = inf;   
                 elseif strcmp(param_names{i}, 'k_sat_deep')     
-                    params_lowerLimit(i,1) = log10(10^-13*3600*35*1000); % From Freeze and CHerry P29 lower est fot Ksat for unfracture metamorhoic rock (in m/s) 
-                    params_upperLimit(i,1) = inf;
+                    params_lowerLimit(i,1) = floor(log10(0.06*24*10));
+                    params_upperLimit(i,1) = ceil(log10(21*24*10));
                 end                   
             end
         end  
@@ -684,14 +684,17 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
             
             for i=1: length(param_names)
                 if strcmp(param_names{i}, 'SMSC') || strcmp(param_names{i}, 'SMSC_deep') || strcmp(param_names{i}, 'SMSC_deep_trees') 
-                    params_lowerLimit(i,1) = log10(25);
-                    params_upperLimit(i,1) = log10(250);
+                params_lowerLimit(i,1) = log10(10);
+                params_upperLimit(i,1) = log10(1000);
                     
                 elseif strcmp(param_names{i}, 'k_infilt')  || ...
                 strcmp(param_names{i}, 'k_sat') || strcmp(param_names{i}, 'k_sat_deep')     
-                    params_lowerLimit(ind,1) = log10(10^-13*3600*35*1000); % From Freeze and CHerry P29 lower est fot Ksat for unfracture metamorhoic rock (in m/s) 
-                    params_lowerLimit(i,1) = logo10(10);
-                    params_upperLimit(i,1) = log10(100);
+                    % Upper and lower bounds taken from Rawls et al 1982 Estimation
+                    % of Soil Properties. The values are for sand loam and silty clay
+                    % respectively and transformed from units of cm/h to the assumed
+                    % input units of mm/d.            
+                    params_lowerLimit(i,1) = log10(0.09*24*10);
+                    params_upperLimit(i,1) = log10(6.11*24*10);
 
                 elseif strcmp(param_names{i}, 'beta') || strcmp(param_names{i}, 'beta_deep') 
                     % Note, To make the parameter range that is explored
@@ -702,7 +705,7 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
                     % found that very often this non-transformed value
                     % would be >100.
                     params_lowerLimit(i,1) = log10(1);
-                    params_upperLimit(i,1) = log10(200);
+                    params_upperLimit(i,1) = log10(5);
                 else
                     params_lowerLimit(i,1) = 0.0;  
                     params_upperLimit(i,1) = 5.0;
@@ -876,7 +879,7 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
                 
                 % Call MEX function for SHALLOW soil moisture model.
                 obj.variables.SMS = forcingTransform_soilMoisture(S_initial, obj.variables.precip, obj.variables.evap, ...
-                        10^(obj.SMSC), 10.^obj.k_sat, obj.alpha, 10.^obj.beta, obj.gamma);                                
+                        10^(obj.SMSC), 10.^obj.k_sat, obj.alpha, 10.^obj.beta, 10.^obj.gamma);                                
 
                 % Run soil model again if tree cover is to be simulated
                 if  isfield(obj.settings,'simulateLandCover') && obj.settings.simulateLandCover
@@ -888,7 +891,7 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
                     
                     % Call MEX function for SHALLOW soil moisture model.
                     obj.variables.SMS_trees = forcingTransform_soilMoisture(S_initial, obj.variables.precip, obj.variables.evap, ...
-                            10^(obj.SMSC_trees), 10.^obj.k_sat, obj.alpha, 10.^obj.beta, obj.gamma);                                                        
+                            10^(obj.SMSC_trees), 10.^obj.k_sat, obj.alpha, 10.^obj.beta, 10.^obj.gamma);                                                        
                 end                
                 
                 % Get free drainage from the shallow layer
@@ -896,7 +899,7 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
                 
                 % Call MEX function for DEEP soil moisture model.
                 obj.variables.SMS_deep = forcingTransform_soilMoisture(S_deep_initial, drainage, zeros(size(obj.variables.evap)), 10^(obj.SMSC_deep), 10.^obj.k_sat_deep, ...
-                    obj.alpha, 10.^obj.beta_deep, obj.gamma);                
+                    obj.alpha, 10.^obj.beta_deep, 10.^obj.gamma);                
                                 
                 
                 % Run soil model again if tree cover is to be simulated
@@ -909,7 +912,7 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
                     
                     % Call MEX function for DEEP soil moisture model.
                     obj.variables.SMS_deep_trees = forcingTransform_soilMoisture(S_deep_initial, drainage, zeros(size(obj.variables.evap)), 10^(obj.SMSC_deep_trees), ...
-                        10.^obj.k_sat_deep, obj.alpha, 10.^obj.beta_deep, obj.gamma);                         
+                        10.^obj.k_sat_deep, obj.alpha, 10.^obj.beta_deep, 10.^obj.gamma);                         
                 end                
                                 
             end
@@ -1012,7 +1015,7 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
                     isDailyIntegralFlux = false;
                     
                 case 'evap_soil'    
-                    forcingData = obj.variables.evap .* (SMS/10^(SMSC)).^obj.gamma;                    
+                    forcingData = obj.variables.evap .* (SMS/10^(SMSC)).^(10.^obj.gamma);
                     isDailyIntegralFlux = false;
 
                 case 'infiltration'                       
@@ -1024,7 +1027,7 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
                     isDailyIntegralFlux = true;
                     
                 case 'evap_gw_potential'
-                    forcingData = obj.variables.evap .* (1-(SMS/10^(SMSC)).^obj.gamma);                    
+                    forcingData = obj.variables.evap .* (1-(SMS/10^(SMSC)).^(10.^obj.gamma));                    
                     isDailyIntegralFlux = false;
                     
                 case 'interflow'

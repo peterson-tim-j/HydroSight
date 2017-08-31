@@ -2,12 +2,6 @@ classdef derivedweighting_PearsonsNegativeRescaled < derivedweighting_PearsonsPo
 % Pearson's type III impulse response transfer function class. 
 
     methods(Static)        
-        function [modelSettings, colNames, colFormats, colEdits] = modelOptions(bore_ID, forcingDataSiteID, siteCoordinates)
-           modelSettings = {};
-           colNames = {};
-           colFormats = {};
-           colEdits = [];           
-        end
         function modelDescription = modelDescription()
            modelDescription = {'Name: derivedweighting_PearsonsNegativeRescaled', ...
                                '', ...

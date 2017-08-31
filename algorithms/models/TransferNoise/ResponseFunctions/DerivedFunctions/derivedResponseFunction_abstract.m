@@ -6,7 +6,7 @@ classdef derivedResponseFunction_abstract < handle
     end
         
     methods(Static, Abstract=true)
-        [modelSettings, colNames, colFormats, colEdits] = modelOptions(bore_ID, forcingDataSiteID, siteCoordinates)
+        [modelSettings, colNames, colFormats, colEdits,tooltipString] = modelOptions(bore_ID, forcingDataSiteID, siteCoordinates)
         modelDescription = modelDescription()         
     end
     

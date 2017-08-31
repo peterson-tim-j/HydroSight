@@ -183,7 +183,11 @@ classdef pumpingRate_SAestimation < forcingTransform_abstract
                         nonObsPeriods{nNonObsPeriod,2} = pumpingColName;
                         nonObsPeriods{nNonObsPeriod,3} = obsTime(j);
                     elseif pumping(j)==-999 && (j==size(pumping,1) || pumping(j+1)>=0)
-                        nonObsPeriods{nNonObsPeriod,4} = obsTime(j)+1;
+                        if j>=length(obsTime)
+                            nonObsPeriods{nNonObsPeriod,4} = obsTime(j);
+                        else
+                            nonObsPeriods{nNonObsPeriod,4} = obsTime(j)+1;
+                        end
 
                         % Store TOTAL period pumping volume if observed.
                         if j+1<size(pumping,1) && pumping(j+1)>0

@@ -5,12 +5,6 @@ classdef responseFunction_PearsonsNegative < responseFunction_Pearsons
 % Static methods used by the Graphical User Interface to inform the
 % user of the available model options and their input format.
     methods(Static)        
-        function [modelSettings, colNames, colFormats, colEdits] = modelOptions(bore_ID, forcingDataSiteID, siteCoordinates)
-           modelSettings = {};
-           colNames = {};
-           colFormats = {};
-           colEdits = [];           
-        end
         function modelDescription = modelDescription()
            modelDescription = {'Name: responseFunction_PearsonsNegative', ...
                                '', ...                                              

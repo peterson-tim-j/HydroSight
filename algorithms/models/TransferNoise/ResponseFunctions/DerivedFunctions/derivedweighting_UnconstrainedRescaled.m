@@ -9,11 +9,12 @@ classdef derivedweighting_UnconstrainedRescaled < derivedResponseFunction_abstra
 % Static methods used by the Graphical User Interface to inform the
 % user of the available model options and their input format.
     methods(Static)        
-        function [modelSettings, colNames, colFormats, colEdits] = modelOptions(bore_ID, forcingDataSiteID, siteCoordinates)
+        function [modelSettings, colNames, colFormats, colEdits,tooltipString] = modelOptions(bore_ID, forcingDataSiteID, siteCoordinates)
            modelSettings = {};
            colNames = {};
            colFormats = {};
            colEdits = [];           
+           tooltipString='';
         end
         function modelDescription = modelDescription()
            modelDescription = {'Name: derivedweighting_UnconstrainedRescaled', ...

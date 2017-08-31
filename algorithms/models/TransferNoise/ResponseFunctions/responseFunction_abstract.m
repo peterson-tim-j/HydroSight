@@ -8,7 +8,7 @@ classdef responseFunction_abstract < handle
     % Static methods
     methods(Static, Abstract=true)
         % Options for GUI table.        
-        [modelSettings, colNames, colFormats, colEdits] = modelOptions(bore_ID, forcingDataSiteID, siteCoordinates)
+        [modelSettings, colNames, colFormats, colEdits,tooltipString] = modelOptions(bore_ID, forcingDataSiteID, siteCoordinates)
     end
     
     methods(Abstract=true)
