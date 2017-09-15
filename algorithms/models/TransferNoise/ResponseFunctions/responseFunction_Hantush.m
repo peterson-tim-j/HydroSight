@@ -185,7 +185,7 @@ classdef responseFunction_Hantush < responseFunction_FerrisKnowles
             Leakage = 1./(S .* 10.^obj.gamma);       
             
             params = [T;S; Leakage];
-            param_names = {'Transmissivity (Head units^2/day)'; 'Storativity'; 'Leakage Param.'};
+            param_names = {'T: Transmissivity (Head units^2/day)'; 'S: Storativity'; 'G : Leakage Param.'};
         end             
         
 

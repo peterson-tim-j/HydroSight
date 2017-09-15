@@ -183,6 +183,12 @@ classdef derivedForcing_linearUnconstrainedScaling < derivedForcingTransform_abs
             coordinates = getCoordinates(obj.settings.sourceObject, variableName);           
         end           
         
+        % setForcingData sets the forcing data.        
+        function setForcingData(obj, forcingData, forcingData_colnames)
+            obj.settings.forcingData_colnames = forcingData_colnames;
+            obj.settings.forcingData = forcingData;
+        end             
+        
         function delete(obj)
 % delete class destructor
 %

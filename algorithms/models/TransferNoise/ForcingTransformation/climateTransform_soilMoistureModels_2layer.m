@@ -41,7 +41,8 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
 %                 capacity [L]. It is in same units as the input precipitation.
 %       SMSC_deep   - is a parameter for the bottom layer soil moisture storage 
 %                 capacity [L]. It is in same units as the input
-%                 precipitation.
+%                 precipitation. Note, if equal to NULL, then SMSC_deep is 
+%                 set to SMSC.
 %       alpha   - is a dimensionless parameter to transform the rate at which
 %                 the soil storage fills and limits infiltration. This 
 %                 allows simulation of a portion of the catchment saturating
@@ -49,13 +50,15 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
 %       k_sat   - is a parameter for the saturated vertical soil water
 %                 conductivity from the top layer [L T^-1]. 
 %       k_sat_deep-is a parameter for the saturated vertical soil water
-%                 conductivity from the bottom layer [L T^-1]. 
+%                 conductivity from the bottom layer [L T^-1].   
+%                 Note, if equal to NULL, then k_sat_deep is set to k_sat.
 %       beta    - is a dimensionless parameter to transform the rate at
 %                 which vertical free drainage occurs with filling of
-%                 the top soil layer.
+%                 the top soil layer. 
 %       beta_deep- is a dimensionless parameter to transform the rate at
 %                 which vertical free drainage occurs with filling of
-%                 the bottom soil layer.
+%                 the bottom soil layer. Note, if equal to NULL, then beta_deep
+%                 is set to k_sat.
 %       PET     - is the input daily potential evapotranspiration [L T^-1].
 %       gamma   - is a dimensionless parameter to transform the rate at
 %                 which soil water evaporation occurs with filling of the 
@@ -181,7 +184,7 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
         
         function [variable_names] = outputForcingdata_options(inputForcingDataColNames)
             variable_names = {'drainage';'drainage_bypassFlow';'drainage_normalised';'infiltration';'evap_soil';'evap_gw_potential';'runoff';'SMS'; ...
-                'drainage_deep';'drainage_bypassFlow_deep';'drainage_normalised_deep';'SMS_deep';'time'};
+                'drainage_deep';'drainage_bypassFlow_deep';'drainage_normalised_deep';'evap_soil_deep';'evap_soil_total';'SMS_deep';'time'};
         end
         
         function [options, colNames, colFormats, colEdits, toolTip] = modelOptions()
@@ -198,6 +201,7 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
                         'gamma'         ,  0,  'Fixed'  ; ...
                         'SMSC_deep'     ,  2, 'Calib.'   ;
                         'SMSC_deep_trees',   2, 'Fixed';...
+                        'S_initialfrac_deep', 0.5,'Fixed'; ...
                         'k_sat_deep'     , 1, 'Calib.'   ;
                         'beta_deep'     ,  0.5, 'Calib.'};
 
@@ -221,6 +225,7 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
                                 '   gamma        : log10(Power term for soil evap. rate).\n', ...
                                 '   SMSC_deep    : log10(Deep layer soil moisture capacity as water depth).\n', ...
                                 '   SMSC_deep_trees: log10(Deep layer tree soil moisture capacity as water depth).\n', ...
+                                '   S_initialfrac_deep: Initial deep soil moisture fraction (0-1).\n', ...
                                 '   k_sat_deep   : log10(Deep layer maximum vertical infiltration rate).\n', ...
                                 '   beta_deep    : log10(Deep layer power term for dainage rate).']);
             
@@ -249,10 +254,16 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
                                 'alpha        : Power term for infiltration rate.', ...
                                 'beta         : log10(Power term for dainage rate).', ...
                                 'gamma        : log10(Power term for soil evap. rate).', ...
-                                'SMSC_deep    : log10(Deep layer soil moisture capacity as water depth).', ...
-                                'SMSC_deep_tree : log10(Tree deep layer soil moisture capacity as water depth).', ...
+                                'SMSC_deep    : log10(Deep layer soil moisture capacity as water depth). ', ...
+                                '               Input an empty value and "fixed" to for it to equal SMSC.', ...
+                                'SMSC_deep_tree : log10(Tree deep layer soil moisture capacity as water depth).', ... 
+                                '               Input an empty value and "fixed" to for it to SMSC_tree', ...
+                                'S_initialfrac_deep: Initial deep soil moisture fraction (0-1).\n', ...      
+                                '               Input an empty value and "fixed" to for it to S_initialfrac', ...                                
                                 'k_sat_deep   : log10(Deep layer maximum vertical infiltration rate).', ...
-                                'beta_deep    : log10(Deep layer power term for dainage rate).', ...                                
+                                '               Input an empty value and "fixed" to for it to equal k_sat.', ...
+                                'beta_deep    : log10(Deep layer power term for dainage rate).', ...
+                                '               Input an empty value and "fixed" to for it to beta.', ...                                
                                '', ...               
                                'References: ', ...
                                '1. Peterson & Western (2014), Nonlinear time-series modeling of unconfined groundwater head, Water Resour. Res., 50, 8330–8355'};
@@ -297,27 +308,6 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
 %   calibration. This third column can contain the term 'fixed'. 
 %
 %   The required user options, and option choices, are as follows:
-%       'lossingOption'     
-%       Which can be set to either 'evap_actual' or 'evap_deficit'. The
-%       setting of 'evap_actual' returns the estimated actual evporation
-%       from the soil layer for use in the groundwater time series model.
-%       The setting of 'evap_deficit' returns the remaining potential
-%       evaporation. It is defined as the input potential evporation minus
-%       the soil water evaporation.
-%
-%       'gainingOption'
-%       Whice can be set to either 'soil_infiltration' or
-%       'soil_freeDrainage'. The setting of 'soil_infiltration' returns the
-%       estimated daily infiltration into the soil layer for use in the
-%       groundwater time series model. The setting of 'soil_freeDrainage'
-%       returns the free drainage out the bottom of the soil layer.
-%
-%       'SMSC'
-%       This is for setting the top layer soil moisture storage capacity parameter.
-%       The value for the second column is the initial value for this
-%       parameter. This model option is required because all model variants
-%       require this parameter to be set.
-%
 %       'SMSC_deep'
 %       This is for setting the bottom layer soil moisture storage capacity parameter.
 %       The value for the second column is the initial value for this
@@ -432,8 +422,6 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
             % Importantly, if the parameter is not listed then that 
             % feature of the soil moisture model is turned off.
             %--------------------------------------------------------------
-            nparams = 0;
-            
             for i=1:length(all_parameter_names)
                 
                 % Find the required parameter within the input model
@@ -446,47 +434,25 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
                     end
                 end
             
-                % Record the parameter as 'Active'. That is, it can be
-                % calibrated within the time series model,
-                ncols_modelOptions = size(modelOptions,2);
-                if ~isempty(ind)
-                    if ncols_modelOptions ==3 && strcmp(lower(modelOptions{ind,3}),'fixed')
-                        obj.settings.fixedParameters.(all_parameter_names{i})=true;
-                        obj.settings.activeParameters.(all_parameter_names{i})=false;
-                        obj.(all_parameter_names{i}) = modelOptions{ind,2};
-                    else
-                        nparams = nparams+1;
-                        obj.settings.fixedParameters.(all_parameter_names{i})=false;
-                        obj.settings.activeParameters.(all_parameter_names{i})=true;
-                        paramsInitial(nparams,1) = modelOptions{ind,2};
-                    end
-                else
+                % Record the deep parameters not lised as 'Fixed'.
+                if isempty(ind)
                     obj.settings.fixedParameters.(all_parameter_names{i})=false;
                     obj.settings.activeParameters.(all_parameter_names{i})=false;                    
-                    if strcmp(all_parameter_names{i}, 'alpha')
-                        obj.(all_parameter_names{i}) = 1;
-                    elseif strcmp(all_parameter_names{i}, 'beta') || strcmp(all_parameter_names{i}, 'beta_deep') || strcmp(all_parameter_names{i}, 'gamma')
-                        % Note, beta is transformed in the soil model to
-                        % 10^beta.
+                    if strcmp(all_parameter_names{i}, 'beta_deep')
+                        % Note, beta is transformed in the soil model to 10^beta.
                         obj.(all_parameter_names{i}) = 0;
-                    elseif strcmp(all_parameter_names{i}, 'k_sat') || strcmp(all_parameter_names{i}, 'k_sat_deep')
+                    elseif strcmp(all_parameter_names{i}, 'k_sat_deep')
                         % Note, k_sat is transformed in the soil model to
                         % 10^k_sat = 0 m/d.
                         obj.(all_parameter_names{i}) = -inf;
-                    elseif strcmp(all_parameter_names{i}, 'S_initialfrac') || strcmp(all_parameter_names{i}, 'S_initialfrac_deep')
+                    elseif strcmp(all_parameter_names{i}, 'S_initialfrac_deep')
                         obj.(all_parameter_names{i}) = [];  
                     else
                         obj.(all_parameter_names{i}) = 0;
                     end
                 end
             end
-            
-            % Check that the soil moisture capacity parameter is active.
-            % This is the simplest model able to be simulated
-            if ~obj.settings.activeParameters.SMSC || ~obj.settings.activeParameters.SMSC_deep || ~obj.settings.activeParameters.k_sat
-                error('The soil moisture model options must include the parameters SMSC, SMSC_deep and k_sat.');
-            end
-            
+                        
             % Check the SMSM_trees parameter is active if and only if there
             % is land cover input data.
             if  isfield(obj.settings,'simulateLandCover') && obj.settings.simulateLandCover
@@ -497,181 +463,57 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
                 obj.settings.activeParameters.SMSC_deep_trees = false; 
                 obj.settings.fixedParameters.SMSC_deep_trees = true;
             end
-                        
-            
-            % Set a constant for smoothing the soil moisture capacity
-            % thresholds and infiltration excess threshold            
-            obj.settings.lambda_p = 0.2;                        
-            
-            % Set parameters for transfer function.
-            setParameters(obj, paramsInitial)                             
-
-                         
         end
-        
-%% Set parameters
-        function setParameters(obj, params)
-% Syntax:
-%   setParameters(obj, params)  
-%
-% Description:  
-%   This method sets the soil moisture model parameters to user input values.
-%   Only parameters that are to be calibrated (i.e. non-fixed parameters)
-%   can be set. Also the vector of input parameter values must be in the
-%   same order as the parameter names returned by the method
-%   'getParameters'.
-%
-% Input:
-%   obj     - soil moisture model object.
-%   params  - vector (Nx1) of parameter values.
-%
-% Outputs:
-%   (none)
-%
-% Example:
-%   Create a cell matrix of options for a two parameter soil model:
-%   >> soilModelOptions = { 'lossingOption', 'evap_deficit' ;
-%                           'gainingOption', 'soil_infiltration' ;
-%                           'SMSC', 100 ; 
-%                           'k_sat', 10 };
-%   Build the soil model:
-%   >> soilModel = climateTransform_soilMoistureModels_2layer(soilModelOptions);
-%
-%   Get the list of non-fixed parameter names:
-%   >> [params, param_names] = getParameters(soilModel);
-%
-%   Assign new vales for the parameters SMSC and k_sat:
-%   >> setParameters(soilModel, [101; 11]);
-%
-% See also:
-%   climateTransform_soilMoistureModels_2layer: class_definition;
-%   getParameters: get_calibration_parameters_values;
-%   detectParameterChange: assesst_if_parameters_have_changed_recently;
-%   setTransformedForcing: run_model_and_store_simulation_results;
-%   getTransformedForcing: get_outputs_for_timeseries_model.
-%
-% Dependencies:
-%   (none)
-%
-% Author: 
-%   Dr. Tim Peterson, The Department of Infrastructure Engineering, 
-%   The University of Melbourne.
-%
-% Date:
-%   11 April 2012  
-
-            % Get the active parameter names
-            param_names = getActiveParameters(obj);
-            
-            % Cycle through each parameter and assign the parameter value.
-            for i=1: length(param_names)
-               obj.(param_names{i}) = params(i,:); 
-            end
-            
-            % Check if the parameters have changed since the last call to
-            % setTransformedForcing.
-            detectParameterChange(obj, params);            
-        end
-        
-%% Get model parameters
-        function [params, param_names] = getParameters(obj)            
-% Syntax:
-%   setParameters(obj, params)  
-%
-% Description:  
-%   This method gets the soil moisture model parameters. Only parameters 
-%   that are to be calibrated (i.e. non-fixed parameters) are returned. The
-%   method also returns the parameter names and the order of the parameter
-%   names correspondes to the returned order of the parameter values.
-%
-% Input:
-%   obj         - soil moisture model object.
-%
-% Outputs:
-%   params      - a vector (Nx1) of soil moisture model parameter values.
-%   param_names - a vector (Nx1) of parameter names.   
-%
-% Example:
-%   Create a cell matrix of options for a two parameter soil model:
-%   >> soilModelOptions = { 'lossingOption', 'evap_deficit' ;
-%                           'gainingOption', 'soil_infiltration' ;
-%                           'SMSC', 100 ; 
-%                           'k_sat', 10 };
-%   Build the soil model:
-%   >> soilModel = climateTransform_soilMoistureModels_2layer(soilModelOptions);
-%
-%   Get the list of non-fixed parameter names:
-%   >> [params, param_names] = getParameters(soilModel);
-%
-% See also:
-%   climateTransform_soilMoistureModels_2layer: class_definition;
-%   setParameters: set_calibration_parameters_values;
-%   detectParameterChange: assesst_if_parameters_have_changed_recently;
-%   setTransformedForcing: run_model_and_store_simulation_results;
-%   getTransformedForcing: get_outputs_for_timeseries_model.
-%
-% Dependencies:
-%   (none)
-%
-% Author: 
-%   Dr. Tim Peterson, The Department of Infrastructure Engineering, 
-%   The University of Melbourne.
-%
-% Date:
-%   11 April 2012              
-
-            % Get the active parameter names
-            param_names = getActiveParameters(obj);
-            
-            % Cycle through each parameter and get the parameter value.
-            params = zeros(length(param_names),1);
-            for i=1: length(param_names)
-               params(i,:) = obj.(param_names{i}); 
-            end
-        end   
 
 %% Return fixed upper and lower bounds to the parameters.
         function [params_upperLimit, params_lowerLimit] = getParameters_physicalLimit(obj)
             
-            % Get active parameter names.
+            % Get the parameter names.
             [params, param_names] = getParameters(obj);
-            
-            % Check which are inherited.
-            isInherited = isInheritedParameter(obj, param_names);
-            
-            % Call inherited method.
+
+            % Get the bounds from the original soil model
             [params_upperLimit, params_lowerLimit] = getParameters_physicalLimit@climateTransform_soilMoistureModels(obj);
+                        
+            % Upper and lower bounds of SMSC.
+            if obj.settings.activeParameters.SMSC_deep
+                ind = cellfun(@(x)(strcmp(x,'SMSC_deep')),param_names);
+                params_lowerLimit(ind,1) = log10(50);                    
+                params_upperLimit(ind,1) = Inf; 
+            end           
             
+            % Upper and lower bounds of SMSC_deep_trees.
+            if obj.settings.activeParameters.SMSC_deep_trees
+                ind = cellfun(@(x)(strcmp(x,'SMSC_deep_trees')),param_names);
+                params_lowerLimit(ind,1) = log10(50);                    
+                params_upperLimit(ind,1) = Inf; 
+            end           
             
-            for i=[find(~isInherited)]'
-                if  strcmp(param_names{i}, 'SMSC_deep') 
-                    params_lowerLimit(i,1) = log10(1);                    
-                    params_upperLimit(i,1) = log10(1000);  
-                elseif  strcmp(param_names{i}, 'SMSC_deep_trees') 
-                    params_lowerLimit(i,1) = log10(1);                    
-                    params_upperLimit(i,1) = log10(1000);                        
-                elseif strcmp(param_names{i}, 'beta_deep')  
-                    params_lowerLimit(i,1) = -inf;                    
-                    params_upperLimit(i,1) = inf;   
-                elseif strcmp(param_names{i}, 'k_sat_deep')     
-                    params_lowerLimit(i,1) = floor(log10(0.06*24*10));
-                    params_upperLimit(i,1) = ceil(log10(21*24*10));
-                end                   
-            end
+            % Upper and lower bounds of k_sat_deep.
+            if obj.settings.activeParameters.k_sat_deep
+                ind = cellfun(@(x)(strcmp(x,'k_sat_deep')),param_names);
+                % Upper and lower bounds taken from Rawls et al 1982 Estimation
+                % of Soil Properties. The values are for sand loam and silty clay
+                % respectively and transformed from units of cm/h to the assumed
+                % input units of mm/d.            
+                params_lowerLimit(ind,1) = floor(log10(0.06*24*10));
+                params_upperLimit(ind,1) = ceil(log10(21*24*10));
+            end                  
+        
+            % Upper and lower bounds of beta_deep.
+            if obj.settings.activeParameters.beta_deep
+                ind = cellfun(@(x)(strcmp(x,'beta_deep')),param_names);
+                % Note, To make the parameter range that is explored
+                % more compact, the beta parameter was converted to the
+                % log10 space. Prior to this transformation, the lower
+                % and upper boundaries were 1 and 5. Calibration trials
+                % for the Great Western Catchments, Victoria, Australia
+                % found that very often this non-transformed value
+                % would be >100.
+                params_lowerLimit(ind,1) = 0;                    
+                params_upperLimit(ind,1) = Inf; 
+            end                          
         end  
-
-%% Assess if matrix of parameters is valid.
-        function isValidParameter = getParameterValidity(obj, params, param_names)
-            isValidParameter = true(size(params));
-
-	    % Get physical bounds.
-	    [params_upperLimit, params_lowerLimit] = getParameters_physicalLimit(obj);
-
-	    % Check parameters are within bounds.
-            isValidParameter = params >= params_lowerLimit(:,ones(1,size(params,2))) & ...
-		params <= params_upperLimit(:,ones(1,size(params,2)));   
-
-        end  
+ 
         
 %% Return fixed upper and lower plausible parameter ranges. 
         function [params_upperLimit, params_lowerLimit] = getParameters_plausibleLimit(obj)
@@ -680,100 +522,52 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
         % for the calibration. These parameter ranges are only used in the 
         % calibration if the user does not input parameter ranges.
             
+            % Get the parameter names.
             [params, param_names] = getParameters(obj);
-            
-            for i=1: length(param_names)
-                if strcmp(param_names{i}, 'SMSC') || strcmp(param_names{i}, 'SMSC_deep') || strcmp(param_names{i}, 'SMSC_deep_trees') 
-                params_lowerLimit(i,1) = log10(10);
-                params_upperLimit(i,1) = log10(1000);
-                    
-                elseif strcmp(param_names{i}, 'k_infilt')  || ...
-                strcmp(param_names{i}, 'k_sat') || strcmp(param_names{i}, 'k_sat_deep')     
-                    % Upper and lower bounds taken from Rawls et al 1982 Estimation
-                    % of Soil Properties. The values are for sand loam and silty clay
-                    % respectively and transformed from units of cm/h to the assumed
-                    % input units of mm/d.            
-                    params_lowerLimit(i,1) = log10(0.09*24*10);
-                    params_upperLimit(i,1) = log10(6.11*24*10);
 
-                elseif strcmp(param_names{i}, 'beta') || strcmp(param_names{i}, 'beta_deep') 
-                    % Note, To make the parameter range that is explored
-                    % more compact, the beta parameter was converted to the
-                    % log10 space. Prior to this transformation, the lower
-                    % and upper boundaries were 1 and 5. Calibration trials
-                    % for the Great Western Catchments, Victoria, Australia
-                    % found that very often this non-transformed value
-                    % would be >100.
-                    params_lowerLimit(i,1) = log10(1);
-                    params_upperLimit(i,1) = log10(5);
-                else
-                    params_lowerLimit(i,1) = 0.0;  
-                    params_upperLimit(i,1) = 5.0;
-                end                    
-            end
-        end        
+            % Get the bounds from the original soil model
+            [params_upperLimit, params_lowerLimit] = getParameters_plausibleLimit@climateTransform_soilMoistureModels(obj);
+                        
+            % Upper and lower bounds of SMSC.
+            if obj.settings.activeParameters.SMSC_deep
+                ind = cellfun(@(x)(strcmp(x,'SMSC_deep')),param_names);
+                params_lowerLimit(ind,1) = log10(50);
+                params_upperLimit(ind,1) = log10(500);
+            end           
+            
+            % Upper and lower bounds of SMSC_deep_trees.
+            if obj.settings.activeParameters.SMSC_deep_trees
+                ind = cellfun(@(x)(strcmp(x,'SMSC_deep_trees')),param_names);
+                params_lowerLimit(ind,1) = log10(50);
+                params_upperLimit(ind,1) = log10(500);
+            end           
+            
+            % Upper and lower bounds of k_sat_deep.
+            if obj.settings.activeParameters.k_sat_deep
+                ind = cellfun(@(x)(strcmp(x,'k_sat_deep')),param_names);
+                % Upper and lower bounds taken from Rawls et al 1982 Estimation
+                % of Soil Properties. The values are for sand loam and silty clay
+                % respectively and transformed from units of cm/h to the assumed
+                % input units of mm/d.            
+                params_lowerLimit(ind,1) = log10(0.09*24*10);
+                params_upperLimit(ind,1) = log10(6.11*24*10);
+            end                  
         
-%% Check if the model parameters have chanaged since the last calculated.
-        function detectParameterChange(obj, params)
-% Syntax:
-%   detectParameterChange(obj, params)  
-%
-% Description:  
-%   This method assesses if the user input parameters are different from
-%   those used in the most recent solution to the soil moisture model. This
-%   method allows the differential equation to be only solved when
-%   required. The result of this assessment is stored within the object
-%   variable: obj.variables.isNewParameters .
-%
-% Input:
-%   obj         - soil moisture model object.
-%   params      - a vector (Nx1) of new soil moisture model parameter values.
-%
-% Outputs:
-%   (none)
-%
-% Example:
-%   Create a cell matrix of options for a two parameter soil model:
-%   >> soilModelOptions = { 'lossingOption', 'evap_deficit' ;
-%                           'gainingOption', 'soil_infiltration' ;
-%                           'SMSC', 100 ; 
-%                           'k_sat', 10 };
-%   Build the soil model:
-%   >> soilModel = climateTransform_soilMoistureModels_2layer(soilModelOptions);
-%
-%   Check if the new parameter values are different from those already in 
-%   the model. This would set obj.variables.isNewParameters = false:
-%   >> detectParameterChange(soilModel, [100; 10])
-%
-% See also:
-%   climateTransform_soilMoistureModels_2layer: class_definition;
-%   setParameters: set_calibration_parameters_values;
-%   getParameters: get_calibration_parameters_values;
-%   setTransformedForcing: run_model_and_store_simulation_results;
-%   getTransformedForcing: get_outputs_for_timeseries_model.
-%
-% Dependencies:
-%   (none)
-%
-% Author: 
-%   Dr. Tim Peterson, The Department of Infrastructure Engineering, 
-%   The University of Melbourne.
-%
-% Date:
-%   11 April 2012  
-
-            % Get current parameters
-            set_params = getParameters(obj);
-
-            % Check if there are any changes to the parameters.
-            if max(abs(set_params - params)) ~= 0            
-                obj.variables.isNewParameters = true;
-            else
-                obj.variables.isNewParameters = true;
-            end                     
-            
+            % Upper and lower bounds of beta_deep.
+            if obj.settings.activeParameters.beta_deep
+                ind = cellfun(@(x)(strcmp(x,'beta_deep')),param_names);
+                % Note, To make the parameter range that is explored
+                % more compact, the beta parameter was converted to the
+                % log10 space. Prior to this transformation, the lower
+                % and upper boundaries were 1 and 5. Calibration trials
+                % for the Great Western Catchments, Victoria, Australia
+                % found that very often this non-transformed value
+                % would be >100.
+                params_lowerLimit(ind,1) = log10(1);
+                params_upperLimit(ind,1) = log10(5);
+            end                            
         end
-                    
+        
 %% Solve the soil moisture differential equation
         function setTransformedForcing(obj, t, forceRecalculation)
 % Syntax:
@@ -835,84 +629,68 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
             
             if obj.variables.isNewParameters || forceRecalculation
 
-                % Filter the forcing data to input t.
-                filt_time = obj.settings.forcingData(:,1) >= t(1) & obj.settings.forcingData(:,1) <= t(end);
-                
-                % Get the required forcing data
-                filt = strcmp(obj.settings.forcingData_cols(:,1),'precip');
-                precip_col = obj.settings.forcingData_cols{filt,2};
-                obj.variables.precip = obj.settings.forcingData(filt_time, precip_col );
+                % Run the top layer model
+                setTransformedForcing@climateTransform_soilMoistureModels(obj, t, true);
 
-                filt = strcmp(obj.settings.forcingData_cols(:,1),'et');
-                evap_col = obj.settings.forcingData_cols{filt,2};
-                obj.variables.evap = obj.settings.forcingData(filt_time, evap_col );
-                
-                if  isfield(obj.settings,'simulateLandCover') && obj.settings.simulateLandCover
-                    filt = strcmp(obj.settings.forcingData_cols(:,1),'TreeFraction');
-                    tree_col = obj.settings.forcingData_cols{filt,2};
-                    obj.variables.treeFrac = obj.settings.forcingData(filt_time, tree_col );                    
-                end                
-                
-                % Filter percip by max infiltration rate, k_infilt.  
-                if obj.k_infilt < inf && (obj.settings.activeParameters.k_infilt || obj.settings.fixedParameters.k_infilt)
-                    lambda_p = obj.settings.lambda_p .* 10.^obj.k_infilt;
-                    obj.variables.precip = (obj.variables.precip>0).*(obj.variables.precip + lambda_p * log( 1./(1 + exp( (obj.variables.precip - 10.^obj.k_infilt)./lambda_p))));
-                    obj.variables.precip(isinf(obj.variables.precip)) = 10.^obj.k_infilt;
-                end
-
-                % Set the initial soil moisture.
-                if isempty(obj.S_initialfrac)
-                    S_initial = 0.5.*10^(obj.SMSC);
+                % Handle deep soil layer parameters taken from the shallow
+                % layer.
+                if isnan(obj.SMSC_deep)
+                    SMSC_deep = 10^(obj.SMSC);
                 else
-                    S_initial = obj.S_initialfrac * 10^(obj.SMSC);
+                    SMSC_deep = 10^obj.SMSC_deep;
                 end
+                if isnan(obj.k_sat_deep)
+                    k_sat_deep = 10^(obj.k_sat);
+                else
+                    k_sat_deep = 10^(obj.k_sat_deep);
+                end
+                if isnan(obj.beta_deep)
+                    beta_deep = 10^(obj.beta);
+                else
+                    beta_deep = 10^(obj.beta_deep);
+                end                
                 
                 % Set deep initial soil moisture.
-                if isempty(obj.S_initialfrac_deep)
-                    S_deep_initial = 0.5.*10^(obj.SMSC_deep);
+                if isnan(obj.S_initialfrac_deep)
+                    S_deep_initial = obj.S_initialfrac.*SMSC_deep;
                 else
-                    S_deep_initial = obj.S_initialfrac^(obj.SMSC_deep);
-                end                
-
-                % Store the time points
-                obj.variables.t = t(filt_time);                                
-                
-                % Call MEX function for SHALLOW soil moisture model.
-                obj.variables.SMS = forcingTransform_soilMoisture(S_initial, obj.variables.precip, obj.variables.evap, ...
-                        10^(obj.SMSC), 10.^obj.k_sat, obj.alpha, 10.^obj.beta, 10.^obj.gamma);                                
-
-                % Run soil model again if tree cover is to be simulated
-                if  isfield(obj.settings,'simulateLandCover') && obj.settings.simulateLandCover
-                    if isempty(obj.S_initialfrac)
-                        S_initial = 0.5.*10^(obj.SMSC_trees);
-                    else
-                        S_initial = obj.S_initialfrac * 10^(obj.SMSC_trees);
-                    end
-                    
-                    % Call MEX function for SHALLOW soil moisture model.
-                    obj.variables.SMS_trees = forcingTransform_soilMoisture(S_initial, obj.variables.precip, obj.variables.evap, ...
-                            10^(obj.SMSC_trees), 10.^obj.k_sat, obj.alpha, 10.^obj.beta, 10.^obj.gamma);                                                        
-                end                
+                    S_deep_initial = obj.S_initialfrac_deep.*SMSC_deep;
+                end                             
                 
                 % Get free drainage from the shallow layer
-                drainage = getTransformedForcing(obj, 'drainage'); 
-                
-                % Call MEX function for DEEP soil moisture model.
-                obj.variables.SMS_deep = forcingTransform_soilMoisture(S_deep_initial, drainage, zeros(size(obj.variables.evap)), 10^(obj.SMSC_deep), 10.^obj.k_sat_deep, ...
-                    obj.alpha, 10.^obj.beta_deep, 10.^obj.gamma);                
+                drainage = getTransformedForcing(obj, 'drainage',1); 
                                 
+                % Calculate remaining PET after shallow ET
+                PET = max(0,obj.variables.evap - getTransformedForcing(obj, 'evap_soil',1));
                 
+                % Call MEX function for DEEP soil moisture model.                
+                obj.variables.SMS_deep = forcingTransform_soilMoisture(S_deep_initial, drainage, PET, SMSC_deep, k_sat_deep, ...
+                    0, beta_deep, 10.^obj.gamma);                
+                                                
                 % Run soil model again if tree cover is to be simulated
                 if  isfield(obj.settings,'simulateLandCover') && obj.settings.simulateLandCover
-                    if isempty(obj.S_initialfrac)
-                        S_deep_initial = 0.5.*10^(obj.SMSC_deep_trees);
-                    else
-                        S_deep_initial = obj.S_initialfrac * 10^(obj.SMSC_deep_trees);
-                    end                    
                     
+                    if isempty(obj.SMSC_deep_trees)
+                        SMSC_deep_trees = 10^(obj.SMSC_trees);
+                    else
+                        SMSC_deep_trees = obj.SMSC_deep_trees;
+                    end
+                                                        
+                    if isempty(obj.S_initialfrac)
+                        S_deep_initial = obj.S_initialfrac.*SMSC_deep_trees;
+                    else
+                        S_deep_initial = obj.S_initialfrac_deep * SMSC_deep_trees;
+                    end                    
+
+                    % Get free drainage from the shallow layer
+                    drainage = getTransformedForcing(obj, 'drainage',2); 
+                                        
+                    % Calculate remaining PET after shallow ET
+                    PET = max(0,obj.variables.evap - getTransformedForcing(obj, 'evap_soil',2));
+                                         
                     % Call MEX function for DEEP soil moisture model.
-                    obj.variables.SMS_deep_trees = forcingTransform_soilMoisture(S_deep_initial, drainage, zeros(size(obj.variables.evap)), 10^(obj.SMSC_deep_trees), ...
-                        10.^obj.k_sat_deep, obj.alpha, 10.^obj.beta_deep, 10.^obj.gamma);                         
+                    obj.variables.SMS_deep_trees = forcingTransform_soilMoisture(S_deep_initial, drainage, PET, SMSC_deep_trees, ...
+                        k_sat_deep, 0, beta_deep, 10.^obj.gamma);                         
                 end                
                                 
             end
@@ -968,95 +746,64 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
 % Date:
 %   11 April 2012  
 
-            % Get the soil moisture store for the required soil unit
-            if nargin==2 || SMSnumber==1
-                SMS = obj.variables.SMS;
-                SMSC = obj.SMSC;
-                if any(strcmp(fieldnames(obj.variables),'SMS_deep'))
-                    SMS_deep = obj.variables.SMS_deep;
-                    SMSC_deep = obj.SMSC_deep; 
+            % Test if the flux can be derived from the parent class.
+            if ~any(strcmp({'evap_soil_deep', 'evap_soil_total','evap_gw_potential', ...
+            'drainage_deep','drainage_bypassFlow_deep','drainage_normalised_deep','SMS_deep'}, ...
+            variableName))
+                if nargin==2
+                    [forcingData, isDailyIntegralFlux] = getTransformedForcing@climateTransform_soilMoistureModels(obj, variableName);   
                 else
-                    SMS_deep=zeros(size(SMS));
-                    SMSC_deep = 0;
+                    [forcingData, isDailyIntegralFlux] = getTransformedForcing@climateTransform_soilMoistureModels(obj, variableName, SMSnumber);   
                 end
+                return;
+            end
+
+            % Get back transformed parameters and assign each param to a variable for efficient access.            
+            [params, param_names] = getDerivedParameters(obj);
+            treeArea_frac = params(3,:);
+            gamma = params(11,:);             
+            SMSC_deep = params(end-4,:);
+            SMSC_deep_trees = params(end-3,:);
+            S_deep_initial = params(end-2,:);
+            k_sat_deep = params(end-1,:);
+            beta_deep = params(end,:);
+            
+            % Get the soil moisture store for the required soil unit
+            if nargin==2 || SMSnumber==1                               
+                SMS_deep = obj.variables.SMS_deep;
                 SMSnumber = 1;
             elseif SMSnumber==2
-                SMS = obj.variables.SMS_trees;
-                SMSC = obj.SMSC_trees;
-                
-                if any(strcmp(fieldnames(obj.variables),'SMS_deep_trees'))
-                    SMS_deep = obj.variables.SMS_deep_trees;
-                    SMSC_deep = obj.SMSC_deep_trees; 
-                else
-                    SMS_deep=zeros(size(SMS));
-                    SMSC_deep = 0;
-                end
-                 
+                SMSC_deep = SMSC_deep_trees; 
+                SMS_deep = obj.variables.SMS_deep_trees;                    
             else
                 error('The soil moisture unit number is unknown')
             end
-             
+
             switch variableName
-                case 'time'
-                    forcingData = obj.variables.t;
-                    isDailyIntegralFlux = false;                                
-                case 'drainage'
-                    forcingData = (1-obj.interflow_frac) .* 10.^obj.k_sat .* getTransformedForcing(obj, 'drainage_normalised',SMSnumber);
-                    isDailyIntegralFlux = false;
-                case 'drainage_bypassFlow'
-                    drainage = getTransformedForcing(obj, 'drainage',SMSnumber);
-                    runoff = getTransformedForcing(obj, 'runoff',SMSnumber);
-                    forcingData = drainage + obj.bypass_frac.*runoff;
-                    
-                    isDailyIntegralFlux = true;
-                    
-                case 'drainage_normalised'
-                    forcingData = (SMS/10^(SMSC)).^(10.^obj.beta);
-                    isDailyIntegralFlux = false;
-                    
-                case 'evap_soil'    
-                    forcingData = obj.variables.evap .* (SMS/10^(SMSC)).^(10.^obj.gamma);
+                case 'evap_soil_deep'    
+                    AET= getTransformedForcing(obj, 'evap_soil',SMSnumber);
+                    forcingData = max(0,obj.variables.evap-AET) .* (SMS_deep/SMSC_deep).^gamma;
                     isDailyIntegralFlux = false;
 
-                case 'infiltration'                       
-                    drainage = getTransformedForcing(obj, 'drainage',SMSnumber);
-                    actualET = getTransformedForcing(obj, 'evap_soil',SMSnumber);                        
-                    drainage =  0.5 .* (drainage(1:end-1) + drainage(2:end));
-                    actualET = 0.5 .* (actualET(1:end-1) + actualET(2:end));                    
-                    forcingData = [0 ; max(0,(obj.variables.precip(2:end,1)>0) .* (diff(SMS) + drainage + actualET))];
-                    isDailyIntegralFlux = true;
-                    
+                case 'evap_soil_total'    
+                    forcingData = getTransformedForcing(obj, 'evap_soil',SMSnumber) + ...
+                                  getTransformedForcing(obj, 'evap_soil_deep',SMSnumber);
+                    isDailyIntegralFlux = false;                    
                 case 'evap_gw_potential'
-                    forcingData = obj.variables.evap .* (1-(SMS/10^(SMSC)).^(10.^obj.gamma));                    
-                    isDailyIntegralFlux = false;
-                    
-                case 'interflow'
-                    forcingData = obj.interflow_frac .* 10.^obj.k_sat .* getTransformedForcing(obj, 'drainage_normalised',SMSnumber);
-                    isDailyIntegralFlux = false;
-                    
-                case 'runoff'
-                    infiltration = getTransformedForcing(obj, 'infiltration',SMSnumber);
-                    interflow = getTransformedForcing(obj, 'interflow',SMSnumber);
-                    forcingData = max(0,obj.variables.precip - infiltration) + interflow;
-                    isDailyIntegralFlux = true;
-                    
-                case'SMS'
-                    forcingData = SMS;
-                    isDailyIntegralFlux = false;
-                    
+                    forcingData = obj.variables.evap - getTransformedForcing(obj, 'evap_soil_total',SMSnumber);                    
+                    isDailyIntegralFlux = false;                    
                 case 'drainage_deep'
-                    forcingData = 10.^obj.k_sat_deep .* getTransformedForcing(obj, 'drainage_normalised_deep');
+                    forcingData = k_sat_deep .* getTransformedForcing(obj, 'drainage_normalised_deep');
                     isDailyIntegralFlux = false;                    
 
                 case 'drainage_bypassFlow_deep'
-                    drainage = getTransformedForcing(obj, 'drainage_deep',SMSnumber);
-                    runoff = getTransformedForcing(obj, 'runoff',SMSnumber);
-                    forcingData = drainage + obj.bypass_frac.*runoff;
-                    
+                    forcingData = getTransformedForcing(obj, 'drainage_deep',SMSnumber);
+                    drainage_bypassFlow = getTransformedForcing(obj, 'drainage_bypassFlow',SMSnumber);
+                    forcingData = forcingData + drainage_bypassFlow;                    
                     isDailyIntegralFlux = true;
 
                 case 'drainage_normalised_deep'
-                    forcingData = (SMS_deep/10^SMSC_deep).^(10.^obj.beta_deep);
+                    forcingData = (SMS_deep/SMSC_deep).^beta_deep;
                     isDailyIntegralFlux = false;     
                                         
                 case 'SMS_deep'
@@ -1074,120 +821,61 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
                 forcingData_trees = getTransformedForcing(obj, variableName, 2) ;
                 
                 % Do weighting
-                forcingData = (1-obj.treeArea_frac .* obj.variables.treeFrac) .* forcingData + ...
-                              obj.treeArea_frac .* obj.variables.treeFrac .* forcingData_trees;
+                forcingData = (1-treeArea_frac .* obj.variables.treeFrac) .* forcingData + ...
+                              treeArea_frac .* obj.variables.treeFrac .* forcingData_trees;
             end
             
         end
         
-        
-        % Return the derived variables.
         function [params, param_names] = getDerivedParameters(obj)
-            params = [];
-            param_names = cell(0,2);
-        end
-
-        % Return coordinates for forcing variable
-        function coordinates = getCoordinates(obj, variableName)
-
-            if ~iscell(variableName)
-                variableNameTmp{1}=variableName;
-                variableName = variableNameTmp;
-                clear variableNameTmp;
+            
+            
+            [params, param_names] = getDerivedParameters@climateTransform_soilMoistureModels(obj);   
+            
+            param_names(size(param_names,1)+1:size(param_names,1)+5) = {
+                           'SMSC_deep: back transformed soil moisture deep layer storage capacity (in rainfall units)'; ...                  
+                           'SMSC_deep_trees: back transformed soil moisture deep layer storage capacity in trees unit (in rainfall units)'; ...
+                           'S_initialfrac_deep: fractional initial deep layer soil moisture (-)'; ... 
+                           'k_sat_deep : back transformed deep layer maximum vertical conductivity (in rainfall units/day)'; ...
+                           'beta_deep : back transformed power term for dainage rate of deep layer (eg approx. Brook-Corey pore index power term)'};    
+        
+            % Handle deep soil layer parameters taken from the shallow
+            % layer.
+            if isnan(obj.SMSC_deep)
+                SMSC_deep = 10^(obj.SMSC);
+            else
+                SMSC_deep = 10^obj.SMSC_deep;
             end
-                
-            coordinates = cell(length(variableName),3);
-            for i=1:length(variableName)
-                % Find row within the list of required containing variabeName
-                filt = strcmp(obj.settings.forcingData_cols(:,1), variableName{i});
-
-                % If empty, then it is likely to be a model output variable os use the precip coordinate.
-                if ~any(filt)
-                    filt = strcmp(obj.settings.forcingData_cols(:,1), 'precip');
-                end
-                sourceColNumber = obj.settings.forcingData_cols{filt,2};
-                sourceColName = obj.settings.forcingData_colnames{sourceColNumber};
-
-                % Get coordinates
-                filt = strcmp(obj.settings.siteCoordinates(:,1), sourceColName);
-                coordinates(i,:) = obj.settings.siteCoordinates(filt,:);
-                coordinates{i,1} = variableName{i};
-            end    
-        end             
-        
-        function delete(obj)
-% delete class destructor
-%
-% Syntax:
-%   delete(obj)
-%
-% Description:
-%   Loops through parameters and, if not an object, empties them. Else, calls
-%   the sub-object's destructor.
-%
-% Input:
-%   obj -  model object
-%
-% Output:  
-%   (none)
-%
-% Author: 
-%   Dr. Tim Peterson, The Department of Infrastructure Engineering, 
-%   The University of Melbourne.
-%
-% Date:
-%   24 Aug 2016
-%%            
-            propNames = properties(obj);
-            for i=1:length(propNames)
-               if isempty(obj.(propNames{i}))
-                   continue;
-               end                
-               if isobject(obj.(propNames{i}))
-                delete(obj.(propNames{i}));
-               else               
-                obj.(propNames{i}) = []; 
-               end
-            end
-        end    
-    end
-    
-    methods(Access=protected, Hidden=true)
-        
-        % Get the names of the active parameters
-        function param_names = getActiveParameters(obj)
-                                                            
-            % Get field array value for if the parameter is active.
-            ind=structfun(@(x) (x),  obj.settings.activeParameters);
-            
-            % Get list of all parameter names.
-            all_parameter_names = fieldnames(obj.settings.activeParameters);
-            
-            % Return only those parameter names that are active
-            param_names=all_parameter_names(ind,1);        
-
-        end 
-        
-        % Assess if a paramete is inherited.
-        function isInherited = isInheritedParameter(obj, param_names)
-            
-            % Initialise output.
-            isInherited = false(size(param_names));
-            
-            % Get the properties of the superclass.
-            classNames = superclasses(class(obj));
-            param_names_superClass = properties(classNames{1});
-            
-            % Search though each input parameter name for a parameter name witin the inherited class.            
-            for i=1: length(param_names)
-               filt = cellfun(@(x) strcmp(x,param_names{i}),  param_names_superClass);
-               if any(filt)
-                   isInherited(i)=true;
-               end               
+            if isnan(obj.SMSC_deep_trees)
+                SMSC_deep_trees = 10^(obj.SMSC_trees);
+            else
+                SMSC_deep_trees = 10^obj.SMSC_deep_trees;
             end            
-        end 
-        
+            if isnan(obj.k_sat_deep)
+                k_sat_deep = 10^(obj.k_sat);
+            else
+                k_sat_deep = 10^(obj.k_sat_deep);
+            end
+            if isnan(obj.beta_deep)
+                beta_deep = 10^(obj.beta);
+            else
+                beta_deep = 10^(obj.beta_deep);
+            end                
+            if isnan(obj.S_initialfrac_deep)
+                S_deep_initial = obj.S_initialfrac.*SMSC_deep;
+            else
+                S_deep_initial = obj.S_initialfrac_deep.*SMSC_deep;
+            end                         
+                       
+            params = [  params;  ...
+                        SMSC_deep; ...
+                        SMSC_deep_trees; ...
+                        S_deep_initial; ...
+                        k_sat_deep; ...
+                        beta_deep];
+        end        
     end
+
     
 end
 

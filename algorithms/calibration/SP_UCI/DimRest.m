@@ -39,7 +39,9 @@ if nlost > floor(Dim/10)+1
         happen=0;
         
         % Generate new sample and check the parameter is valid
-        while 1
+        nmax = 250;
+        imax=0;
+        while imax<nmax
             stemp=((randn+2)*r*v(:,i))';
             for j=1:Dim
                 stemp(j)=stemp(j)*Nstd(j)+Nmean(j);
@@ -56,14 +58,22 @@ if nlost > floor(Dim/10)+1
             if all(isValid)
                 break;
             end
+            imax=imax+1;
         end 
                     
+        % No valid parameter set found to try next for-loop iteration.
+        if ~all(isValid)
+            continue;
+        end
+        
         ftemp=feval(funcHandle,stemp', varargin{:});
         icall=icall+1;
         
         if ftemp > max(Sfnew)
             % Re-generate sample
-            while 1
+            imax=0;
+            stemp_initial = stemp;
+            while imax<nmax
                 stemp=((randn-2)*r*v(:,i))';
                 for j=1:Dim
                     stemp(j)=stemp(j)*Nstd(j)+Nmean(j);
@@ -80,10 +90,15 @@ if nlost > floor(Dim/10)+1
                 if all(isValid)
                     break;
                 end
+                imax=imax+1;
             end             
             
-            ftemp=feval(funcHandle,stemp', varargin{:});
-            icall=icall+1;
+            if ~all(isValid)
+                stemp = stemp_initial;
+            else
+                ftemp=feval(funcHandle,stemp', varargin{:});
+                icall=icall+1;
+            end
         end
         if ftemp < max(Sfnew)
             happen=1;

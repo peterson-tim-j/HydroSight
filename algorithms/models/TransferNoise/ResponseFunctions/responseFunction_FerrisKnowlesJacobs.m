@@ -92,7 +92,7 @@ classdef  responseFunction_FerrisKnowlesJacobs < responseFunction_FerrisKnowles 
             Ksat = T./10.^obj.zeta;   
             
             params = [params(1,:); params(2,:); Ksat];
-            param_names = {param_names{1}; param_names{2}; 'Lateral conductivity'};
+            param_names = {param_names{1}; param_names{2}; 'Ksat : Lateral conductivity'};
         end
         
         function delete(obj)

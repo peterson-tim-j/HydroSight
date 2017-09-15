@@ -1374,7 +1374,7 @@ classdef HydroSightModel < handle
             [params, time_points] = calibration_initialise(obj.model, t_start, t_end);       
             params =  median(params,2);
             if any(isnan(params))
-                error('At least one model parameter value equals NaN. Please input a correct value to the model');
+op                error('At least one model parameter value equals NaN. Please input a correct value to the model');
             end
             nparams = size(params,1); 
                             

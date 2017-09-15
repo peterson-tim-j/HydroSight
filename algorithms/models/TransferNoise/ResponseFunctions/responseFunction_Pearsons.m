@@ -404,7 +404,7 @@ classdef responseFunction_Pearsons < responseFunction_abstract
             theta_peak(filt) =  t_peak(filt).^(n_backTrans(filt)-1) .* exp( -b_backTrans(filt) .* t_peak(filt) );
                         
             params = theta_peak;
-            param_names = {'Lag time from input to head (days)'};
+            param_names = {'Lag : Lag time from input to head (days)'};
             
         end
 
@@ -469,6 +469,8 @@ classdef responseFunction_Pearsons < responseFunction_abstract
                 ind = find(abs(derivedData_tmp) > max(abs(derivedData_tmp))*0.05,1,'last');
                 if isempty(ind);
                     ind = length(t);
+                elseif ind==1
+                    ind = ceil(length(t)*0.05);
                 end
                 xlim(axisHandle, [1, t(ind)]);
                 

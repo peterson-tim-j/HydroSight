@@ -434,7 +434,7 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                     elseif strcmp(all_parameter_names{i}, 'interflow_frac')
                         obj.(all_parameter_names{i}) = 0;                        
                     elseif strcmp(all_parameter_names{i}, 'S_initialfrac')
-                        obj.(all_parameter_names{i}) = [];  
+                        obj.(all_parameter_names{i}) = 0.5;  
                     else
                         obj.(all_parameter_names{i}) = 0;
                     end
@@ -731,6 +731,11 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                 params_upperLimit(ind,1) = log10(100);
             end                  
             
+            if obj.settings.activeParameters.SMSC
+                ind = cellfun(@(x)(strcmp(x,'SMSC')),param_names);
+                params_lowerLimit(ind,1) = log10(50);
+                params_upperLimit(ind,1) = Inf;
+            end            
             
         end  
         
@@ -803,11 +808,16 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                 params_upperLimit(ind,1) = 1;
             end                
             
+%             if obj.settings.activeParameters.SMSC
+%                 ind = cellfun(@(x)(strcmp(x,'SMSC')),param_names);
+%                 params_lowerLimit(ind,1) = log10(10);
+%                 params_upperLimit(ind,1) = log10(1000);
+%             end  
             if obj.settings.activeParameters.SMSC
                 ind = cellfun(@(x)(strcmp(x,'SMSC')),param_names);
-                params_lowerLimit(ind,1) = log10(10);
-                params_upperLimit(ind,1) = log10(1000);
-            end  
+                params_lowerLimit(ind,1) = log10(50);
+                params_upperLimit(ind,1) = log10(500);
+            end
 
             if obj.settings.activeParameters.SMSC_trees
                 ind = cellfun(@(x)(strcmp(x,'SMSC_trees')),param_names);
@@ -950,6 +960,22 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
             
             if obj.variables.isNewParameters || forceRecalculation
 
+                % back transform the parameters
+                [params, param_names] = getDerivedParameters(obj);
+
+                % Assign each param to a variable for efficient access.
+                SMSC = params(1,:);
+                SMSC_trees = params(2,:);
+                treeArea_frac = params(3,:);
+                S_initialfrac = params(4,:);
+                k_infilt = params(5,:);
+                k_sat = params(6,:);
+                bypass_frac = params(7,:);            
+                interflow_frac = params(8,:);
+                alpha = params(9,:);
+                beta = params(10,:);
+                gamma = params(11,:);                 
+                
                 % Filter the forcing data to input t.
                 filt_time = obj.settings.forcingData(:,1) >= t(1) & obj.settings.forcingData(:,1) <= t(end);
                 
@@ -972,17 +998,17 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                 end
                 
                 % Filter percip by max infiltration rate, k_infilt.  
-                if obj.k_infilt < inf && (obj.settings.activeParameters.k_infilt || obj.settings.fixedParameters.k_infilt)
-                    lambda_p = obj.settings.lambda_p .* 10.^obj.k_infilt;
-                    obj.variables.precip = (obj.variables.precip>0).*(obj.variables.precip + lambda_p * log( 1./(1 + exp( (obj.variables.precip - 10.^obj.k_infilt)./lambda_p))));
-                    obj.variables.precip(isinf(obj.variables.precip)) = 10.^obj.k_infilt;
+                if k_infilt < inf && (obj.settings.activeParameters.k_infilt || obj.settings.fixedParameters.k_infilt)
+                    lambda_p = obj.settings.lambda_p .* k_infilt;
+                    obj.variables.precip = (obj.variables.precip>0).*(obj.variables.precip + lambda_p * log( 1./(1 + exp( (obj.variables.precip - k_infilt)./lambda_p))));
+                    obj.variables.precip(isinf(obj.variables.precip)) = k_infilt;
                 end
 
                 % Set the initial soil moisture.
-                if isempty(obj.S_initialfrac)
-                    S_initial = 0.5.*10^(obj.SMSC);
+                if isempty(S_initialfrac)
+                    S_initial = 0.5.*SMSC;
                 else
-                    S_initial = obj.S_initialfrac * 10^(obj.SMSC);
+                    S_initial = S_initialfrac * SMSC;
                 end
                 
                 % Store the time points
@@ -990,18 +1016,18 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                 
                 % Call MEX function containing soil moisture model.
                 obj.variables.SMS = forcingTransform_soilMoisture(S_initial, obj.variables.precip, obj.variables.evap, ...
-                        10^(obj.SMSC), 10.^obj.k_sat, obj.alpha, 10.^obj.beta, 10.^obj.gamma);                                
+                        SMSC, k_sat, alpha, beta, gamma);                                
                 
                 % Run soil model again if tree cover is to be simulated
                 if  isfield(obj.settings,'simulateLandCover') && obj.settings.simulateLandCover
-                    if isempty(obj.S_initialfrac)
-                        S_initial = 0.5.*10^(obj.SMSC_trees);
+                    if isempty(S_initialfrac)
+                        S_initial = 0.5.*SMSC_trees;
                     else
-                        S_initial = obj.S_initialfrac * 10^(obj.SMSC_trees);
+                        S_initial = S_initialfrac * SMSC_trees;
                     end
                     
                     obj.variables.SMS_trees = forcingTransform_soilMoisture(S_initial, obj.variables.precip, obj.variables.evap, ...
-                            10^(obj.SMSC_trees), 10.^obj.k_sat, obj.alpha, 10.^obj.beta, 10.^obj.gamma);                                                                        
+                            SMSC_trees, k_sat, alpha, beta, gamma);                                                                        
                 end
                     
             end
@@ -1057,35 +1083,50 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
 % Date:
 %   11 April 2012  
         
+            % back transform the parameters
+            [params, param_names] = getDerivedParameters(obj);
+            
+            % Assign each param to a variable for efficient access.
+            SMSC = params(1,:);
+            SMSC_trees = params(2,:);
+            treeArea_frac = params(3,:);
+            S_initialfrac = params(4,:);
+            k_infilt = params(5,:);
+            k_sat = params(6,:);
+            bypass_frac = params(7,:);            
+            interflow_frac = params(8,:);
+            alpha = params(9,:);
+            beta = params(10,:);
+            gamma = params(11,:);            
+
             % Get the soil moisture store for the required soil unit
             if nargin==2 || SMSnumber==1
                 SMS = obj.variables.SMS;
-                SMSC = obj.SMSC;
                 SMSnumber = 1;
             elseif SMSnumber==2
                 SMS = obj.variables.SMS_trees;
-                SMSC = obj.SMSC_trees;
+                SMSC = SMSC_trees;
             else
                 error('The soil moisture unit number is unknown')
             end
              
             switch variableName
                 case 'drainage'
-                    forcingData = (1-obj.interflow_frac) .* 10.^obj.k_sat .* getTransformedForcing(obj, 'drainage_normalised',SMSnumber);
+                    forcingData = (1-interflow_frac) .* k_sat .* getTransformedForcing(obj, 'drainage_normalised',SMSnumber);
                     isDailyIntegralFlux = false;
                 case 'drainage_bypassFlow'
                     drainage = getTransformedForcing(obj, 'drainage',SMSnumber);
                     runoff = getTransformedForcing(obj, 'runoff',SMSnumber);
-                    forcingData = drainage + obj.bypass_frac.*runoff;
+                    forcingData = drainage + bypass_frac.*runoff;
                     
                     isDailyIntegralFlux = true;
                     
                 case 'drainage_normalised'
-                    forcingData = (SMS/10^(SMSC)).^(10.^obj.beta);
+                    forcingData = (SMS/SMSC).^beta;
                     isDailyIntegralFlux = false;
                     
                 case 'evap_soil'    
-                    forcingData = obj.variables.evap .* (SMS/10^(SMSC)).^(10.^obj.gamma);
+                    forcingData = obj.variables.evap .* (SMS/SMSC).^gamma;
                     isDailyIntegralFlux = false;
 
                 case 'infiltration'                       
@@ -1097,11 +1138,11 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                     isDailyIntegralFlux = true;
                     
                 case 'evap_gw_potential'
-                    forcingData = obj.variables.evap .* (1-(SMS/10^(SMSC)).^(10.^obj.gamma));
+                    forcingData = obj.variables.evap .* (1-(SMS/SMSC).^gamma);
                     isDailyIntegralFlux = false;
                     
                 case 'interflow'
-                    forcingData = obj.interflow_frac .* 10.^obj.k_sat .* getTransformedForcing(obj, 'drainage_normalised',SMSnumber);
+                    forcingData = interflow_frac .* k_sat .* getTransformedForcing(obj, 'drainage_normalised',SMSnumber);
                     isDailyIntegralFlux = false;
                     
                 case 'runoff'
@@ -1132,29 +1173,52 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                     ind = strfind(variableName, '_nontree');
                     variableName = variableName(1:ind-1);
                     [forcingData,isDailyIntegralFlux]  = getTransformedForcing(obj, variableName, 1) ;
-                    forcingData =  (1-obj.treeArea_frac .* obj.variables.treeFrac) .* forcingData;
+                    forcingData =  (1-treeArea_frac .* obj.variables.treeFrac) .* forcingData;
                 elseif ~isempty(strfind(variableName, '_tree'))
                     % Get flux for non-tree componant
                     ind = strfind(variableName, '_tree');
                     variableName = variableName(1:ind-1);
                     [forcingData,isDailyIntegralFlux] = getTransformedForcing(obj, variableName, 2);                
-                    forcingData = obj.treeArea_frac .* obj.variables.treeFrac .* forcingData;
+                    forcingData = treeArea_frac .* obj.variables.treeFrac .* forcingData;
                 else
                     % Get flux for tree SMS
                     forcingData_trees = getTransformedForcing(obj, variableName, 2);                    
 
                     % Do weighting
-                    forcingData = (1-obj.treeArea_frac .* obj.variables.treeFrac) .* forcingData + ...
-                                  obj.treeArea_frac .* obj.variables.treeFrac .* forcingData_trees;
+                    forcingData = (1-treeArea_frac .* obj.variables.treeFrac) .* forcingData + ...
+                                  treeArea_frac .* obj.variables.treeFrac .* forcingData_trees;
                 end
             end
         end
 
         
-        % Return the derived variables.
+        % Return the derived variables. This is used by this class to get
+        % the back transformed parameters.
         function [params, param_names] = getDerivedParameters(obj)
-            params = [];
-            param_names = cell(0,2);
+            
+            param_names = {'SMSC: back transformed soil moisture storage capacity (in rainfall units)'; ...                  
+                           'SMSC_trees: back transformed soil moisture storage capacity in trees unit (in rainfall units)'; ...
+                           'treeArea_frac: fractional area of the tree units (-)'; ...
+                           'S_initialfrac: fractional initial soil moisture (-)'; ... 
+                           'k_infilt : back transformed maximum soil infiltration rate (in rainfall units)'; ...
+                           'k_sat : back transformed maximum vertical conductivity (in rainfall units/day)'; ...
+                           'bypass_frac : fraction of runoff that goes to bypass drainage (-)'; ...
+                           'interflow_frac : fraction of free drainage going to interflow (-)'; ...        
+                           'alpha : power term for infiltration rate (-)'; ...       
+                           'beta : back transformed power term for dainage rate (eg approx. Brook-Corey pore index power term)'; ...
+                           'gamma : back transformed power term for soil evaporation rate (-)'};    
+        
+            params = [  10.^(obj.SMSC); ...
+                        10.^(obj.SMSC_trees); ...
+                        obj.treeArea_frac; ...
+                        obj.S_initialfrac; ...
+                        10.^obj.k_infilt; ...
+                        10.^obj.k_sat; ...
+                        obj.bypass_frac; ...
+                        obj.interflow_frac; ...
+                        obj.alpha; ...
+                        10.^(obj.beta); ...
+                        10.^(obj.gamma)];
         end
 
         % Return coordinates for forcing variable

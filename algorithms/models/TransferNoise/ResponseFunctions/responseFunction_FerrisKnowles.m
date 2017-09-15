@@ -326,7 +326,7 @@ classdef  responseFunction_FerrisKnowles < responseFunction_abstract
             S= 4 .* 10.^obj.beta .* T;            
             
             params = [T;S];
-            param_names = {'Transmissivity (Head units^2/day)'; 'Storativity'};
+            param_names = {'T : Transmissivity (Head units^2/day)'; 'S : Storativity'};
         end
         
         function derivedData_types = getDerivedDataTypes(obj)

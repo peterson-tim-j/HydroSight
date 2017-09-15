@@ -47,3 +47,10 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 * climateTransform_soilMoistureModels() and climateTransform_soilMoistureModels_2layer() gamma parameter chnnged to have log10() transform (as had been stated in class description).
 * Bug fixed in pumpingRate_SAestimation.m that sometimes caused errors on last day of forcing.
 * The approach for SPUCI calibration of models with stochastic forcing was changed to update the stochastic forcing only prior to the updating of a complex. The change reduced the calibration time.
+
+15 September 2017
+* Bug fixed in DimEst.m causing a while loop to loop indefinitely.
+* Bug fixed in responseFunction_Pearsons.m plotting.
+* Back transfored parameters returned by climateTransform_soilMoistureModels_v2() and climateTransform_soilMoistureModels_2layer_v2().
+* New classes climateTransform_soilMoistureModels_v2() and climateTransform_soilMoistureModels_2layer_v2() added that constrains the simulated ET.
+* GUI derived parameters plot x-axis label trimmed.

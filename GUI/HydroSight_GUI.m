@@ -6,8 +6,8 @@ classdef HydroSight_GUI < handle
     %variables. Useful in different sitionations
     properties
         % Version number
-        versionNumber = '1.2.7';
-        versionDate= '17 March 2017';
+        versionNumber = '1.2.8';
+        versionDate= '15 September 2017';
         
         % Model types supported
         %modelTypes = {'model_TFN','model_TFN_LOA', 'ExpSmooth'};
@@ -504,7 +504,7 @@ classdef HydroSight_GUI < handle
             
             % Resize the panels
             set(vbox1t3, 'Sizes', [30 -1]);
-            set(hbox1t3, 'Sizes', [-3 -1]);
+            set(hbox1t3, 'Sizes', [-2 -1]);
             set(vbox4t3, 'Sizes', [30 -1]);            
             
             % Build model options for each model type                
@@ -2953,9 +2953,8 @@ classdef HydroSight_GUI < handle
                 obj = findobj(this.tab_ModelCalibration.resultsOptions.calibPanel,'Tag','Model Calibration - results plot');
                 delete( findobj(obj ,'type','axes'));
                 delete( findobj(obj ,'type','legend'));     
-                %delete( findobj(obj ,'type','uipanel'));     
                 
-                %h = uipanel('Parent', obj);
+                obj = uipanel('Parent', obj);
                 axisHandle = axes( 'Parent', obj);
                 % Show the calibration plots. NOTE: QQ plot type
                 % fails so is skipped
@@ -3006,10 +3005,18 @@ classdef HydroSight_GUI < handle
                 [paramValues, paramsNames] = getDerivedParameters(tmpModel);                          
                 if ~isempty(paramValues)
                     
-                    paramsNames  = strrep(paramsNames(:,2), '_',' ');
+                    paramsNames = paramsNames(:,2);
+                    ind=strfind(paramsNames,':');
+                    for i=1:length(ind)
+                       if ~isempty(ind{i})
+                           paramsNames{i} = paramsNames{i}(1:max(1,ind{i}-1));
+                       end
+                    end
+                    paramsNames  = strrep(paramsNames, '_',' ');
 
                     if size(paramValues,2)==1
                         bar(axisHandle,paramValues);
+                        set(axisHandle, 'xTick', 1:length(paramsNames));
                         set(axisHandle, 'xTickLabel', paramsNames,'FontSize',8,'xTickLabelRotation',45);
                         ylabel(axisHandle,'Derived param. value');
                     else
@@ -3416,7 +3423,7 @@ classdef HydroSight_GUI < handle
                ydataLabel = '(none)';                
             end
             
-            % Check if usubg date for either axis            
+            % Check if using date for either axis            
             xdata_isdate=false;
             ydata_isdate=false;
             if isdatetime(xdata)                        
@@ -7351,7 +7358,11 @@ classdef HydroSight_GUI < handle
             tableObj = eval(eventdata.Source.Parent.UserData);            
             
             % Get selected rows
-            selectedRows = cell2mat(tableObj.Data(:,1));
+            if isempty(tableObj.Data)
+                selectedRows = [];
+            else
+                selectedRows = cell2mat(tableObj.Data(:,1));
+            end
 
             % Check if any rows are selected. Note, if not then
             % rows will be added (for all but the calibration
