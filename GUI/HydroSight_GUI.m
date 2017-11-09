@@ -3422,6 +3422,19 @@ classdef HydroSight_GUI < handle
                ydata = [];
                ydataLabel = '(none)';                
             end
+
+            % Create an axis handle for the figure.
+            delete( findobj(this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(4),'type','axes'));
+            axisHandle = axes( 'Parent',this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(4));            
+            
+            % Exit of no data to plot (and not plotting a distrbution)
+            if isempty(ydata) && plotType_val<4
+                % Change cursor
+                set(this.Figure, 'pointer', 'arrow');      
+                drawnow update;       
+                
+                return
+            end
             
             % Check if using date for either axis            
             xdata_isdate=false;
@@ -3433,10 +3446,6 @@ classdef HydroSight_GUI < handle
                 ydata_isdate=true;
             end            
             
-            % Create an axis handle for the figure.
-            delete( findobj(this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(4),'type','axes'));
-            %h = uipanel('Parent', this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(4),'BackgroundColor','white');            
-            axisHandle = axes( 'Parent',this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(4));            
                         
             switch plotType_val
                 case {1,2}     
