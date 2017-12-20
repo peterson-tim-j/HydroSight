@@ -32,7 +32,7 @@ classdef climateTransform_soilMoistureModels_v2 < climateTransform_soilMoistureM
 % Static methods used to inform the
 % user of the available model types. 
     methods(Static)
-        function [variable_names, isOptionalInput] = inputForcingData_required()
+        function [variable_names, isOptionalInput] = inputForcingData_required(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates)
             variable_names = {'precip';'et';'TreeFraction'};
             isOptionalInput = [false; false; true];
         end
@@ -277,7 +277,7 @@ classdef climateTransform_soilMoistureModels_v2 < climateTransform_soilMoistureM
             AET_on_P = 1 + PET_on_P -(1+PET_on_P.^obj.settings.Budyko_omega).^(1./obj.settings.Budyko_omega);
             
             % Calculate the 1st and 99th percentiles
-            AET_on_P = prctile(AET_on_P, [5 95],1);
+            AET_on_P = prctile(AET_on_P, [10 90],1);
             
             % Initialise output
             isValidParameter = true(size(params));

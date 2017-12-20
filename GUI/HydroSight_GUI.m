@@ -2311,9 +2311,8 @@ classdef HydroSight_GUI < handle
                         fname = fullfile(dirname,data{irow,4}); 
                         setForcingData(this.tab_ModelConstruction.modelTypes.(modelType).obj, fname);
                         fname = fullfile(dirname,data{irow,5});
-                        setCoordinatesData(this.tab_ModelConstruction.modelTypes.(modelType).obj, fname);
-                        fname = fullfile(dirname,data{irow,6});
-                        setBoreID(this.tab_ModelConstruction.modelTypes.(modelType).obj, fname);
+                        setCoordinatesData(this.tab_ModelConstruction.modelTypes.(modelType).obj, fname);                        
+                        setBoreID(this.tab_ModelConstruction.modelTypes.(modelType).obj, data{irow,6});
 
                         % If the model options are empty, then add a
                         % default empty cell, else set the existing
@@ -5096,7 +5095,7 @@ classdef HydroSight_GUI < handle
                     fname = fullfile(fileparts(this.project_fileName),data{i,4});
                 end
                 if exist(fname,'file') ~= 2;                   
-                   this.tab_ModelConstruction.Table.Data{i, 9} = '<html><font color = "#FF0000">Forcing data file error - file name empty.</font></html>';
+                   this.tab_ModelConstruction.Table.Data{i, 9} = '<html><font color = "#FF0000">Forcing file error - file name empty.</font></html>';
                    nModelsBuiltFailed = nModelsBuiltFailed + 1;
                    continue;
                 end
@@ -5105,10 +5104,15 @@ classdef HydroSight_GUI < handle
                 try
                    forcingData = readtable(fname);
                 catch                   
-                   this.tab_ModelConstruction.Table.Data{i, 9} = '<html><font color = "#FF0000">Forcing data file error -  read in failed.</font></html>';
+                   this.tab_ModelConstruction.Table.Data{i, 9} = '<html><font color = "#FF0000">Forcing file error -  read in failed.</font></html>';
                    nModelsBuiltFailed = nModelsBuiltFailed + 1;
                    continue;
-                end                
+                end      
+                if isempty(forcingData)
+                   this.tab_ModelConstruction.Table.Data{i, 9} = '<html><font color = "#FF0000">Forcing file is empty or open elsewhere -  read in failed.</font></html>';
+                   nModelsBuiltFailed = nModelsBuiltFailed + 1;
+                   continue;                    
+                end
                 %----------------------------------------------------------
                 
                 
@@ -6179,7 +6183,7 @@ classdef HydroSight_GUI < handle
             
             % Read in the table.
             try
-                tbl = readtable(filename);
+                tbl = readtable(filename,'Delimiter',',');
             catch ME
                 warndlg('The table datafile could not be read in. Please check it is a CSV file with column headings in the first row.');
                 return;
@@ -6571,7 +6575,7 @@ classdef HydroSight_GUI < handle
             
             % Write the table.
             try
-                writetable(tbl, filename);
+                writetable(tbl, filename,'Delimiter',',');
             catch ME
                 warndlg('The table could not be written. Please check you have write permissions to the destination folder.');
                 return;
@@ -7387,6 +7391,9 @@ classdef HydroSight_GUI < handle
                 return;
             end               
             
+            % Get column widths
+            colWidths = tableObj.ColumnWidth;
+            
             % Define the input for the status column and default data for
             % inserting new rows.
             defaultData = cell(1,size(tableObj.Data,2));
@@ -7634,6 +7641,9 @@ classdef HydroSight_GUI < handle
                     tableObj.RowName = mat2cell([1:nrows]',ones(1, nrows));
                     
             end
+            
+            % Reset column widths
+            tableObj.ColumnWidth = colWidths;            
             
              % Change pointer
             set(this.Figure, 'pointer', 'arrow');  

@@ -9,7 +9,7 @@ classdef derivedForcing_linearUnconstrainedScaling_dup < derivedForcingTransform
 % in order to be accessable within the GUI.
     methods(Static)
        
-        function [variable_names, isOptionalInput] = inputForcingData_required()
+        function [variable_names, isOptionalInput] = inputForcingData_required(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates)
             variable_names = {'scalingData'};
             isOptionalInput = false;
         end

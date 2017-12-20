@@ -36,7 +36,7 @@ isValid = all(isValid);
 doneFeval=false;
 if isValid
     if useDerivedForcing
-        updateStochForcingData(varargin{1});            
+        updateStochForcingData(varargin{1},[]);            
     end
     fnew = feval(funcHandle,snew', varargin{:});
     doneFeval = true;
@@ -67,7 +67,7 @@ if fnew < fN
         
         if isValid
             if useDerivedForcing
-                updateStochForcingData(varargin{1});            
+                updateStochForcingData(varargin{1},[]);            
             end
             fnew1 = feval(funcHandle,snew1', varargin{:});
             icall = icall + 1;
@@ -103,7 +103,7 @@ else % Contraction point
         
         if isValid  
             if useDerivedForcing
-                updateStochForcingData(varargin{1});            
+                updateStochForcingData(varargin{1},[]);            
             end
             fnew1 = feval(funcHandle,snew1', varargin{:});
             icall = icall + 1;
@@ -138,7 +138,7 @@ else % Contraction point
         
         if isValid    
             if useDerivedForcing
-                updateStochForcingData(varargin{1});            
+                updateStochForcingData(varargin{1},[]);            
             end
             fnew = feval(funcHandle,snew', varargin{:});
             icall = icall + 1;

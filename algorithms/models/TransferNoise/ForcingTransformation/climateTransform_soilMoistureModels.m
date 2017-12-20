@@ -160,7 +160,7 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
 % Static methods used to inform the
 % user of the available model types. 
     methods(Static)
-        function [variable_names, isOptionalInput] = inputForcingData_required()
+        function [variable_names, isOptionalInput] = inputForcingData_required(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates)
             variable_names = {'precip';'et';'TreeFraction'};
             isOptionalInput = [false; false; true];
         end

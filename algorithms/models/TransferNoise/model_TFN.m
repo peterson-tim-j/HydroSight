@@ -295,7 +295,7 @@ classdef model_TFN < model_abstract
             
             % Check the forcing data does not contain nan or infs
             if any(any( isnan(forcingData_data) | isinf(forcingData_data)))
-                error('The input forcing data to model_TFN cannot contain any nan or inf values.')
+                error('The input forcing data to model_TFN cannot contain any empty, nan or inf values.')
             end            
             
             % Check that forcing data exists before the first head
@@ -405,14 +405,15 @@ classdef model_TFN < model_abstract
                             end
                             
                             % Get a list of required forcing inputs.
-                            [requiredFocingInputs, isOptionalInput] = eval([propertyValue{filt,2},'.inputForcingData_required()']);
+                            [requiredFocingInputs, isOptionalInput] = feval(strcat(propertyValue{filt,2},'.inputForcingData_required'),bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates);
                                                         
                             % Check that the input forcing cell array has
                             % the correct dimensions.
                             filt  =  strcmp(propertyValue(:,1), valid_transformProperties{2});                            
                             if any(filt)
                                 if size(propertyValue{filt,2},2) ~=2 || ...
-                                (size(propertyValue{filt,2},1) ~= length(requiredFocingInputs(~isOptionalInput)) && size(propertyValue{filt,2},1) ~= length(requiredFocingInputs))
+                                (size(propertyValue{filt,2},1) ~= length(requiredFocingInputs(~isOptionalInput)) && size(propertyValue{filt,2},1) ~= length(requiredFocingInputs) ...
+                                && size(propertyValue{filt,2},1)>1)
                                     error(['Invalid forcing data for the forcing transform function name for component:', modelComponent,'. It must be a cell array of two columns and ',num2str(length(requiredFocingInputs)), ' rows (one row for each required input forcing).']);
                                 end
                             
@@ -1124,6 +1125,27 @@ classdef model_TFN < model_abstract
             % Set variable declarign that calibration is not being
             % undertaken.
             obj.variables.doingCalibration = false;
+            
+            % Store only input forcing data required by the model. The
+            % forcing data columns are removed to reduce RAM requirements.
+            %-------------
+            
+            % Find required columns.
+            modelComponentAll = fieldnames(obj.inputData.componentData);
+            forcingData_requiredColNames = {};
+            for i=1:length(modelComponentAll)
+                forcingData_requiredColNames = {forcingData_requiredColNames{:}, obj.inputData.componentData.(modelComponentAll{i}).inputForcing{:,2}};
+            end
+            
+            % Create filter for required colnames
+            filt = cellfun(@(x) any(strcmp(x,forcingData_requiredColNames)) , forcingData_colnames);
+            filt(1) = true;
+            
+            forcingData_data = forcingData_data(:,filt);
+            forcingData_colnames = forcingData_colnames(filt);
+            setForcingData(obj, forcingData_data, forcingData_colnames);
+
+            %-------------
         end
         
         % Get the observed head
@@ -1211,25 +1233,30 @@ classdef model_TFN < model_abstract
             end            
         end
            
-        function  updateStochForcingData(obj, stochForcingData, objFuncVal, objFuncVal_prior)
+        function  finishedStochForcing = updateStochForcingData(obj, loop_fraction, stochForcingData, objFuncVal, objFuncVal_prior, refineStochForcingMethod)
             % Set derived forcing data in the sub-model objects
             %isValidDerivedForcing =false;
             componantNames = fieldnames(obj.parameters);
+            finishedStochForcing = false;
             for i=1:length(componantNames)
                 if isobject(obj.parameters.(componantNames{i}))
                     if any(strcmp('updateStochForcingData',methods(obj.parameters.(componantNames{i}))))
                         if nargin==1
-                            updateStochForcingData(obj.parameters.(componantNames{i}));                                
-                        elseif nargin == 2
+                            updateStochForcingData(obj.parameters.(componantNames{i}),[]);                                
+                        elseif nargin==2
+                            updateStochForcingData(obj.parameters.(componantNames{i}),loop_fraction);                                                            
+                        else
                             forcingDataComponant = fieldnames(stochForcingData);
                             filt = strcmp(forcingDataComponant,componantNames{i});
                             forcingDataComponant=forcingDataComponant{filt};
-                            updateStochForcingData(obj.parameters.(componantNames{i}),stochForcingData.(forcingDataComponant));
-                        elseif nargin==4
-                            forcingDataComponant = fieldnames(stochForcingData);
-                            filt = strcmp(forcingDataComponant,componantNames{i});
-                            forcingDataComponant=forcingDataComponant{filt};
-                            updateStochForcingData(obj.parameters.(componantNames{i}),stochForcingData.(forcingDataComponant),objFuncVal, objFuncVal_prior);                            
+                            
+                            if nargin == 3
+                                updateStochForcingData(obj.parameters.(componantNames{i}),loop_fraction,stochForcingData.(forcingDataComponant));
+                            elseif nargin==5
+                                updateStochForcingData(obj.parameters.(componantNames{i}),loop_fraction,stochForcingData.(forcingDataComponant),objFuncVal, objFuncVal_prior);                            
+                            elseif nargin==6
+                                finishedStochForcing = updateStochForcingData(obj.parameters.(componantNames{i}),loop_fraction, stochForcingData.(forcingDataComponant),objFuncVal, objFuncVal_prior, refineStochForcingMethod);
+                            end                            
                         end
                     end
                 end

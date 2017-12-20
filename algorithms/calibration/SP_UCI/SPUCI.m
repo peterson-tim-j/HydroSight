@@ -71,63 +71,9 @@ exitFlag = 0;
 exitStatus = 'Calibration scheme did not start.';
 bestf_ever = inf;
 
-% Initialization of the populaton
-x=zeros(npt,nopt);
-for i=1:npt;
-    while 1
-        x(i,:)=bl_plausible+rand(1,nopt).*bound;
-       
-        % Check if the parameters are valid
-        isValid = feval(funcHangle_validParams, x(i,:)', varargin{:});
-        
-        if all(isValid)
-            break;
-        end
-    end            
-end;
-
-if iniflg==1; x(1,:)=x0; end;
-
-nloop=0;
-icall=0;
-xf=10000*ones(1,npt);
-updateStochForcingData(varargin{1});
-%tic;
-parfor i=1:npt;
-    xf(i) = feval(funcHandle, x(i,:)', varargin{:});
-    icall = icall + 1;
-end;
-%display(['... parfor run time =',num2str(toc)]);
-
-% Trial of spmd in place of parfor. Using matlab 2016a, parfor was found
-% to be consistently faster than spmd.
-%----------
-% tic;
-% poolobj = gcp('nocreate');
-% maxLabs = min(npt, poolobj.NumWorkers);
-% npts_ind = repmat([1:maxLabs ],ceil(npt/maxLabs),1);
-% npts_ind = npts_ind(1:npt);
-% npts_ind = [[1:npt]', npts_ind'];
-% spmd (maxLabs)
-%    filt =  find(npts_ind(:,2)==labindex);   
-%    npts_ind = npts_ind(filt,1)';  
-%    for i=npts_ind
-%         j = i - npts_ind(1)+1;
-%         xf_labs(j) = feval(funcHandle, x(i,:)', varargin{:});
-%         icall = icall + 1;
-%     end     
-% end
-% xf=[];
-% for i=1:maxLabs
-%        xf = [xf,xf_labs{i}];
-% end
-% toc
-% display(['... spmd run time =',num2str(toc)]);
-%----------
-
-% Sort the population in order of increasing function values;
-[xf,idx]=sort(xf);
-x=x(idx,:);
+% Initialization of the populaton and calculate their objective function
+% value.
+[x,xf, icall] = initialisePopulation(funcHandle, funcHangle_validParams, x0,bl_plausible, bu_plausible, iniflg, npt, nopt, 0, varargin{:});
 
 % Check if the population degeneration occured
 [x, xf, icall]=DimRest(funcHandle, funcHangle_validParams, x,xf,bl_phys,bu_phys,icall, varargin{:});
@@ -178,6 +124,7 @@ criter_change=1e+5;
 xigs = [];
 bestf_ever=bestf;
 bestx_ever=bestx;
+nloop=0;
 while icall<maxn && gnrng>peps && criter_change>pcento;
     nloop=nloop+1;
     %%%%%%%%%%%%%%%%%%%%%%%%
@@ -238,62 +185,13 @@ while icall<maxn && gnrng>peps && criter_change>pcento;
      stochDerivedForcingData = cell(ngs,1);
     end
     model = varargin{1};
-    
-%     % Trial SPMD
-%     %--------------
-%     %Loop on complexes (sub-populations) using S   
-%     tic;
-%     poolobj = gcp('nocreate');
-%     maxLabs = min(ngs, poolobj.NumWorkers);    
-%     ngs_ind = repmat([1:maxLabs ],ceil(ngs/maxLabs),1);
-%     ngs_ind = ngs_ind(1:ngs);
-%     ngs_ind = [[1:ngs]', ngs_ind'];     
-%     spmd (maxLabs)
-%        %igs_perlab =  ngs./numlabs;
-%        %igs_start = (labindex-1)*igs_perlab+1;
-%        %igs_end = labindex * igs_perlab;
-%        %display(['... Lab ',num2str(labindex),'num igs per lab = ',num2str(igs_perlab)]);
-%        filt =  find(ngs_ind(:,2)==labindex);   
-%        ngs_ind = ngs_ind(filt,1)';  
-%        for i=ngs_ind
-% 
-%        %for igs=igs_start:igs_end 
-% 
-%         % Assign derived forcing using xigs
-%         if useDerivedForcing && nloop>1
-%             updateStochForcingData(model, stochDerivedForcingData{igs});
-%         end
-%         
-%         % THis is the major computionation load. It was shifted into a
-%         % stand alone function by Tim Peterson to allow parrellisation.
-%         k  = i - ngs_ind(1)+1;
-%         [cx_tmp{k}, cf_tmp{k}, cicall_tmp{k}, stochDerivedForcingData_tmp{k}] = doComplexEvolution(funcHandle, funcHangle_validParams, ind{k}, x, xf, ...
-%         bl_plausible, bu_plausible, bl_phys,bu_phys, nspl, nps, npg, useDerivedForcing , varargin{:});
-%         end     
-%     end
-%     cx=[];
-%     cf=[];
-%     cicall=[];
-%     stochDerivedForcingData={};
-%     for i=1:size(cx_tmp,2)
-%            cx = [cx; cell2mat(cx_tmp{i})];
-%            cf = [cf; cell2mat(cf_tmp{i})'];
-%            cicall = [cicall; cell2mat(cicall_tmp{i})];
-%            stochDerivedForcingData = [stochDerivedForcingData; stochDerivedForcingData_tmp{i}];
-%     end    
-%     display(['... spmd run time =',num2str(toc)]);
-%     % End of SPMD
-    
+        
     % Loop on complexes (sub-populations);
-    %cx={};
-    %cf={};
-    %cicall=[];    
-    %tic;
     parfor igs = 1: ngs
 
         % Assign derived forcing using xigs
         if useDerivedForcing && nloop>1
-            updateStochForcingData(model, stochDerivedForcingData{igs});
+            updateStochForcingData(model, [],stochDerivedForcingData{igs});
         end
         
         % THis is the major computionation load. It was shifted into a
@@ -375,7 +273,7 @@ while icall<maxn && gnrng>peps && criter_change>pcento;
             
             % Set the best derived forcing from this evolution to the model AND
             % cool annealing scheme!!
-            updateStochForcingData(varargin{1}, stochDerivedForcingData{xigs(1)}, min(xf), bestf_ever);                
+            updateStochForcingData(varargin{1}, [], stochDerivedForcingData{xigs(1)}, min(xf), bestf_ever);                
                         
             %criter=[criter;bestf];  
             bestf_ever = bestf;
@@ -385,7 +283,7 @@ while icall<maxn && gnrng>peps && criter_change>pcento;
             
             % Set the derived forcing from the best ever evolution to the model AND
             % try to the cool annealing scheme!!
-            updateStochForcingData(varargin{1},stochDerivedForcingData_best, min(xf), bestf_ever);                
+            updateStochForcingData(varargin{1},[],stochDerivedForcingData_best, min(xf), bestf_ever);                
             
            % Use bestf from loop in convergence criteria. Not the best every. 
            %criter=[criter;bestf];   
@@ -398,8 +296,11 @@ while icall<maxn && gnrng>peps && criter_change>pcento;
            bestx = bestx_ever;                      
            
         end
-    %else
-    %    criter=[criter;bestf];  
+    else
+        if bestf < bestf_ever 
+            bestf_ever = bestf;
+            bestx_ever = bestx;
+        end
     end
     
     
@@ -407,32 +308,75 @@ while icall<maxn && gnrng>peps && criter_change>pcento;
     gnrng=exp(mean(log((max(x)-min(x))./bound)));
 
     % Check for convergency;
+    exitCalib = false;
     if icall >= maxn;
         disp('*** OPTIMIZATION SEARCH TERMINATED BECAUSE THE LIMIT');
-        disp(['ON THE MAXIMUM NUMBER OF TRIALS ' num2str(maxn) ' HAS BEEN EXCEEDED!']);
+        disp(['ON THE MAXIMUM NUMBER OF TRIALS ' num2str(maxn) ' HAS BEEN EXCEEDED!']);        
     end;
-
-    if gnrng < peps;
-        disp('THE POPULATION HAS CONVERGED TO A PRESPECIFIED SMALL PARAMETER SPACE');
-    end;
-                  
+           
+    criter_change = inf;
     criter=[criter;bestf];      
+    isbestf_ever_inkstop = false;
     if (nloop >= kstop);
         criter_change=abs(criter(nloop)-criter(nloop-kstop+1))*100;
         criter_change=criter_change/mean(abs(criter(nloop-kstop+1:nloop)));
-        if criter_change < pcento;
-            disp(['THE BEST POINT HAS IMPROVED IN LAST ' num2str(kstop) ' LOOPS BY ', ...
-                'LESS THAN THE THRESHOLD ' num2str(pcento) '%']);
-            disp('CONVERGENCY HAS ACHIEVED BASED ON OBJECTIVE FUNCTION CRITERIA!!!')
-        end;
+        
+        % Check if bestf_ever is within the last kstop iterations.
+        if any(criter(nloop-kstop+1:nloop)==bestf_ever)
+            isbestf_ever_inkstop = true;
+        end
     end;
 
+    
+    % If stochastic derived forcing is used, then assess if the method
+    % should be refined (ie for pumpingRate_SAestimation() the
+    % time-step reduced). This feature was added to allow the
+    % downscaling to operate an increasingly fine temporal scales. 
+    if useDerivedForcing && ((criter_change < pcento && isbestf_ever_inkstop) || gnrng < peps)
+        refineStochForcingMethod = true;
+        finishedStochForcing = updateStochForcingData(varargin{1},[],stochDerivedForcingData_best, min(xf), bestf_ever, refineStochForcingMethod);
+        
+        % If the stochastic forcing has been refined, then repeat the
+        % falibration using the refined apprach eg a finer downscaling
+        % timestep. Considering that the parameter sets are probably very
+        % clustered, then if the stochastic forcing has not finished re-run
+        % but with randomised parameters AND the best solution yet.
+        if ~finishedStochForcing 
+            disp('');
+            disp('NOTE: The derived stochastic forcing is being refined. The calibration is being re-run.');
+            % Initialization of the populaton and calculate their objective function value.
+            [x,xf, icall] = initialisePopulation(funcHandle, funcHangle_validParams, bestx_ever,bl_plausible, bu_plausible, true, npt, nopt, icall, varargin{:});
+
+            % Check if the population degeneration occured
+            [x, xf, icall]=DimRest(funcHandle, funcHangle_validParams, x,xf,bl_phys,bu_phys,icall, varargin{:});
+            
+            % Initialise convergence measures.
+            criter_change =  inf;
+            gnrng = inf;
+            criter = criter(end);
+            nloop=1;
+        else
+            disp('NOTE: The derived stochastic forcing has reached the user set resolution.');
+        end
+    end    
+        
+
+    if criter_change < pcento && isbestf_ever_inkstop
+        disp(['THE BEST POINT HAS IMPROVED IN LAST ' num2str(kstop) ' LOOPS BY ', ...
+            'LESS THAN THE THRESHOLD ' num2str(pcento) '%']);
+        disp('CONVERGENCY HAS ACHIEVED BASED ON OBJECTIVE FUNCTION CRITERIA!!!')
+    end;
+    
+    if gnrng < peps;
+        disp('THE POPULATION HAS CONVERGED TO A PRESPECIFIED SMALL PARAMETER SPACE');
+    end;
+    
     % End of the Outer Loops
 end;
 
 % Apply best model settings
 if useDerivedForcing                
-    updateStochForcingData(model, stochDerivedForcingData_best);
+    updateStochForcingData(model, [],stochDerivedForcingData_best);
 end
 bestf = feval(funcHandle, bestx_ever', varargin{:});
 
@@ -489,11 +433,21 @@ function [cx, cf, icall, forcingData] = doComplexEvolution(funcHandle, funcHangl
         % Try to update each stochastic forcing using the best parameter set
         % atleast 'minTrials'.
         if useDerivedForcing            
-            icall_initial =icall;
+%             icall_initial =icall;
+%             maxTrials = 100;
+%             minTrials = 10;
+%             while icall <= icall_initial + minTrials || (icall < icall_initial + maxTrials && isAccepted)
+%                 updateStochForcingData(varargin{1});
+%                 cfbest_new = feval(funcHandle,cx(1,:)', varargin{:});
+%                 icall = icall +1;
+%                 [forcingData, isAccepted] = acceptStochForcingSolution(varargin{1}, cfbest_new, cfbest, forcingData);
+%                 if cfbest_new<cfbest
+%                     cfbest = cfbest_new;
+%                 end            
+%             end
             maxTrials = 100;
-            minTrials = 10;
-            while icall <= icall_initial + minTrials || (icall < icall_initial + maxTrials && isAccepted)
-                updateStochForcingData(varargin{1});
+            for i=1:maxTrials
+                updateStochForcingData(varargin{1},i/maxTrials);
                 cfbest_new = feval(funcHandle,cx(1,:)', varargin{:});
                 icall = icall +1;
                 [forcingData, isAccepted] = acceptStochForcingSolution(varargin{1}, cfbest_new, cfbest, forcingData);
@@ -558,4 +512,66 @@ function [cx, cf, icall, forcingData] = doComplexEvolution(funcHandle, funcHangl
         % Conduct Gaussian Resampling 
         %[cx, cf, icall]=GauSamp(funcHandle, funcHangle_validParams, cx,cf,bl_plausible, bu_plausible,icall,  forcingData, varargin{:});
         
+end
+
+function [x,xf, icall] = initialisePopulation(funcHandle, funcHangle_validParams, x0,bl_plausible, bu_plausible, iniflg, npt, nopt, icall, varargin)
+
+    bound = bu_plausible - bl_plausible;
+    x=zeros(npt,nopt);
+    parfor i=1:npt;
+        while 1
+            x(i,:)=bl_plausible+rand(1,nopt).*bound;
+
+            % Check if the parameters are valid
+            isValid = feval(funcHangle_validParams, x(i,:)', varargin{:});
+
+            if all(isValid)
+                break;
+            end
+        end            
+    end;
+
+    if iniflg==1
+        x(1,:)=x0; 
+    end
+    
+    xf=10000*ones(1,npt);
+    updateStochForcingData(varargin{1},1);
+    %tic;
+    parfor i=1:npt;
+        xf(i) = feval(funcHandle, x(i,:)', varargin{:});
+        icall = icall + 1;
+    end;
+    %display(['... parfor run time =',num2str(toc)]);
+
+    % Trial of spmd in place of parfor. Using matlab 2016a, parfor was found
+    % to be consistently faster than spmd.
+    %----------
+    % tic;
+    % poolobj = gcp('nocreate');
+    % maxLabs = min(npt, poolobj.NumWorkers);
+    % npts_ind = repmat([1:maxLabs ],ceil(npt/maxLabs),1);
+    % npts_ind = npts_ind(1:npt);
+    % npts_ind = [[1:npt]', npts_ind'];
+    % spmd (maxLabs)
+    %    filt =  find(npts_ind(:,2)==labindex);   
+    %    npts_ind = npts_ind(filt,1)';  
+    %    for i=npts_ind
+    %         j = i - npts_ind(1)+1;
+    %         xf_labs(j) = feval(funcHandle, x(i,:)', varargin{:});
+    %         icall = icall + 1;
+    %     end     
+    % end
+    % xf=[];
+    % for i=1:maxLabs
+    %        xf = [xf,xf_labs{i}];
+    % end
+    % toc
+    % display(['... spmd run time =',num2str(toc)]);
+    %----------
+
+    % Sort the population in order of increasing function values;
+    [xf,idx]=sort(xf);
+    x=x(idx,:);
+
 end

@@ -96,12 +96,6 @@ classdef model_TFN_gui < model_gui_abstract
                           '<li>Some functions require additional setting. These will be displayed in a lower box when required.', ...
                           '<li><b>Right-click</b> displays a menu for copying, pasting, inserting and deleting rows. Use the <br>', ...
                           'left tick-box to define the rows for copying, deleting etc.<br>', ...
-                          '<li>Sort the rows by clicking on the column headings. Below are more complex sorting options:<ul>', ...
-                          '      <li><b>Click</b> to sort in ascending order.<br>', ...
-                          '      <li><b>Shift-click</b> to sort in descending order.<br>', ...    
-                          '      <li><b>Ctrl-click</b> to sort secondary in ascending order.<b>Shift-Ctrl-click</b> for descending order.<br>', ...    
-                          '      <li><b>Click again</b> again to change sort direction.<br>', ...
-                          '      <li><b>Click a third time </b> to return to the unsorted view.', ...
                           ' </ul></ul></html>'];                          
             
             % Derived forcing function column headings etc
@@ -132,12 +126,6 @@ classdef model_TFN_gui < model_gui_abstract
                           '<li>Some functions require additional setting. These will be displayed in a lower box when required.', ...
                           '<li><b>Right-click</b> displays a menu for copying, pasting, inserting and deleting rows. Use the <br>', ...
                           'left tick-box to define the rows for copying, deleting etc.<br>', ...
-                          '<li>Sort the rows by clicking on the column headings. Below are more complex sorting options:<ul>', ...
-                          '      <li><b>Click</b> to sort in ascending order.<br>', ...
-                          '      <li><b>Shift-click</b> to sort in descending order.<br>', ...    
-                          '      <li><b>Ctrl-click</b> to sort secondary in ascending order.<b>Shift-Ctrl-click</b> for descending order.<br>', ...    
-                          '      <li><b>Click again</b> again to change sort direction.<br>', ...
-                          '      <li><b>Click a third time </b> to return to the unsorted view.', ...
                           ' </ul></ul></html>'];                          
             
             % Weighting function column headings etc
@@ -166,12 +154,6 @@ classdef model_TFN_gui < model_gui_abstract
                           '<li>Some functions require additional setting. These will be displayed in a lower box when required.', ...
                           '<li><b>Right-click</b> displays a menu for copying, pasting, inserting and deleting rows. Use the <br>', ...
                           'left tick-box to define the rows for copying, deleting etc.<br>', ...
-                          '<li>Sort the rows by clicking on the column headings. Below are more complex sorting options:<ul>', ...
-                          '      <li><b>Click</b> to sort in ascending order.<br>', ...
-                          '      <li><b>Shift-click</b> to sort in descending order.<br>', ...    
-                          '      <li><b>Ctrl-click</b> to sort secondary in ascending order.<b>Shift-Ctrl-click</b> for descending order.<br>', ...    
-                          '      <li><b>Click again</b> again to change sort direction.<br>', ...
-                          '      <li><b>Click a third time </b> to return to the unsorted view.', ...
                           ' </ul></ul></html>'];                          
 
             
@@ -202,12 +184,6 @@ classdef model_TFN_gui < model_gui_abstract
                           '<li>Some functions require additional setting. These will be displayed in a lower box when required.', ...
                           '<li><b>Right-click</b> displays a menu for copying, pasting, inserting and deleting rows. Use the <br>', ...
                           'left tick-box to define the rows for copying, deleting etc.<br>', ...
-                          '<li>Sort the rows by clicking on the column headings. Below are more complex sorting options:<ul>', ...
-                          '      <li><b>Click</b> to sort in ascending order.<br>', ...
-                          '      <li><b>Shift-click</b> to sort in descending order.<br>', ...    
-                          '      <li><b>Ctrl-click</b> to sort secondary in ascending order.<b>Shift-Ctrl-click</b> for descending order.<br>', ...    
-                          '      <li><b>Click again</b> again to change sort direction.<br>', ...
-                          '      <li><b>Click a third time </b> to return to the unsorted view.', ...
                           ' </ul></ul></html>'];                          
             
             % Create the GUI elements
@@ -318,6 +294,7 @@ classdef model_TFN_gui < model_gui_abstract
             this.modelOptions.grid = uiextras.Grid('Parent',this.Figure,'Padding', 3, 'Spacing', 3);
             
             % Add list box for selecting the input forcing data
+            %-------------------
             cnames = {'Required Model Data', 'Input Forcing Data'};
             cedit = logical([0 1]);
             rnames = {'1'};
@@ -334,9 +311,18 @@ classdef model_TFN_gui < model_gui_abstract
                                                 'CellEditCallback', @this.optionsSelection, ...                                                
                                                 'Tag','Forcing Transform - Input Data');
             set(this.modelOptions.options{1,1}.box, 'ColumnSizes', -1, 'RowSizes', [35 -1] );
-
+            
+            % Add context menu for Wizard.
+            contextMenu = uicontextmenu(this.Figure.Parent.Parent.Parent.Parent.Parent.Parent,'Visible','on');
+            uimenu(contextMenu,'Label','Copy all rows','Callback',@this.rowAddDelete);
+            uimenu(contextMenu,'Label','Paste all rows','Callback',@this.rowAddDelete,'Separator','on');
+            uimenu(contextMenu,'Label','Wizard ...','Callback',@this.wizard);                
+            set(this.modelOptions.options{1,1}.tbl,'UIContextMenu',contextMenu);
+            set(this.modelOptions.options{1,1}.tbl.UIContextMenu,'UserData', 'this.modelOptions.options{1,1}.tbl');
+            
             % Add table for defining the transformation options eg soil
             % moisture model parameters for calibration.
+            %-------------------
             data = [];
             this.modelOptions.options{2,1}.ParentName = 'forcingTranforms';
             this.modelOptions.options{2,1}.ParentSettingName = 'options';            
@@ -347,11 +333,20 @@ classdef model_TFN_gui < model_gui_abstract
                 'CellEditCallback', @this.optionsSelection, ...    
                 'Tag','Forcing Transform - Model Settings', 'Visible','on');
             set(this.modelOptions.options{2,1}.box, 'ColumnSizes', -1, 'RowSizes', [35 -1] );
-                       
+               
+            % Add context menu for Wizard.
+            contextMenu = uicontextmenu(this.Figure.Parent.Parent.Parent.Parent.Parent.Parent,'Visible','on');
+            uimenu(contextMenu,'Label','Copy all rows','Callback',@this.rowAddDelete);
+            uimenu(contextMenu,'Label','Paste all rows','Callback',@this.rowAddDelete,'Separator','on');
+            uimenu(contextMenu,'Label','Wizard ...','Callback',@this.wizard);                
+            set(this.modelOptions.options{2,1}.tbl,'UIContextMenu',contextMenu);
+            set(this.modelOptions.options{2,1}.tbl.UIContextMenu,'UserData', 'this.modelOptions.options{2,1}.tbl');            
+            
             % Add list box for selecting the weighting functions input
             % data.
             % NOTE: Multiple selection of input forcing data is allowed.
             % This is defined in tableSelection().
+            %-------------------
             this.modelOptions.options{3,1}.ParentName = 'weightingFunctions';
             this.modelOptions.options{3,1}.ParentSettingName = 'inputForcing';                     
             this.modelOptions.options{3,1}.box = uiextras.Grid('Parent', this.modelOptions.grid,'Padding', 3, 'Spacing', 3);                        
@@ -361,6 +356,7 @@ classdef model_TFN_gui < model_gui_abstract
             set(this.modelOptions.options{3,1}.box, 'ColumnSizes', -1, 'RowSizes', [35 -1] );
 
             % Add table for selecting the weighting functions options
+            %-------------------
             this.modelOptions.options{4,1}.ParentName = 'weightingFunctions';
             this.modelOptions.options{4,1}.ParentSettingName = 'options';                     
             this.modelOptions.options{4,1}.box = uiextras.Grid('Parent', this.modelOptions.grid,'Padding', 3, 'Spacing', 3);                        
@@ -373,17 +369,19 @@ classdef model_TFN_gui < model_gui_abstract
             
             % Add table for defining the transformation options eg soil
             % moisture model parameters for calibration.            
+            %-------------------
             this.modelOptions.options{5,1}.ParentName = 'DerivedForcingTransformation';
             this.modelOptions.options{5,1}.ParentSettingName = 'inputForcing';                     
             this.modelOptions.options{5,1}.box = uiextras.Grid('Parent', this.modelOptions.grid,'Padding', 3, 'Spacing', 3);                        
             this.modelOptions.options{5,1}.lbl = uicontrol( 'Parent', this.modelOptions.options{5,1}.box,'Style','text','String','3. Derived Forcing Transform - Input Data','Visible','on');     
             this.modelOptions.options{5,1}.lst = uicontrol('Parent',this.modelOptions.options{5,1}.box,'Style','list', 'BackgroundColor','w', ...
                 'String',{},'Value',1, ...
-                 'Tag','Derived Forcing Functions - Source Function', ...
+                'Tag','Derived Forcing Functions - Source Function', ...
                 'Callback', @this.optionsSelection, 'Visible','on');
             set(this.modelOptions.options{5,1}.box, 'ColumnSizes', -1, 'RowSizes', [35 -1] );            
 
             % Add table for derived forcing inut data options
+            %-------------------
             this.modelOptions.options{6,1}.ParentName = 'DerivedForcingTransformation';           
             this.modelOptions.options{6,1}.ParentSettingName = 'inputForcing';
             this.modelOptions.options{6,1}.box = uiextras.Grid('Parent', this.modelOptions.grid,'Padding', 3, 'Spacing', 3);                        
@@ -398,6 +396,7 @@ classdef model_TFN_gui < model_gui_abstract
             set(this.modelOptions.options{6,1}.box, 'ColumnSizes', -1, 'RowSizes', [35 -1] );
                         
             % Add table for derived forcing options
+            %-------------------
             this.modelOptions.options{7,1}.ParentName = 'DerivedForcingTransformation';
             this.modelOptions.options{7,1}.ParentSettingName = 'options';            
             this.modelOptions.options{7,1}.box = uiextras.Grid('Parent',  this.modelOptions.grid,'Padding', 3, 'Spacing', 3);                        
@@ -412,6 +411,7 @@ classdef model_TFN_gui < model_gui_abstract
             % data.
             % NOTE: Multiple selection of input forcing data is allowed.
             % This is defined in tableSelection().
+            %-------------------
             this.modelOptions.options{8,1}.ParentName = 'derivedWeightingFunctions';
             this.modelOptions.options{8,1}.ParentSettingName = 'inputForcing';                     
             this.modelOptions.options{8,1}.box = uiextras.Grid('Parent', this.modelOptions.grid,'Padding', 3, 'Spacing', 3);                        
@@ -421,6 +421,7 @@ classdef model_TFN_gui < model_gui_abstract
             set(this.modelOptions.options{8,1}.box, 'ColumnSizes', -1, 'RowSizes', [35 -1] );
 
             % Add table for selecting the derived weighting functions options
+            %-------------------
             this.modelOptions.options{9,1}.ParentName = 'derivedWeightingFunctions';
             this.modelOptions.options{9,1}.ParentSettingName = 'options';                     
             this.modelOptions.options{9,1}.box = uiextras.Grid('Parent', this.modelOptions.grid,'Padding', 3, 'Spacing', 3);                        
@@ -432,6 +433,7 @@ classdef model_TFN_gui < model_gui_abstract
             
             % Add label for general communications to user eg to state that
             % a weighting fnction has no options available.
+            %-------------------
             this.modelOptions.options{10,1}.ParentName = 'general';
             this.modelOptions.options{10,1}.ParentSettingName = 'general';                     
             this.modelOptions.options{10,1}.box = uiextras.Grid('Parent', this.modelOptions.grid,'Padding', 3, 'Spacing', 3);                        
@@ -506,23 +508,29 @@ classdef model_TFN_gui < model_gui_abstract
                 tbl = readtable(fname);
              catch
                 warndlg(['The following forcing data file could not be read in. It must a .csv file of at least 4 columns (year, month, day, value):',fname]);
+                clear tbl;
                 return;
              end
 
              % Check there are sufficient number of columns
              if length(tbl.Properties.VariableNames) <4
                 warndlg(['The following forcing data file must contain at least 4 columns (year, month, day, value):',fname]);
+                clear tbl;
                 return;
              end
 
              % Check all columns are numeric.
-             if any(any(~isnumeric(tbl{:,:})))
-                warndlg(['All columns within the following forcing data must contain only numeric data:',fname]);
-                return;
+             for i=1:size(tbl,2)
+                if any(~isnumeric(tbl{:,i}))
+                    warndlg(['Column ',num2str(i), ' within the following forcing data file contains non-numeric data:',fname]);
+                    clear tbl;
+                    return;
+                end                    
              end
 
              % Set the column names.
              this.forcingData.colnames = tbl.Properties.VariableNames;
+             this.forcingData.data = tbl;
              
              % Clear tbl
              clear tbl;
@@ -1127,13 +1135,18 @@ classdef model_TFN_gui < model_gui_abstract
                             this.modelOptions.grid.Widths = [0 0 0 0 0 0 0 0 0 -1];   
 
                         case 'Input Data'
+                           % Define the drop down options for the input
+                           % data
+                           dropdownOptions = sort(this.forcingData.colnames(4:end));
+                           this.modelOptions.options{1, 1}.tbl.ColumnFormat = {'char',{'(none)' dropdownOptions{:}} }; 
+                            
                            % Call function method giving required
                            % variable name.
-                           requiredVariables = feval(strcat(funName,'.inputForcingData_required'));
+                           requiredVariables = feval(strcat(funName,'.inputForcingData_required'),this.boreID, this.forcingData.data,  this.forcingData.colnames, this.siteData);
 
                            % Add row for each required variable
                            if isempty(this.forcingTranforms.tbl.Data{this.currentSelection.row ,3})
-                               this.modelOptions.options{1, 1}.tbl.Data = cell(length(requiredVariables),2);
+                               this.modelOptions.options{1, 1}.tbl.Data = cell(size(requiredVariables,1),2);
                                this.modelOptions.options{1, 1}.tbl.RowName=cell(1,length(requiredVariables)); 
                                for i=1:length(requiredVariables)                                   
                                     this.modelOptions.options{1, 1}.tbl.Data{i,1}= requiredVariables{i};
@@ -1141,18 +1154,16 @@ classdef model_TFN_gui < model_gui_abstract
                                end
                            else
                                try
+                                   this.modelOptions.options{1, 1}.tbl.Data = cell(0,2);
+                                   this.modelOptions.options{1, 1}.tbl.RowName = cell(size(this.modelOptions.options{1, 1}.tbl.Data,1),1);
                                    this.modelOptions.options{1, 1}.tbl.Data = eval(this.forcingTranforms.tbl.Data{irow,3});
-                                   for i=1:length(requiredVariables)                                                                           
+                                   for i=1:size(this.modelOptions.options{1, 1}.tbl.Data,1)                                                                           
                                         this.modelOptions.options{1, 1}.tbl.RowName{i}= num2str(i);
                                    end
                                catch
                                    warndlg('The input string appears to have a syntax error. It should be an Nx2 cell array.');                                       
                                end
                            end
-
-                           % Define the drop down options for the input
-                           % data
-                           this.modelOptions.options{1, 1}.tbl.ColumnFormat = {'char',{'(none)' this.forcingData.colnames{4:end}} };
 
                            % Display table
                            this.modelOptions.grid.Widths = [-1 0 0 0 0 0 0 0 0 0];
@@ -2026,6 +2037,67 @@ classdef model_TFN_gui < model_gui_abstract
                     tableObj.RowName = mat2cell([1:nrows]',ones(1, nrows));
             end
         end
+        
+         function wizard(this, hObject, eventdata)
+             
+            % Get the selelcted table, row and col.
+            irow = this.currentSelection.row;
+            icol = this.currentSelection.col;
+            currentTable = this.currentSelection.table;
+            
+            % Get the name of the function within the table     
+            switch currentTable
+                case 'Forcing Transform'
+                    className = this.forcingTranforms.tbl.Data{irow, 2};
+                    
+                    if icol==3
+                        methodName = '.dataWizard';
+                    elseif icol==4
+                        methodName = '.optionsWizard';
+                    end
+                    
+                otherwise
+                    msgbox('This model componant does not have a data wizard.', 'No data wizard ...','help')     
+                    return
+            end
+            
+            
+            % Call the wizard for the current table.
+            try
+               wizardResults= feval(strcat(className,methodName),this.boreID, this.forcingData.data,  this.forcingData.colnames, this.siteData);
+            catch ME
+               msgbox('This model componant does not have a data wizard.', 'No data wizard ...','help')
+               return
+            end
+
+           % Input the wizard data into the current table.
+           switch currentTable
+                case 'Forcing Transform'
+                    switch methodName
+                        case '.dataWizard'
+                           this.modelOptions.options{1, 1}.tbl.Data = cell(0,2);
+                           this.modelOptions.options{1, 1}.tbl.Data = cell(size(wizardResults,1),2);
+                           this.modelOptions.options{1, 1}.tbl.RowName=cell(1,length(wizardResults)); 
+                           for i=1:size(wizardResults,1)                                   
+                                this.modelOptions.options{1, 1}.tbl.Data{i,1}= wizardResults{i,1};
+                                this.modelOptions.options{1, 1}.tbl.Data{i,2}= wizardResults{i,2};
+                                this.modelOptions.options{1, 1}.tbl.RowName{i}= num2str(i);
+                           end     
+                           
+                           % In case the user does not input/chnage
+                           % the data, then apply it to the forcing
+                           % data field.
+                           className= 'model_TFN_gui';
+                           colnames = {'Required Model Data';'Input Forcing Data'};
+                           data=this.modelOptions.options{1, 1}.tbl.Data;
+                           this.forcingTranforms.tbl.Data{irow ,3} = eval([className,'.cell2string(data, colnames)']);
+
+                        case '.optionsWizard'
+                            
+                    end
+           end
+
+         end
     end
     
     methods(Static, Access=private)  

@@ -239,7 +239,7 @@ classdef climateTransform_soilMoistureModels_2layer_v2 < climateTransform_soilMo
             AET_on_P = 1 + PET_on_P -(1+PET_on_P.^obj.settings.Budyko_omega).^(1./obj.settings.Budyko_omega);
             
             % Calculate the 1st and 99th percentiles
-            AET_on_P = prctile(AET_on_P, [5 95],1);
+            AET_on_P = prctile(AET_on_P, [10 90],1);
             
             % Initialise output
             isValidParameter = true(size(params));

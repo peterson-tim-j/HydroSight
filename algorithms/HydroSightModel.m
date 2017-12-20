@@ -299,9 +299,15 @@ classdef HydroSightModel < handle
                    error('The input "siteCoordinates" must be a cell array of three columns (site name, easting, northing) and atleast two rows (for bore ID and precipitation).');
                end
                
+               % Check if the column names contain '/' or '\'
+               for i=1:size(siteCoordinates,1)
+                  if ~isvarname(siteCoordinates{i,1})
+                    error(['The site ',siteCoordinates{i,1}, ' is an invalid name. Use only letters, numbers, dash and underscores.']);                
+                  end
+               end
                % Check the bore ID coordinates are input.
                hasBoreIDCoordinates=false;
-               for i=1:size(siteCoordinates,1);
+               for i=1:size(siteCoordinates,1)
                   if strcmp(siteCoordinates(i,1), bore_ID)
                       hasBoreIDCoordinates=true;
                       break;
@@ -1374,7 +1380,7 @@ classdef HydroSightModel < handle
             [params, time_points] = calibration_initialise(obj.model, t_start, t_end);       
             params =  median(params,2);
             if any(isnan(params))
-op                error('At least one model parameter value equals NaN. Please input a correct value to the model');
+                error('At least one model parameter value equals NaN. Please input a correct value to the model');
             end
             nparams = size(params,1); 
                             
@@ -1580,9 +1586,9 @@ op                error('At least one model parameter value equals NaN. Please i
                     iniflg =  1;                
                     useLikelihood=false;
 
-                    if hasStochDerivedForcing
-                        kstop = kstop*5;
-                    end
+                    %if hasStochDerivedForcing
+                    %    kstop = kstop*2;
+                    %end
                     
                     % Do calibration                                        
                     doParamTranspose = false;
@@ -2654,15 +2660,19 @@ op                error('At least one model parameter value equals NaN. Please i
             
         end
         
-        function updateStochForcingData(obj,forcingData, objFuncVal, objFuncVal_prior)
-            %isValidDerivedForcing =false;
+        function finishedStochForcing = updateStochForcingData(obj,loop_fraction, forcingData, objFuncVal, objFuncVal_prior, refineStochForcingMethod)
+            finishedStochForcing = false;
             if any(strcmp(methods(obj.model),'updateStochForcingData'))           
                 if nargin==1
-                    updateStochForcingData(obj.model);                    
+                    updateStochForcingData(obj.model,[]);  
                 elseif nargin==2
-                    updateStochForcingData(obj.model, forcingData);
-                elseif nargin==4
-                    updateStochForcingData(obj.model, forcingData, objFuncVal, objFuncVal_prior);                    
+                    updateStochForcingData(obj.model,loop_fraction);   
+                elseif nargin==3
+                    updateStochForcingData(obj.model,loop_fraction, forcingData);
+                elseif nargin==5
+                    updateStochForcingData(obj.model, loop_fraction,forcingData, objFuncVal, objFuncVal_prior);       
+                elseif nargin==6
+                    finishedStochForcing = updateStochForcingData(obj.model,loop_fraction, forcingData, objFuncVal, objFuncVal_prior, refineStochForcingMethod);
                 end
             end            
         end        

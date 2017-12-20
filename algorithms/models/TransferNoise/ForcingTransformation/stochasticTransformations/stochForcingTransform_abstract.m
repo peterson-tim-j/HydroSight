@@ -16,7 +16,10 @@ classdef stochForcingTransform_abstract < forcingTransform_abstract
         
         % Update the stochasticlly derived forcing data. The inputs should
         % be in the same format at returned by getStochForcingData().
-        updateStochForcingData(obj, stochDerivedForcingData, objFuncVal, objFuncVal_prior)
+        % The input 'refineStochForcingMethod' provides the flexibility to
+        % reduce the down-scaling time step at the end of calibration
+        % iterations.
+        finishedStochForcing = updateStochForcingData(obj, loop_fraction, stochDerivedForcingData, objFuncVal, objFuncVal_prior, refineStochForcingMethod)
         
         % Assess if the current objtive function solution (objFuncVal and associated
         % parameter set) should be accepted. objFuncVal_prior should be the prior best solution. 
@@ -24,6 +27,7 @@ classdef stochForcingTransform_abstract < forcingTransform_abstract
         % element of stochDerivedForcingData and return an updated
         % stochastic derived data.
         [stochDerivedForcingData_new, accepted] = acceptSolution(obj, objFuncVal, objFuncVal_prior, stochDerivedForcingData)
+
     end
     
 end
