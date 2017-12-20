@@ -860,8 +860,32 @@ classdef model_TFN < model_abstract
                     %forcingData_dataTmp = forcingData_data(:,[colNum;colNum_extras]);
                     obj.parameters.(transformObject_name) = feval(transformObject_name, bore_ID, forcingData_data(:,colNum), forcingData_colnames(colNum), siteCoordinates, transformObject_inputs, transformObject_options);
                      
-                    % Add coordinates for the output variable
+                    % Check each output variable is valid. If not valid, then remove it. 
+                    % If valid then add coordinates for the output
+                    % variable. If there is no valid output variable then
+                    % throw an error.                    
                     variableName = obj.inputData.componentData.(modelComponent).outputVariable;
+                    if ischar(variableName)
+                        variableNameAsCell{1} = variableName;
+                        variableName = variableNameAsCell;
+                        clear variableNameAsCell
+                    end
+                    isValidVariableName = false(1,length(variableName ));
+                    t = obj.inputData.forcingData(:,1);
+                    setTransformedForcing(obj.parameters.(transformObject_name), t, true)
+                    for j=1:length(variableName)
+                    	try                                                         
+                            forcingData = getTransformedForcing(obj.parameters.(transformObject_name), variableName{j});
+                            isValidVariableName(j) = true;
+                        catch ME
+                            isValidVariableName(j) = false;
+                        end
+                    end
+                    if ~any(isValidVariableName)
+                        error(['No transformed forcing data for component "',modelComponent,'" could be derived']); 
+                    end
+                    variableName = variableName(isValidVariableName);
+                    obj.inputData.componentData.(modelComponent).outputVariable = variableName;
                     coordinatesTmp = getCoordinates(obj.parameters.(transformObject_name), variableName);
                     siteCoordinates(size(siteCoordinates,1)+1: size(siteCoordinates,1) + size(coordinatesTmp,1),1:3) = coordinatesTmp;
                     
@@ -1233,7 +1257,7 @@ classdef model_TFN < model_abstract
             end            
         end
            
-        function  finishedStochForcing = updateStochForcingData(obj, loop_fraction, stochForcingData, objFuncVal, objFuncVal_prior, refineStochForcingMethod)
+        function  finishedStochForcing = updateStochForcingData(obj, stochForcingData, refineStochForcingMethod)
             % Set derived forcing data in the sub-model objects
             %isValidDerivedForcing =false;
             componantNames = fieldnames(obj.parameters);
@@ -1242,20 +1266,16 @@ classdef model_TFN < model_abstract
                 if isobject(obj.parameters.(componantNames{i}))
                     if any(strcmp('updateStochForcingData',methods(obj.parameters.(componantNames{i}))))
                         if nargin==1
-                            updateStochForcingData(obj.parameters.(componantNames{i}),[]);                                
-                        elseif nargin==2
-                            updateStochForcingData(obj.parameters.(componantNames{i}),loop_fraction);                                                            
+                            updateStochForcingData(obj.parameters.(componantNames{i}));                                
                         else
                             forcingDataComponant = fieldnames(stochForcingData);
                             filt = strcmp(forcingDataComponant,componantNames{i});
                             forcingDataComponant=forcingDataComponant{filt};
                             
-                            if nargin == 3
-                                updateStochForcingData(obj.parameters.(componantNames{i}),loop_fraction,stochForcingData.(forcingDataComponant));
-                            elseif nargin==5
-                                updateStochForcingData(obj.parameters.(componantNames{i}),loop_fraction,stochForcingData.(forcingDataComponant),objFuncVal, objFuncVal_prior);                            
-                            elseif nargin==6
-                                finishedStochForcing = updateStochForcingData(obj.parameters.(componantNames{i}),loop_fraction, stochForcingData.(forcingDataComponant),objFuncVal, objFuncVal_prior, refineStochForcingMethod);
+                            if nargin == 2
+                                updateStochForcingData(obj.parameters.(componantNames{i}),stochForcingData.(forcingDataComponant));
+                            elseif nargin==3
+                                finishedStochForcing = updateStochForcingData(obj.parameters.(componantNames{i}),stochForcingData.(forcingDataComponant), refineStochForcingMethod);
                             end                            
                         end
                     end

@@ -746,16 +746,10 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
 % Date:
 %   11 April 2012  
 
-            % Test if the flux can be derived from the parent class.
-            if ~any(strcmp({'evap_soil_deep', 'evap_soil_total','evap_gw_potential', ...
-            'drainage_deep','drainage_bypassFlow_deep','drainage_normalised_deep','SMS_deep'}, ...
-            variableName))
-                if nargin==2
-                    [forcingData, isDailyIntegralFlux] = getTransformedForcing@climateTransform_soilMoistureModels(obj, variableName);   
-                else
-                    [forcingData, isDailyIntegralFlux] = getTransformedForcing@climateTransform_soilMoistureModels(obj, variableName, SMSnumber);   
-                end
-                return;
+            if ischar(variableName)
+                variableNametmp{1}=variableName;
+                variableName = variableNametmp;
+                clear variableNametmp;
             end
 
             % Get back transformed parameters and assign each param to a variable for efficient access.            
@@ -768,62 +762,82 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
             k_sat_deep = params(end-1,:);
             beta_deep = params(end,:);
             
-            % Get the soil moisture store for the required soil unit
-            if nargin==2 || SMSnumber==1                               
-                SMS_deep = obj.variables.SMS_deep;
-                SMSnumber = 1;
-            elseif SMSnumber==2
-                SMSC_deep = SMSC_deep_trees; 
-                SMS_deep = obj.variables.SMS_deep_trees;                    
-            else
-                error('The soil moisture unit number is unknown')
-            end
-
-            switch variableName
-                case 'evap_soil_deep'    
-                    AET= getTransformedForcing(obj, 'evap_soil',SMSnumber);
-                    forcingData = max(0,obj.variables.evap-AET) .* (SMS_deep/SMSC_deep).^gamma;
-                    isDailyIntegralFlux = false;
-
-                case 'evap_soil_total'    
-                    forcingData = getTransformedForcing(obj, 'evap_soil',SMSnumber) + ...
-                                  getTransformedForcing(obj, 'evap_soil_deep',SMSnumber);
-                    isDailyIntegralFlux = false;                    
-                case 'evap_gw_potential'
-                    forcingData = obj.variables.evap - getTransformedForcing(obj, 'evap_soil_total',SMSnumber);                    
-                    isDailyIntegralFlux = false;                    
-                case 'drainage_deep'
-                    forcingData = k_sat_deep .* getTransformedForcing(obj, 'drainage_normalised_deep');
-                    isDailyIntegralFlux = false;                    
-
-                case 'drainage_bypassFlow_deep'
-                    forcingData = getTransformedForcing(obj, 'drainage_deep',SMSnumber);
-                    drainage_bypassFlow = getTransformedForcing(obj, 'drainage_bypassFlow',SMSnumber);
-                    forcingData = forcingData + drainage_bypassFlow;                    
-                    isDailyIntegralFlux = true;
-
-                case 'drainage_normalised_deep'
-                    forcingData = (SMS_deep/SMSC_deep).^beta_deep;
-                    isDailyIntegralFlux = false;     
-                                        
-                case 'SMS_deep'
-                    forcingData = SMS_deep;
-                    isDailyIntegralFlux = false;
+            try 
+                for i=1:length(variableName)
+                    % Test if the flux can be derived from the parent class.
+                    if ~any(strcmp({'evap_soil_deep', 'evap_soil_total','evap_gw_potential', ...
+                    'drainage_deep','drainage_bypassFlow_deep','drainage_normalised_deep','SMS_deep'}, ...
+                    variableName{i}))
+                        if nargin==2
+                            [forcingData(:,i), isDailyIntegralFlux(i)] = getTransformedForcing@climateTransform_soilMoistureModels(obj, variableName{i});   
+                        else
+                            [forcingData(:,i), isDailyIntegralFlux(i)] = getTransformedForcing@climateTransform_soilMoistureModels(obj, variableName{i}, SMSnumber);   
+                        end
+                        continue
+                    end
                     
-                otherwise
-                    error('The requested transformed forcing variable is not known.');
+                    % Get the soil moisture store for the required soil unit
+                    if nargin==2 || SMSnumber==1                               
+                        SMS_deep = obj.variables.SMS_deep;
+                        SMSnumber = 1;
+                    elseif SMSnumber==2
+                        SMSC_deep = SMSC_deep_trees; 
+                        SMS_deep = obj.variables.SMS_deep_trees;                    
+                    else
+                        error('The soil moisture unit number is unknown')
+                    end                     
+
+                    switch variableName{i}
+                        case 'evap_soil_deep'    
+                            AET= getTransformedForcing(obj, 'evap_soil',SMSnumber);
+                            forcingData(:,i) = max(0,obj.variables.evap-AET) .* (SMS_deep/SMSC_deep).^gamma;
+                            isDailyIntegralFlux(i) = false;
+
+                        case 'evap_soil_total'    
+                            forcingData(:,i) = getTransformedForcing(obj, 'evap_soil',SMSnumber) + ...
+                                          getTransformedForcing(obj, 'evap_soil_deep',SMSnumber);
+                            isDailyIntegralFlux(i) = false;                    
+                        case 'evap_gw_potential'
+                            forcingData(:,i) = obj.variables.evap - getTransformedForcing(obj, 'evap_soil_total',SMSnumber);                    
+                            isDailyIntegralFlux(i) = false;                    
+                        case 'drainage_deep'
+                            forcingData(:,i) = k_sat_deep .* getTransformedForcing(obj, 'drainage_normalised_deep');
+                            isDailyIntegralFlux(i) = false;                    
+
+                        case 'drainage_bypassFlow_deep'
+                            forcingData(:,i) = getTransformedForcing(obj, 'drainage_deep',SMSnumber);
+                            drainage_bypassFlow = getTransformedForcing(obj, 'drainage_bypassFlow',SMSnumber);
+                            forcingData(:,i) = forcingData(:,i) + drainage_bypassFlow;                    
+                            isDailyIntegralFlux(i) = true;
+
+                        case 'drainage_normalised_deep'
+                            forcingData(:,i) = (SMS_deep/SMSC_deep).^beta_deep;
+                            isDailyIntegralFlux(i) = false;     
+
+                        case 'SMS_deep'
+                            forcingData(:,i) = SMS_deep;
+                            isDailyIntegralFlux(i) = false;
+
+                        otherwise
+                            error('The requested transformed forcing variable is not known.');
+                    end
+
+                    % Get flixes for tree soil unit (if required) and weight the
+                    % flux from the two units
+                    if  isfield(obj.settings,'simulateLandCover') && obj.settings.simulateLandCover && nargin==2
+                        % Get flux for tree SMS
+                        forcingData_trees = getTransformedForcing(obj, variableName{i}, 2) ;
+
+                        % Do weighting
+                        forcingData(:,i) = (1-treeArea_frac .* obj.variables.treeFrac) .* forcingData(:,i) + ...
+                                      treeArea_frac .* obj.variables.treeFrac .* forcingData_trees;
+                    end            
+                end
+            catch ME
+                
             end
             
-            % Get flixes for tree soil unit (if required) and weight the
-            % flux from the two units
-            if  isfield(obj.settings,'simulateLandCover') && obj.settings.simulateLandCover && nargin==2
-                % Get flux for tree SMS
-                forcingData_trees = getTransformedForcing(obj, variableName, 2) ;
-                
-                % Do weighting
-                forcingData = (1-treeArea_frac .* obj.variables.treeFrac) .* forcingData + ...
-                              treeArea_frac .* obj.variables.treeFrac .* forcingData_trees;
-            end
+
             
         end
         

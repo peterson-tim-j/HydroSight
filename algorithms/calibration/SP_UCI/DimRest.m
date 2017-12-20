@@ -32,6 +32,10 @@ d=d./sum(d);
 lastdim=find(d > (0.01/Dim),1,'last');
 nlost=Dim-lastdim; 
 
+% Get the initial derived forcing
+stochDerivedForcingData = getStochForcingData(varargin{1});
+
+
 %If the number of the lost dimensions is greater than one-tenth of the total
 %dimensionality, restore the lost dimensions.
 if nlost > floor(Dim/10)+1 
@@ -96,6 +100,11 @@ if nlost > floor(Dim/10)+1
             if ~all(isValid)
                 stemp = stemp_initial;
             else
+                % Reset the input derived forcing
+                if any(~isempty(stochDerivedForcingData))
+                    updateStochForcingData(varargin{1}, stochDerivedForcingData);
+                end       
+                
                 ftemp=feval(funcHandle,stemp', varargin{:});
                 icall=icall+1;
             end

@@ -1994,6 +1994,7 @@ classdef HydroSightModel < handle
             if nargin<3 || isempty(figHandle)
                 % Create new figure window.
                 figHandle = figure('Name',['Calib. ',obj.bore_ID]);
+                h = figHandle;
             elseif ~ishandle(figHandle)    
                 error('Input handle is not a valid figure handle.');
             else
@@ -2055,6 +2056,7 @@ classdef HydroSightModel < handle
                        YFill = [obj.calibrationResults.data.modelledNoiseBounds(:,3)', ...
                                 fliplr(obj.calibrationResults.data.modelledNoiseBounds(:,2)')];
                    end
+                   %fill(XFill, YFill,[0.8 0.8 0.8],'Parent',h);
                    fill(XFill, YFill,[0.8 0.8 0.8],'Parent',h);
                    clear XFill YFill               
                    hold(h,'on');
@@ -2660,33 +2662,19 @@ classdef HydroSightModel < handle
             
         end
         
-        function finishedStochForcing = updateStochForcingData(obj,loop_fraction, forcingData, objFuncVal, objFuncVal_prior, refineStochForcingMethod)
+        function finishedStochForcing = updateStochForcingData(obj, forcingData, refineStochForcingMethod)
             finishedStochForcing = false;
             if any(strcmp(methods(obj.model),'updateStochForcingData'))           
                 if nargin==1
-                    updateStochForcingData(obj.model,[]);  
+                    updateStochForcingData(obj.model);  
                 elseif nargin==2
-                    updateStochForcingData(obj.model,loop_fraction);   
+                    updateStochForcingData(obj.model, forcingData);
                 elseif nargin==3
-                    updateStochForcingData(obj.model,loop_fraction, forcingData);
-                elseif nargin==5
-                    updateStochForcingData(obj.model, loop_fraction,forcingData, objFuncVal, objFuncVal_prior);       
-                elseif nargin==6
-                    finishedStochForcing = updateStochForcingData(obj.model,loop_fraction, forcingData, objFuncVal, objFuncVal_prior, refineStochForcingMethod);
+                    finishedStochForcing = updateStochForcingData(obj.model, forcingData, refineStochForcingMethod);
                 end
             end            
         end        
-        
-        function [stochForcingData_new, accepted] = acceptStochForcingSolution(obj, objFuncVal, objFuncVal_prior, stochForcingData)
-                       
-            if any(strcmp(methods(obj.model),'acceptStochForcingSolution'))
-                [stochForcingData_new, accepted] = acceptStochForcingSolution(obj.model, objFuncVal, objFuncVal_prior, stochForcingData);
-            else
-                stochForcingData_new = stochForcingData; 
-                accepted  = true;
-            end
-            
-        end        
+      
         
         %% Get the forcing data from the model
         function setForcingData(obj, forcingData, forcingData_colnames)

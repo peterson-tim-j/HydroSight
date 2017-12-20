@@ -1086,6 +1086,12 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
             % back transform the parameters
             [params, param_names] = getDerivedParameters(obj);
             
+            if ischar(variableName)
+                variableNametmp{1}=variableName;
+                variableName = variableNametmp;
+                clear variableNametmp;
+            end            
+            
             % Assign each param to a variable for efficient access.
             SMSC = params(1,:);
             SMSC_trees = params(2,:);
@@ -1110,85 +1116,93 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                 error('The soil moisture unit number is unknown')
             end
              
-            switch variableName
-                case 'drainage'
-                    forcingData = (1-interflow_frac) .* k_sat .* getTransformedForcing(obj, 'drainage_normalised',SMSnumber);
-                    isDailyIntegralFlux = false;
-                case 'drainage_bypassFlow'
-                    drainage = getTransformedForcing(obj, 'drainage',SMSnumber);
-                    runoff = getTransformedForcing(obj, 'runoff',SMSnumber);
-                    forcingData = drainage + bypass_frac.*runoff;
-                    
-                    isDailyIntegralFlux = true;
-                    
-                case 'drainage_normalised'
-                    forcingData = (SMS/SMSC).^beta;
-                    isDailyIntegralFlux = false;
-                    
-                case 'evap_soil'    
-                    forcingData = obj.variables.evap .* (SMS/SMSC).^gamma;
-                    isDailyIntegralFlux = false;
+            try 
+                for i=1:length(variableName)
+                    switch variableName{i}
+                        case 'drainage'
+                            forcingData(:,i) = (1-interflow_frac) .* k_sat .* getTransformedForcing(obj, 'drainage_normalised',SMSnumber);
+                            isDailyIntegralFlux(i) = false;
+                        case 'drainage_bypassFlow'
+                            drainage = getTransformedForcing(obj, 'drainage',SMSnumber);
+                            runoff = getTransformedForcing(obj, 'runoff',SMSnumber);
+                            forcingData(:,i) = drainage + bypass_frac.*runoff;
 
-                case 'infiltration'                       
-                    drainage = getTransformedForcing(obj, 'drainage',SMSnumber);
-                    actualET = getTransformedForcing(obj, 'evap_soil',SMSnumber);                        
-                    drainage =  0.5 .* (drainage(1:end-1) + drainage(2:end));
-                    actualET = 0.5 .* (actualET(1:end-1) + actualET(2:end));                    
-                    forcingData = [0 ; max(0,(obj.variables.precip(2:end,1)>0) .* (diff(SMS) + drainage + actualET))];
-                    isDailyIntegralFlux = true;
-                    
-                case 'evap_gw_potential'
-                    forcingData = obj.variables.evap .* (1-(SMS/SMSC).^gamma);
-                    isDailyIntegralFlux = false;
-                    
-                case 'interflow'
-                    forcingData = interflow_frac .* k_sat .* getTransformedForcing(obj, 'drainage_normalised',SMSnumber);
-                    isDailyIntegralFlux = false;
-                    
-                case 'runoff'
-                    infiltration = getTransformedForcing(obj, 'infiltration',SMSnumber);
-                    interflow = getTransformedForcing(obj, 'interflow',SMSnumber);
-                    forcingData = max(0,obj.variables.precip - infiltration) + interflow;
-                    isDailyIntegralFlux = true;
-                    
-                case'SMS'
-                    forcingData = SMS;
-                    isDailyIntegralFlux = false;
-                    
-                otherwise
-                    if  isfield(obj.settings,'simulateLandCover') && obj.settings.simulateLandCover && nargin==2 
-                        if isempty(strfind(variableName, '_nontree')) && isempty(strfind(variableName, '_tree'))
-                            error('The requested transformed forcing variable is not known.');
-                        end
-                    else                            
-                        error('The requested transformed forcing variable is not known.');
+                            isDailyIntegralFlux(i) = true;
+
+                        case 'drainage_normalised'
+                            forcingData(:,i) = (SMS/SMSC).^beta;
+                            isDailyIntegralFlux(i) = false;
+
+                        case 'evap_soil'    
+                            forcingData(:,i) = obj.variables.evap .* (SMS/SMSC).^gamma;
+                            isDailyIntegralFlux(i) = false;
+
+                        case 'infiltration'                       
+                            drainage = getTransformedForcing(obj, 'drainage',SMSnumber);
+                            actualET = getTransformedForcing(obj, 'evap_soil',SMSnumber);                        
+                            drainage =  0.5 .* (drainage(1:end-1) + drainage(2:end));
+                            actualET = 0.5 .* (actualET(1:end-1) + actualET(2:end));                    
+                            forcingData(:,i) = [0 ; max(0,(obj.variables.precip(2:end,1)>0) .* (diff(SMS) + drainage + actualET))];
+                            isDailyIntegralFlux(i) = true;
+
+                        case 'evap_gw_potential'
+                            forcingData(:,i) = obj.variables.evap .* (1-(SMS/SMSC).^gamma);
+                            isDailyIntegralFlux(i) = false;
+
+                        case 'interflow'
+                            forcingData(:,i) = interflow_frac .* k_sat .* getTransformedForcing(obj, 'drainage_normalised',SMSnumber);
+                            isDailyIntegralFlux(i) = false;
+
+                        case 'runoff'
+                            infiltration = getTransformedForcing(obj, 'infiltration',SMSnumber);
+                            interflow = getTransformedForcing(obj, 'interflow',SMSnumber);
+                            forcingData(:,i) = max(0,obj.variables.precip - infiltration) + interflow;
+                            isDailyIntegralFlux(i) = true;
+
+                        case'SMS'
+                            forcingData(:,i) = SMS;
+                            isDailyIntegralFlux(i) = false;
+
+                        otherwise
+                            if  isfield(obj.settings,'simulateLandCover') && obj.settings.simulateLandCover && nargin==2 
+                                if isempty(strfind(variableName{i}, '_nontree')) && isempty(strfind(variableName{i}, '_tree'))
+                                    error('The requested transformed forcing variable is not known.');
+                                end
+                            else                            
+                                error('The requested transformed forcing variable is not known.');
+                            end
                     end
+
+                    % Get flixes for tree soil unit (if required) and weight the
+                    % flux from the two units
+                    if  isfield(obj.settings,'simulateLandCover') && obj.settings.simulateLandCover && nargin==2
+                        if ~isempty(strfind(variableName{i}, '_nontree'))
+                            % Get flux for non-tree componant
+                            ind = strfind(variableName{i}, '_nontree');
+                            variableName{i} = variableName{i}(1:ind-1);
+                            [forcingData(:,i),isDailyIntegralFlux(i)]  = getTransformedForcing(obj, variableName{i}, 1) ;
+                            forcingData(:,i) =  (1-treeArea_frac .* obj.variables.treeFrac) .* forcingData(:,i);
+                        elseif ~isempty(strfind(variableName{i}, '_tree'))
+                            % Get flux for non-tree componant
+                            ind = strfind(variableName{i}, '_tree');
+                            variableName{i} = variableName{i}(1:ind-1);
+                            [forcingData(:,i),isDailyIntegralFlux(i)] = getTransformedForcing(obj, variableName{i}, 2);                
+                            forcingData(:,i) = treeArea_frac .* obj.variables.treeFrac .* forcingData(:,i);
+                        else
+                            % Get flux for tree SMS
+                            forcingData_trees = getTransformedForcing(obj, variableName{i}, 2);                    
+
+                            % Do weighting
+                            forcingData(:,i) = (1-treeArea_frac .* obj.variables.treeFrac) .* forcingData(:,i) + ...
+                                          treeArea_frac .* obj.variables.treeFrac .* forcingData_trees;
+                        end
+                    end                    
+                end
+            catch ME
+                
             end
             
-            % Get flixes for tree soil unit (if required) and weight the
-            % flux from the two units
-            if  isfield(obj.settings,'simulateLandCover') && obj.settings.simulateLandCover && nargin==2
-                if ~isempty(strfind(variableName, '_nontree'))
-                    % Get flux for non-tree componant
-                    ind = strfind(variableName, '_nontree');
-                    variableName = variableName(1:ind-1);
-                    [forcingData,isDailyIntegralFlux]  = getTransformedForcing(obj, variableName, 1) ;
-                    forcingData =  (1-treeArea_frac .* obj.variables.treeFrac) .* forcingData;
-                elseif ~isempty(strfind(variableName, '_tree'))
-                    % Get flux for non-tree componant
-                    ind = strfind(variableName, '_tree');
-                    variableName = variableName(1:ind-1);
-                    [forcingData,isDailyIntegralFlux] = getTransformedForcing(obj, variableName, 2);                
-                    forcingData = treeArea_frac .* obj.variables.treeFrac .* forcingData;
-                else
-                    % Get flux for tree SMS
-                    forcingData_trees = getTransformedForcing(obj, variableName, 2);                    
 
-                    % Do weighting
-                    forcingData = (1-treeArea_frac .* obj.variables.treeFrac) .* forcingData + ...
-                                  treeArea_frac .* obj.variables.treeFrac .* forcingData_trees;
-                end
-            end
         end
 
         

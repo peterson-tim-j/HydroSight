@@ -1,5 +1,6 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [S,Sf,icall,stochDerivedForcingData]=MCCE(funcHandle,funcHangle_validParams,s,sf,bl,bu,icall, useDerivedForcing, stochDerivedForcingData, varargin)
+%function [S,Sf,icall,stochDerivedForcingData]=MCCE(funcHandle,funcHangle_validParams,s,sf,bl,bu,icall, useDerivedForcing, stochDerivedForcingData, varargin)
+function [S,Sf,icall]=MCCE(funcHandle,funcHangle_validParams,s,sf,bl,bu,icall, varargin)
 % This is the subroutine implementing the simplex algorithm
 
 % Definition of input/output variables
@@ -35,9 +36,9 @@ isValid = feval(funcHangle_validParams,snew', varargin{:});
 isValid = all(isValid);
 doneFeval=false;
 if isValid
-    if useDerivedForcing
-        updateStochForcingData(varargin{1},[]);            
-    end
+    %if useDerivedForcing
+    %    updateStochForcingData(varargin{1},[]);            
+    %end
     fnew = feval(funcHandle,snew', varargin{:});
     doneFeval = true;
     icall = icall + 1;
@@ -51,9 +52,9 @@ if fnew < fN
     if fnew < fb
         
         % Get derived forcing from improved solution
-        if useDerivedForcing
-            stochDerivedForcingData = getStochForcingData(varargin{1});
-        end
+        %if useDerivedForcing
+        %    stochDerivedForcingData = getStochForcingData(varargin{1});
+        %end
         
         snew1 = snew + alpha*(snew-ce);
         snew1(snew1>bu)=2*bu(snew1>bu)-snew1(snew1>bu) ;
@@ -66,9 +67,9 @@ if fnew < fN
         isValid = all(isValid);        
         
         if isValid
-            if useDerivedForcing
-                updateStochForcingData(varargin{1},[]);            
-            end
+            %if useDerivedForcing
+            %    updateStochForcingData(varargin{1},[]);            
+            %end
             fnew1 = feval(funcHandle,snew1', varargin{:});
             icall = icall + 1;
 
@@ -77,23 +78,23 @@ if fnew < fN
                 snew=snew1;
                 
                 % Get derived forcing from improved solution
-                if useDerivedForcing
-                    stochDerivedForcingData = getStochForcingData(varargin{1});                
-                end
-            elseif useDerivedForcing
-                stochDerivedForcingData = acceptStochForcingSolution(varargin{1}, fnew1, fnew, stochDerivedForcingData);
+                %if useDerivedForcing
+                %    stochDerivedForcingData = getStochForcingData(varargin{1});                
+                %end
+            %elseif useDerivedForcing
+            %    stochDerivedForcingData = acceptStochForcingSolution(varargin{1}, fnew1, fnew, stochDerivedForcingData);
             end
         end
-    elseif useDerivedForcing
-        stochDerivedForcingData = acceptStochForcingSolution(varargin{1}, fnew, fb, stochDerivedForcingData);        
+    %elseif useDerivedForcing
+    %    stochDerivedForcingData = acceptStochForcingSolution(varargin{1}, fnew, fb, stochDerivedForcingData);        
     end
     
 else % Contraction point
 
     if fnew < fw
-        if useDerivedForcing
-            stochDerivedForcingData = getStochForcingData(varargin{1});                
-        end
+        %if useDerivedForcing
+        %    stochDerivedForcingData = getStochForcingData(varargin{1});                
+        %end
 
         snew1 = ce + beta*(snew-ce);
 
@@ -102,9 +103,9 @@ else % Contraction point
         isValid = all(isValid);        
         
         if isValid  
-            if useDerivedForcing
-                updateStochForcingData(varargin{1},[]);            
-            end
+            %if useDerivedForcing
+            %    updateStochForcingData(varargin{1},[]);            
+            %end
             fnew1 = feval(funcHandle,snew1', varargin{:});
             icall = icall + 1;
             if fnew1 < fnew
@@ -113,22 +114,22 @@ else % Contraction point
             end
             
             % Get derived forcing from improved solution
-            if useDerivedForcing
-                [stochDerivedForcingData, isAccepted] = acceptStochForcingSolution(varargin{1}, fnew1, fb, stochDerivedForcingData);
-                %if ~isAccepted
-                %    updateStochForcingData(varargin{1},stochDerivedForcingData);            
-                %end
-            end
+            %if useDerivedForcing
+            %    [stochDerivedForcingData, isAccepted] = acceptStochForcingSolution(varargin{1}, fnew1, fb, stochDerivedForcingData);
+            %    %if ~isAccepted
+            %    %    updateStochForcingData(varargin{1},stochDerivedForcingData);            
+            %    %end
+            %end
         end
         
     else        
-        if useDerivedForcing
-            [stochDerivedForcingData, isAccepted] = acceptStochForcingSolution(varargin{1}, fnew, fw, stochDerivedForcingData);
-            %if ~isAccepted
-            %    updateStochForcingData(varargin{1},stochDerivedForcingData);            
-            %end
-            
-        end
+        %if useDerivedForcing
+        %    [stochDerivedForcingData, isAccepted] = acceptStochForcingSolution(varargin{1}, fnew, fw, stochDerivedForcingData);
+        %    %if ~isAccepted
+        %    %    updateStochForcingData(varargin{1},stochDerivedForcingData);            
+        %    %end
+        %    
+        %end
                 
         snew = sw + beta*(ce-sw);
         
@@ -137,9 +138,9 @@ else % Contraction point
         isValid = all(isValid);        
         
         if isValid    
-            if useDerivedForcing
-                updateStochForcingData(varargin{1},[]);            
-            end
+            %if useDerivedForcing
+            %    updateStochForcingData(varargin{1},[]);            
+            %end
             fnew = feval(funcHandle,snew', varargin{:});
             icall = icall + 1;
         end
@@ -175,11 +176,11 @@ else % Contraction point
             else
                 fnew = Inf;                
             end
-        elseif useDerivedForcing        
-            [stochDerivedForcingData, isAccepted] = acceptStochForcingSolution(varargin{1}, fnew, fw, stochDerivedForcingData);
-            %if ~isAccepted
-            %    updateStochForcingData(varargin{1},stochDerivedForcingData);            
-            %end
+        %elseif useDerivedForcing        
+        %    [stochDerivedForcingData, isAccepted] = acceptStochForcingSolution(varargin{1}, fnew, fw, stochDerivedForcingData);
+        %    %if ~isAccepted
+        %    %    updateStochForcingData(varargin{1},stochDerivedForcingData);            
+        %    %end
                         
         end
         
