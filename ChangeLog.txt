@@ -54,3 +54,13 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 * Back transfored parameters returned by climateTransform_soilMoistureModels_v2() and climateTransform_soilMoistureModels_2layer_v2().
 * New classes climateTransform_soilMoistureModels_v2() and climateTransform_soilMoistureModels_2layer_v2() added that constrains the simulated ET.
 * GUI derived parameters plot x-axis label trimmed.
+
+15 March 2018
+* Bug fixed on ODE solver for forcingTransform_soilMoisture.c that is likelt to reduce the estimated recharge from models using climateTransform_soilMoistureModels_v2().
+* The calibration GUI now allows setting of most calibrations settings for all methods and prints the command window output to the GUI.
+* 'Calibration setting' column removed from the calibration table.
+* Error fixed in the estimation of effective precip and the runoff rate in climateTransform_soilMoistureModels().
+* All forcing fluxes from calibrated models can be explored and plotted over a user-set time-step and period.
+* Data can now be exported from all results tables by right clicking on the table.
+* The selection of pumping bores for pumpingRate_SAestimation() downscaling is now aided by a 'wizard'. The wizard selects pumping bores within a user set distance of the obs bore.
+* Models using pumpingRate_SAestimation() can now be calibrated with an evaluation period. Note, the evaluation period should have daily metered usage.

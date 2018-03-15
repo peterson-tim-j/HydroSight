@@ -1,4 +1,4 @@
-classdef pumpingRate_SAestimation < forcingTransform_abstract & dynamicprops
+classdef pumpingRate_SAestimation < stochForcingTransform_abstract & dynamicprops
 % Class definition for downscaling groundwater pumping rates.
 %
 % Description          
@@ -66,10 +66,15 @@ classdef pumpingRate_SAestimation < forcingTransform_abstract & dynamicprops
 % Static methods used to inform the
 % user of the available model types. 
     methods(Static)
-        function [variable_names, isOptionalInput] = inputForcingData_required(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates)                                    
-            variable_names = cell(75,1);
-            variable_names(1:75) = strrep(strrep(strcat({'Pump '},num2str([1:75]')),' ','_'),'__','_');            
-            isOptionalInput = true(75,1);
+        function [variable_names, isOptionalInput] = inputForcingData_required(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates)
+            %variable_names = cell(75,1);
+            %variable_names(1:75) = strrep(strrep(strcat({'Pump '},num2str([1:75]')),' ','_'),'__','_');            
+            %isOptionalInput = true(75,1);
+            [variable_names] = pumpingRate_SAestimation.outputForcingdata_options(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates);
+            isOptionalInput = true(length(variable_names),1);     
+            
+            global pumpingRate_SAestimation_wizardResults
+            pumpingRate_SAestimation_wizardResults={};
         end
         
         function [variable_names, isOptionalInput] = dataWizard(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates)
@@ -81,10 +86,10 @@ classdef pumpingRate_SAestimation < forcingTransform_abstract & dynamicprops
             defaultans = {'5000','10'};
             answer = inputdlg(prompt,dlg_title,num_lines,defaultans);
             
-            if isempty(answer)                                
-                variable_names = cell(75,1);
-                variable_names(1:75) = strrep(strrep(strcat({'Pump '},num2str([1:75]')),' ','_'),'__','_');            
-                isOptionalInput = false(75,1);
+            if isempty(answer) 
+                global pumpingRate_SAestimation_wizardResults
+                pumpingRate_SAestimation_wizardResults = {};
+                [variable_names, isOptionalInput] = pumpingRate_SAestimation.inputForcingData_required(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates);
             else
                 % Check inputs
                 try 
@@ -137,15 +142,44 @@ classdef pumpingRate_SAestimation < forcingTransform_abstract & dynamicprops
                 
                 nrows = size(pumpTable,1);
                 variable_names = cell(nrows ,2);
-                variable_names(1:nrows ,1) = strrep(strrep(strcat({'Pump '},num2str([1:nrows]')),' ','_'),'__','_');            
+                %variable_names(1:nrows ,1) = strrep(strrep(strcat({'Pump '},num2str([1:nrows]')),' ','_'),'__','_');            
+                variable_names(1:nrows ,1) = strcat(table2cell(pumpTable(:,1)),'_infilled');
                 variable_names(1:size(pumpTable,1),2) = table2cell(pumpTable(:,1));
                 isOptionalInput = true(nrows ,1);
+                
+                % Set a global variable that stores the wizard results.
+                % This is an unfortunate requirement to allow the efficient
+                % selection of input data within the GUI TFN weighting
+                % function box.
+                global pumpingRate_SAestimation_wizardResults
+                pumpingRate_SAestimation_wizardResults = variable_names(1:nrows ,1);
+                
                 
             end
         end        
         
-        function [variable_names] = outputForcingdata_options(inputForcingDataColNames)
-            variable_names = strrep(strrep(strcat({'Pump '},num2str([1:75]')),' ','_'),'__','_');
+        function [variable_names] = outputForcingdata_options(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates)
+            %variable_names = strrep(strrep(strcat({'Pump '},num2str([1:75]')),' ','_'),'__','_');
+            
+            global pumpingRate_SAestimation_wizardResults
+            if ~isempty(pumpingRate_SAestimation_wizardResults)
+                variable_names = pumpingRate_SAestimation_wizardResults;
+            else            
+                % Find those forcing data columns with any infilling. These
+                % are most likely pumping bores.
+                filt = false(size(forcingData_data,2),1);
+                if iscell(forcingData_data) || istable(forcingData_data)
+                    for i=1:size(forcingData_data,2)
+                        filt(i) = any(forcingData_data{:,i} == -999);
+                    end                
+                else
+                    for i=1:size(forcingData_data,2)
+                        filt(i) = any(forcingData_data(:,i) == -999);
+                    end                
+                end
+                variable_names = strcat(forcingData_colnames(filt),'_infilled');
+                variable_names = variable_names';
+            end
         end
         
         function [options, colNames, colFormats, colEdits, toolTip] = modelOptions()
@@ -209,19 +243,24 @@ classdef pumpingRate_SAestimation < forcingTransform_abstract & dynamicprops
 %% Construct the model
         function obj = pumpingRate_SAestimation(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates, forcingData_reqCols, modelOptions)                        
 
+            % Clear the global variable for the required forcing columns.
+            global pumpingRate_SAestimation_wizardResults
+            clear pumpingRate_SAestimation_wizardResults
+            
+            % Set the calibration state as false
+            obj.variables.doingCalibration = false;
+            
             % Get a list of required forcing inputs and (again) check that
             % each of the required inputs is provided.
             %--------------------------------------------------------------
-            [requiredFocingInputs, isOptionalInput] = pumpingRate_SAestimation.inputForcingData_required();
+            [requiredFocingInputs, isOptionalInput] = pumpingRate_SAestimation.inputForcingData_required(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates);
             requiredFocingInputs = requiredFocingInputs(~isOptionalInput);
-            for j=1:size(requiredFocingInputs,1)
+            for j=1:numel(requiredFocingInputs)
                 filt = strcmpi(forcingData_reqCols(:,1), requiredFocingInputs(j));                                    
                 if ~any(filt)
                     error(['An unexpected error occured. When transforming forcing data, the input cell array for the transformation must contain a row (in 1st column) labelled "forcingdata" that its self contains a cell array in which the forcing data column is defined for the input:', requiredFocingInputs{j}]);
                 end
-            end
-             
-            % TO DO: remove optons for SA coolinf and initial temperature
+            end                         
             
             % Assign the input forcing data to obj.settings.
             obj.settings.forcingData = forcingData_data;
@@ -248,12 +287,19 @@ classdef pumpingRate_SAestimation < forcingTransform_abstract & dynamicprops
             % Get the forcing data time points
             obsTime = obj.settings.forcingData(:, 1);            
             
+            % Initialise the calibration period
+            obj.variables.t_start_calib = -inf;
+            obj.variables.t_end_calib = inf;
+            
             % Loop through each pumping bore. Any observation that
             % is preceeded by -999 is assumed to be the total pumping for
-            % the preceeding period of -999 values. 
+            % the preceeding period of -999 values. An period that ends in
+            % -999 is assumed to be a non-metered period. Any observations
+            % that are not preceeded by -999 and daily obs.
             nonObsPeriods=[];
             nNonObsPeriod=0;
-            obsPumpingData=nan(0,6);
+            obsDays=nan(0,3);
+            nObsDays=0;
             pumpIDs_insufficientMetering=[];
             for i = 1:size(obj.settings.forcingData_cols,1)
                 
@@ -261,6 +307,9 @@ classdef pumpingRate_SAestimation < forcingTransform_abstract & dynamicprops
                 pumpingColName = obj.settings.forcingData_cols{i,1};
                 pumpingColInd = obj.settings.forcingData_cols{i,2};                
                 pumping = obj.settings.forcingData(:,pumpingColInd);                
+                
+                % Initialise the  number of meter readings
+                nMeterReadings = 0;
 
                 % Add calibration parameter for the pump and
                 % initialise to 0.5.
@@ -269,8 +318,6 @@ classdef pumpingRate_SAestimation < forcingTransform_abstract & dynamicprops
                 obj.(parName)=-0.5;
                 
                 % Loop through each time point
-                nDays=0;
-                
                 for j=1: size(pumping,1)    
 
                     % Find the start and end dates of each non-obs period.
@@ -278,6 +325,7 @@ classdef pumpingRate_SAestimation < forcingTransform_abstract & dynamicprops
                     % of no observations add instance property and initialised using
                     % the regression relationship and period's evap deficit.
                     if pumping(j)==-999 && (j==1 || pumping(j-1)>=0)
+                        % First day of -999 periods.
                         nNonObsPeriod = nNonObsPeriod+1;
                         nonObsPeriods{nNonObsPeriod,1} = i;
                         nonObsPeriods{nNonObsPeriod,2} = pumpingColName;
@@ -286,27 +334,31 @@ classdef pumpingRate_SAestimation < forcingTransform_abstract & dynamicprops
                         nonObsPeriods{nNonObsPeriod,5} = NaN;
                         nonObsPeriods{nNonObsPeriod,6} = obj.settings.downscalingTimeStepCurrent;
                     elseif pumping(j)==-999 && (j==size(pumping,1) || pumping(j+1)>=0)
-                        if j>=length(obsTime)
+                        % End day of -999 periods.
+                        if j>=length(pumping) || pumping(j+1)==0
+                            % Unmetered period because the -999 period ends
+                            % with a zero.
                             nonObsPeriods{nNonObsPeriod,4} = obsTime(j);
-                        else
-                            nonObsPeriods{nNonObsPeriod,4} = obsTime(j)+1;
-                        end
-
-                        % Store TOTAL period pumping volume if observed.
-                        if j+1<size(pumping,1) && pumping(j+1)>0
-                            nonObsPeriods{nNonObsPeriod,5} = pumping(j+1);
-                        else
                             nonObsPeriods{nNonObsPeriod,5} = NaN;
+                        else
+                            % Unmetred period endds with a recorded total
+                            % volume.
+                            nonObsPeriods{nNonObsPeriod,4} = obsTime(j)+1;
+                            nonObsPeriods{nNonObsPeriod,5} = pumping(j+1);
+                            nMeterReadings = nMeterReadings + 1;
                         end
                         
-                        % Store time-step for stochastic forcing
-                        % generation.
+                        % Store time-step for stochastic forcing generation.
                         nonObsPeriods{nNonObsPeriod,6} = obj.settings.downscalingTimeStepCurrent;
+                    elseif (j==1 && pumping(j)>0) || (pumping(j)>0 && pumping(j-1)~=-999)
+                        nObsDays = nObsDays +1;
+                        obsDays(nObsDays, :) = [i,  obsTime(j), pumping(j)];
+                        nMeterReadings = nMeterReadings + 1;
                     end
                 end
                 
                 % Check there are at least the user set minimum number of metered periods for the pump.
-                if sum(cell2mat(nonObsPeriods(:,1)) == i & ~isnan(cell2mat(nonObsPeriods(:,5)))) < obj.settings.minObsPeriodsPerPump
+                if nMeterReadings < obj.settings.minObsPeriodsPerPump
                     pumpIDs_insufficientMetering=[pumpIDs_insufficientMetering, i];
                     %error(['Pump ',forcingData_colnames{pumpingColInd}, ' must have >=',num2str(obj.settings.minObsPeriodsPerPump),' periods of metered total extractions.']);
                 end
@@ -337,8 +389,9 @@ classdef pumpingRate_SAestimation < forcingTransform_abstract & dynamicprops
             end
             nonObsPeriods = nonObsPeriods(filt,:);
             
-            % Add non-obs periods to object
+            % Add observed and non-obs periods to object
             obj.variables.nonObsPeriods = nonObsPeriods;                       
+            obj.variables.obsDays = obsDays;                       
                         
             % Set the indexes to the unmetered data. The indexes are used
             % to efficiently find the forcing date time points for a given
@@ -350,7 +403,7 @@ classdef pumpingRate_SAestimation < forcingTransform_abstract & dynamicprops
             % pump state.
             %----------            
             % Get the mean daily pumping rate during the metered periods.
-            dailyRate = getDailyAveragePumpingRates(obj);
+            dailyRate = getDailyAveragePumpingRates(obj, -inf, inf);
 
             % Filter out periods for which the daily rate could not be calculated.
             dailyRate = dailyRate(isfinite(dailyRate(:,end)),:);
@@ -475,12 +528,18 @@ classdef pumpingRate_SAestimation < forcingTransform_abstract & dynamicprops
 
             % Store only the columns listed in obj.settings.forcingData_colnames
             % ie those needed and index within obj.settings.forcingData_cols
-            ind=zeros(length(obj.settings.forcingData_colnames),1);
-            for i=1:length(obj.settings.forcingData_colnames)
-                ind(i) = find(strcmp(obj.settings.forcingData_colnames{i}, forcingData_colnames),1,'first');
+            if length(forcingData_colnames) < length(obj.settings.forcingData_colnames)
+                error('The number of column name to be set is less than that used to build the object.');
             end
-            obj.settings.forcingData_colnames = forcingData_colnames(ind);
-            obj.settings.forcingData = forcingData(:,ind);
+            forcingDataNew = nan(size(forcingData,1),length(obj.settings.forcingData_colnames));
+            for i=1:length(forcingData_colnames)               
+                filt  = strcmp(obj.settings.forcingData_colnames, forcingData_colnames{i});
+                if ~isempty(filt)
+                    forcingDataNew(:,filt) = forcingData(:,i);
+                end
+            end
+            obj.settings.forcingData = forcingDataNew;
+                        
         end                
 
         function forcingData = getStochForcingData(obj)        
@@ -495,135 +554,169 @@ classdef pumpingRate_SAestimation < forcingTransform_abstract & dynamicprops
                 forcingData.(pumpNumName{i,2}) = logical(obj.variables.(pumpNumName{i,2})(:,6));                                                            
             end                
         end
+        
+        function setStochForcingState(obj,doingCalibration, t_start_calib, t_end_calib)
+            obj.variables.doingCalibration = doingCalibration;
+
+            % Update the calibration period
+            obj.variables.t_start_calib = t_start_calib;
+            obj.variables.t_end_calib = t_end_calib;              
+            
+            % Build downscaling indexes using t_start_calib and
+            % t_end_calib.
+            if doingCalibration
+                % Re-initialise downscaling time stwp
+                obj.settings.downscalingTimeStepCurrent = '(none)';
+                
+                % Re-build lookup indexes for the starting downscaling time step.
+                setTimestepIndexes(obj, obj.settings.downscalingTimeStepCurrent, t_start_calib, t_end_calib)                
+            end
+            
+        end
                 
         function finishedStochForcing = updateStochForcingData(obj, forcingData, refineStochForcingMethod)
             
-            % Initilaise output
-            finishedStochForcing = false;
+            % Only update stochastic forcing if doing calibration
+            if isfield(obj.variables,'doingCalibration') && ~obj.variables.doingCalibration
+                finishedStochForcing = true;
+            else
+                % Initilaise output
+                finishedStochForcing = false;
 
-            % Estimate the mean daily pumping rate during the metered
-            % periods.
-            dailyRate = getDailyAveragePumpingRates(obj);
+                % Estimate the mean daily pumping rate during the metered
+                % periods.
+                dailyRate = getDailyAveragePumpingRates(obj,obj.variables.t_start_calib, obj.variables.t_end_calib);
 
-            % Filter out periods for which the daily rate could not be
-            % calculated.
-            dailyRate = dailyRate(isfinite(dailyRate(:,end)),:);
-            
-            % Get pump names and numbers
-            pumpNumName = table(cell2mat(obj.variables.nonObsPeriods(:,1)),obj.variables.nonObsPeriods(:,2));
-            pumpNumName = unique(pumpNumName);
-            pumpNumName = table2cell(pumpNumName);
-                        
-            if nargin==1 
-                 error('updateStochForcingData requires >1 input.')
-            elseif nargin>=2
+                % Filter out periods for which the daily rate could not be
+                % calculated.
+                dailyRate = dailyRate(isfinite(dailyRate(:,end)),:);
 
-                % Get names of pumps within the input forcing data.
-                pumpsNames_input =  fieldnames(forcingData);
-                
-                % Loop through each input names and assign the forcing data
-                % to the object.
-                for i=1:length(pumpsNames_input)
-                   
-                    % Check the input field name is within the object
-                    % already.
-                    if ~any(strcmp(pumpNumName(:,2), pumpsNames_input{i}))
-                        error('An fieldname within the input "forcingData" is not listed within the pumpingRate_SAestimation object.');
+                % Get pump names and numbers
+                pumpNumName = table(cell2mat(obj.variables.nonObsPeriods(:,1)),obj.variables.nonObsPeriods(:,2));
+                pumpNumName = unique(pumpNumName);
+                pumpNumName = table2cell(pumpNumName);
+
+                if nargin==1 
+                     error('updateStochForcingData requires >1 input.')
+                elseif nargin>=2
+
+                    % Get names of pumps within the input forcing data.
+                    pumpsNames_input =  fieldnames(forcingData);
+
+                    % Loop through each input names and assign the forcing data
+                    % to the object.
+                    for i=1:length(pumpsNames_input)
+
+                        % Check the input field name is within the object
+                        % already.
+                        if ~any(strcmp(pumpNumName(:,2), pumpsNames_input{i}))
+                            error('An fieldname within the input "forcingData" is not listed within the pumpingRate_SAestimation object.');
+                        end
+
+                        % Check the input number of days is as expected.
+                        if size(forcingData.(pumpsNames_input{i}),1) ~= size(obj.variables.(pumpsNames_input{i}),1)
+                            error(['The number of rows within forcingData.',pumpsNames_input{i},' does not equal that within the corresponding  pumpingRate_SAestimation variable.']);
+                        end 
+
+                        % Assess if each metered period with pump rate >0 has >0 periods with
+                        % the pump on. That is, if a metered period to be downscaled has usage
+                        % >0 then the days when the pump is on must be >0.
+                        % In doing this assessment, periods of daily
+                        % metered usage are not assessed because they are
+                        % not to be downscaled.
+                        %-------------
+
+                        % Filter for any metered periods.
+                        filt = [find(dailyRate(:,1)==pumpNumName{i,1})]';
+
+                        isValidPumpState = true;
+                        for j=filt                            
+                           filt_obsPeriods =  obj.variables.(pumpsNames_input{i})(:,1) >= dailyRate(j,2) ...
+                                              & obj.variables.(pumpsNames_input{i})(:,1) <= dailyRate(j,3); 
+                           if  sum(filt_obsPeriods)>0 ...
+                           && sum(forcingData.(pumpsNames_input{i})(filt_obsPeriods)) <=0
+                               isValidPumpState = false;
+                           end
+                        end
+                        %-------------
+
+                        % Assign input forcing
+                        if isValidPumpState
+                            obj.variables.(pumpsNames_input{i})(:,6) = double(forcingData.(pumpsNames_input{i}));
+                        end
+
                     end
-                    
-                    % Check the input number of days is as per expected.
-                    if size(forcingData.(pumpsNames_input{i}),1) ~= size(obj.variables.(pumpsNames_input{i}),1)
-                        error(['The number of rows within forcingData.',pumpsNames_input{i},' does not equal that within the corresponding  pumpingRate_SAestimation variable.']);
-                    end 
+                end
 
-                    % Assess if each metered period with pump rate >0 has >0 periods with
-                    % the pump on.                    
-                    %-------------
-                    
-                    % Filter for any metered periods.
-                    filt = [find(dailyRate(:,1)==pumpNumName{i,1})]';
+                % Redefine the downscaling time step if the new AND if
+                % different to the current time step
+                if nargin==3 && refineStochForcingMethod
 
-                    isValidPumpState = true;
-                    for j=filt                            
-                       filt_obsPeriods =  obj.variables.(pumpsNames_input{i})(:,1) >= dailyRate(j,2) & obj.variables.(pumpsNames_input{i})(:,1) <= dailyRate(j,3); 
-                       if  sum(forcingData.(pumpsNames_input{i})(filt_obsPeriods)) <=0
-                           isValidPumpState = false;
-                       end
-                    end
-                    %-------------
-                    
-                    % Assign input forcing
-                    if isValidPumpState
-                        obj.variables.(pumpsNames_input{i})(:,6) = double(forcingData.(pumpsNames_input{i}));
+                    % Check if the bore downscaling is already at the user specified
+                    % time-step. If so, exit if() and return that the time step
+                    % was not refined.
+                    if strcmp(lower(obj.settings.downscalingTimeStepCurrent), lower(obj.settings.downscalingTimeStepFinal))
+                        finishedStochForcing = true;
+                    else 
+                        switch lower(obj.settings.downscalingTimeStepCurrent)
+                            case 'daily'
+                                finishedStochForcing  = true;
+                            case 'weekly'
+                                obj.settings.downscalingTimeStepCurrent = 'daily';
+                                finishedStochForcing  = false;
+                            case 'monthly'
+                                obj.settings.downscalingTimeStepCurrent = 'weekly';
+                                finishedStochForcing  = false;
+                            case '(none)'
+                                obj.settings.downscalingTimeStepCurrent = 'monthly';
+                                finishedStochForcing  = false;
+                            otherwise
+                                error(['The following time-step for generation of forcing data is not recognised:',obj.settings.downscalingTimeStepCurrent])
+                        end                
+                    end                        
+
+                    % If the downscaling time step is not yet at the final
+                    % user set resolution, then re-build the time-step
+                    % indexes for the new time step size. Importantly,
+                    % setTimestepIndexes() preserves the pump states from
+                    % the prior time step and copies them to the new time
+                    % step.
+                    if ~finishedStochForcing
+                        setTimestepIndexes(obj, obj.settings.downscalingTimeStepCurrent)
                     end
 
                 end
-            end
-            
-            % Redefine the downscaling time step if the new AND if
-            % different to the current time step
-            if nargin==3 && refineStochForcingMethod
-                
-                % Check if the bore downscaling is already at the user specified
-                % time-step. If so, exit if() and return that the time step
-                % was not refined.
-                if strcmp(lower(obj.settings.downscalingTimeStepCurrent), lower(obj.settings.downscalingTimeStepFinal))
-                    finishedStochForcing = true;
-                else 
-                    switch lower(obj.settings.downscalingTimeStepCurrent)
-                        case 'daily'
-                            finishedStochForcing  = true;
-                        case 'weekly'
-                            obj.settings.downscalingTimeStepCurrent = 'daily';
-                            finishedStochForcing  = false;
-                        case 'monthly'
-                            obj.settings.downscalingTimeStepCurrent = 'weekly';
-                            finishedStochForcing  = false;
-                        case '(none)'
-                            obj.settings.downscalingTimeStepCurrent = 'monthly';
-                            finishedStochForcing  = false;
-                        otherwise
-                            error(['The following time-step for generation of forcing data is not recognised:',obj.settings.downscalingTimeStepCurrent])
-                    end                
-                end                        
-                
-                if ~finishedStochForcing
-                    setTimestepIndexes(obj, obj.settings.downscalingTimeStepCurrent)
+
+                % Update the mean daily pumping rate during the metered
+                % periods because the pump state changed.
+                dailyRate = getDailyAveragePumpingRates(obj,obj.variables.t_start_calib, obj.variables.t_end_calib);
+
+                % Filter out periods for which the daily rate could not be
+                % calculated.
+                dailyRate = dailyRate(isfinite(dailyRate(:,end)),:);
+
+                % Update pumping rates based on new pump states
+                for i=1:size(pumpNumName,1)
+
+                    % Initialise daily pump rate to mean
+                    filt = dailyRate(:,1) == pumpNumName{i,1};
+                    dailyRate_median = median(dailyRate(filt ,5));
+                    obj.variables.(pumpNumName{i,2})(:,7)=dailyRate_median;
+
+                    % Initialise daily pump volume to nan
+                    obj.variables.(pumpNumName{i,2})(:,8)=nan;
+
+                    % Assign the average daily pumping rate during each metered period
+                    filt = find(dailyRate(:,1) == pumpNumName{i,1})';
+                    for j=filt                        
+                        filt_obsPeriods =  obj.variables.(pumpNumName{i,2})(:,1) >= dailyRate(j,2) & obj.variables.(pumpNumName{i,2})(:,1) <= dailyRate(j,3); 
+                        obj.variables.(pumpNumName{i,2})(filt_obsPeriods,7)=dailyRate(j,5);
+                    end
+
+                    % Multiple pump state by daily rate to create down-scaled pumping rate
+                    obj.variables.(pumpNumName{i,2})(:,8)=obj.variables.(pumpNumName{i,2})(:,6).*obj.variables.(pumpNumName{i,2})(:,7);
                 end
-                
             end
-
-            % Update the mean daily pumping rate during the metered
-            % periods because the pump state changed.
-            dailyRate = getDailyAveragePumpingRates(obj);
-
-            % Filter out periods for which the daily rate could not be
-            % calculated.
-            dailyRate = dailyRate(isfinite(dailyRate(:,end)),:);
-
-
-            % Update pumping rates based on new pump states
-            for i=1:size(pumpNumName,1)
-
-                % Initialise daily pump rate to mean
-                filt = dailyRate(:,1) == pumpNumName{i,1};
-                dailyRate_median = median(dailyRate(filt ,5));
-                obj.variables.(pumpNumName{i,2})(:,7)=dailyRate_median;
-
-                % Initialise daily pump volume to nan
-                obj.variables.(pumpNumName{i,2})(:,8)=nan;
-
-                % Assign the average daily pumping rate during each metered period
-                filt = find(dailyRate(:,1) == pumpNumName{i,1})';
-                for j=filt                        
-                    filt_obsPeriods =  obj.variables.(pumpNumName{i,2})(:,1) >= dailyRate(j,2) & obj.variables.(pumpNumName{i,2})(:,1) <= dailyRate(j,3); 
-                    obj.variables.(pumpNumName{i,2})(filt_obsPeriods,7)=dailyRate(j,5);
-                end
-
-                % Multiple pump state by daily rate to create down-scaled pumping rate
-                obj.variables.(pumpNumName{i,2})(:,8)=obj.variables.(pumpNumName{i,2})(:,6).*obj.variables.(pumpNumName{i,2})(:,7);
-            end
-            
         end
         
 %% Get model parameters
@@ -793,24 +886,30 @@ classdef pumpingRate_SAestimation < forcingTransform_abstract & dynamicprops
 % Date:
 %   June 2017
 
-            % Filter the forcing data to input t.
-            filt_time = obj.settings.forcingData(:,1) >= t(1) & obj.settings.forcingData(:,1) <= t(end);
+            % Only change the stochatsic forcing if doing calibration.
+            if ~isfield(obj.variables,'doingCalibration') || obj.variables.doingCalibration
 
-            % Store the time points
-            obj.variables.t = t(filt_time);
-            
-            
-            % Estimate the mean daily pumping rate during the metered
-            % periods.
-            dailyRate = getDailyAveragePumpingRates(obj);
+                % Filter the forcing data to input t.
+                filt_time = obj.settings.forcingData(:,1) >= t(1) & obj.settings.forcingData(:,1) <= t(end);
 
-            % Filter out periods for which the daily rate could not be
-            % calculated.
-            dailyRate = dailyRate(isfinite(dailyRate(:,end)),:);            
-            
-            % Get the object parameters.
-            [params, param_names] = getParameters(obj);
-            
+                % Store the time points
+                obj.variables.t = t(filt_time);
+
+
+                % Estimate the mean daily pumping rate during the metered
+                % periods.
+                dailyRate = getDailyAveragePumpingRates(obj,obj.variables.t_start_calib, obj.variables.t_end_calib);
+
+                % Filter out periods for which the daily rate could not be
+                % calculated.
+                dailyRate = dailyRate(isfinite(dailyRate(:,end)),:);            
+
+                % Get the object parameters.
+                [params, param_names] = getParameters(obj);
+
+                % Build a table of pump numbers and names
+                pumpNumTable = unique(cell2table(obj.variables.nonObsPeriods(:,1:2),'VariableNames',{'pumpNum','pumpName'}),'rows');
+                
                 % Loop through each PARAMETER, find the date to edit pumping state and 
                 % then update the state. Once updated, calculate the median
                 % pumping rate for each period using ONLY the periods with
@@ -823,26 +922,20 @@ classdef pumpingRate_SAestimation < forcingTransform_abstract & dynamicprops
                     pumpName = param_names{i}(1:end-9);
 
                     % Get pump number 
-                    pumpNum = str2double(pumpName(6:end));
+                    pumpNum = pumpNumTable.pumpNum(strcmp(pumpNumTable.pumpName,pumpName));
 
                     % Find the number of discrete time steps possible
-                    timestepMax = length((unique(obj.variables.(pumpName)(:,3))));
+                    ind_calibDays = obj.variables.(pumpName)(:,3)>0;
+                    timestepMax = length((unique(obj.variables.(pumpName)(ind_calibDays,3))));
 
-                    % Find the step size increments.
-                    timestepInc = 1/timestepMax;
-
-                    % Find normalised time-period from all periods of non-daily pumping.
-                    timestepMax = length((unique(obj.variables.(pumpName)(:,3))));
+                    % Find normalised time-period from all periods of non-daily pumping.                    
                     timestepValNormalised = ceil(abs(params(i)) * timestepMax)/timestepMax;
                     filt = obj.variables.(pumpName)(:,5)==timestepValNormalised;
 
                     % Calc number of pumping days to change.
-                    nDaysToChnage = sum(filt);                   
+                    nDaysToChange = sum(filt);                   
 
                     % Find if the current time point is a metered period.
-                    % If so, then get the number of days when the pump is
-                    % on. If the proposed chnage to the pump state is <=
-                    % the number of days pumping then do not turn pump off.
                     filt_dailyRate = find(dailyRate(:,1) == pumpNum)';
                     date2Chnage = obj.variables.(pumpName)(filt,1);
                     dailyRate_index = nan;
@@ -865,7 +958,7 @@ classdef pumpingRate_SAestimation < forcingTransform_abstract & dynamicprops
 
                         nPeriodPumpingDays = sum(obj.variables.(pumpName)(filt_periodPumpingDays,6));
 
-                        if nPeriodPumpingDays <= nDaysToChnage
+                        if nPeriodPumpingDays <= nDaysToChange
                             changePumpState = false;
                             isValidPumpState=false;
                         end
@@ -876,9 +969,13 @@ classdef pumpingRate_SAestimation < forcingTransform_abstract & dynamicprops
                             obj.variables.(pumpName)(filt,6) = 1;
                         elseif params(i)<-sqrt(eps())
                             obj.variables.(pumpName)(filt,6) = 0;
-                        end                            
+                        end    
+                    else
+                        % do nothing
+                        changePumpState = false;
                     end
-                end   
+                end  
+            end
         end
         
 %% Return the transformed forcing data
@@ -933,9 +1030,119 @@ classdef pumpingRate_SAestimation < forcingTransform_abstract & dynamicprops
                         forcingData(:,i) = obj.settings.forcingData(:,colForcingData);
                     end
                     
-                    % Add generated forcing data
-                    forcingData(obj.variables.(variableName{i})(:,2),i) = obj.variables.(variableName{i})(:,8);
+                    % Add stochastically generated forcing data
+                    filt_calibPeriod = obj.variables.(variableName{i})(:,2)>0;
+                    forcingData(obj.variables.(variableName{i})(filt_calibPeriod,2),i) = obj.variables.(variableName{i})(filt_calibPeriod ,8);                                                         
                     
+                    % If there are any remaining -999s, then these should
+                    % be in evaluation periods. To handle this, the mean daily
+                    % extractions is calculated for each day of the year.
+                    % Also the mean pump state (on or off) is calculated. 
+                    % Importantly, the averages are calculated using only
+                    % data from the first non-zero value ie once the pump
+                    % was active. The former is then used for periods of
+                    % -999 without a metered volume for the period. The
+                    % latter is used for the metered periods and is used to
+                    % weight the metered volume to the -999 days.
+                    if ~obj.variables.doingCalibration
+                        
+                        % Find remaining periods of-999s.
+                        ind_999s = find(forcingData(:,i) == -999);
+
+                        % If there are any -999s then, firstly, calculate the
+                        % probability of the pumping being on for each calendar
+                        % day. This is done using data from the first >0 value
+                        % up to end of the calibration period?
+                        if ~isempty(ind_999s)
+
+                            % Build indexes to the start of pumping and the end
+                            % of the calibration period.
+                            obsTime = obj.settings.forcingData(:, 1);
+                            ind_startOfPumping = find(forcingData(:,i)>0,1,'first');                        
+                            if isfield(obj.variables,'t_end_calib') && isfinite(obj.variables.t_end_calib)
+                                ind_endOfCalib = find(obsTime>=obj.variables.t_end_calib,1,'first');
+                            else
+                                ind_endOfCalib = size(obsTime,1);
+                            end
+                            filt_obsTimes = obsTime>=obsTime(ind_startOfPumping) & obsTime<=obsTime(ind_endOfCalib) & forcingData(:,i)~=-999;
+
+                            % Calculate the probability that the pump is on
+                            % during each calander day.                        
+                            [monthsDays,~,ind] = unique(month(obsTime(filt_obsTimes))*100+day(obsTime(filt_obsTimes)),'rows');
+                            meanUsagePerDay = accumarray(ind, forcingData(filt_obsTimes,i), [], @mean);                
+                            meanUsagePerDay = [monthsDays, meanUsagePerDay];
+
+                            % Calculate the mean probability that the pump is on for
+                            % each day day of the year.
+                            meanProbPumpOn = accumarray(ind, forcingData(filt_obsTimes,i)>0, [], @mean);
+                            meanProbPumpOn = [monthsDays, meanProbPumpOn];                        
+
+                            % Find the periods of -999s with a meter reading
+                            % >0 immediatly after a -999.
+                            ind_999s_metered = ind_999s(forcingData(min(ind_999s+1,size(forcingData,1)),i)>0);
+
+                            % Loop through the -999 metered periods and
+                            % downscale the metered volume using the mean
+                            % probability of the pump being on.
+                            for j=1:length(ind_999s_metered)
+
+                                % Find the metered volume for the period.
+                                pumpingVol = forcingData(min(size(forcingData,1),ind_999s_metered(j)+1),i);                            
+
+                                % Find the first -999 for the metered period.
+                                k = ind_999s_metered(j);
+                                while forcingData(k,i) == -999
+                                    k = k-1;
+                                end
+
+                                % Set indexes to the -999s for the metered 
+                                % period. Note, the period includes the first 
+                                % day after the -999s because it to is to
+                                % be downscaled because the value
+                                % represents the total metered volume over the
+                                % preceeding period of -999s.
+                                ind_999s_metered_period  = k:(ind_999s_metered(j)+1);
+
+                                % Find the days and months for the period of
+                                % -999s.
+                                monthDay_period = month(obsTime(ind_999s_metered_period))*100+day(obsTime(ind_999s_metered_period));
+                                ind_monthsDays = find(monthsDays == monthDay_period(1),1,'first');
+                                ind_monthsDays = ind_monthsDays:(ind_monthsDays+length(ind_999s_metered_period)-1);
+
+                                % Get the average pump state for the period.
+                                downscalingWeights = meanProbPumpOn(ind_monthsDays,2);
+                                downscalingWeights = downscalingWeights./sum(downscalingWeights);
+
+                                % Replace non-finite values by 0. 
+                                downscalingWeights(~isfinite(downscalingWeights))=0;
+                                
+                                % Down scale using the weighting.
+                                if sum(downscalingWeights)==0
+                                    pumpingVol = pumpingVol./(length(downscalingWeights).*ones(size(downscalingWeights)));
+                                else
+                                    pumpingVol = pumpingVol.*downscalingWeights;
+                                end
+
+                                % Assign downscaled weights to the forcing
+                                % data.
+                                forcingData(ind_999s_metered_period,i) = pumpingVol;
+                            end
+
+                            % Find the remaining -999s.
+                            ind_999s = find(forcingData(:,i) == -999);
+
+                            % Find the day and month of each -999 day
+                            monthDay_period = month(obsTime(ind_999s))*100+day(obsTime(ind_999s));
+
+                            % Loop though each periods of -999s and apply the
+                            % average usage for each day of the year.                         
+                            for j=1:length(monthDay_period)                           
+                                ind_monthsDays = find(monthsDays == monthDay_period(j),1,'first');
+                                forcingData(ind_999s(j),i) = meanUsagePerDay(ind_monthsDays ,2);
+                            end
+
+                        end     
+                    end
                 end
             catch ME
                 error('The requested transformed forcing variable is not known.');
@@ -988,7 +1195,7 @@ classdef pumpingRate_SAestimation < forcingTransform_abstract & dynamicprops
         % Returns matrix of size(obj.variables.nonObsPeriods,1) with
         % pump number, start date for period, end date for period, average
         % daily pumping rate for the period.
-        function dailyRate = getDailyAveragePumpingRates(obj, t)
+        function dailyRate = getDailyAveragePumpingRates(obj, t_start_calib, t_end_calib)
                   
             % Get list of non-obs periods nonObsPeriods.
             nonObsPeriods = obj.variables.nonObsPeriods;
@@ -1001,21 +1208,20 @@ classdef pumpingRate_SAestimation < forcingTransform_abstract & dynamicprops
                 dailyRate(i,1) = nonObsPeriods{i,1};
                 dailyRate(i,2) = nonObsPeriods{i,3};
                 dailyRate(i,3) = nonObsPeriods{i,4};
-                
-                % Check the period of meterewd total extractions is within
-                % the calcibration time range t. That is, if the end
-                % date of the period is before the start date, t(1), or
-                % the start date of the period is after the end time,
-                % t(end).
-                if nargin==2 && (dailyRate(i,3) < t(1) || dailyRate(i,2) > t(end))
-                    continue
-                end
-                                
+                                                
                 % Check if the pumping was metered for the period.
                 if ~isfinite(nonObsPeriods{i,5})
                     continue
                 end
                 
+                % Check the period of metered total extractions is within
+                % the calcibration time range t. That is, if the end
+                % date of the metered period is after the end calib period
+                % then do not use the metered rate.
+                if dailyRate(i,3) > t_end_calib
+                    continue
+                end
+                                
                 % get the pump names
                 pumpName = nonObsPeriods{i,2};
                 
@@ -1026,10 +1232,15 @@ classdef pumpingRate_SAestimation < forcingTransform_abstract & dynamicprops
                 % Calculate average daily pumping rate for the period.
                 dailyRate(i,5) = nonObsPeriods{i,5}/dailyRate(i,4);                            
                 
-            end                    
+            end        
+            
+            % Add the daily metered volumes. Since these readings are for a
+            % single day, the the start and end dates are equal.
+            dailyRate = [dailyRate; [obj.variables.obsDays(:,1), ...
+                obj.variables.obsDays(:,2), obj.variables.obsDays(:,2), ones(size(obj.variables.obsDays,1),1), obj.variables.obsDays(:,3)]];           
         end
         
-        function setTimestepIndexes(obj, updateTimeStep)
+        function setTimestepIndexes(obj, updateTimeStep, t_start_calib, t_end_calib)
            
             % Loop through each pump bore and add one property time point at which the 
             % forcing should be changed from zero to one, or vise versa.
@@ -1055,15 +1266,23 @@ classdef pumpingRate_SAestimation < forcingTransform_abstract & dynamicprops
                         %   - time-step integer for user-set downscaled time-step
                         %   - time-step for only periods with metering normalised from 0 to 1.                        
                         %   - time-step all periods without daily metering normalised from 0 to 1.                        
-                        %   - 0/1 for the pumping being on or off over the
-                        %   user set time period.
-                        obj.variables.(pumpName) = zeros(0,6);
+                        %   - 0/1 for the pumping being on or off over the user set time period.
+                        %   - The pumping rate for the period (assigned in
+                        %   updateStochasticForcingData()).
+                        %   - The daily extraction rate (pump state * pump rate).
+                        %
+                        if isfield(obj.variables,pumpName) && size(obj.variables.(pumpName),1)>0
+                            updateExistingTable = true;
+                        else
+                            updateExistingTable = false;
+                            obj.variables.(pumpName) = zeros(0,8);
+                        end
                         for j=filt
                             
                             % Get dates for non-obs period
                             sDate = obj.variables.nonObsPeriods{j,3};
                             eDate = obj.variables.nonObsPeriods{j,4};                                                        
-                            
+                                                        
                             % Setup non-obs days
                             nonObsDays = [sDate:eDate]';
                             
@@ -1084,10 +1303,10 @@ classdef pumpingRate_SAestimation < forcingTransform_abstract & dynamicprops
                                     error(['The following time-step for generation of forcing data is not recognised:',updateTimeStep])
                             end
                             
-                            % Set junk data for normalised time-step value
+                            % Set junk data for normalised time-step value.
                             nonObsStepsNormalised = zeros(size(nonObsSteps));
                             
-                            % Build temporary vector to denote of the
+                            % Build temporary vector to denote if the
                             % total extractions for the periods were
                             % metered.
                             if isfinite(obj.variables.nonObsPeriods{j,5})
@@ -1096,18 +1315,65 @@ classdef pumpingRate_SAestimation < forcingTransform_abstract & dynamicprops
                                 isMeteredPeriod = zeros(size(nonObsSteps));
                             end
                             
+                            % Limit dates to only calibration periods.
+                            if nargin==4 && any(nonObsDays > t_end_calib)
+                                
+                                % If part of the period without daily metering is 
+                                % less than the end date of the
+                                % calibration then, for the
+                                % calibration, set the dates
+                                % <=t_end_calib to be unmetered.                                
+                                filt_calibDays = nonObsDays <= t_end_calib;
+                                if any(filt_calibDays)
+                                    isMeteredPeriod(filt_calibDays) = 0;                                    
+                                end
+                                
+                                % Change the nonObsSteps to dates to zero.
+                                % Below, nonObsSteps==0 are filtered from
+                                % the normalisation and so calibration will
+                                % not change the pump state after
+                                % t_end_calib.
+                                nonObsSteps(nonObsDays > t_end_calib) = 0;
+                                
+                                % Also, change the indexes to zero. This is
+                                % required so that within getTransformed
+                                % Forcing() only the transformted data for the 
+                                % calibration period is added to input
+                                % forcing data.
+                                nonObsDaysIndex(nonObsDays > t_end_calib) = 0;
+                            end
+                            
+                            
                             % Set pump to 'on' for each time step
                             nonObsPumpState = ones(size(nonObsSteps));
+                            
+                            if updateExistingTable
+                                % Find rows to be updated within existing
+                                % table.
+                                filt_existingTable = find(obj.variables.(pumpName)(:,1) >=sDate & obj.variables.(pumpName)(:,1) <=eDate);
 
-                            obj.variables.(pumpName) = [obj.variables.(pumpName); ...
-                                                        nonObsDays nonObsDaysIndex nonObsSteps isMeteredPeriod nonObsStepsNormalised nonObsPumpState];
-                        end                           
-
-                        % Normalise 'nonObsSteps' during periods with total metered 
+                                % Create matrix of new lookup data.
+                                newLookupTableRows = [nonObsDays nonObsDaysIndex nonObsSteps isMeteredPeriod nonObsStepsNormalised];
+                                                                
+                                % Update table rows BUT NOT THE PUMPING STATE.
+                                obj.variables.(pumpName)(filt_existingTable ,1:5) = newLookupTableRows;
+                            else                                
+                                % Create matrix of new lookup data.
+                                newLookupTableRows = [nonObsDays nonObsDaysIndex nonObsSteps isMeteredPeriod nonObsStepsNormalised nonObsPumpState];
+                                
+                                if isempty(obj.variables.(pumpName))
+                                    obj.variables.(pumpName) = newLookupTableRows;
+                                else
+                                    obj.variables.(pumpName) = [obj.variables.(pumpName); newLookupTableRows];
+                                end
+                            end
+                        end            
+                        
+                        % Normalise 'nonObsSteps' during periods a metered total volume
                         % so that required time step at which the pump state to be changed can
                         % be located from the pumping bore class parameter.
-                        ind_metered = find(obj.variables.(pumpName)(:,4)==1);
-                        ind_notMetered = find(obj.variables.(pumpName)(:,4)==0);
+                        ind_metered = find(obj.variables.(pumpName)(:,4)==1 & obj.variables.(pumpName)(:,3)>0);
+                        ind_notMetered = find(obj.variables.(pumpName)(:,4)==0 & obj.variables.(pumpName)(:,3)>0);
                         nonObsStepsUnique = sort(unique(obj.variables.(pumpName)(ind_metered ,3)));
                         for k=1:length(nonObsStepsUnique)
                             filt = find(obj.variables.(pumpName)(ind_metered,3) == nonObsStepsUnique(k));
@@ -1120,7 +1386,8 @@ classdef pumpingRate_SAestimation < forcingTransform_abstract & dynamicprops
                         % without daily metering so that required time
                         % step at which the pump state to be changed can
                         % be located from the pumping bore class parameter.
-                        nonObsStepsUnique = sort(unique(obj.variables.(pumpName)(:,3)));
+                        ind_calibDays = find(obj.variables.(pumpName)(:,3)>0);
+                        nonObsStepsUnique = sort(unique(obj.variables.(pumpName)(ind_calibDays,3)));
                         for k=1:length(nonObsStepsUnique)
                             filt_timesteps = obj.variables.(pumpName)(:,3) == nonObsStepsUnique(k);
                             obj.variables.(pumpName)(filt_timesteps ,5) = k;

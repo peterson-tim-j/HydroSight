@@ -165,7 +165,7 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
             isOptionalInput = [false; false; true];
         end
         
-        function [variable_names] = outputForcingdata_options(inputForcingDataColNames)
+        function [variable_names] = outputForcingdata_options(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates)
             variable_names = {'drainage';'drainage_bypassFlow';'drainage_normalised';'infiltration';'evap_soil';'evap_gw_potential';'runoff';'SMS'; ...
                               'drainage_tree';'drainage_bypassFlow_tree';'drainage_normalised_tree';'infiltration_tree';'evap_soil_tree';'evap_gw_potential_tree';'runoff_tree';'SMS_tree'; ...
                               'drainage_nontree';'drainage_bypassFlow_nontree';'drainage_normalised_nontree';'infiltration_nontree';'evap_soil_nontree'; ...
@@ -552,8 +552,19 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
 % Date:
 %   21 Dec 2015              
             
-            obj.settings.forcingData_colnames = forcingData_colnames;
-            obj.settings.forcingData = forcingData;
+            %obj.settings.forcingData_colnames = forcingData_colnames;
+            %obj.settings.forcingData = forcingData;
+            if length(forcingData_colnames) < length(obj.settings.forcingData_colnames)
+                error('The number of column name to be set is less than that used to build the object.');
+            end
+            forcingDataNew = nan(size(forcingData,1),length(obj.settings.forcingData_colnames));
+            for i=1:length(forcingData_colnames)               
+                filt  = strcmp(obj.settings.forcingData_colnames, forcingData_colnames{i});
+                if ~isempty(filt)
+                    forcingDataNew(:,filt) = forcingData(:,i);
+                end
+            end
+            obj.settings.forcingData = forcingDataNew;
         end                
         
 %% Get model parameters
@@ -998,10 +1009,11 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                 end
                 
                 % Filter percip by max infiltration rate, k_infilt.  
+                effectivePrecip = obj.variables.precip;
                 if k_infilt < inf && (obj.settings.activeParameters.k_infilt || obj.settings.fixedParameters.k_infilt)
                     lambda_p = obj.settings.lambda_p .* k_infilt;
-                    obj.variables.precip = (obj.variables.precip>0).*(obj.variables.precip + lambda_p * log( 1./(1 + exp( (obj.variables.precip - k_infilt)./lambda_p))));
-                    obj.variables.precip(isinf(obj.variables.precip)) = k_infilt;
+                    effectivePrecip= (effectivePrecip>0).*(effectivePrecip+ lambda_p * log( 1./(1 + exp( (effectivePrecip - k_infilt)./lambda_p))));
+                    effectivePrecip(isinf(effectivePrecip)) = k_infilt;
                 end
 
                 % Set the initial soil moisture.
@@ -1015,7 +1027,7 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                 obj.variables.t = t(filt_time);
                 
                 % Call MEX function containing soil moisture model.
-                obj.variables.SMS = forcingTransform_soilMoisture(S_initial, obj.variables.precip, obj.variables.evap, ...
+                obj.variables.SMS = forcingTransform_soilMoisture(S_initial, effectivePrecip, obj.variables.evap, ...
                         SMSC, k_sat, alpha, beta, gamma);                                
                 
                 % Run soil model again if tree cover is to be simulated
@@ -1026,7 +1038,7 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                         S_initial = S_initialfrac * SMSC_trees;
                     end
                     
-                    obj.variables.SMS_trees = forcingTransform_soilMoisture(S_initial, obj.variables.precip, obj.variables.evap, ...
+                    obj.variables.SMS_trees = forcingTransform_soilMoisture(S_initial, effectivePrecip, obj.variables.evap, ...
                             SMSC_trees, k_sat, alpha, beta, gamma);                                                                        
                 end
                     
@@ -1142,7 +1154,7 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                             actualET = getTransformedForcing(obj, 'evap_soil',SMSnumber);                        
                             drainage =  0.5 .* (drainage(1:end-1) + drainage(2:end));
                             actualET = 0.5 .* (actualET(1:end-1) + actualET(2:end));                    
-                            forcingData(:,i) = [0 ; max(0,(obj.variables.precip(2:end,1)>0) .* (diff(SMS) + drainage + actualET))];
+                            forcingData(:,i) = [0 ; min(obj.variables.precip(2:end,1),max(0,(obj.variables.precip(2:end,1)>0) .* (diff(SMS) + drainage + actualET)))];
                             isDailyIntegralFlux(i) = true;
 
                         case 'evap_gw_potential'

@@ -20,6 +20,12 @@ classdef stochForcingTransform_abstract < forcingTransform_abstract
         % reduce the down-scaling time step at the end of calibration
         % iterations.
         stochDerivedForcingData = updateStochForcingData(obj, stochDerivedForcingData, refineStochForcingMethod)
+        
+        % Set if model calibration is being undertaken or not. This was
+        % required to all for model simulations without undertaking chnages
+        % to the stochastic forcing data. The method can also be used to
+        % set the start and end dates for calibrtion.
+        setStochForcingState(obj,doingCalibration, t_start_calib, t_end_calib);
     end
     
 end

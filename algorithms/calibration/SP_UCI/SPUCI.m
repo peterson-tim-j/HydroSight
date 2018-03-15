@@ -1,4 +1,5 @@
-function [bestx,bestf,icall, exitFlag, exitStatus] = SPUCI(funcHandle, funcHangle_validParams, x0,bl_plausible, bu_plausible, bl_phys,bu_phys,maxn,kstop,pcento,peps,ngs,iseed,iniflg, varargin) 
+function [bestx,bestf,icall, exitFlag, exitStatus] = SPUCI(funcHandle, funcHangle_validParams, x0,bl_plausible, bu_plausible, bl_phys, bu_phys, ... 
+                                                            maxn, kstop,pcento,peps,ngs,iseed,iniflg, calibGUI_interface_obj, varargin) 
 % This is the Matlab code implementing the SP-UCI algorithm,written by Dr.
 % Wei Chu, 08/2012, based on the SCE Matlab codes written by Dr. Q. Duan
 % 9/2004.
@@ -53,12 +54,24 @@ function [bestx,bestf,icall, exitFlag, exitStatus] = SPUCI(funcHandle, funcHangl
 %  solution.
 %
 
+% Check if derived forcing is to be handled
+stochDerivedForcingData_prior = getStochForcingData(varargin{1});
+useDerivedForcing = false;
+if any(~isempty(stochDerivedForcingData_prior))
+    useDerivedForcing = true;
+end
+
 % Initialization of agorithmic 
 %iseed= 123456
 nopt=length(x0); %dimentions of the problem
 npg=2*nopt+1;%  npg = number of members is a complex
 nps=nopt+1;%  nps = number of members in a simplex
 nspl=nps;%  nspl = number of evolution steps for each complex before shuffling
+% if useDerivedForcing 
+%     nspl=2*nps;%  nspl = number of evolution steps for each complex before shuffling
+% else
+%     nspl=nps;%  nspl = number of evolution steps for each complex before shuffling
+% end
 npt=npg*ngs;%npt = the total number of members (the population size)
 
 bound = bu_plausible - bl_plausible;% boundary of the feasible space.
@@ -113,6 +126,17 @@ end;
 if gnrng < peps;
     disp('THE POPULATION HAS CONVERGED TO A PRESPECIFIED SMALL PARAMETER SPACE');
 end;
+
+% Update the diary file
+if ~isempty(calibGUI_interface_obj)
+    updatetextboxFromDiary(calibGUI_interface_obj);
+    [doQuit, exitFlagQuit, exitStatusQuit] = getCalibrationQuitState(calibGUI_interface_obj);
+    if doQuit
+        exitFlag = exitFlagQuit;
+        exitStatus = exitStatusQuit;
+        return;
+    end    
+end
 
 % Update exist status output. Tim Peterson 2016
 exitStatus = 'Calibration scheme did started.';
@@ -203,7 +227,7 @@ while icall<maxn && gnrng>peps && criter_change>pcento;
     %display(['... parfor run time =',num2str(toc)]);
         
     % Check if derived forcing is to be handled
-    if any(~isempty(stochDerivedForcingData(:)))
+    if any(cellfun(@(x) ~isempty(x), stochDerivedForcingData))
         useDerivedForcing = true;
     end
 
@@ -371,6 +395,17 @@ while icall<maxn && gnrng>peps && criter_change>pcento;
         disp('THE POPULATION HAS CONVERGED TO A PRESPECIFIED SMALL PARAMETER SPACE');
     end;
     
+    % Update the diary file
+    if ~isempty(calibGUI_interface_obj)
+        updatetextboxFromDiary(calibGUI_interface_obj);
+        [doQuit, exitFlagQuit, exitStatusQuit] = getCalibrationQuitState(calibGUI_interface_obj);
+        if doQuit
+            exitFlag = exitFlagQuit;
+            exitStatus = exitStatusQuit;
+            return;
+        end
+    end    
+    
     % End of the Outer Loops
 end;
 
@@ -400,6 +435,16 @@ elseif gnrng<peps && criter_change<pcento;
     exitStatus = ['Parameter and objective function convergence achieved in ', num2str(icall),' function evaluations.'];
 end
 
+% Update the diary file
+if ~isempty(calibGUI_interface_obj)
+    updatetextboxFromDiary(calibGUI_interface_obj);
+    [doQuit, exitFlagQuit, exitStatusQuit] = getCalibrationQuitState(calibGUI_interface_obj);
+    if doQuit
+        exitFlag = exitFlagQuit;
+        exitStatus = exitStatusQuit;
+        return;
+    end    
+end
 
 end
 

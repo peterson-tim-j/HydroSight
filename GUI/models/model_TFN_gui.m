@@ -361,11 +361,22 @@ classdef model_TFN_gui < model_gui_abstract
             this.modelOptions.options{4,1}.ParentSettingName = 'options';                     
             this.modelOptions.options{4,1}.box = uiextras.Grid('Parent', this.modelOptions.grid,'Padding', 3, 'Spacing', 3);                        
             this.modelOptions.options{4,1}.lbl = uicontrol( 'Parent', this.modelOptions.options{4,1}.box,'Style','text','String','2. Weighting Functions - Model Settings','Visible','on');     
-            this.modelOptions.options{4,1}.tbl = uitable( this.modelOptions.options{4,1}.box,'ColumnName',{'(none)'}, ...
-                'ColumnEditable',true,'Data',[], 'Tag','Weighting Functions - Model Settings', ...
-                'CellEditCallback', @this.optionsSelection, 'Visible','on');
-            set(this.modelOptions.options{4,1}.box, 'ColumnSizes', -1, 'RowSizes', [35 -1] );            
+            this.modelOptions.options{4,1}.tabs = uiextras.TabPanel( 'Parent', this.modelOptions.options{4,1}.box, 'Padding', 5, 'TabSize',127,'FontSize',8, 'Tag','Weighting Functions - Options');
             
+            tab1 = uiextras.Panel( 'Parent', this.modelOptions.options{4,1}.tabs , 'Padding', 5, 'Tag','Weighting Functions - Options Tab 1');            
+            tab2 = uiextras.Panel( 'Parent', this.modelOptions.options{4,1}.tabs , 'Padding', 5, 'Tag','Weighting Functions - Options Tab 2');
+            tab3 = uiextras.Panel( 'Parent', this.modelOptions.options{4,1}.tabs , 'Padding', 5, 'Tag','Weighting Functions - Options Tab 3');            
+            tab4 = uiextras.Panel( 'Parent', this.modelOptions.options{4,1}.tabs , 'Padding', 5, 'Tag','Weighting Functions - Options Tab 4');            
+            tab5 = uiextras.Panel( 'Parent', this.modelOptions.options{4,1}.tabs , 'Padding', 5, 'Tag','Weighting Functions - Options Tab 5');            
+            
+            uitable( tab1,'ColumnName',{'(none)'}, 'ColumnEditable',true,'Data',[], 'Tag','Weighting Functions - Options Tab 1 table', 'CellEditCallback', @this.optionsSelection, 'Visible','on');
+            uitable( tab2,'ColumnName',{'(none)'}, 'ColumnEditable',true,'Data',[], 'Tag','Weighting Functions - Options Tab 2 table', 'CellEditCallback', @this.optionsSelection, 'Visible','on');
+            uitable( tab3,'ColumnName',{'(none)'}, 'ColumnEditable',true,'Data',[], 'Tag','Weighting Functions - Options Tab 3 table', 'CellEditCallback', @this.optionsSelection, 'Visible','on');
+            uitable( tab4,'ColumnName',{'(none)'}, 'ColumnEditable',true,'Data',[], 'Tag','Weighting Functions - Options Tab 4 table', 'CellEditCallback', @this.optionsSelection, 'Visible','on');
+            uitable( tab5,'ColumnName',{'(none)'}, 'ColumnEditable',true,'Data',[], 'Tag','Weighting Functions - Options Tab 5 table', 'CellEditCallback', @this.optionsSelection, 'Visible','on');
+            set(this.modelOptions.options{4,1}.box, 'ColumnSizes', -1, 'RowSizes', [35 -1] );            
+            this.modelOptions.options{4,1}.tabs.TabNames = {'Option 1', 'Option 2','Option 3', 'Option 4','Option 5'};
+            this.modelOptions.options{4,1}.tabs.SelectedChild = 1;            
             
             % Add table for defining the transformation options eg soil
             % moisture model parameters for calibration.            
@@ -564,6 +575,11 @@ classdef model_TFN_gui < model_gui_abstract
                 return;
              end
 
+             % Check if the Bore ID is listed in the coordinates file
+             if ~isempty(this.boreID) && ~any(strcmp(tbl{:,1},this.boreID))
+                 warndlg(['The following bore is nost listed in the coordinates files: ',this.boreID]);
+             end
+             
              % Set the site data.
              this.siteData = tbl;
              
@@ -641,10 +657,15 @@ classdef model_TFN_gui < model_gui_abstract
                 
                 options_filt = cellfun( @(x) strcmp(x, 'options'), modelOption_tmp(:,2));
                 if any(options_filt)
-                    optionsName = modelOption_tmp{options_filt,3};  
-                    if ~isempty(optionsName) && iscell(optionsName)
-                        optionsName = model_TFN_gui.cell2string(optionsName, []);
+                    optionsName = modelOption_tmp{options_filt,3}; 
+                    for k=1:length(optionsName)
+                        if ~isempty(optionsName{k}) && iscell(optionsName{k})
+                            optionsName{k} = model_TFN_gui.cell2string(optionsName{k}, []);
+                        else
+                            optionsName{k}='{}';
+                        end                        
                     end
+                    optionsName = ['{',strjoin(optionsName),'}'];
                 end
                 
                 % Check if the forcing data uses a transformation function.
@@ -981,7 +1002,7 @@ classdef model_TFN_gui < model_gui_abstract
 
                    % Add model options 
                    if ~isempty(cellData{i,5})
-                        modelOptionsArray = strcat(modelOptionsArray, sprintf(' ''%s'', ''options'', ''%s'';',cellData{i,2},cellData{i,4+k} )); 
+                        modelOptionsArray = strcat(modelOptionsArray, sprintf(' ''%s'', ''options'', %s;',cellData{i,2},cellData{i,4+k} )); 
                    end                   
                                       
                    % Convert forcing data to a cell array
@@ -1197,7 +1218,7 @@ classdef model_TFN_gui < model_gui_abstract
                                        end
 
                                        this.modelOptions.options{2, 1}.tbl.Data = data;
-                                   catch
+                                   catch ME
                                        warndlg('The function options string appears to have a sytax error. It should be an Nx4 cell array.');                                       
                                    end
                                end
@@ -1247,7 +1268,8 @@ classdef model_TFN_gui < model_gui_abstract
                                end
 
                                % Get output options.
-                               outputOptions = feval(strcat(this.forcingTranforms.tbl.Data{i,2},'.outputForcingdata_options'),this.forcingData.colnames);
+                               %outputOptions = feval(strcat(this.forcingTranforms.tbl.Data{i,2},'.outputForcingdata_options'),this.forcingData.colnames);
+                               outputOptions = feval(strcat(this.forcingTranforms.tbl.Data{i,2},'.outputForcingdata_options'),this.boreID, this.forcingData.data,  this.forcingData.colnames, this.siteData);
 
                                % Add output options from the function
                                % to the list of available options
@@ -1263,7 +1285,7 @@ classdef model_TFN_gui < model_gui_abstract
                                end
 
                                % Get output options.
-                               outputOptions = feval(strcat(this.derivedForcingTranforms.tbl.Data{i,2},'.outputForcingdata_options'),this.forcingData.colnames);
+                               outputOptions = feval(strcat(this.derivedForcingTranforms.tbl.Data{i,2},'.outputForcingdata_options'),this.boreID, this.forcingData.data,  this.forcingData.colnames, this.siteData);
 
                                % Add output options from the function
                                % to the list of available options
@@ -1352,61 +1374,100 @@ classdef model_TFN_gui < model_gui_abstract
                            funName = this.weightingFunctions.tbl.Data{this.currentSelection.row, 3};
 
                            % Get the weighting function options.
-                           [modelSettings, colNames, colFormats, colEdits, tooltip] = feval(strcat(funName,'.modelOptions'), ...
-                           this.boreID, inputDataNames, this.siteData);
+%                            [modelSettings, colNames, colFormats, colEdits, tooltip] = feval(strcat(funName,'.modelOptions'), ...
+%                            this.boreID, inputDataNames, this.siteData);
+                           modelSettings= feval(strcat(funName,'.modelOptions'), this.boreID, inputDataNames, this.siteData);
 
                            % If the function has any options the
                            % display the options else display a message
-                           % in box stating no options are available.
-                           if isempty(colNames)  
+                           % in box stating no options are available.                           
+                           if isempty(modelSettings)  
                                set(this.modelOptions.options{10,1}.lbl,'HorizontalAlignment','center');
                                 this.modelOptions.options{10,1}.lbl.String = {'2. Weighting Functions - Options',['(No options are available for the following weighting function: ',funName,')']};                                    
                                 this.modelOptions.grid.Widths = [0 0 0 0 0 0 0 0 0 -1];
                            else
                                this.modelOptions.options{4,1}.lbl.String = '2. Weighting Functions - Options';
 
-                               % Assign model properties and data
-                               this.modelOptions.options{4,1}.tbl.ColumnName = colNames;
-                               this.modelOptions.options{4,1}.tbl.ColumnEditable = colEdits;
-                               this.modelOptions.options{4,1}.tbl.ColumnFormat = colFormats;          
-                               this.modelOptions.options{4,1}.tbl.TooltipString = tooltip;
-                               
-                               % Input the existing data or else the
-                               % default settings.
-                               if isempty(this.weightingFunctions.tbl.Data{this.currentSelection.row ,5})
-                                   if isempty(modelSettings)
-                                       this.modelOptions.options{4,1}.tbl.Data = cell(1,length(colNames));
-                                   else
-                                       this.modelOptions.options{4,1}.tbl.Data = modelSettings;
-                                   end
-                               else
-                                   try
-                                       data = eval(this.weightingFunctions.tbl.Data{this.currentSelection.row ,5});
-                                       if strcmpi(colNames(1),'Select')
-                                           data = [ mat2cell(false(size(data,1),1),ones(1,size(data,1))) , data];
-                                       end
-
-                                       this.modelOptions.options{4, 1}.tbl.Data = data;
-                                   catch ME
-                                       warndlg('The function options string appears to have a sytax error. It should be an Nx4 cell array.');                                       
-                                       %this.modelOptions.options{4, 1}.tbl.Data = '';
-                                   end
-                               end                                 
-                               % Assign context menu if the first column is
-                               % named 'Select' and is a tick box.
-                               if strcmp(colNames{1},'Select') && strcmp(colFormats{1},'logical')
-                                    contextMenu = uicontextmenu(this.Figure.Parent.Parent.Parent.Parent.Parent.Parent,'Visible','on');
-                                    uimenu(contextMenu,'Label','Copy selected rows','Callback',@this.rowAddDelete);
-                                    uimenu(contextMenu,'Label','Paste rows','Callback',@this.rowAddDelete,'Separator','on');
-                                    uimenu(contextMenu,'Label','Insert row above selection','Callback',@this.rowAddDelete);
-                                    uimenu(contextMenu,'Label','Insert row below selection','Callback',@this.rowAddDelete);            
-                                    uimenu(contextMenu,'Label','Delete selected rows','Callback',@this.rowAddDelete);            
-                                    set(this.modelOptions.options{4, 1}.tbl,'UIContextMenu',contextMenu);  
-                                    set(this.modelOptions.options{4, 1}.tbl.UIContextMenu,'UserData', 'this.modelOptions.options{4, 1}.tbl');
-                               else
-                                   set(this.modelOptions.options{4, 1}.tbl,'UIContextMenu',[]);
+                               % Loop through each model option
+                               if ~iscell(modelSettings)
+                                   modelSettingsTmp = cell(1,1);
+                                   modelSettingsTmp{1} = modelSettings; 
+                                   modelSettings = modelSettingsTmp; 
+                                   clear modelSettingsTmp 
                                end
                                
+                               % Disable all options tabs
+                               for i=1:length(this.modelOptions.options{4, 1}.tabs.TabEnables)
+                                  this.modelOptions.options{4, 1}.tabs.TabEnables{i}='off'; 
+                                  drawnow();   
+                               end
+                               
+                               % Get existing options data and convert from
+                               % a string.
+                               haveInputData = false(size(modelSettings));
+                               if ~isempty(this.weightingFunctions.tbl.Data{this.currentSelection.row ,5})
+                                   try
+                                       data = eval(this.weightingFunctions.tbl.Data{this.currentSelection.row ,5});
+                                       
+                                       % Check 'data' and the model options
+                                       % are the same length
+                                       if length(data) == length(modelSettings)
+                                           for i=1:length(data)
+                                               if strcmpi(modelSettings{i}.colNames(1),'Select')
+                                                   data{i} = [ mat2cell(false(size(data{i},1),1),ones(1,size(data{i},1))) , data{i}];
+                                               end
+                                           end 
+                                           haveInputData(i) =  true;
+                                       else
+                                           warndlg('There are an inconsistent number of input and expected options. The inputs data is being ignored.');
+                                       end
+                                   catch ME
+                                       warndlg('The function options string appears to have a sytax error. It should be an Nx4 cell array.');
+                                       %this.modelOptions.options{4, 1}.tbl.Data = '';
+                                   end
+                                   
+                               end
+                               % Assign model properties and data                               
+                               for i=1:length(modelSettings)
+                                   
+                                   this.modelOptions.options{4, 1}.tabs.TabTitles{i} =  modelSettings{i}.label;
+                                   this.modelOptions.options{4, 1}.tabs.TabEnables{i} =  'on';
+                                   
+                                   optionsTab = findobj(this.modelOptions.options{4,1}.tabs,'Tag',['Weighting Functions - Options Tab ',num2str(i)]);
+                                   optionsTable = findobj(this.modelOptions.options{4,1}.tabs,'Tag',['Weighting Functions - Options Tab ',num2str(i),' table']);
+                                   %optionsTab.Title =  modelSettings{i}.label;
+                                   optionsTable.ColumnName = modelSettings{i}.colNames;
+                                   optionsTable.ColumnEditable = modelSettings{i}.colEdits;
+                                   optionsTable.ColumnFormat = modelSettings{i}.colFormats;          
+                                   optionsTable.TooltipString = modelSettings{i}.TooltipString;
+
+                                   % Input the existing data or else the
+                                   % default settings.
+                                   if haveInputData(i)
+                                       this.modelOptions.options{4, 1}.tbl.Data = data{i};
+                                   else                                       
+                                       if isempty(modelSettings{i}.options)
+                                           optionsTable.Data = cell(1,length(modelSettings{i}.colNames));
+                                       else
+                                           optionsTable.Data = modelSettings{i}.options;
+                                       end
+                                   end    
+                                   
+                                   % Assign context menu if the first column is
+                                   % named 'Select' and is a tick box.
+                                   if strcmp(modelSettings{i}.colNames{1},'Select') && strcmp(modelSettings{i}.colFormats{1},'logical')
+                                        contextMenu = uicontextmenu(this.Figure.Parent.Parent.Parent.Parent.Parent.Parent,'Visible','on');
+                                        uimenu(contextMenu,'Label','Copy selected rows','Callback',@this.rowAddDelete);
+                                        uimenu(contextMenu,'Label','Paste rows','Callback',@this.rowAddDelete,'Separator','on');
+                                        uimenu(contextMenu,'Label','Insert row above selection','Callback',@this.rowAddDelete);
+                                        uimenu(contextMenu,'Label','Insert row below selection','Callback',@this.rowAddDelete);            
+                                        uimenu(contextMenu,'Label','Delete selected rows','Callback',@this.rowAddDelete);            
+                                        set(optionsTable,'UIContextMenu',contextMenu);  
+                                        set(optionsTable.UIContextMenu,'UserData', 'this.modelOptions.options{4, 1}.tbl');
+                                   else
+                                       set(optionsTable,'UIContextMenu',[]);
+                                   end
+                               end
                                % Show table
                                this.modelOptions.grid.Widths = [0 0 0 -1 0 0 0 0 0 0];
                            end
@@ -1572,7 +1633,7 @@ classdef model_TFN_gui < model_gui_abstract
                                end
 
                                % Get output options.
-                               outputOptions = feval(strcat(this.forcingTranforms.tbl.Data{i,2},'.outputForcingdata_options'),this.forcingData.colnames);
+                               outputOptions = feval(strcat(this.forcingTranforms.tbl.Data{i,2},'.outputForcingdata_options'),this.boreID, this.forcingData.data,  this.forcingData.colnames, this.siteData);
 
                                % Add output options from the function
                                % to the list of available options
@@ -1588,7 +1649,7 @@ classdef model_TFN_gui < model_gui_abstract
                                end
 
                                % Get output options.
-                               outputOptions = feval(strcat(this.derivedForcingTranforms.tbl.Data{i,2},'.outputForcingdata_options'),this.forcingData.colnames);
+                               outputOptions = feval(strcat(this.derivedForcingTranforms.tbl.Data{i,2},'.outputForcingdata_options'),this.boreID, this.forcingData.data,  this.forcingData.colnames, this.siteData);
 
                                % Add output options from the function
                                % to the list of available options
@@ -1753,9 +1814,28 @@ classdef model_TFN_gui < model_gui_abstract
                     colnames = 'NA';                    
                     this.weightingFunctions.tbl.Data{this.currentSelection.row ,4} = eval([className,'.cell2string(data, colnames)']);
 
-                case 'Weighting Functions - Model Settings'       
-                    colnames = hObject.ColumnName;
-                    this.weightingFunctions.tbl.Data{this.currentSelection.row ,5} = eval([className,'.cell2string(data, colnames)']);
+                case {'Weighting Functions - Options Tab 1 table','Weighting Functions - Options Tab 2 table', ...
+                     'Weighting Functions - Options Tab 3 table','Weighting Functions - Options Tab 4 table', ...
+                     'Weighting Functions - Options Tab 5 table'}
+                 
+                    optionsString = '{';
+                    for i=1:length(this.modelOptions.options{4, 1}.tabs.TabEnables)
+                        if strcmp(this.modelOptions.options{4, 1}.tabs.TabEnables{i},'on')
+                            optionsTable = findobj(this.modelOptions.options{4,1}.tabs,'Tag',['Weighting Functions - Options Tab ',num2str(i),' table']);
+                            data = get(optionsTable,'Data');
+                            if any(any(cellfun(@(x) ~isempty(x), data)))
+                                colnames = get(optionsTable,'ColumnName');                                
+                                optionsString  = [optionsString , eval([className,'.cell2string(data, colnames)']),', '];
+                            else
+                                optionsString  = [optionsString , '{}, '];
+                            end                            
+                        end                        
+                    end
+                    if ~isempty(optionsString)
+                       optionsString = optionsString(1:end-2); 
+                    end
+                    optionsString  = [optionsString , '} '];
+                    this.weightingFunctions.tbl.Data{this.currentSelection.row ,5} = optionsString;
 
                 case 'Derived Forcing Functions - Source Function'                      
                     % Get selected input option
@@ -2077,11 +2157,10 @@ classdef model_TFN_gui < model_gui_abstract
                         case '.dataWizard'
                            this.modelOptions.options{1, 1}.tbl.Data = cell(0,2);
                            this.modelOptions.options{1, 1}.tbl.Data = cell(size(wizardResults,1),2);
-                           this.modelOptions.options{1, 1}.tbl.RowName=cell(1,length(wizardResults)); 
+                           this.modelOptions.options{1, 1}.tbl.RowName=cell(1,size(wizardResults,1)); 
                            for i=1:size(wizardResults,1)                                   
                                 this.modelOptions.options{1, 1}.tbl.Data{i,1}= wizardResults{i,1};
                                 this.modelOptions.options{1, 1}.tbl.Data{i,2}= wizardResults{i,2};
-                                this.modelOptions.options{1, 1}.tbl.RowName{i}= num2str(i);
                            end     
                            
                            % In case the user does not input/chnage
@@ -2097,6 +2176,7 @@ classdef model_TFN_gui < model_gui_abstract
                     end
            end
 
+           drawnow();   
          end
     end
     

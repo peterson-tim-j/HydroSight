@@ -287,7 +287,7 @@ classdef HydroSightModel < handle
             if strcmp(model_class_name,'')
                 error('The model class name cannot be empty.');
             end           
-            if max(obsDates) > max(forcingDates) || min(obsDates) < min(forcingDates) 
+            if floor(max(obsDates)) > max(forcingDates) || floor(min(obsDates)) < min(forcingDates) 
                 error('The observed head records extend prior to and or after the forcing observations');
             end
                   
@@ -452,9 +452,11 @@ classdef HydroSightModel < handle
 %   simulation results. If no string is provided, then the simulation is
 %   labeled '(No label)'.
 %
-%   doKrigingOnResiduals - logical scaler to krige the model residuals so
-%   that observaed head values equal obsevations. For more setails of the
-%   interpolation see 'interpolateData'
+%   doKrigingOnResiduals - logical scaler or scaler integer>0 to krige the 
+%   model residuals so that observaed head values equal obsevations. If
+%   true then the kriging in undertaken. If an integer >0 then the integer
+%   is used to set the maximum number of data points used in the kriging. For 
+%   more details of the interpolation see 'interpolateData'.
 %
 % Output:
 %   h - matrix of simulated head formatted as the following columns:
@@ -596,7 +598,7 @@ classdef HydroSightModel < handle
            % Krige the residuals so that the simulation honours observation
            % points.
            krigingVariance=[];
-           if doKrigingOnResiduals && isempty(forcingData)           
+           if (doKrigingOnResiduals || doKrigingOnResiduals>0) && isempty(forcingData)           
                nparams = size(obj.simulationResults{simInd,1}.head,3);
                head_estimates = zeros( size(obj.simulationResults{simInd,1}.head,1), 3, nparams);   
                modelResults = cell( size(head_estimates,3),1);
@@ -622,7 +624,11 @@ classdef HydroSightModel < handle
                end
                
               % Set constant for the kriging
-              maxKrigingObs = min(24,length(getObservedHead(obj)));
+              maxKrigingObs = 24;
+              if isnumeric(doKrigingOnResiduals) && ceil(doKrigingOnResiduals)>0
+                maxKrigingObs = ceil(doKrigingOnResiduals);
+              end
+              maxKrigingObs = min(maxKrigingObs,length(getObservedHead(obj)));
               useModel = true;
               
               % Remove the simulation results. This is done to minimise the
@@ -1164,7 +1170,7 @@ classdef HydroSightModel < handle
         end
         
 %% Calibrate the model        
-        function calibrateModel(obj, t_start, t_end, calibrationSchemeName, SchemeSetting , params_upperBound, params_lowerBound)
+        function calibSchemeSettings = calibrateModel(obj, diaryObj, t_start, t_end, calibrationSchemeName, SchemeSetting , params_upperBound, params_lowerBound)
 
 % Calibrate the model
 %
@@ -1296,26 +1302,168 @@ classdef HydroSightModel < handle
 %   7 May 2012
 %
 
-            % Check the input scheme is known.
+            % Set up the calibration options.
             calibrationSchemeName = upper(calibrationSchemeName);
             switch calibrationSchemeName
                 case {'CMA ES','CMA_ES','CMAES','CMA-ES'}
-                    if ~isscalar(SchemeSetting) || (isscalar(SchemeSetting) && (SchemeSetting<0 || floor(SchemeSetting)~=ceil(SchemeSetting)))
-                        error('The CMA-ES calibration scheme requires an input integer scalar >=0 for the number of restarts.');
-                    end
+                    params = getParameters(obj.model);  
+                    nparams = size(params,1); 
+                    MaxFunEvals = Inf;
+                    PopSize = (4 + floor(3*log(nparams)));  
+                    TolX = 1e-11;
+                    TolFun = 1e-12;                    
+                    Restarts = 4;
+                    insigmaFrac = 1/3;
+                    Seed = floor(rand(1)*100000);                   
+                    
+                     if isnumeric(SchemeSetting) 
+                        if SchemeSetting<0 || floor(SchemeSetting)~=ceil(SchemeSetting) 
+                            error('The CMAES calibration scheme requires, at a minimum, an input scalar integer >=0 for the number of restart iterations.');
+                        end
+                        Restarts = SchemeSetting;
+                     elseif isstruct(SchemeSetting)
+                        if isfield(SchemeSetting,'MaxFunEvals')
+                            MaxFunEvals = SchemeSetting.MaxFunEvals;
+                        end
+                        if isfield(SchemeSetting,'PopSize')
+                            PopSize = SchemeSetting.PopSize;
+                        end                        
+                        if isfield(SchemeSetting,'TolX')
+                            TolX = SchemeSetting.TolX;
+                        end                        
+                        if isfield(SchemeSetting,'tolFun')
+                            TolFun = SchemeSetting.TolFun;
+                        end
+                        if isfield(SchemeSetting,'restarts')
+                            Restarts = SchemeSetting.Restarts;
+                        end                         
+                        if isfield(SchemeSetting,'insigmaFrac')
+                            insigmaFrac = SchemeSetting.insigmaFrac;
+                        end                         
+                        if isfield(SchemeSetting,'Seed')
+                            Seed = SchemeSetting.Seed;
+                        end                         
+                        
+                     else
+                         error('The input for the CMAES calibration scheme must be an input scalar integer >=0 or a structure variable.');    
+                     end
+                     
+                     % Build the complete calibSchemeSettings structural
+                     % variable.
+                     calibSchemeSettings.MaxFunEvals = MaxFunEvals;
+                     calibSchemeSettings.PopSize = PopSize;
+                     calibSchemeSettings.TolX = TolX;
+                     calibSchemeSettings.TolFun = TolFun;
+                     calibSchemeSettings.Restarts = Restarts;
+                     calibSchemeSettings.insigmaFrac = insigmaFrac;
+                     calibSchemeSettings.Seed = Seed;
+                     
                 case {'SP UCI','SP_UCI','SPUCI','SP-UCI'}                    
-                    if ~isscalar(SchemeSetting) || (isscalar(SchemeSetting) && (SchemeSetting<1 || floor(SchemeSetting)~=ceil(SchemeSetting) ))
-                        error('The SP-UCI calibration scheme requires an input scalar integer >=1 for the number of complexes per model parameter.');
-                    end
-                case 'DREAM'
-                    if ~isscalar(SchemeSetting) || (isscalar(SchemeSetting) && (SchemeSetting<1 || floor(SchemeSetting)~=ceil(SchemeSetting) ))
-                        error('The DREAM calibration scheme requires an input scalar integer >=1 for the number of Markov cahins per model parameter.');
+                    
+                    params = getParameters(obj.model);  
+                    nparams = size(params,1);                                         
+                    
+                    % Set default options
+                    maxn = inf;
+                    kstop = 10;    
+                    pcento = 1e-10;    
+                    peps = 1e-6;
+                    ngs = 2 * nparams;
+                    iseed = floor(rand(1)*100000);                    
+                    
+                    if isnumeric(SchemeSetting) 
+                        if SchemeSetting<1 || floor(SchemeSetting)~=ceil(SchemeSetting) 
+                            error('The SP-UCI calibration scheme requires, at a minimum, an input scalar integer >=1 for the number of complexes.');
+                        end
+                        ngs = SchemeSetting;
+                        
+                    elseif isstruct(SchemeSetting)
+                        if isfield(SchemeSetting,'maxn')
+                            maxn = SchemeSetting.maxn;
+                        end
+                        if isfield(SchemeSetting,'kstop')
+                            kstop = SchemeSetting.kstop;
+                        end
+                        if isfield(SchemeSetting,'pcento')
+                            pcento = SchemeSetting.pcento;
+                        end
+                        if isfield(SchemeSetting,'peps')
+                            peps = SchemeSetting.peps;
+                        end
+                        if isfield(SchemeSetting,'ngs')
+                            ngs = SchemeSetting.ngs;
+                        end
+                        if isfield(SchemeSetting,'iseed')
+                            iseed = SchemeSetting.iseed;
+                        end                 
+                    else
+                        error('The input for the SP-UCI calibration scheme must be an input scalar integer >=1 or a structure variable.');    
                     end                    
-
-                case {'GLUE-LOA', 'Glue-Loa', 'glue-loa'}
-                    if ~isscalar(SchemeSetting) || (isscalar(SchemeSetting) && (SchemeSetting<1 || floor(SchemeSetting)~=ceil(SchemeSetting) ))
-                        error('The GLUE-LOA calibration scheme requires an input scalar integer >=1 for the number of Markov cahins per model parameter.');
-                    end                                                            
+                    
+                    % Build the complete calibSchemeSettings structural
+                    % variable.
+                    calibSchemeSettings.maxn = maxn;
+                    calibSchemeSettings.kstop = kstop;
+                    calibSchemeSettings.pcento = pcento;
+                    calibSchemeSettings.peps = peps;
+                    calibSchemeSettings.ngs = ngs;
+                    calibSchemeSettings.iseed = iseed;
+                                         
+                case 'DREAM'
+                    % Set default options
+                    N_per_param = 1;
+                    T = 5;
+                    nCR = 3;    
+                    delta = 3;
+                    lambda = 0.05;
+                    zeta = 0.05;
+                    outlier = 'iqr';
+                    pJumpRate_one = 0.2;
+                    
+                    if isnumeric(SchemeSetting) 
+                        if SchemeSetting<1 || floor(SchemeSetting)~=ceil(SchemeSetting) 
+                            error('The DREAM calibration scheme requires, at a minimum, an input scalar integer >=1 for the number 10,000s of model generations per Markov chain.');
+                        end
+                        N_per_param = SchemeSetting;
+                        
+                    elseif isstruct(SchemeSetting)
+                        if isfield(SchemeSetting,'N_per_param')
+                            N_per_param = SchemeSetting.N_per_param;
+                        end
+                        if isfield(SchemeSetting,'T')
+                            T = SchemeSetting.T;
+                        end                        
+                        if isfield(SchemeSetting,'nCR')
+                            nCR = SchemeSetting.nCR;
+                        end
+                        if isfield(SchemeSetting,'delta')
+                            delta = SchemeSetting.delta;
+                        end
+                        if isfield(SchemeSetting,'lambda')
+                            lambda = SchemeSetting.lambda;
+                        end
+                        if isfield(SchemeSetting,'zeta')
+                            zeta = SchemeSetting.zeta;
+                        end
+                        if isfield(SchemeSetting,'outlier')
+                            outlier = SchemeSetting.outlier;
+                        end
+                        if isfield(SchemeSetting,'pJumpRate_one')
+                            pJumpRate_one = SchemeSetting.pJumpRate_one;
+                        end                        
+                    end
+                    
+                    % Build the complete calibSchemeSettings structural
+                    % variable.
+                    calibSchemeSettings.N_per_param = N_per_param;
+                    calibSchemeSettings.T = T;
+                    calibSchemeSettings.nCR = nCR;
+                    calibSchemeSettings.delta = delta;
+                    calibSchemeSettings.lambda = lambda;
+                    calibSchemeSettings.zeta = zeta;
+                    calibSchemeSettings.outlier = outlier;
+                    calibSchemeSettings.pJumpRate_one = pJumpRate_one;
+                                                                              
                 otherwise
                     error('The requested calibration scheme is unknown.');
             end
@@ -1341,7 +1489,7 @@ classdef HydroSightModel < handle
             obj.calibrationResults.isCalibrated = false;
             
             % Check the number of inputs.            
-            if nargin < 5
+            if nargin < 6
                 error('Calibration of the model requires input of at least the following: model object, start date and end date, calibration scheme name, calibration setting');
             end                
             
@@ -1386,7 +1534,7 @@ classdef HydroSightModel < handle
                             
             % Construct and output parameter boundaries.
             %------------
-            if nargin ==7 ...
+            if nargin ==8 ...
             && (size(params_upperBound,1) ~= size(params,1) || size(params_lowerBound,1) ~= size(params,1))
                 error(['The column vectors of parameter bounds "params_upperBound" and "params_lowerBound" ', char(13), ...
                       'must be of the same size as the parameter vector, that is 1 column and ', num2str(nparams), ' rows.']);            
@@ -1397,7 +1545,7 @@ classdef HydroSightModel < handle
                 error('The physical parameter boundaries must be a real number between (and including) -inf and inf.')
             end                      
             
-            if nargin ==5
+            if nargin ==6
 
                 [params_upperBound, params_lowerBound] = getParameters_plausibleLimit(obj.model);
                 if any(isnan(params_upperBound)) || any(isnan(params_upperBound)) || ...
@@ -1461,26 +1609,39 @@ classdef HydroSightModel < handle
             display( char(13) );           
             display('Global calibration scheme is to be undertaken using the following settings');
              switch calibrationSchemeName
-                case {'CMA ES','CMA_ES','CMAES','CMA-ES'}
-                    cmaes_options.PopSize = (4 + floor(3*log(nparams)));  
+                case {'CMA ES','CMA_ES','CMAES','CMA-ES'}                    
                     display( '      - Calibration scheme: Covariance Matrix Adaptation Evolution Strategy (CMA-ES)');
-                    display(['      - Number of initial CMA-ES parameter sets  = ',num2str(cmaes_options.PopSize)]);  
-                    display(['      - Number of CMA-ES calibration restarts = ',num2str(SchemeSetting)]);
-                    
+                    display(['      - Number of initial CMA-ES parameter sets  = ',num2str(PopSize)]);                      
+                    display(['      - Maximum number of model evaluations (maxFunEvals) = ',num2str(MaxFunEvals)]);
+                    display(['      - Absolute change in the objective function for convergency (tolFun) = ',num2str(TolFun)]);
+                    display(['      - Largest absolute change in the parameters for convergency (tolX) = ',num2str(TolX)]);
+                    display(['      - Number CMA-ES calibration restarts (Restarts) = ',num2str(Restarts)]);
+                    display(['      - Standard deviation for the initial parameter sampling, as fraction of plausible parameter bounds (insigmaFrac) = ',num2str(insigmaFrac)]);
+                    display(['      - Random seed number (only for repetetive testing purposes) = ',num2str(Seed)]);
+                                        
                 case {'SP UCI','SP_UCI','SPUCI','SP-UCI'}
                     display( '      - Calibration scheme: Shuffled complex evolution with principal components analysis–University of California at Irvine (SP-UCI)');                    
-                    display(['      - Number of complexes per parameter = ',num2str(SchemeSetting)]);  
+                    display(['      - Max. number of model evaluations (maxn)= ',num2str(maxn)]);  
+                    display(['      - No. of evolution loops meeting convergence criteria (kstop) = ',num2str(kstop)]);  
+                    display(['      - % change in the objective function allowed in kstop loops before convergence (pcento)= ',num2str(pcento)]);  
+                    display(['      - Normalized geometric range of the parameters before convergence (peps)= ',num2str(peps)]);  
+                    display(['      - No. of complexes = ',num2str(ngs)]);  
+                    display(['      - Random seed = ',num2str(iseed)]);  
+                    
                 case 'DREAM'
                     display( '      - Calibration scheme: DiffeRential Evolution Adaptive Metropolis algorithm (DREAM)');                    
-                    display(['      - Number of generations per parameter = ',num2str(10000*SchemeSetting)]);  
-                    
-                case {'GLUE-LOA', 'Glue-Loa', 'glue-loa'}
-                    display( '      - Calibration scheme: Generlaized Liklihood Estimation Limits of Acceptability using DiffeRential Evolution Adaptive Metropolis ABC algorithm (DREAM-ABC)');                    
-                    display(['      - Number of generations per parameter = ',num2str(10000*SchemeSetting)]);  
-                    
+                    display(['      - Number of generations per chain (T) = ',num2str(T*10000)]);                      
+                    display(['      - Number of Markov chains per model parameter (N_per_param) = ',num2str(N_per_param)]);  
+                    display(['      - Number of crossover values (nCR) = ',num2str(nCR)]);  
+                    display(['      - Number chain pairs for proposal (delta) = ',num2str(delta)]);  
+                    display(['      - Random error for ergodicity (lambda) = ',num2str(lambda)]);  
+                    display(['      - Randomization (zeta) = ',num2str(zeta)]);  
+                    display(['      - Test function name for detecting outlier chains (outlier) = ',outlier]);  
+                    display(['      - Probability of jumprate of 1 (pJumpRate_one) = ',num2str(pJumpRate_one)]);  
+                                        
              end             
             display( '      - Summary of parameters for calibration and their bounds: ');
-            display( '      - Param. componant and name, lower and upper boundary value: ');
+            display( '        Param. componant and name, lower and upper boundary value: ');
             disp(sprintf('          %s \t %s \t  %s \t %s \t \t %s \t \t %s', 'Model','Param.','Lower', 'Upper', 'Lower', 'Upper'));
             disp(sprintf('          %s \t %s \t \t %s \t %s \t %s \t %s', 'Componant','Name','(Plausible)', '(Plausible)','(Physical)', '(Physical)'));            
             for ii=1:nparams
@@ -1495,33 +1656,37 @@ classdef HydroSightModel < handle
             % Initial the random seed and some variables.
             rand('seed',seed);
             
+            % Update the diary file
+            if ~isempty(diaryObj)
+                updatetextboxFromDiary(diaryObj);
+            end
+            
             %--------------------------------------------------------------
             % Do SCE calibration using the objective function SSE.m
             log_L=[];
             switch upper(calibrationSchemeName)
                 case {'CMA ES','CMA_ES','CMAES','CMA-ES'}
                     
-                    cmaes_options.LBounds = params_lowerPhysBound;
-                    cmaes_options.UBounds = params_upperPhysBound;
-                    cmaes_options.Restarts = SchemeSetting;
-                    cmaes_options.LogFilenamePrefix = ['CMAES_',obj.bore_ID];
-                    cmaes_options.LogPlot = 'off';
-                    cmaes_options.CMA.active = 1;
+                    calibSchemeSettings.LBounds = params_lowerPhysBound;
+                    calibSchemeSettings.UBounds = params_upperPhysBound;
+                    calibSchemeSettings.LogFilenamePrefix = ['CMAES_',obj.bore_ID];
+                    calibSchemeSettings.LogPlot = 'off';
+                    calibSchemeSettings.CMA.active = 1;
                     
-                    cmaes_options.EvalParallel = 'yes';     % Undertake parrallel function evaluation
-                    cmaes_options.SaveVariables = 'off';    % Do not save .mat file of results.
+                    calibSchemeSettings.EvalParallel = 'yes';     % Undertake parrallel function evaluation
+                    calibSchemeSettings.SaveVariables = 'off';    % Do not save .mat file of results.
                     
                     useLikelihood = false;
                     
                     % Define bounds and initial standard dev of params
-                    insigma = 1/3*(params_upperBound - params_lowerBound);
+                    insigma = insigmaFrac*(params_upperBound - params_lowerBound);
                     params_start = params_lowerBound + 1/2.*(params_upperBound - params_lowerBound);
                     params_start = [mat2str(params_start) '+ insigma .* (2 * rand(',num2str(nparams),',1) -1)'];                    
                     
                     % Do calibration
                     doParamTranspose = false;
                     [params_finalEvol, fmin_finalEvol, numFunctionEvals, exitflag, evolutions, params_bestever] ...            
-                     = cmaes( 'calibrationObjectiveFunction', params_start, insigma, cmaes_options, obj, time_points, doParamTranspose, useLikelihood );
+                     = cmaes( 'calibrationObjectiveFunction', params_start, insigma, calibSchemeSettings, diaryObj, obj, time_points, doParamTranspose, useLikelihood );
 
                     % Assign best every solution to params variable
                     params = params_bestever.x;
@@ -1577,12 +1742,12 @@ classdef HydroSightModel < handle
                     end                        
                         
                 case {'SP UCI','SP_UCI','SPUCI','SP-UCI'}
-                    maxn = inf;
-                    kstop = 10;    
-                    pcento = 1e-10;    
-                    peps = 1e-6;
-                    ngs = SchemeSetting*nparams;
-                    iseed = floor(rand(1)*100000);
+                    maxn = calibSchemeSettings.maxn;
+                    kstop = calibSchemeSettings.kstop; 
+                    pcento = calibSchemeSettings.pcento; 
+                    peps = calibSchemeSettings.peps;
+                    ngs = calibSchemeSettings.ngs;
+                    iseed = calibSchemeSettings.iseed;
                     iniflg =  1;                
                     useLikelihood=false;
 
@@ -1594,7 +1759,7 @@ classdef HydroSightModel < handle
                     doParamTranspose = false;
                     [params, fmin,numFunctionEvals, exitFlag, exitStatus] = SPUCI(@calibrationObjectiveFunction, @calibrationValidParameters, ...
                         params', params_lowerBound', params_upperBound', params_lowerPhysBound', params_upperPhysBound', maxn, ...
-                        kstop, pcento, peps, ngs, iseed, iniflg, obj, time_points, doParamTranspose, useLikelihood); 
+                        kstop, pcento, peps, ngs, iseed, iniflg, diaryObj, obj, time_points, doParamTranspose, useLikelihood); 
                         params = params';
                     
                     if exitFlag==0
@@ -1606,7 +1771,7 @@ classdef HydroSightModel < handle
                     end
 
                     
-                case {'DREAM','GLUE-ABC'}
+                case 'DREAM'
               
                     % Application specific settings.
                     % -------------------------------------------------------------------------
@@ -1622,40 +1787,29 @@ classdef HydroSightModel < handle
                     % -------------------------------------------------------------------------
                     %                           DEFAULT VALUES
                     % -------------------------------------------------------------------------
-                    DREAMPar.nCR = 3;                 % Number of crossover values 
-                    DREAMPar.delta = 3;               % Number chain pairs for proposal
-                    DREAMPar.lambda = 0.05;           % Random error for ergodicity
-                    DREAMPar.zeta = 0.05;             % Randomization
-                    DREAMPar.outlier = 'iqr';         % Test to detect outlier chains
-                    DREAMPar.pJumpRate_one = 0.2;     % Probability of jumprate of 1
-                    DREAMPar.pCR = 'yes';             % Adaptive tuning crossover values
-                    DREAMPar.thinning = 1;            % Each Tth sample is stored         
+                    calibSchemeSettings.pCR = 'yes';             % Adaptive tuning crossover values
+                    calibSchemeSettings.thinning = 1;            % Each Tth sample is stored         
                     % -------------------------------------------------------------------------
                     %                           MODEL SPECIFIC VALUES
                     % -------------------------------------------------------------------------                    
-                    DREAMPar.d = nparams;             % Dimensionality target distribution
-                    DREAMPar.N =max(nparams, 2*DREAMPar.delta+1);   % Number of Markov chains
-                    DREAMPar.T = 10000*SchemeSetting;  % Number of generations
-                    DREAMPar.lik=2;                   % Choice of likelihood function
+                    calibSchemeSettings.d = nparams;             % Dimensionality target distribution
+                    calibSchemeSettings.N = max(calibSchemeSettings.N_per_param * nparams, 2*calibSchemeSettings.delta+1);   % Number of Markov chains                    
+                    calibSchemeSettings.T = 10000*calibSchemeSettings.T;  % Number of generations
+                    calibSchemeSettings.lik=2;                   % Choice of likelihood function
                     useLikelihood = true;
-                    DREAMPar.restart = 'no';
-                    DREAMPar.modout='no';
-                    DREAMPar.save='no';
-                    
-                    % Add settings if undertaking GLUE LOA using DREAM
-                    if strcmp(upper(calibrationSchemeName), 'GLUE-ABC')                       
-                        DREAMPar.ABC = 'yes';                   % Specify that we perform ABC
-                    end
-                    
+                    calibSchemeSettings.restart = 'no';
+                    calibSchemeSettings.modout='no';
+                    calibSchemeSettings.save='no';
+                                        
                     % -------------------------------------------------------------------------
                     %                      OPTIONAL (DEFAULT = 'no'  / not used )
                     % -------------------------------------------------------------------------
                     % Multi-core computation chains? Turn on if there are
                     % >1 cores available.
                     if feature('numCores')>1
-                        DREAMPar.parallel = 'yes';        
+                        calibSchemeSettings.parallel = 'yes';        
                     else
-                        DREAMPar.parallel = 'no';
+                        calibSchemeSettings.parallel = 'no';
                     end
                     % Set parameter bounds
                     Par_info.prior ='latin';
@@ -1665,12 +1819,12 @@ classdef HydroSightModel < handle
 
                     % Do calibration 
                     doParamTranspose = true;
-                    [params,output,fx,log_L] = DREAM(@calibrationObjectiveFunction,DREAMPar,Par_info,[], obj, time_points, doParamTranspose,useLikelihood);
+                    [params,output,fx,log_L] = DREAM(@calibrationObjectiveFunction,calibSchemeSettings,Par_info,[], diaryObj, obj, time_points, doParamTranspose,useLikelihood);
                               
                     % Extract the R_statistic values and dilter for those
                     % where R_statistic<1.2 for all parameters in the set.
                     r_stat_threshold = 1.2;
-                    r_stat_acceptable = all(output.R_stat(1: end, 2: DREAMPar.d + 1)<r_stat_threshold,2);
+                    r_stat_acceptable = all(output.R_stat(1: end, 2: calibSchemeSettings.d + 1)<r_stat_threshold,2);
                     
                     % Find the threshold generations where R-stat criteria is first met.
                     convergedParamSamplesThreshold = min(output.R_stat(r_stat_acceptable,1));
@@ -1712,7 +1866,7 @@ classdef HydroSightModel < handle
                             ' and recommended is at least ',num2str(reqMinParamSamples)];                        
                     end
 
-                    convergedParamSamplesThreshold = floor(convergedParamSamplesThreshold/DREAMPar.N);
+                    convergedParamSamplesThreshold = floor(convergedParamSamplesThreshold/calibSchemeSettings.N);
                     params = params(convergedParamSamplesThreshold:end,:,:);
                     params = genparset(params);
                     paramsTmp = params(:,1:nparams)';
@@ -1994,7 +2148,7 @@ classdef HydroSightModel < handle
             if nargin<3 || isempty(figHandle)
                 % Create new figure window.
                 figHandle = figure('Name',['Calib. ',obj.bore_ID]);
-                h = figHandle;
+                h=axes(figHandle);
             elseif ~ishandle(figHandle)    
                 error('Input handle is not a valid figure handle.');
             else
@@ -2056,7 +2210,6 @@ classdef HydroSightModel < handle
                        YFill = [obj.calibrationResults.data.modelledNoiseBounds(:,3)', ...
                                 fliplr(obj.calibrationResults.data.modelledNoiseBounds(:,2)')];
                    end
-                   %fill(XFill, YFill,[0.8 0.8 0.8],'Parent',h);
                    fill(XFill, YFill,[0.8 0.8 0.8],'Parent',h);
                    clear XFill YFill               
                    hold(h,'on');

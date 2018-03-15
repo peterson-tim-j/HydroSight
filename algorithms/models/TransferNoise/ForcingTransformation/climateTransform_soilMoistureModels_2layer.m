@@ -182,7 +182,7 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
             isOptionalInput = [false; false; true];
         end
         
-        function [variable_names] = outputForcingdata_options(inputForcingDataColNames)
+        function [variable_names] = outputForcingdata_options(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates)
             variable_names = {'drainage';'drainage_bypassFlow';'drainage_normalised';'infiltration';'evap_soil';'evap_gw_potential';'runoff';'SMS'; ...
                 'drainage_deep';'drainage_bypassFlow_deep';'drainage_normalised_deep';'evap_soil_deep';'evap_soil_total';'SMS_deep';'time'};
         end
@@ -417,7 +417,7 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
                 end
             end
             all_parameter_names = all_parameter_names(ind);
-            
+                        
             % Assign model parameters.
             % Importantly, if the parameter is not listed then that 
             % feature of the soil moisture model is turned off.
@@ -434,19 +434,22 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
                     end
                 end
             
-                % Record the deep parameters not lised as 'Fixed'.
+                % Record the deep parameters not listed as 'Fixed'.
                 if isempty(ind)
                     obj.settings.fixedParameters.(all_parameter_names{i})=false;
                     obj.settings.activeParameters.(all_parameter_names{i})=false;                    
                     if strcmp(all_parameter_names{i}, 'beta_deep')
                         % Note, beta is transformed in the soil model to 10^beta.
                         obj.(all_parameter_names{i}) = 0;
+                        
                     elseif strcmp(all_parameter_names{i}, 'k_sat_deep')
                         % Note, k_sat is transformed in the soil model to
                         % 10^k_sat = 0 m/d.
-                        obj.(all_parameter_names{i}) = -inf;
+                        obj.(all_parameter_names{i}) = -inf;                        
+                        
                     elseif strcmp(all_parameter_names{i}, 'S_initialfrac_deep')
-                        obj.(all_parameter_names{i}) = [];  
+                        obj.(all_parameter_names{i}) = 0.5;  
+                        
                     else
                         obj.(all_parameter_names{i}) = 0;
                     end
@@ -463,6 +466,24 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
                 obj.settings.activeParameters.SMSC_deep_trees = false; 
                 obj.settings.fixedParameters.SMSC_deep_trees = true;
             end
+            
+            % Check that deep parameters set to NaN are not active.
+            if isnan(obj.beta_deep) && obj.settings.activeParameters.beta_deep
+                error('"beta_deep" can only be initialsied to Nan if it is "Fixed".');
+            end                        
+            if isnan(obj.k_sat_deep) && obj.settings.activeParameters.k_sat_deep
+                error('"k_sat_deep" can only be initialsied to Nan if it is "Fixed".');
+            end                                    
+            if isnan(obj.S_initialfrac_deep) && obj.settings.activeParameters.S_initialfrac_deep
+                error('"S_initialfrac_deep" can only be initialsied to Nan if it is "Fixed".');
+            end                
+            if isnan(obj.SMSC_deep_trees) && obj.settings.activeParameters.SMSC_deep_trees
+                error('"SMSC_deep_trees" can only be initialsied to Nan if it is "Fixed".');
+            end                
+            if isnan(obj.SMSC_deep) && obj.settings.activeParameters.SMSC_deep_trees
+                error('"SMSC_deep" can only be initialsied to Nan if it is "Fixed".');
+            end                
+            
         end
 
 %% Return fixed upper and lower bounds to the parameters.

@@ -14,7 +14,7 @@ classdef derivedForcing_linearUnconstrainedScaling_dup < derivedForcingTransform
             isOptionalInput = false;
         end
         
-        function [variable_names] = outputForcingdata_options(inputForcingDataColNames)
+        function [variable_names] = outputForcingdata_options(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates)
             variable_names = {'scaledForcing'};
         end
         

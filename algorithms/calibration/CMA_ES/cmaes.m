@@ -9,6 +9,7 @@ function [xmin, ...      % minimum search point of last iteration
     xstart, ...    % objective variables initial point, determines N
     insigma, ...   % initial coordinate wise standard deviation(s)
     inopts, ...    % options struct, see defopts below
+    calibGUI_interface_obj, ...  % Object for interfacing with calibratoin GUI
     varargin )     % arguments passed to objective function 
 % cmaes.m, Version 3.61.beta, last change: April, 2012 
 % CMAES implements an Evolution Strategy with Covariance Matrix
@@ -631,6 +632,17 @@ else % flgresume
     bnd.iniphase = 1;
   end
 
+  % Update the diary file
+  if ~isempty(calibGUI_interface_obj)
+     updatetextboxFromDiary(calibGUI_interface_obj);
+    [doQuit, exitFlagQuit, exitStatusQuit] = getCalibrationQuitState(calibGUI_interface_obj);
+    if doQuit
+        exitFlag = exitFlagQuit;
+        exitStatus = exitStatusQuit;
+        return;
+    end     
+  end  
+  
   % ooo initial feval, for output only
   if irun == 1 
     out.solutions.bestever.x = xmean;
@@ -743,6 +755,18 @@ else % flgresume
   end % irun == 1
   
 end % else flgresume 
+
+% Update the diary file
+if ~isempty(calibGUI_interface_obj)
+    updatetextboxFromDiary(calibGUI_interface_obj);
+    [doQuit, exitFlagQuit, exitStatusQuit] = getCalibrationQuitState(calibGUI_interface_obj);
+    if doQuit
+        exitFlag = exitFlagQuit;
+        exitStatus = exitStatusQuit;
+        return;
+    end 
+end  
+
 
 % -------------------- Generation Loop --------------------------------
 stopflag = {};
@@ -1831,6 +1855,17 @@ while isempty(stopflag)
   end
   time.t0 = clock;
 
+  % Update the diary file
+  if ~isempty(calibGUI_interface_obj)
+     updatetextboxFromDiary(calibGUI_interface_obj);
+    [doQuit, exitFlagQuit, exitStatusQuit] = getCalibrationQuitState(calibGUI_interface_obj);
+    if doQuit
+        exitFlag = exitFlagQuit;
+        exitStatus = exitStatusQuit;
+        return;
+    end     
+  end   
+  
   % ----- end output generation -----
 
 end % while, end generation loop
@@ -1899,6 +1934,18 @@ end
 	|| any(strcmp(stopflag, 'manual'))
     break; 
   end
+  
+  % Update the diary file
+  if ~isempty(calibGUI_interface_obj)
+     updatetextboxFromDiary(calibGUI_interface_obj);
+    [doQuit, exitFlagQuit, exitStatusQuit] = getCalibrationQuitState(calibGUI_interface_obj);
+    if doQuit
+        exitFlag = exitFlagQuit;
+        exitStatus = exitStatusQuit;
+        return;
+    end     
+  end  
+  
 end % while irun <= Restarts
 
 % ---------------------------------------------------------------  

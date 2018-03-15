@@ -14,7 +14,7 @@ classdef derivedForcing_linearUnconstrainedScaling < derivedForcingTransform_abs
             isOptionalInput = false;
         end
         
-        function [variable_names] = outputForcingdata_options(inputForcingDataColNames)
+        function [variable_names] = outputForcingdata_options(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates)
             variable_names = {'scaledForcing'};
         end
         
@@ -185,8 +185,17 @@ classdef derivedForcing_linearUnconstrainedScaling < derivedForcingTransform_abs
         
         % setForcingData sets the forcing data.        
         function setForcingData(obj, forcingData, forcingData_colnames)
-            obj.settings.forcingData_colnames = forcingData_colnames;
-            obj.settings.forcingData = forcingData;
+            if length(forcingData_colnames) < length(obj.settings.forcingData_colnames)
+                error('The number of column name to be set is less than that used to build the object.');
+            end
+            forcingDataNew = nan(size(forcingData,1),length(obj.settings.forcingData_colnames));
+            for i=1:length(forcingData_colnames)               
+                filt  = strcmp(obj.settings.forcingData_colnames, forcingData_colnames{i});
+                if ~isempty(filt)
+                    forcingDataNew(:,filt) = forcingData(:,i);
+                end
+            end
+            obj.settings.forcingData = forcingDataNew;
         end             
         
         function delete(obj)

@@ -1,4 +1,4 @@
-classdef  responseFunction_FerrisKnowles < responseFunction_abstract
+classdef  responseFunction_FerrisKnowles < responseFunction_abstract & dynamicprops
 % Pearson's type III impulse response transfer function class. 
 
     properties(GetAccess=public, SetAccess=protected)          
@@ -13,8 +13,12 @@ classdef  responseFunction_FerrisKnowles < responseFunction_abstract
 % in order to be accessable within the GUI.    
     methods(Static)    
         
-        function [options, colNames, colFormats, colEdits, tooltipString] = modelOptions(bore_ID, forcingDataSiteID, siteCoordinates)
+        function options = modelOptions(bore_ID, forcingDataSiteID, siteCoordinates)
 
+            % Build model options
+            options{1} = modelOptions();
+            options{2} = modelOptions();
+            
             % Get list of site IDs
             if istable(siteCoordinates)
                 siteIDs = siteCoordinates{:,1}';
@@ -24,18 +28,23 @@ classdef  responseFunction_FerrisKnowles < responseFunction_abstract
                         
             % Reshape to be one row.
             forcingDataSiteID = reshape(forcingDataSiteID, 1, length(forcingDataSiteID));            
-            
-            % No optins are pre-set
-            options = {};
         
             % Assign format of table for GUI.
-            colNames = {'Select' 'Pumping Bore ID', 'Image Bore ID', 'Image Bore Type'};
-            colFormats = {'logical', forcingDataSiteID, siteIDs, {'Recharge','No flow'}};
-            colEdits = logical([1 1 1 1]);
-            
-            tooltipString = ['<html>Use this table to set boundary conditions. Note, the coordinate. <br>', ...
+            options{1}.label = 'Image wells';
+            options{1}.colNames ={'Select' 'Pumping Bore ID', 'Image Bore ID', 'Image Bore Type'};
+            options{1}.colFormats = {'logical', forcingDataSiteID, siteIDs, {'Recharge','No flow'}};
+            options{1}.colEdits = logical([1 1 1 1]);            
+            options{1}.TooltipString = ['<html>Use this table to set image wells. Note, the coordinate. <br>', ...
                              'of the boundary must listed within the coordinates input file.'];            
-            
+
+            options{2}.label = 'Radius of influence';
+            options{2}.colNames = {'Setting name','Setting value'};
+            options{2}.colFormats = {'char', {'true','false'}};
+            options{2}.colEdits = logical([0 1]);            
+            options{2}.options = {'Calibrated radius of influence?','false';'Calibrate anisotropic ratio?','false'};
+            options{2}.TooltipString =['<html>Use this table to calibrate the radius of influence. Note,  <br>', ...
+                             'pumps outside of the radus will produce zero drawdown at the obs. bore.'];            
+                         
         end    
         
         function modelDescription = modelDescription()
@@ -86,35 +95,35 @@ classdef  responseFunction_FerrisKnowles < responseFunction_abstract
             % Set the image well options.
             nOptions = size(options,1);
             if nOptions>0
-
-                % Check that the options is a cell object of Nx3
-                if ~isempty(options) && (~iscell(options) || size(options,2) ~=3)
-                    error('The input data for image wells but be a Nx3 cell array where for each row the left column contains a production bore ID, the centre column an image well ID and the right column the options "No flow" or "Recharge".');
-                end                
                 
                 % Get the list of available options
-                [~, ~, cellFormat] = responseFunction_FerrisKnowles.modelOptions(bore_ID, forcingDataSiteID, siteCoordinates);                
+                defaultOptions = responseFunction_FerrisKnowles.modelOptions(bore_ID, forcingDataSiteID, siteCoordinates);                
 
+                % Check that the options is a cell object of Nx3
+                if ~isempty(options) && (length(options) ~= length(defaultOptions))
+                    error('The input options is inconsistent with that for responseFunction_FerrisKnowles.');
+                end                
+                                                
                 % Extract the available types of image wells.
-                availableImageTypes = cellFormat{end};
+                availableImageTypes = defaultOptions{1}.colFormats{end};
                 
                 % Check the image well type is valid.
-                for i=1:nOptions
-                    filt = cellfun(@(x)strcmp(x,options(i,3)),availableImageTypes);
-                    if ~any(filt);
+                for i=1:size(options{1},1)
+                    filt = cellfun(@(x)strcmp(x,options{1}(i,3)),availableImageTypes);
+                    if ~any(filt)
                         error('The image well types specified within the third column of the input options cell array can only be "Recharge" or "No flow".'); 
                     end
                 end
                 
                 % Check the first column contains only production bore IDs and
                 % the second column does not contain production bore IDs (or obs bore ID). 
-                for i=1:nOptions
+                for i=1:size(options{1},1)
                     % Check the left column ID is a forcingDataSiteID
                     isSiteIDError = true;
                     for j=1: nForcingSites                    
-                        if strcmp(forcingDataSiteID(j), options(i,1))
+                        if strcmp(forcingDataSiteID(j), options{1}(i,1))
                             isSiteIDError = false;                        
-                        elseif strcmp(bore_ID, options(i,1))
+                        elseif strcmp(bore_ID, options{1}(i,1))
                             isSiteIDError = true;
                             break;
                         end
@@ -126,8 +135,8 @@ classdef  responseFunction_FerrisKnowles < responseFunction_abstract
                     % Check the right column ID is a forcingDataSiteID
                     isSiteIDError = false;
                     for j=1: nForcingSites                    
-                        if strcmp(forcingDataSiteID(j), options(i,2)) ...
-                        || strcmp(bore_ID, options(i,2))                            
+                        if strcmp(forcingDataSiteID(j), options{1}(i,2)) ...
+                        || strcmp(bore_ID, options{1}(i,2))                            
                             isSiteIDError = true;
                             break
                         end
@@ -139,18 +148,19 @@ classdef  responseFunction_FerrisKnowles < responseFunction_abstract
                 
                 % Cycle through each production bore and get the image well
                 % site IDs for the production bore.
-                for j=1:size(obj.settings.pumpingBores,1);
-                    
-                    filt = cellfun(@(x)strcmp(x,obj.settings.pumpingBores{j,1}.BoreID),options(:,1));
-                    if any(filt)
-                        obj.settings.pumpingBores{j,1}.imageBoreID = options(filt,2);
-                        obj.settings.pumpingBores{j,1}.imageBoreType =  options(filt,3);                    
+                for j=1:size(obj.settings.pumpingBores,1)
+                    if ~isempty(options{1})
+                        filt = cellfun(@(x)strcmp(x,obj.settings.pumpingBores{j,1}.BoreID),options{1}(:,1));
+                        if any(filt)
+                            obj.settings.pumpingBores{j,1}.imageBoreID = options{1}(filt,2);
+                            obj.settings.pumpingBores{j,1}.imageBoreType =  options{1}(filt,3);
+                        end
                     end
                 end
                 
                 % Now cycle though each production bore and get the
                 % coordinates for each image well.
-                for i=1:size(obj.settings.pumpingBores,1);                                                            
+                for i=1:size(obj.settings.pumpingBores,1)                                                            
                     if isfield(obj.settings.pumpingBores{i,1},'imageBoreID')
                         % Cycle though each image bore for current production bore and 
                         % find the coordinates.                        
@@ -165,9 +175,40 @@ classdef  responseFunction_FerrisKnowles < responseFunction_abstract
                 end
             end
             
+            % Set the search radius option
+            if ~isempty(options)
+                if strcmp(options{2}(1,2),'true')
+                    dynPropMetaData{1} = addprop(obj,'searchRadiusFrac');                
+                    obj.searchRadiusFrac=0.5;     
+
+
+                    % Find the maximum distance to pumps 
+                    for i=1: size(obj.settings.pumpingBores,1)
+                        % Calc. distance to obs well.
+                        pumpDistances(i) = sqrt((obj.settings.obsBore.Easting - obj.settings.pumpingBores{i,1}.Easting).^2 ...
+                            + (obj.settings.obsBore.Northing - obj.settings.pumpingBores{i,1}.Northing).^2);                
+                    end                
+                    obj.settings.pumpingBoresMaxDistance = max(pumpDistances);
+                end
+                if strcmp(options{2}(2,2),'true')
+                    dynPropMetaData{2} = addprop(obj,'searchRadiusIsotropicRatio');                
+                    obj.searchRadiusIsotropicRatio=0.5;                
+                end
+            else
+                obj.settings.pumpingBoresMaxDistance = inf;                
+            end
+            
             % Define default parameters 
             if nargin==4
                 params=[log10(1e-4); log10(0.01)];
+                
+                if isprop(obj,'searchRadiusFrac')
+                    params=[params; 0.5];
+                end
+                if isprop(obj,'searchRadiusIsotropicRatio')
+                    params=[params; 0.5];
+                end
+                
             end
                
             % Set parameters for transfer function.
@@ -178,6 +219,12 @@ classdef  responseFunction_FerrisKnowles < responseFunction_abstract
         function setParameters(obj, params)
             obj.alpha = params(1,:);
             obj.beta = params(2,:);        
+            if isprop(obj,'searchRadiusFrac')
+                obj.searchRadiusFrac = params(3);
+            end
+            if isprop(obj,'searchRadiusIsotropicRatio')
+                obj.searchRadiusIsotropicRatio = params(4);
+            end           
         end
         
         % Get model parameters
@@ -185,6 +232,15 @@ classdef  responseFunction_FerrisKnowles < responseFunction_abstract
             params(1,:) = obj.alpha;
             params(2,:) = obj.beta;    
             param_names = {'alpha';'beta'};
+
+            if isprop(obj,'searchRadiusFrac')
+                params(3,:) = obj.searchRadiusFrac; 
+                param_names{3} = 'searchRadiusFrac';
+            end
+            if isprop(obj,'searchRadiusIsotropicRatio')
+                params(4,:) = obj.searchRadiusIsotropicRatio; 
+                param_names{4} = 'searchRadiusIsotropicRatio';
+            end            
         end        
         
         function isValidParameter = getParameterValidity(obj, params, param_names)
@@ -210,7 +266,16 @@ classdef  responseFunction_FerrisKnowles < responseFunction_abstract
         % Return fixed upper and lower bounds to the parameters.
         function [params_upperLimit, params_lowerLimit] = getParameters_physicalLimit(obj)
             params_upperLimit = inf(2,1);
-            params_lowerLimit = [log10(sqrt(eps())); log10(eps())];
+            params_lowerLimit = [log10(sqrt(eps())); log10(eps())];            
+            
+            if isprop(obj,'searchRadiusFrac')
+                params_upperLimit = [params_upperLimit; 1];
+                params_lowerLimit = [params_lowerLimit; 0];
+            end
+            if isprop(obj,'searchRadiusIsotropicRatio')
+                params_upperLimit = [params_upperLimit; 1];
+                params_lowerLimit = [params_lowerLimit; 0];
+            end         
         end        
         
         % Return fixed upper and lower plausible parameter ranges. 
@@ -220,6 +285,15 @@ classdef  responseFunction_FerrisKnowles < responseFunction_abstract
         function [params_upperLimit, params_lowerLimit] = getParameters_plausibleLimit(obj)
             params_upperLimit = [1; -1];
             params_lowerLimit = [-5; -7];            
+
+            if isprop(obj,'searchRadiusFrac')
+                params_upperLimit = [params_upperLimit; 1];
+                params_lowerLimit = [params_lowerLimit; 0];
+            end
+            if isprop(obj,'searchRadiusIsotropicRatio')
+                params_upperLimit = [params_upperLimit; 1];
+                params_lowerLimit = [params_lowerLimit; 0];
+            end                     
         end
         
         % Calculate impulse-response function for each pumping bore.
@@ -230,7 +304,15 @@ classdef  responseFunction_FerrisKnowles < responseFunction_abstract
             for i=1: size(obj.settings.pumpingBores,1)
                 % Calc. distance to obs well.
                 pumpDistancesSqr = (obj.settings.obsBore.Easting - obj.settings.pumpingBores{i,1}.Easting).^2 ...
-                    + (obj.settings.obsBore.Northing - obj.settings.pumpingBores{i,1}.Northing).^2;                
+                    + (obj.settings.obsBore.Northing - obj.settings.pumpingBores{i,1}.Northing).^2;
+                
+                if isprop(obj,'searchRadiusFrac')
+                   if sqrt(pumpDistancesSqr) > (obj.searchRadiusFrac * obj.settings.pumpingBoresMaxDistance)
+                       result(:,i) = 0;
+                       continue;
+                   end
+                end
+                
                 if isfield(obj.settings.pumpingBores{i,1},'imageBoreID')
 
                     % Calculate the distance to each image bore.

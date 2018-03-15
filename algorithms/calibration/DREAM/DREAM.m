@@ -1,4 +1,4 @@
-function [chain,output,fx,log_L] = DREAM(Func_name,DREAMPar,Par_info,Meas_info, varargin);
+function [chain,output,fx,log_L] = DREAM(Func_name,DREAMPar,Par_info,Meas_info, calibGUI_interface_obj, varargin);
 % ----------------------------------------------------------------------------------------------%
 %                                                                                               %
 % DDDDDDDDDDDDDDD    RRRRRRRRRRRRRR     EEEEEEEEEEEEEEEE       AAAAA       MMM             MMM  %
@@ -162,6 +162,17 @@ if usejava('desktop')
 end
 totaccept = 0; tic;
 
+% Update the diary file
+if ~isempty(calibGUI_interface_obj)
+    updatetextboxFromDiary(calibGUI_interface_obj);
+    [doQuit, exitFlagQuit, exitStatusQuit] = getCalibrationQuitState(calibGUI_interface_obj);
+    if doQuit
+        exitFlag = exitFlagQuit;
+        exitStatus = exitStatusQuit;
+        return;
+    end    
+end
+
 % Now start iteration ...
 for t = T_start : DREAMPar.T,
     
@@ -257,6 +268,16 @@ for t = T_start : DREAMPar.T,
         
     end;
     
+    % Update the diary file
+    if ~isempty(calibGUI_interface_obj)
+        updatetextboxFromDiary(calibGUI_interface_obj);
+        [doQuit, exitFlagQuit, exitStatusQuit] = getCalibrationQuitState(calibGUI_interface_obj);
+        if doQuit
+            exitFlag = exitFlagQuit;
+            exitStatus = exitStatusQuit;
+            return;
+        end        
+    end    
 end;
 
 % -------------------------------------------------------------------------
@@ -270,4 +291,15 @@ output.RunTime = toc;
 % Close the waitbar
 if usejava('desktop')
     close(h);
+end
+
+% Update the diary file
+if ~isempty(calibGUI_interface_obj)
+    updatetextboxFromDiary(calibGUI_interface_obj);
+    [doQuit, exitFlagQuit, exitStatusQuit] = getCalibrationQuitState(calibGUI_interface_obj);
+    if doQuit
+        exitFlag = exitFlagQuit;
+        exitStatus = exitStatusQuit;
+        return;
+    end    
 end

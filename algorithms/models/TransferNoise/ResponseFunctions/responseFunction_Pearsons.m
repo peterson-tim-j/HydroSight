@@ -12,12 +12,16 @@ classdef responseFunction_Pearsons < responseFunction_abstract
 % Static methods used by the Graphical User Interface to inform the
 % user of the available model options and their input format.
     methods(Static)        
-        function [options, colNames, colFormats, colEdits, tooltipString] = modelOptions(bore_ID, forcingDataSiteID, siteCoordinates)
+        function options = modelOptions(bore_ID, forcingDataSiteID, siteCoordinates)
+            
+            options{1} = modelOptions();
+            
             % Assign format of table for GUI.
-            colNames = {'Parameter Name', 'Lower Physical Bound', 'Upper Physical Bound'};
-            colFormats = {'char', 'numeric', 'numeric'};
-            colEdits = logical([0 1 1]);
-            tooltipString = ['<html>Use this table to set parameter bounds for the calibration. <br>', ...
+            options{1}.label = 'Parameter bounds';
+            options{1}.colNames = {'Parameter Name', 'Lower Physical Bound', 'Upper Physical Bound'};
+            options{1}.colFormats = {'char', 'numeric', 'numeric'};
+            options{1}.colEdits = logical([0 1 1]);
+            options{1}.TooltipString = ['<html>Use this table to set parameter bounds for the calibration. <br>', ...
                              'If weighting the drainage from a soil model and, say, the forcing and <br>', ...
                              'data are in SI units (mm and m respectively), then consider setting <br>', ...
                              'the bounds for parameter A to reflect plausible values of specific yield. <br>', ...
@@ -28,7 +32,7 @@ classdef responseFunction_Pearsons < responseFunction_abstract
             params_upperLimit = [inf; log10(-log(sqrt(eps()))); inf];
             params_lowerLimit = [log10(sqrt(eps())); log10(sqrt(eps())); log10(sqrt(eps()))];    
             
-            options = {'A', params_lowerLimit(1), params_upperLimit(1); ...
+            options{1}.options = {'A', params_lowerLimit(1), params_upperLimit(1); ...
                        'b', params_lowerLimit(2), params_upperLimit(2); ...
                        'n', params_lowerLimit(3), params_upperLimit(3)};
             

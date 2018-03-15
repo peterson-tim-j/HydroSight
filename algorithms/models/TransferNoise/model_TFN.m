@@ -295,7 +295,8 @@ classdef model_TFN < model_abstract
             
             % Check the forcing data does not contain nan or infs
             if any(any( isnan(forcingData_data) | isinf(forcingData_data)))
-                error('The input forcing data to model_TFN cannot contain any empty, nan or inf values.')
+                ind = find(any(isnan(forcingData_data) | isinf(forcingData_data),2),1,'first');
+                error(['Forcing data contains empty, nan or inf values (line ', num2str(ind),')']);
             end            
             
             % Check that forcing data exists before the first head
@@ -304,9 +305,11 @@ classdef model_TFN < model_abstract
                 error('Forcing data must be input prior to the first water level observation. Ideally, the forcing data should start some years prior to the head.'); 
             end
                             
-            % Set observed head and forcing data
-            setForcingData(obj, forcingData_data, forcingData_colnames);
+            % Set bore ID, observed head and forcing data and site coordinates
+            obj.inputData.bore_ID = bore_ID;            
             obj.inputData.head = obsHead;            
+            obj.inputData.siteCoordinates = siteCoordinates;
+            setForcingData(obj, forcingData_data, forcingData_colnames);
             
             % Cycle though the model components and their option and
             % declare instances of objects were appropriate.
@@ -430,8 +433,8 @@ classdef model_TFN < model_abstract
                             
                             % Get a list of valid output forcing variable names.
                             filt  =  strcmp(propertyValue(:,1), valid_transformProperties{1});
-                            [optionalFocingOutputs] = feval([propertyValue{filt,2},'.outputForcingdata_options']);
-                                                        
+                            [optionalFocingOutputs] = feval([propertyValue{filt,2},'.outputForcingdata_options'], bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates);
+                                                                                    
                             % Check that the output variable a char or cell vector.
                             filt  =  strcmp(propertyValue(:,1), valid_transformProperties{3});                              
                             if isnumeric(propertyValue{filt,2}) || (iscell(propertyValue{filt,2}) && ~isvector(propertyValue{filt,2}))
@@ -1158,7 +1161,11 @@ classdef model_TFN < model_abstract
             modelComponentAll = fieldnames(obj.inputData.componentData);
             forcingData_requiredColNames = {};
             for i=1:length(modelComponentAll)
-                forcingData_requiredColNames = {forcingData_requiredColNames{:}, obj.inputData.componentData.(modelComponentAll{i}).inputForcing{:,2}};
+                if isfield(obj.inputData.componentData.(modelComponentAll{i}), 'dataColumn')
+                    forcingData_requiredColNames = {forcingData_requiredColNames{:}, forcingData_colnames{obj.inputData.componentData.(modelComponentAll{i}).dataColumn}};
+                else
+                    forcingData_requiredColNames = {forcingData_requiredColNames{:}, obj.inputData.componentData.(modelComponentAll{i}).inputForcing{:,2}};
+                end
             end
             
             % Create filter for required colnames
@@ -1198,9 +1205,21 @@ classdef model_TFN < model_abstract
                         forcingData_tmp = [];
                         if any(strcmp(methods(obj.parameters.(modelnames{i})),'setTransformedForcing')) && ...
                         any(strcmp(methods(obj.parameters.(modelnames{i})),'getTransformedForcing'))
-                            % Get the list of all possible forcing data
-                            % outputs.                                
-                            variable_names = feval([modelnames{i},'.outputForcingdata_options']);
+                            % Get the list of all possible forcing data outputs.                                
+                            % In doing so, handle situations where older
+                            % HydroSight models did not have the bore ID or
+                            % site coordinates stored within the object.
+                            if ~isfield(obj.inputData,'bore_ID')
+                                bore_ID='';
+                            else
+                                bore_ID=obj.inputData.bore_ID;
+                            end
+                            if ~isfield(obj.inputData,'siteCoordinates')
+                                siteCoordinates=table();
+                            else
+                                siteCoordinates=obj.inputData.siteCoordinates;
+                            end                            
+                            variable_names = feval([modelnames{i},'.outputForcingdata_options'],bore_ID , obj.inputData.forcingData, obj.inputData.forcingData_colnames, siteCoordinates);
 
                             % Set the forcing
                             setTransformedForcing(obj.parameters.(modelnames{i}),t);
@@ -1281,6 +1300,20 @@ classdef model_TFN < model_abstract
                     end
                 end
             end
+        end        
+        
+        function setStochForcingState(obj, doingCalibration, t_start_calib, t_end_calib)
+            % Finalsie the calibration of the stochastic forcing data.
+            if ~isempty(obj.parameters)
+                modelnames = fieldnames(obj.parameters);
+                for i=1:length(modelnames)
+                    if isobject(obj.parameters.(modelnames{i}))
+                        if any(strcmp('setStochForcingState',methods(obj.parameters.(modelnames{i}))))
+                            setStochForcingState(obj.parameters.(modelnames{i}),doingCalibration,t_start_calib, t_end_calib);
+                        end
+                    end
+                end
+            end            
         end        
         
 %% Solve the model for the input time points
@@ -1507,9 +1540,12 @@ classdef model_TFN < model_abstract
             % clear old variables
             obj.variables = [];
 
-            % Set a flag to indicate that calibration is being undertaken.
+            % Set a flag to indicate that calibration is being undertaken
+            % and the calibraion start and end dates            
             obj.variables.doingCalibration = true;
-            
+            obj.variables.t_start = t_start;
+            obj.variables.t_end = t_end;
+                        
             % Free memory within mex function (just in case there'se been a
             % prior calibration that crashed prior to clearing the MEX
             % sttaic variables)
@@ -1519,7 +1555,7 @@ classdef model_TFN < model_abstract
             catch ME
                 % continue               
             end            
-            
+                        
             % Get parameter names and initial values
             [params_initial, obj.variables.param_names] = getParameters(obj);
             
@@ -1528,6 +1564,9 @@ classdef model_TFN < model_abstract
                 & obj.inputData.head(:,1) <= t_end );   
             time_points = obj.inputData.head(t_filt,1);
             obj.variables.time_points = time_points;
+            
+            % Set the stochastic forcing to be in a 'calibration' state.
+            setStochForcingState(obj, obj.variables.doingCalibration, t_start, t_end);            
             
             % Set initial time for trend term
             obj.variables.trend_startTime = obj.variables.time_points(1);
@@ -1602,6 +1641,10 @@ classdef model_TFN < model_abstract
 %
 % Date:
 %   26 Sept 2014            
+
+            % Set the stochastic forcing to NOT be in a 'calibration' state.
+            setStochForcingState(obj, false, obj.variables.t_start, obj.variables.t_end);
+
             for j=1:size(params,2)
                 % Re-calc objective function and deterministic component of the head and innocations.
                 % Importantly, the drainage elevation (ie the constant term for

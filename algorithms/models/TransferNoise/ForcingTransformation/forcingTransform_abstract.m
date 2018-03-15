@@ -11,7 +11,7 @@ classdef forcingTransform_abstract < dynamicprops
     
     methods(Static, Abstract=true)
         [variable_names, isOptionalInput] = inputForcingData_required(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates)
-        [variable_names] = outputForcingdata_options(inputForcingDataColNames)
+        [variable_names] = outputForcingdata_options(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates)
         [options, colNames, colFormats, colEdits, toolTip] = modelOptions(sourceForcingTransformName)
         modelDescription = modelDescription()
     end  
