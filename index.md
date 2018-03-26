@@ -6,16 +6,16 @@ _HydroSight_ is a highly flexible statistical toolbox for quantitative hydrogeol
 4. Exploration of groundwater management scenarios.
 5. Interpolation and extrapolation irregularly observed hydrograph at a daily time-step.
 
-The toolbox can be used from a highly flexible and stand-alone graphical user interface (available [here](https://github.com/peterson-tim-j/Groundwater-Statistics-Toolbox/releases) ) or programmatically from within Matlab 2014b (or later). 
+The toolbox can be used from a highly flexible and stand-alone graphical user interface (available [here](https://github.com/peterson-tim-j/HydroSight/releases)) or programmatically from within Matlab 2014b (or later). 
 
 ### What's New
-The second release of the stand alone application is out! It contains some exciting new features:
+The next release of the stand alone application is out! It contains some exciting new features:
 - probabilistic calibration (using DREAM) and parameter estimation.
 - calibration using Xeon Phi co-processors.
 - offloading of calibration to a cluster (only from within Matlab).
 
 ### Getting Started
-To begin using the stand-alone application, simply download and install the above Windows 64bit executable  (available [here](https://github.com/peterson-tim-j/Groundwater-Statistics-Toolbox/releases) ). Below is a screenshot of the GUI. On the left a table shows a list of models available for simulation (only one model is listed) and on the right time-series simulation plots showing the decomposition of the groundwater hydrograph to the influences of climate and pumping extractions.
+To begin using the stand-alone application, simply download and install the above Windows 64bit executable  (available [here](https://github.com/peterson-tim-j/HydroSight/releases)). Below is a screenshot of the GUI. On the left a table shows a list of models available for simulation (only one model is listed) and on the right time-series simulation plots showing the decomposition of the groundwater hydrograph to the influences of climate and pumping extractions.
 
 ![Sceenshot of GUI](https://cloud.githubusercontent.com/assets/8623994/12466302/b533a804-c027-11e5-8d66-ff1b69e56616.png)
 
