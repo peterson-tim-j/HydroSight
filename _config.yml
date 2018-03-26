@@ -1,0 +1,8 @@
+title: HydroSight
+description: A toolbox for data-driven hydrogeological insights
+google_analytics: UA-72650036-1
+show_downloads: true
+theme: jekyll-theme-slate
+
+gems:
+  - jekyll-mentions
