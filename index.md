@@ -13,6 +13,7 @@ The next release of the stand alone application is out! It contains some excitin
 - probabilistic calibration (using DREAM) and parameter estimation.
 - calibration using Xeon Phi co-processors.
 - offloading of calibration to a cluster (only from within Matlab).
+- Google Groups discussion (https://groups.google.com/forum/#!forum/hydrosight). Join now to share ideas, project and issues. 
 
 ### Getting Started
 To begin using the stand-alone application, simply download and install the above Windows 64bit executable  (available [here](https://github.com/peterson-tim-j/HydroSight/releases)). Below is a screenshot of the GUI. On the left a table shows a list of models available for simulation (only one model is listed) and on the right time-series simulation plots showing the decomposition of the groundwater hydrograph to the influences of climate and pumping extractions.
