@@ -1322,25 +1322,25 @@ classdef HydroSightModel < handle
                         end
                         Restarts = SchemeSetting;
                      elseif isstruct(SchemeSetting)
-                        if isfield(SchemeSetting,'MaxFunEvals')
+                        if isfield(SchemeSetting,'MaxFunEvals') && isfinite(SchemeSetting.MaxFunEvals)
                             MaxFunEvals = SchemeSetting.MaxFunEvals;
                         end
-                        if isfield(SchemeSetting,'PopSize')
+                        if isfield(SchemeSetting,'PopSize') && isfinite(SchemeSetting.PopSize)
                             PopSize = SchemeSetting.PopSize;
                         end                        
-                        if isfield(SchemeSetting,'TolX')
+                        if isfield(SchemeSetting,'TolX') && isfinite(SchemeSetting.TolX)
                             TolX = SchemeSetting.TolX;
                         end                        
-                        if isfield(SchemeSetting,'tolFun')
+                        if isfield(SchemeSetting,'tolFun') && isfinite(SchemeSetting.tolFun)
                             TolFun = SchemeSetting.TolFun;
                         end
-                        if isfield(SchemeSetting,'restarts')
+                        if isfield(SchemeSetting,'restarts') && isfinite(SchemeSetting.restarts)
                             Restarts = SchemeSetting.Restarts;
                         end                         
-                        if isfield(SchemeSetting,'insigmaFrac')
+                        if isfield(SchemeSetting,'insigmaFrac') && isfinite(SchemeSetting.insigmaFrac)
                             insigmaFrac = SchemeSetting.insigmaFrac;
                         end                         
-                        if isfield(SchemeSetting,'Seed')
+                        if isfield(SchemeSetting,'Seed') && isfinite(SchemeSetting.Seed)
                             Seed = SchemeSetting.Seed;
                         end                         
                         
@@ -1378,22 +1378,22 @@ classdef HydroSightModel < handle
                         ngs = SchemeSetting;
                         
                     elseif isstruct(SchemeSetting)
-                        if isfield(SchemeSetting,'maxn')
+                        if isfield(SchemeSetting,'maxn') && isfinite(SchemeSetting.maxn)
                             maxn = SchemeSetting.maxn;
                         end
-                        if isfield(SchemeSetting,'kstop')
+                        if isfield(SchemeSetting,'kstop') && isfinite(SchemeSetting.kstop)
                             kstop = SchemeSetting.kstop;
                         end
-                        if isfield(SchemeSetting,'pcento')
+                        if isfield(SchemeSetting,'pcento') && isfinite(SchemeSetting.pcento)
                             pcento = SchemeSetting.pcento;
                         end
-                        if isfield(SchemeSetting,'peps')
+                        if isfield(SchemeSetting,'peps') && isfinite(SchemeSetting.peps)
                             peps = SchemeSetting.peps;
                         end
-                        if isfield(SchemeSetting,'ngs')
+                        if isfield(SchemeSetting,'ngs') && isfinite(SchemeSetting.ngs)
                             ngs = SchemeSetting.ngs;
                         end
-                        if isfield(SchemeSetting,'iseed')
+                        if isfield(SchemeSetting,'iseed') && isfinite(SchemeSetting.iseed)
                             iseed = SchemeSetting.iseed;
                         end                 
                     else
@@ -1427,28 +1427,28 @@ classdef HydroSightModel < handle
                         N_per_param = SchemeSetting;
                         
                     elseif isstruct(SchemeSetting)
-                        if isfield(SchemeSetting,'N_per_param')
+                        if isfield(SchemeSetting,'N_per_param') && isfinite(SchemeSetting.N_per_param)
                             N_per_param = SchemeSetting.N_per_param;
                         end
-                        if isfield(SchemeSetting,'T')
+                        if isfield(SchemeSetting,'T') && isfinite(SchemeSetting.T)
                             T = SchemeSetting.T;
                         end                        
-                        if isfield(SchemeSetting,'nCR')
+                        if isfield(SchemeSetting,'nCR') && isfinite(SchemeSetting.nCR)
                             nCR = SchemeSetting.nCR;
                         end
-                        if isfield(SchemeSetting,'delta')
+                        if isfield(SchemeSetting,'delta') && isfinite(SchemeSetting.delta)
                             delta = SchemeSetting.delta;
                         end
-                        if isfield(SchemeSetting,'lambda')
-                            lambda = SchemeSetting.lambda;
+                        if isfield(SchemeSetting,'lambda') && isfinite(SchemeSetting.lambda)
+                            lambda = SchemeSetting.lambda; 
                         end
-                        if isfield(SchemeSetting,'zeta')
+                        if isfield(SchemeSetting,'zeta') && isfinite(SchemeSetting.zeta)
                             zeta = SchemeSetting.zeta;
                         end
-                        if isfield(SchemeSetting,'outlier')
+                        if isfield(SchemeSetting,'outlier') && isfinite(SchemeSetting.outlier)
                             outlier = SchemeSetting.outlier;
                         end
-                        if isfield(SchemeSetting,'pJumpRate_one')
+                        if isfield(SchemeSetting,'pJumpRate_one') && isfinite(SchemeSetting.pJumpRate_one)
                             pJumpRate_one = SchemeSetting.pJumpRate_one;
                         end                        
                     end

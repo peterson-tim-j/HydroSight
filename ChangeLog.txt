@@ -64,3 +64,11 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 * Data can now be exported from all results tables by right clicking on the table.
 * The selection of pumping bores for pumpingRate_SAestimation() downscaling is now aided by a 'wizard'. The wizard selects pumping bores within a user set distance of the obs bore.
 * Models using pumpingRate_SAestimation() can now be calibrated with an evaluation period. Note, the evaluation period should have daily metered usage.
+
+29 March 2018
+* Calibration window, SCU tab, extended to allow the input of an upper and lower maximum number of complexes (ngs). This is useful when calibrating many models each having a different number of parameters. 
+* All inputs within the calibration window now allow the input of a empty value. When so done, the default will be used, specifically the seed value will be random. This is useful for calibrating many models each with a different initial seed.
+* Within climateTransform_soilMoistureModels(), and all inheriting soil models, the soil moisture capacity parameter physical limit was reduced from inf to 1000 mm. This was done to improve calibration run time and to constrain the solution to a plausible range.
+* Bug fixed in copying rows within the GUI.
+* Bug fixed in DREAM.m that caused the calibration output text to not be shown in the calibration window.
+* Wait box removed from DREAM.m 

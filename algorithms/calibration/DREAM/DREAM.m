@@ -157,9 +157,9 @@ elseif strcmp(DREAMPar.restart,'yes'),
 end;
 
 % Initialize waitbar. TJP Edit to check for graphical enviro
-if usejava('desktop')
-    h = waitbar(0,'Running DREAM - Please wait...');  
-end
+%if usejava('desktop')
+%    h = waitbar(0,'Running DREAM - Please wait...');  
+%end
 totaccept = 0; tic;
 
 % Update the diary file
@@ -222,9 +222,12 @@ for t = T_start : DREAMPar.T,
     log_L(t,1:DREAMPar.N+1) = [ t * DREAMPar.N X(1:DREAMPar.N,DREAMPar.d+2)'];
     
     % Update the waitbar. TJP Edit to check for graphical enviro
-    if usejava('desktop')
-        waitbar(t/DREAMPar.T,h);
-    end    
+    %if usejava('desktop')
+    %    waitbar(t/DREAMPar.T,h);
+    %end  
+    if mod(t,1000)==0
+        display(['... Finished iteration ',num2str(t), ', of ', num2str(DREAMPar.T)])
+    end
     
     % If t equal to MCMC.steps then convergence checks and updates
     if mod(t,DREAMPar.steps) == 0,
@@ -289,9 +292,9 @@ output.RunTime = toc;
 [chain,output,fx] = DREAM_end(DREAMPar,Meas_info,chain,output,iteration,iloc,fid);
 
 % Close the waitbar
-if usejava('desktop')
-    close(h);
-end
+%if usejava('desktop')
+%    close(h);
+%end
 
 % Update the diary file
 if ~isempty(calibGUI_interface_obj)

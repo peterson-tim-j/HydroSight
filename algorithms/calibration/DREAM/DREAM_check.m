@@ -5,7 +5,7 @@ function [stop,fid] = dream_check(DREAMPar,Par_info,Meas_info);
 stop = 'no';
 
 % First close all files
-fclose('all');
+%fclose('all');
 
 % Then delete the diagnostics output file
 dos('del DREAM_diagnostics.txt');

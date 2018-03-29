@@ -17,7 +17,8 @@ function [bestx,bestf,icall, exitFlag, exitStatus] = SPUCI(funcHandle, funcHangl
 %
 % Definition of input variables:
 %  x0 = the initial parameter array at the start;
-%     = the optimized parameter array at the end;
+%     = the optimized parameter array at the end
+
 %  f0 = the objective function value corresponding to the initial parameters
 %     = the objective function value corresponding to the optimized parameters
 %  bl = the lower bound of the parameters
@@ -68,7 +69,7 @@ npg=2*nopt+1;%  npg = number of members is a complex
 nps=nopt+1;%  nps = number of members in a simplex
 nspl=nps;%  nspl = number of evolution steps for each complex before shuffling
 % if useDerivedForcing 
-%     nspl=2*nps;%  nspl = number of evolution steps for each complex before shuffling
+     nspl=2*nps;%  nspl = number of evolution steps for each complex before shuffling
 % else
 %     nspl=nps;%  nspl = number of evolution steps for each complex before shuffling
 % end

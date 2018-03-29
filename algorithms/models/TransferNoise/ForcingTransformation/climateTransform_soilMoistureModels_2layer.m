@@ -498,15 +498,17 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
             % Upper and lower bounds of SMSC.
             if obj.settings.activeParameters.SMSC_deep
                 ind = cellfun(@(x)(strcmp(x,'SMSC_deep')),param_names);
-                params_lowerLimit(ind,1) = log10(50);                    
-                params_upperLimit(ind,1) = Inf; 
+                params_lowerLimit(ind,1) = log10(10);                    
+                %params_upperLimit(ind,1) = Inf; 
+                params_upperLimit(ind,1) = log10(1000);
             end           
             
             % Upper and lower bounds of SMSC_deep_trees.
             if obj.settings.activeParameters.SMSC_deep_trees
                 ind = cellfun(@(x)(strcmp(x,'SMSC_deep_trees')),param_names);
-                params_lowerLimit(ind,1) = log10(50);                    
-                params_upperLimit(ind,1) = Inf; 
+                params_lowerLimit(ind,1) = log10(10);                    
+                %params_upperLimit(ind,1) = Inf; 
+                params_upperLimit(ind,1) = log10(2000);
             end           
             
             % Upper and lower bounds of k_sat_deep.
@@ -560,7 +562,7 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
             if obj.settings.activeParameters.SMSC_deep_trees
                 ind = cellfun(@(x)(strcmp(x,'SMSC_deep_trees')),param_names);
                 params_lowerLimit(ind,1) = log10(50);
-                params_upperLimit(ind,1) = log10(500);
+                params_upperLimit(ind,1) = log10(1000);
             end           
             
             % Upper and lower bounds of k_sat_deep.

@@ -744,9 +744,16 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
             
             if obj.settings.activeParameters.SMSC
                 ind = cellfun(@(x)(strcmp(x,'SMSC')),param_names);
-                params_lowerLimit(ind,1) = log10(50);
-                params_upperLimit(ind,1) = Inf;
-            end            
+                params_lowerLimit(ind,1) = log10(10);
+                %params_upperLimit(ind,1) = Inf;
+                params_upperLimit(ind,1) = log10(1000);
+            end    
+            
+            if obj.settings.activeParameters.SMSC_trees
+                ind = cellfun(@(x)(strcmp(x,'SMSC_trees')),param_names);
+                params_lowerLimit(ind,1) = log10(10);
+                params_upperLimit(ind,1) = log10(2000);
+            end              
             
         end  
         
@@ -832,7 +839,7 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
 
             if obj.settings.activeParameters.SMSC_trees
                 ind = cellfun(@(x)(strcmp(x,'SMSC_trees')),param_names);
-                params_lowerLimit(ind,1) = log10(10);
+                params_lowerLimit(ind,1) = log10(50);
                 params_upperLimit(ind,1) = log10(1000);
             end  
                         
@@ -1000,7 +1007,7 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                 obj.variables.evap = obj.settings.forcingData(filt_time, evap_col );
                 
                 % Store the time points
-                obj.variables.t = t;
+                obj.variables.t = obj.settings.forcingData(filt_time,1);
                  
                 if isfield(obj.settings,'simulateLandCover') && obj.settings.simulateLandCover
                     filt = strcmp(obj.settings.forcingData_cols(:,1),'TreeFraction');
@@ -1024,7 +1031,7 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                 end
                 
                 % Store the time points
-                obj.variables.t = t(filt_time);
+                %obj.variables.t = t(filt_time);
                 
                 % Call MEX function containing soil moisture model.
                 obj.variables.SMS = forcingTransform_soilMoisture(S_initial, effectivePrecip, obj.variables.evap, ...

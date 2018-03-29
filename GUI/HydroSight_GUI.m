@@ -5516,7 +5516,7 @@ classdef HydroSight_GUI < handle
             uicontrol(DREAM_tabVbox,'Style','edit','string','iqr','Max',1, 'Tag','DREAM outlier','HorizontalAlignment','right');
             uicontrol(DREAM_tabVbox,'Style','edit','string','0.2','Max',1, 'Tag','DREAM pJumpRate_one','HorizontalAlignment','right');
             
-            set(DREAM_tabVbox, 'ColumnSizes', [-1 100], 'RowSizes', repmat(20,1,7));            
+            set(DREAM_tabVbox, 'ColumnSizes', [-1 100], 'RowSizes', repmat(20,1,8));            
             
             % Fill in MultiModel panel   
             MultiModel_tabVbox= uiextras.Grid('Parent',MultiModel_tab ,'Padding', 6, 'Spacing', 6);
@@ -7534,6 +7534,11 @@ classdef HydroSight_GUI < handle
             if isempty(tableObj.Data)
                 selectedRows = [];
             else
+                for i=1:size(tableObj.Data,1)
+                   if isempty(tableObj.Data{i,1}) 
+                       tableObj.Data{i,1}=false;
+                   end
+                end
                 selectedRows = cell2mat(tableObj.Data(:,1));
             end
 
