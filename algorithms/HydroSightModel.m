@@ -1314,7 +1314,7 @@ classdef HydroSightModel < handle
                     TolFun = 1e-12;                    
                     Restarts = 4;
                     insigmaFrac = 1/3;
-                    Seed = floor(rand(1)*100000);                   
+                    Seed = floor(mod(datenum(now),1)*1000000);                   
                     
                      if isnumeric(SchemeSetting) 
                         if SchemeSetting<0 || floor(SchemeSetting)~=ceil(SchemeSetting) 
@@ -1369,7 +1369,7 @@ classdef HydroSightModel < handle
                     pcento = 1e-10;    
                     peps = 1e-6;
                     ngs = 2 * nparams;
-                    iseed = floor(rand(1)*100000);                    
+                    iseed = floor(mod(datenum(now),1)*1000000);                    
                     
                     if isnumeric(SchemeSetting) 
                         if SchemeSetting<1 || floor(SchemeSetting)~=ceil(SchemeSetting) 

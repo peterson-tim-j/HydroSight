@@ -96,6 +96,7 @@ classdef HydroSight_GUI < handle
             uimenu( this.figure_Menu, 'Label', 'New Project', 'Callback', @this.onNew);
             uimenu( this.figure_Menu, 'Label', 'Set Project Folder ...', 'Callback', @this.onSetProjectFolder);
             uimenu( this.figure_Menu, 'Label', 'Open Project...', 'Callback', @this.onOpen);
+            uimenu( this.figure_Menu, 'Label', 'Import Model(s) ...', 'Callback', @this.onImportModel);
             uimenu( this.figure_Menu, 'Label', 'Save Project as ...', 'Callback', @this.onSaveAs );
             uimenu( this.figure_Menu, 'Label', 'Save Project', 'Callback', @this.onSave,'Enable','off');
             uimenu( this.figure_Menu, 'Label', 'Move models from RAM to HDD...', 'Callback', @this.onMoveModels,'Separator','on', 'Enable','off');
@@ -643,10 +644,6 @@ classdef HydroSight_GUI < handle
             % Add button for calibration
             uicontrol('Parent',hbox2t4,'String','Import Table Data','Callback', @this.onImportTable, 'Tag','Model Calibration', 'TooltipString', sprintf('Import a .csv file of table data to the table below. \n Only rows with a model label and bore ID matching a row within the table will be imported.') );
             uicontrol('Parent',hbox2t4,'String','Export Table Data','Callback', @this.onExportTable, 'Tag','Model Calibration', 'TooltipString', sprintf('Export a .csv file of the table below.') );            
-            if ~isdeployed
-                uicontrol('Parent',hbox2t4,'String','HPC Offload','Callback', @this.onCalibModels,'Tag','useHPC', 'TooltipString', sprintf('BETA version to export selected models for calibration on a High Performance Cluster.') );
-                uicontrol('Parent',hbox2t4,'String','HPC Retrieval','Callback', @this.onImportFromHPC, 'TooltipString', sprintf('BETA version to retrieve calibrated models from a High Performance Cluster.') );
-            end
             uicontrol('Parent',hbox2t4,'String','Calibrate Selected Models','Callback', @this.onCalibModels,'Tag','useLocal', 'TooltipString', sprintf('Use the tick-box below to select the models to calibrate then click here. \n During and after calibration, the status is given in the 9th column.') );            
             uicontrol('Parent',hbox2t4,'String','Export Selected Results','Callback', @this.onExportResults, 'Tag','Model Calibration', 'TooltipString', sprintf('Export a .csv file of the calibration results from all models.') );            
             hbox2t4.ButtonSize(1) = 225;
@@ -1661,6 +1658,143 @@ classdef HydroSight_GUI < handle
             drawnow update;                    
         end
 
+        function onImportModel(this,hObject,eventdata)
+
+            % Get current project folder
+            projectPath='';                
+            if isdir(this.project_fileName)
+                projectPath = this.project_fileName;
+            else
+                projectPath = fileparts(this.project_fileName);
+            end
+            
+            % Show open file window
+             if isempty(projectPath)
+                [fName,pName] = uigetfile({'*.mat'},'Select project file for importing...'); 
+            else
+                [fName,pName] = uigetfile({'*.mat'},'Select project file for importing...', projectPath); 
+            end            
+            if fName~=0;
+                % Assign file name to date cell array
+                fName = fullfile(pName,fName);
+            else
+                return;
+            end            
+            
+            set(this.Figure, 'pointer', 'watch');
+            drawnow update;   
+            
+            % Check models are not stored off the HDD
+            newProject = load(this.project_fileName, 'settings','-mat');
+            if isfield(newProject.settings,'modelsOnHDD') && ~isempty(newProject.settings.modelsOnHDD)
+                warndlg({'The new project has the models offloaded to the hard-drive..';''; ...
+                         'Importing of such models s not yet supported.'},'Models cannot be imported...','modal');                
+                return
+            end    
+            
+            newProjectGUITables = load(fName, 'tableData','-mat');
+            
+            % Load models
+            newProject = load(fName, '-mat');
+            filt = strcmp(fieldnames(newProject),'dataPrep') | ...
+                   strcmp(fieldnames(newProject),'settings') |  ...
+                   strcmp(fieldnames(newProject),'tableData') |  ...
+                   strcmp(fieldnames(newProject),'model_labels');
+            removedFields = fieldnames(newProject);
+            removedFields = removedFields(filt);                            
+            newProject = rmfield(newProject,removedFields);
+            
+            set(this.Figure, 'pointer', 'arrow');
+            drawnow update;               
+            
+            % Show list models
+            newModelNames = fieldnames(newProject);
+            [listSelection,ok] = listdlg('PromptString',{'Below is a list of the built models within the selected project.','Select the models(s) to import.'}, ...
+                                    'ListString',newModelNames, ...
+                                    'ListSize',[400,300], ...
+                                    'Name','Select models to import ...');
+            if ok~=1  
+                return
+            end
+                
+            set(this.Figure, 'pointer', 'watch');
+            drawnow update;               
+            
+            % Import selected models  
+            importedModels = cell(0,1);
+            nModels = 0;
+            for i=1:length(listSelection)
+                
+                % Build new model label                
+                newModelLabel = newModelNames{listSelection(i)};
+                ModelLabel = newModelLabel;
+                nModels = nModels +1;
+                importedModels{nModels,1} = newModelLabel;
+                
+                % Check if model exists
+                if isfield(this.models,newModelLabel)
+                    newModelLabel = [newModelLabel,'_imported'];
+                end
+                
+                % Find the model within the GUI tables.
+                filt = strcmp(newProjectGUITables.tableData.tab_ModelConstruction(:,2), ModelLabel);
+                if ~isempty(filt)
+                    newTableData = newProjectGUITables.tableData.tab_ModelConstruction(filt,:);
+                    if size(newTableData,2) ~=size(this.tab_ModelConstruction.Table.Data,2)
+                        importedModels{nModels,1} = [importedModels{nModels,1},': Error - construction table inconsistency'];
+                        continue
+                    end
+                    newTableData{1,2} = strrep(newTableData{1,2}, ModelLabel, newModelLabel);
+                    this.tab_ModelConstruction.Table.Data(end+1,:)=newTableData(1,:);
+                    this.tab_ModelConstruction.Table.RowName{end+1} = num2str(str2num(this.tab_ModelConstruction.Table.RowName{end})+1);
+                end
+                newProjectTableLabels = HydroSight_GUI.removeHTMLTags(newProjectGUITables.tableData.tab_ModelCalibration(:,2));
+                filt = strcmp(newProjectTableLabels, ModelLabel);
+                if ~isempty(filt)
+                    newTableData = newProjectGUITables.tableData.tab_ModelCalibration(filt,:);
+                    if size(newTableData,2) ~=size(this.tab_ModelCalibration.Table.Data,2)
+                        importedModels{nModels,1} = [importedModels{nModels,1},': Error - calib. table inconsistency'];
+                        continue
+                    end
+                    newTableData{1,2} = strrep(newTableData{1,2}, ModelLabel, newModelLabel);
+                    this.tab_ModelCalibration.Table.Data(end+1,:)=newTableData(1,:);
+                    this.tab_ModelCalibration.Table.RowName{end+1} = num2str(str2num(this.tab_ModelCalibration.Table.RowName{end})+1);
+                end
+                newProjectTableLabels = HydroSight_GUI.removeHTMLTags(newProjectGUITables.tableData.tab_ModelSimulation(:,2));
+                filt = strcmp(newProjectTableLabels, ModelLabel);                
+                filt = find(strcmp(newProjectGUITables.tableData.tab_ModelSimulation, ModelLabel));
+                if ~isempty(filt)
+                    for j=filt
+                        newTableData = newProjectGUITables.tableData.tab_ModelSimulation(j,:);
+                        if size(newTableData,2) ~=size(this.tab_ModelSimulation.Table.Data,2)
+                            importedModels{nModels,1} = [importedModels{nModels,1},': Warning - simulation table inconsistency'];
+                            break
+                        end
+                        newTableData{1,2} = strrep(newTableData{1,2}, ModelLabel, newModelLabel);
+                        this.tab_ModelSimulation.Table.Data(end+1,:)=newTableData(1,:);
+                        this.tab_ModelSimulation.Table.RowName{end+1} = num2str(str2num(this.tab_ModelSimulation.Table.RowName{end})+1);
+                    end              
+                end
+                
+                % Add model object and label.
+                try          
+                    setModel(this, newModelLabel, newProject.(ModelLabel));
+                catch ME
+                    importedModels{nModels,1} = [importedModels{nModels,1},': Error - model import failure'];
+                    continue
+                end
+                    
+                % Record model was added
+                importedModels{nModels,1} = [importedModels{nModels,1},': Successfully imported'];
+            end
+                
+            set(this.Figure, 'pointer', 'arrow');
+            drawnow update;               
+            
+            msgbox({'Below is a summary of the importation:','',importedModels{:}}, ...
+                         'Model import summary...','modal');    
+        end
+        
         % Save as current model        
         function onSaveAs(this,hObject,eventdata)
             
@@ -5369,17 +5503,37 @@ classdef HydroSight_GUI < handle
             % not listed in the model construction table            
             if ~isempty(data)
                 constructModelLabels = this.tab_ModelConstruction.Table.Data(:,2);
+                % Get model label
+                calibModelLabelsHTML = data(:,2);
+                
+                % Remove HTML tags
+                calibModelLabels = HydroSight_GUI.removeHTMLTags(calibModelLabelsHTML);
+                
                 deleteCalibRow = false(size(data,1),1);
                 for i=1:size(data,1)
-                    % Get model label
-                    calibModelLabelsHTML = data(i,2);
-                    % Remove HTML tags
-                    calibModelLabels = HydroSight_GUI.removeHTMLTags(calibModelLabelsHTML);
 
                     % Add index for row if it is to be deleted                    
-                    if ~any(cellfun( @(x) strcmp( calibModelLabels, x), constructModelLabels))
+                    if ~any(cellfun( @(x) strcmp( calibModelLabels{i}, x), constructModelLabels))
                         deleteCalibRow(i) = true;
+                        continue;
                     end
+                    
+                    % Check if there are duplicate bore IDs. If so, delete
+                    % non-calibrated one
+                    ind = find(cellfun( @(x) strcmp( calibModelLabels{i}, x), calibModelLabels))';
+                    if length(ind)>1
+                        nDubplicates2Remove = 0;
+                        for j=ind
+                           if contains(data{j, 10},'(NA)')
+                               deleteCalibRow(j) = true;
+                               nDubplicates2Remove  = nDubplicates2Remove  +1;
+                           end
+                        end
+                        if nDubplicates2Remove == length(ind)
+                            deleteCalibRow(ind(1)) = false;
+                        end
+                    end
+                    
                 end
                 
                 if any(deleteCalibRow)
@@ -5388,7 +5542,7 @@ classdef HydroSight_GUI < handle
                     set(this.Figure, 'pointer', 'arrow');
                     drawnow update
 
-                    warndlg('Some models listed in the calibration table are not listed in the model construction table and will be deleted. Please re-run the calibration','Unexpected table error...');
+                    warndlg('Some models listed in the calibration table are duplicated or not listed in the model construction table and will be deleted. Please re-run the calibration','Unexpected table error...');
                     this.tab_ModelCalibration.Table.Data = this.tab_ModelCalibration.Table.Data(~deleteCalibRow,:);
                     
                     % Update row numbers
@@ -5444,6 +5598,10 @@ classdef HydroSight_GUI < handle
                        
             outerButtons = uiextras.HButtonBox('Parent',outerVbox,'Padding', 3, 'Spacing', 3);             
             uicontrol('Parent',outerButtons,'String','Start calibration','Callback', @this.startCalibration, 'Interruptible','on','Tag','Start calibration', 'TooltipString', sprintf('Calibrate all of the selected models.') );
+            if ~isdeployed
+                uicontrol('Parent',outerButtons,'String','HPC Offload','Callback', @this.startCalibration,'Tag','Start calibration - useHPC', 'TooltipString', sprintf('BETA version to export selected models for calibration on a High Performance Cluster.') );
+                uicontrol('Parent',outerButtons,'String','HPC Retrieval','Callback', @this.onImportFromHPC, 'TooltipString', sprintf('BETA version to retrieve calibrated models from a High Performance Cluster.') );
+            end            
             uicontrol('Parent',outerButtons,'String','Quit calibration','Callback', @this.quitCalibration, 'Enable','off','Tag','Quit calibration', 'TooltipString', sprintf('Stop calibrating the models at the end of the current iteration loop.') );
             outerButtons.ButtonSize(1) = 225;            
             
@@ -6464,7 +6622,7 @@ classdef HydroSight_GUI < handle
                         
                         % Check the bore IDs are equal.
                         boreID_dest = HydroSight_GUI.removeHTMLTags(this.tab_ModelCalibration.Table.Data{ind,3});
-                        if ~strcmp(boreID_dest, boreID_src)
+                        if ~strcmp(boreID_dest, boreID_src{1})
                             nBoresNotMatching = nBoresNotMatching + 1;
                             continue;                            
                         end
@@ -6497,11 +6655,11 @@ classdef HydroSight_GUI < handle
                         this.tab_ModelCalibration.Table.Data{ind,8} = tbl{i,8}{1};
                         
                         % Input the calibration status.
-                        this.tab_ModelCalibration.Table.Data{ind,9} = '<html><font color = "#FF0000">Not calibrated.</font></html>';
-                        this.tab_ModelCalibration.Table.Data{ind,10} = [];                        
-                        this.tab_ModelCalibration.Table.Data{ind,11} = [];
-                        this.tab_ModelCalibration.Table.Data{ind,12} = [];
-                        this.tab_ModelCalibration.Table.Data{ind,13} = [];
+                        %this.tab_ModelCalibration.Table.Data{ind,9} = '<html><font color = "#FF0000">Not calibrated.</font></html>';
+                        %this.tab_ModelCalibration.Table.Data{ind,10} = [];                        
+                        %this.tab_ModelCalibration.Table.Data{ind,11} = [];
+                        %this.tab_ModelCalibration.Table.Data{ind,12} = [];
+                        %this.tab_ModelCalibration.Table.Data{ind,13} = [];
                         
                         nImportedRows = nImportedRows +1;
                     end
@@ -8078,6 +8236,11 @@ classdef HydroSight_GUI < handle
                 else
                     errmsg = ['The following model is not a HydroSight object and could not be deleted:',modelLabel];
                 end
+                
+                % Remove from model label list
+                filt = ~strcmp(this.model_labels.Properties.RowNames,modelLabel);
+                this.model_labels = this.model_labels(filt,:);
+                                
             elseif ~isempty(this.modelsOnHDD)
                 try                    
                     % Build file path to model .mat file
@@ -8097,6 +8260,10 @@ classdef HydroSight_GUI < handle
                     delete(filepath);
                     this.models = rmfield(this.models, modelLabel);
 
+                    % Remove from model label list
+                    filt = ~strcmp(this.model_labels.Properties.RowNames,modelLabel);
+                    this.model_labels = this.model_labels(filt,:);                    
+                    
                 catch
                     errmsg = ['The following model is not a HydroSight object and could not be deleted:',modelLabel];
                 end
@@ -8132,20 +8299,24 @@ classdef HydroSight_GUI < handle
                                     
             % Check that the user wants to save the projct after each
             % calib.
-            set(this.Figure, 'pointer', 'arrow');
-            drawnow update
-            response = questdlg('Do you want to save the project after each model is calibrated?','Auto-save models?','Yes','No','Cancel','Yes');
-            if strcmp(response,'Cancel')
-                return;
-            end
-            if strcmp(response,'Yes') && (isempty(this.project_fileName) || exist(this.project_fileName,'file') ~= 2);
-                msgbox('The project has not yet been saved. Please save it and re-run the calibration.','Project not yet saved ...','error');
-                return;
-            end
             saveModels=false;
-            if strcmp(response,'Yes')
-                saveModels=true;
-            end            
+            if ~strcmp(hObject.Tag,'Start calibration - useHPC')
+                set(this.Figure, 'pointer', 'arrow');
+                drawnow update
+                
+                response = questdlg('Do you want to save the project after each model is calibrated?','Auto-save models?','Yes','No','Cancel','Yes');
+                if strcmp(response,'Cancel')
+                    return;
+                end
+                if strcmp(response,'Yes') && (isempty(this.project_fileName) || exist(this.project_fileName,'file') ~= 2);
+                    msgbox('The project has not yet been saved. Please save it and re-run the calibration.','Project not yet saved ...','error');
+                    return;
+                end
+                saveModels=false;
+                if strcmp(response,'Yes')
+                    saveModels=true;
+                end  
+            end
 
             % Change label of button to quit
             obj = findobj(this.tab_ModelCalibration.GUI, 'Tag','Start calibration');
@@ -8158,7 +8329,7 @@ classdef HydroSight_GUI < handle
             drawnow update
             
             % Open parrallel engine for calibration
-            if ~strcmp(hObject.Tag,'useHPC')
+            if ~strcmp(hObject.Tag,'Start calibration - useHPC')
                 try
                     %nCores=str2double(getenv('NUMBER_OF_PROCESSORS'));
                     parpool('local');
@@ -8204,6 +8375,7 @@ classdef HydroSight_GUI < handle
             % options.
             nModelsCalib = 0;
             nModelsCalibFailed = 0;
+            nHPCmodels = 0;
             for i=1:length(selectedBores)
                 
                 % Check if the model is to be calibrated.
@@ -8215,130 +8387,138 @@ classdef HydroSight_GUI < handle
                 calibLabel = data{i,2};
                 calibLabel = HydroSight_GUI.removeHTMLTags(calibLabel);
                                 
-                if strcmp(hObject.Tag,'useHPC')
 
-                    % Prepare inputs for HPC offload function
-                    calibLabelForHPC{i,1} = calibLabel;
-                    calibStartDate{i,1} = datenum( data{i,6},'dd-mmm-yyyy');
-                    calibEndDate{i,1} = datenum( data{i,7},'dd-mmm-yyyy') + datenum(0,0,0,23,59,59);
-                    calibMethod{i,1} = data{i,8};
-                    calibMethodSetting{i,1} = data{i,9};
-                    
-                else
+                % Get start and end date. Note, start date is at the start
+                % of the day and end date is shifted to the end of the day.
+                calibStartDate = datenum( data{i,6},'dd-mmm-yyyy');
+                calibEndDate = datenum( data{i,7},'dd-mmm-yyyy') + datenum(0,0,0,23,59,59);
+                calibMethod = data{i,8};
 
-                    % Get start and end date. Note, start date is at the start
-                    % of the day and end date is shifted to the end of the day.
-                    calibStartDate = datenum( data{i,6},'dd-mmm-yyyy');
-                    calibEndDate = datenum( data{i,7},'dd-mmm-yyyy') + datenum(0,0,0,23,59,59);
-                    calibMethod = data{i,8};
+                % Get a copy of the model object. This is only done to
+                % minimise HDD read when the models are off loaded to HDD using
+                % matfile();                
+                tmpModel = getModel(this, calibLabel);
+
+                % Exit if model is model not found
+                if isempty(tmpModel)
+                    nModelsCalibFailed = nModelsCalibFailed +1;
+                    this.tab_ModelCalibration.Table.Data{i,9} = '<html><font color = "#FF0000">Calib. failed - Model appears not to have been built.</font></html>';
+                    continue;
+                end  
+
+                % Update status to starting calib.
+                this.tab_ModelCalibration.Table.Data{i,9} = '<html><font color = "#FFA500">Calibrating ... </font></html>';
+
+                % Update status in GUI
+                drawnow
+
+                % Collate calibration settings
+                calibMethodSetting=struct();
+                switch calibMethod                    
+                    case 'CMAES'
+                        obj = findobj(this.tab_ModelCalibration.GUI, 'Tag','CMAES MaxFunEvals');
+                        calibMethodSetting.MaxFunEvals= str2double(obj.String);
+
+                        obj = findobj(this.tab_ModelCalibration.GUI, 'Tag','CMAES TolFun');
+                        calibMethodSetting.TolFun= str2double(obj.String);
+
+                        obj = findobj(this.tab_ModelCalibration.GUI, 'Tag','CMAES TolX');
+                        calibMethodSetting.TolX= str2double(obj.String);
+
+                        obj = findobj(this.tab_ModelCalibration.GUI, 'Tag','CMAES Restarts');
+                        calibMethodSetting.Restarts= str2double(obj.String);
+
+                        obj = findobj(this.tab_ModelCalibration.GUI, 'Tag','CMAES insigmaFrac');
+                        calibMethodSetting.insigmaFrac= str2double(obj.String);
+
+                        obj = findobj(this.tab_ModelCalibration.GUI, 'Tag','CMAES Seed');
+                        calibMethodSetting.Seed= str2double(obj.String);
+
+                    case 'SP-UCI'
+                        obj = findobj(this.tab_ModelCalibration.GUI, 'Tag','SP-UCI maxn');
+                        calibMethodSetting.maxn = str2double(obj.String);
+
+                        obj = findobj(this.tab_ModelCalibration.GUI, 'Tag','SP-UCI kstop');
+                        calibMethodSetting.kstop = str2double(obj.String);
+
+                        obj = findobj(this.tab_ModelCalibration.GUI, 'Tag','SP-UCI pcento');
+                        calibMethodSetting.pcento = str2double(obj.String);
+
+                        obj = findobj(this.tab_ModelCalibration.GUI, 'Tag','SP-UCI peps');
+                        calibMethodSetting.peps = str2double(obj.String);
+
+                        obj = findobj(this.tab_ModelCalibration.GUI, 'Tag','SP-UCI ngs');
+                        ngs_per_param = str2double(obj.String);
+
+                        obj = findobj(this.tab_ModelCalibration.GUI, 'Tag','SP-UCI ngs min');
+                        ngs_min = str2double(obj.String);
+
+                        obj = findobj(this.tab_ModelCalibration.GUI, 'Tag','SP-UCI ngs max');
+                        ngs_max = str2double(obj.String);                                                        
+
+                        obj = findobj(this.tab_ModelCalibration.GUI, 'Tag','SP-UCI iseed');
+                        calibMethodSetting.iseed = str2double(obj.String);
+
+
+                        % Get the number of parameters.
+                        [params, param_names] = getParameters(tmpModel.model);
+                        nparams = size(param_names,1);
+
+                        % Calculate the number of complexes for this model.
+                        calibMethodSetting.ngs = max(ngs_min, min(ngs_max, ngs_per_param*nparams));
+
+                    case 'DREAM'
+                        obj = findobj(this.tab_ModelCalibration.GUI, 'Tag','DREAM N');
+                        calibMethodSetting.N = str2double(obj.String);
+
+                        obj = findobj(this.tab_ModelCalibration.GUI, 'Tag','DREAM T');
+                        calibMethodSetting.T = str2double(obj.String);
+
+                        obj = findobj(this.tab_ModelCalibration.GUI, 'Tag','DREAM nCR');
+                        calibMethodSetting.nCR = str2double(obj.String);
+
+                        obj = findobj(this.tab_ModelCalibration.GUI, 'Tag','DREAM delta');
+                        calibMethodSetting.delta = str2double(obj.String);
+
+                        obj = findobj(this.tab_ModelCalibration.GUI, 'Tag','DREAM lambda');
+                        calibMethodSetting.lambda = str2double(obj.String);
+
+                        obj = findobj(this.tab_ModelCalibration.GUI, 'Tag','DREAM zeta');
+                        calibMethodSetting.zeta = str2double(obj.String);
+
+                        obj = findobj(this.tab_ModelCalibration.GUI, 'Tag','DREAM outlier');
+                        calibMethodSetting.outlier = str2double(obj.String);
+
+                        obj = findobj(this.tab_ModelCalibration.GUI, 'Tag','DREAM pJumpRate_one');
+                        calibMethodSetting.pJumpRate_one = str2double(obj.String);                            
+                end
+                        
+                % Start calib.
+                try                    
+
+                    display(['BUILDING OFFLAOD DATA FOR MODEL: ',calibLabel]);
+                    display('  ');
+                    % Update the diary file
+                    if ~isempty(calibGUI_interface_obj)
+                        updatetextboxFromDiary(calibGUI_interface_obj);
+                    end   
                                         
-                    % Get a copy of the model object. This is only done to
-                    % minimise HDD read when the models are off loaded to HDD using
-                    % matfile();                
-                    tmpModel = getModel(this, calibLabel);
-
-                    % Exit if model is model not found
-                    if isempty(tmpModel)
-                        nModelsCalibFailed = nModelsCalibFailed +1;
-                        this.tab_ModelCalibration.Table.Data{i,9} = '<html><font color = "#FF0000">Calib. failed - Model appears not to have been built.</font></html>';
-                        continue;
-                    end  
-                    
-                    % Update status to starting calib.
-                    this.tab_ModelCalibration.Table.Data{i,9} = '<html><font color = "#FFA500">Calibrating ... </font></html>';
-
-                    % Update status in GUI
-                    drawnow
-                    
-                    % Collate calibration settings
-                    calibMethodSetting=struct();
-                    switch calibMethod                    
-                        case 'CMAES'
-                            obj = findobj(this.tab_ModelCalibration.GUI, 'Tag','CMAES MaxFunEvals');
-                            calibMethodSetting.MaxFunEvals= str2double(obj.String);
-
-                            obj = findobj(this.tab_ModelCalibration.GUI, 'Tag','CMAES TolFun');
-                            calibMethodSetting.TolFun= str2double(obj.String);
-                            
-                            obj = findobj(this.tab_ModelCalibration.GUI, 'Tag','CMAES TolX');
-                            calibMethodSetting.TolX= str2double(obj.String);
-
-                            obj = findobj(this.tab_ModelCalibration.GUI, 'Tag','CMAES Restarts');
-                            calibMethodSetting.Restarts= str2double(obj.String);
-
-                            obj = findobj(this.tab_ModelCalibration.GUI, 'Tag','CMAES insigmaFrac');
-                            calibMethodSetting.insigmaFrac= str2double(obj.String);
-                            
-                            obj = findobj(this.tab_ModelCalibration.GUI, 'Tag','CMAES Seed');
-                            calibMethodSetting.Seed= str2double(obj.String);
-                        
-                        case 'SP-UCI'
-                            obj = findobj(this.tab_ModelCalibration.GUI, 'Tag','SP-UCI maxn');
-                            calibMethodSetting.maxn = str2double(obj.String);
-
-                            obj = findobj(this.tab_ModelCalibration.GUI, 'Tag','SP-UCI kstop');
-                            calibMethodSetting.kstop = str2double(obj.String);
-
-                            obj = findobj(this.tab_ModelCalibration.GUI, 'Tag','SP-UCI pcento');
-                            calibMethodSetting.pcento = str2double(obj.String);
-                            
-                            obj = findobj(this.tab_ModelCalibration.GUI, 'Tag','SP-UCI peps');
-                            calibMethodSetting.peps = str2double(obj.String);
-
-                            obj = findobj(this.tab_ModelCalibration.GUI, 'Tag','SP-UCI ngs');
-                            ngs_per_param = str2double(obj.String);
-                            
-                            obj = findobj(this.tab_ModelCalibration.GUI, 'Tag','SP-UCI ngs min');
-                            ngs_min = str2double(obj.String);
-                            
-                            obj = findobj(this.tab_ModelCalibration.GUI, 'Tag','SP-UCI ngs max');
-                            ngs_max = str2double(obj.String);                                                        
-                            
-                            obj = findobj(this.tab_ModelCalibration.GUI, 'Tag','SP-UCI iseed');
-                            calibMethodSetting.iseed = str2double(obj.String);
-                            
-                           
-                            % Get the number of parameters.
-                            [params, param_names] = getParameters(tmpModel.model);
-                            nparams = size(param_names,1);
-                            
-                            % Calculate the number of complexes for this model.
-                            calibMethodSetting.ngs = max(ngs_min, min(ngs_max, ngs_per_param*nparams));
-                            
-                        case 'DREAM'
-                            obj = findobj(this.tab_ModelCalibration.GUI, 'Tag','DREAM N');
-                            calibMethodSetting.N = str2double(obj.String);
-
-                            obj = findobj(this.tab_ModelCalibration.GUI, 'Tag','DREAM T');
-                            calibMethodSetting.T = str2double(obj.String);
-
-                            obj = findobj(this.tab_ModelCalibration.GUI, 'Tag','DREAM nCR');
-                            calibMethodSetting.nCR = str2double(obj.String);
-
-                            obj = findobj(this.tab_ModelCalibration.GUI, 'Tag','DREAM delta');
-                            calibMethodSetting.delta = str2double(obj.String);
-
-                            obj = findobj(this.tab_ModelCalibration.GUI, 'Tag','DREAM lambda');
-                            calibMethodSetting.lambda = str2double(obj.String);
-
-                            obj = findobj(this.tab_ModelCalibration.GUI, 'Tag','DREAM zeta');
-                            calibMethodSetting.zeta = str2double(obj.String);
-
-                            obj = findobj(this.tab_ModelCalibration.GUI, 'Tag','DREAM outlier');
-                            calibMethodSetting.outlier = str2double(obj.String);
-
-                            obj = findobj(this.tab_ModelCalibration.GUI, 'Tag','DREAM pJumpRate_one');
-                            calibMethodSetting.pJumpRate_one = str2double(obj.String);                            
-                    end
-                        
-                    % Start calib.
-                    try
+                    if strcmp(hObject.Tag,'Start calibration - useHPC')
+                        nHPCmodels = nHPCmodels +1;
+                        HPCmodelData{nHPCmodels,1} = tmpModel;
+                        HPCmodelData{nHPCmodels,2} = calibStartDate;
+                        HPCmodelData{nHPCmodels,3} = calibEndDate;
+                        HPCmodelData{nHPCmodels,4} = calibMethod;
+                        HPCmodelData{nHPCmodels,5} = calibMethodSetting;                        
+                        this.tab_ModelCalibration.Table.Data{i,9} = '<html><font color = "#FFA500">Calib. on HPC... </font></html>';
+                    else
                         display(['CALIBRATING MODEL: ',calibLabel]);
                         display( '--------------------------------------------------------------------------------');
                         % Update the diary file
                         if ~isempty(calibGUI_interface_obj)
                             updatetextboxFromDiary(calibGUI_interface_obj);
-                        end                        
+                        end   
+                    
                         calibrateModel( tmpModel, calibGUI_interface_obj, calibStartDate, calibEndDate, calibMethod,  calibMethodSetting);
 
                         % Delete CMAES working filescopl                        
@@ -8348,19 +8528,10 @@ classdef HydroSight_GUI < handle
                             otherwise
                                 % do nothing
                         end
-                        
+
                         % Get calib exit status
                         exitFlag = tmpModel.calibrationResults.exitFlag;
                         exitStatus = tmpModel.calibrationResults.exitStatus;                          
-
-                        % Check if the user quit the calibration.
-                        [doQuit, exitFlagQuit, exitStatusQuit] = getCalibrationQuitState(calibGUI_interface_obj);                        
-                        if doQuit
-                            exitFlag = exitFlagQuit;
-                            exitStatus = exitStatusQuit;
-                            this.tab_ModelCalibration.Table.Data{i,9} = ['<html><font color = "#FF0000">Calib. failed - ', exitStatus,'</font></html>'];                            
-                            break;
-                        end
 
                         % Set calib performance stats.
                         calibAICc = median(tmpModel.calibrationResults.performance.AICc);
@@ -8387,7 +8558,7 @@ classdef HydroSight_GUI < handle
                         % Add updated tmpModel back to data structure of
                         % all models
                         setModel(this, calibLabel, tmpModel)
-                        
+
                         if saveModels
                             this.tab_ModelCalibration.Table.Data{i,9} = '<html><font color = "#FFA500">Saving project. </font></html>';
 
@@ -8397,7 +8568,7 @@ classdef HydroSight_GUI < handle
                             % Save project.
                             onSave(this,hObject,eventdata);
                         end                        
-                                                
+
                         % Update calibr status                          
                         if exitFlag ==0 
                             this.tab_ModelCalibration.Table.Data{i,9} = ['<html><font color = "#FF0000">Calib. failed - ', ME.message,'</font></html>'];
@@ -8407,10 +8578,22 @@ classdef HydroSight_GUI < handle
                             this.tab_ModelCalibration.Table.Data{i,9} = ['<html><font color = "#008000">Calibrated: ',exitStatus,' </font></html>'];
                         end                      
                         
-                    catch ME
-                        nModelsCalibFailed = nModelsCalibFailed +1;
-                        this.tab_ModelCalibration.Table.Data{i,9} = ['<html><font color = "#FF0000">Calib. failed - ', ME.message,'</font></html>'];
                     end
+
+
+                    % Check if the user quit the calibration.
+                    [doQuit, exitFlagQuit, exitStatusQuit] = getCalibrationQuitState(calibGUI_interface_obj);                        
+                    if doQuit
+                        exitFlag = exitFlagQuit;
+                        exitStatus = exitStatusQuit;
+                        this.tab_ModelCalibration.Table.Data{i,9} = ['<html><font color = "#FF0000">Calib. failed - ', exitStatus,'</font></html>'];                            
+                        break;
+                    end
+
+
+                catch ME
+                    nModelsCalibFailed = nModelsCalibFailed +1;
+                    this.tab_ModelCalibration.Table.Data{i,9} = ['<html><font color = "#FF0000">Calib. failed - ', ME.message,'</font></html>'];
                 end
                 
                 % Update status in GUI
@@ -8438,21 +8621,15 @@ classdef HydroSight_GUI < handle
             % Change cursor to arrow
             set(this.Figure, 'pointer', 'arrow');
             drawnow update
-            if strcmp(hObject.Tag,'useHPC')
+            if strcmp(hObject.Tag,'Start calibration - useHPC')
                project_fileName = this.project_fileName;
                if ~isdir(this.project_fileName)
                    project_fileName = fileparts(project_fileName);
                end
-               filt = cellfun(@(x) ~isempty(x), calibLabelForHPC)  | cellfun(@(x) ~isempty(x), calibStartDate) | cellfun(@(x) ~isempty(x), calibEndDate) | cellfun(@(x) ~isempty(x), calibMethod) | cellfun(@(x) ~isempty(x), calibMethodSetting);
-               userData = jobSubmission(this, this.HPCoffload, project_fileName, calibLabelForHPC(filt), calibStartDate(filt), calibEndDate(filt), calibMethod(filt),  calibMethodSetting(filt)) ; 
+               
+               userData = jobSubmission(this.HPCoffload, project_fileName, HPCmodelData, calibGUI_interface_obj) ; 
                if ~isempty(userData)
                    this.HPCoffload = userData;
-               end
-                              
-               for i=1:length(selectedBores)
-                if ~isempty(selectedBores{i}) && selectedBores{i}
-                    this.tab_ModelCalibration.Table.Data{i,9} = '<html><font color = "#FFA500">Calib. on HPC... </font></html>';
-                end
                end
 
                 % Update status in GUI

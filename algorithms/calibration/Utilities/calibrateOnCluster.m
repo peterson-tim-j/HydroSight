@@ -4,6 +4,8 @@
 % NOTE: The variable 'modelPath' and 'iModel' should have been set by the matlab task
 % script (see jobSubmission.m').
 
+display(['Working on modle number: ',num2str(iModel)]);
+
 display('Moving to project file path...');
 cd ..
 cd ..
@@ -11,7 +13,7 @@ cd ..
 addpath(genpath(pwd));
 
 display('Loading list of model names...');
-modelName = readtable('ModelNames.csv','ReadVariableNames',false);
+modelName = readtable('ModelNames.csv','ReadVariableNames',false,'Delimiter' ,',');
 modelName = modelName{iModel,:};
 modelName = strtrim(modelName);
 
@@ -45,12 +47,33 @@ for i=1:nModels
     fid = fopen('options.txt');
     lineString = strtrim(fgetl(fid));
     calibStartDate = datenum(lineString);
-
+    display(['   Calib. start date = ',datestr(calibStartDate)]);    
+    
     lineString = strtrim(fgetl(fid));
     calibEndDate = datenum(lineString);
+    display(['   Calib. end date = ',datestr(calibEndDate)]);  
+    
     calibMethod = strtrim(fgetl(fid));
-    lineString = strtrim(fgetl(fid));
-    calibMethodSetting= str2num(lineString);
+    display(['   Calib. method = ',calibMethod]);  
+    
+    while 1
+        try
+            lineString = strtrim(fgetl(fid));
+            ind=strfind(lineString,':');
+
+            calibMethodSettingName = lineString(1:ind-1);
+            calibMethodSettingVal = lineString(ind+1:end);
+            try 
+                calibMethodSetting.(calibMethodSettingName) = str2num(calibMethodSettingVal);
+                display(['   Calib. method setting "',calibMethodSettingName,'" = ',num2str(calibMethodSettingVal)]);  
+            catch ME
+                calibMethodSetting.(calibMethodSettingName) = calibMethodSettingVal;
+                display(['   Calib. method setting "',calibMethodSettingName,'" = ',calibMethodSettingVal]);  
+            end            
+        catch ME
+            break;
+        end
+    end 
     fclose(fid);
 	
 
@@ -62,7 +85,7 @@ for i=1:nModels
     saveResults=false;
     try
         display('Starting calibration...');
-        calibrateModel( model, calibStartDate, calibEndDate, calibMethod,  calibMethodSetting);
+        calibrateModel( model, [],calibStartDate, calibEndDate, calibMethod,  calibMethodSetting);
         saveResults=true;
     catch ME
         display(['Calibration failed: ',ME.message]);

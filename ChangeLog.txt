@@ -72,3 +72,8 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 * Bug fixed in copying rows within the GUI.
 * Bug fixed in DREAM.m that caused the calibration output text to not be shown in the calibration window.
 * Wait box removed from DREAM.m 
+
+10 April 2018
+* GUI now allows the importing of time-series models (not data-preparation models) from another project. 
+* Calibration on a HPC cluster is now working with the GUI calibration window. Note, offloading calibration to a cluster is only available when HydroSight is run from within Matlab.
+* HPC calibration now supports the SLURM HPC system. 
