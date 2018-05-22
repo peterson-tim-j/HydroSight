@@ -509,15 +509,17 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
 
             % Get the active parameter names
             param_names = getActiveParameters(obj);
+           
+            % Check if the parameters have changed since the last call to
+            % setTransformedForcing. Note, this must be done prior to the
+            % updating of the parameters.
+            detectParameterChange(obj, params);             
             
             % Cycle through each parameter and assign the parameter value.
             for i=1: length(param_names)
                obj.(param_names{i}) = params(i,:); 
             end
-            
-            % Check if the parameters have changed since the last call to
-            % setTransformedForcing.
-            detectParameterChange(obj, params);            
+                      
         end
         
         function setForcingData(obj, forcingData, forcingData_colnames)
@@ -565,6 +567,7 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                 end
             end
             obj.settings.forcingData = forcingDataNew;
+            obj.variables.isNewParameters = true;
         end                
         
 %% Get model parameters
@@ -927,10 +930,10 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
             set_params = getParameters(obj);
 
             % Check if there are any changes to the parameters.
-            if max(abs(set_params - params)) ~= 0            
+            if isempty(set_params) || max(abs(set_params - params)) ~= 0            
                 obj.variables.isNewParameters = true;
             else
-                obj.variables.isNewParameters = true;
+                obj.variables.isNewParameters = false;
             end                        
             
         end
@@ -975,8 +978,11 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
 %
 % Date:
 %   11 April 2012  
-            
-            if obj.variables.isNewParameters || forceRecalculation
+            if nargin==2
+                forceRecalculation=false;
+            end               
+            if obj.variables.isNewParameters || forceRecalculation || ~isfield(obj.variables,'t') || ...
+            (isfield(obj.variables,'t') && obj.variables.t(end) ~= t(end))
 
                 % back transform the parameters
                 [params, param_names] = getDerivedParameters(obj);

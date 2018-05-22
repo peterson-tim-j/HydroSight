@@ -408,35 +408,39 @@ classdef pumpingRate_SAestimation < stochForcingTransform_abstract & dynamicprop
             % Filter out periods for which the daily rate could not be calculated.
             dailyRate = dailyRate(isfinite(dailyRate(:,end)),:);
 
-            % Get pump names and numbers
-            pumpNumName = table(cell2mat(nonObsPeriods(:,1)),nonObsPeriods(:,2));
-            pumpNumName = unique(pumpNumName);
-            pumpNumName = table2cell(pumpNumName);
+            % Build a table of pump numbers and names
+            if isfield(obj.variables,'pumpNumTable')
+                obj.variables = rmfield(obj.variables,'pumpNumTable');
+            end
+            getPumpNumTable(obj);
                    
             % Update pumping rates based on new pump states
-            for i=1:size(pumpNumName ,1)
+            for i=1:size(obj.variables.pumpNumTable ,1)
 
+                % Get the current pump name and number.
+                pumpNum = obj.variables.pumpNumTable.pumpNum(i);
+                pumpName = obj.variables.pumpNumTable.pumpName{i};
+                
                 % Initialise daily pump rate to mean
-                filt = dailyRate(:,1) == pumpNumName{i,1};
+                filt = dailyRate(:,1) == obj.variables.pumpNumTable{i,1};
                 dailyRate_median = median(dailyRate(filt ,5));
-                obj.variables.(pumpNumName{i,2})(:,7)=dailyRate_median;
+                obj.variables.(pumpName)(:,7)=dailyRate_median;
 
                 % Initialise daily pump volume to nan
-                obj.variables.(pumpNumName{i,2})(:,8)=nan;
+                obj.variables.(pumpName)(:,8)=nan;
 
                 % Assign the average daily pumping rate during each metered period
-                filt = find(dailyRate(:,1) == pumpNumName{i,1})';
+                filt = find(dailyRate(:,1) ==pumpNum)';
                 for j=filt                        
-                    filt_obsPeriods =  obj.variables.(pumpNumName{i,2})(:,1) >= dailyRate(j,2) & obj.variables.(pumpNumName{i,2})(:,1) <= dailyRate(j,3); 
-                    obj.variables.(pumpNumName{i,2})(filt_obsPeriods,7)=dailyRate(j,5);
+                    filt_obsPeriods =  obj.variables.(pumpName)(:,1) >= dailyRate(j,2) & obj.variables.(pumpName)(:,1) <= dailyRate(j,3); 
+                    obj.variables.(pumpName)(filt_obsPeriods,7)=dailyRate(j,5);
                 end
 
                 % Multiple pump state by daily rate to create down-scaled pumping rate
-                obj.variables.(pumpNumName{i,2})(:,8)=obj.variables.(pumpNumName{i,2})(:,6).*obj.variables.(pumpNumName{i,2})(:,7);
+                obj.variables.(pumpName)(:,8)=obj.variables.(pumpName)(:,6).*obj.variables.(pumpName)(:,7);
             end            
             %----------
                         
-            
         end
         
 %% Set parameters
@@ -545,13 +549,12 @@ classdef pumpingRate_SAestimation < stochForcingTransform_abstract & dynamicprop
         function forcingData = getStochForcingData(obj)        
            
             % Get pump names and numbers
-            pumpNumName = table(cell2mat(obj.variables.nonObsPeriods(:,1)),obj.variables.nonObsPeriods(:,2));
-            pumpNumName = unique(pumpNumName);
-            pumpNumName = table2cell(pumpNumName);
+            getPumpNumTable(obj);    
 
             % Get pump states from each bore.
-            for i=1:size(pumpNumName ,1)
-                forcingData.(pumpNumName{i,2}) = logical(obj.variables.(pumpNumName{i,2})(:,6));                                                            
+            for i=1:size(obj.variables.pumpNumTable ,1)
+                pumpName = obj.variables.pumpNumTable.pumpName{i};
+                forcingData.(pumpName) = logical(obj.variables.(pumpName)(:,6));                                                            
             end                
         end
         
@@ -592,13 +595,10 @@ classdef pumpingRate_SAestimation < stochForcingTransform_abstract & dynamicprop
                 dailyRate = dailyRate(isfinite(dailyRate(:,end)),:);
 
                 % Get pump names and numbers
-                pumpNumName = table(cell2mat(obj.variables.nonObsPeriods(:,1)),obj.variables.nonObsPeriods(:,2));
-                pumpNumName = unique(pumpNumName);
-                pumpNumName = table2cell(pumpNumName);
+                pumpNumTable=getPumpNumTable(obj);
 
-                if nargin==1 
-                     error('updateStochForcingData requires >1 input.')
-                elseif nargin>=2
+                % Update the pump state if input.
+                if nargin>=2
 
                     % Get names of pumps within the input forcing data.
                     pumpsNames_input =  fieldnames(forcingData);
@@ -607,10 +607,11 @@ classdef pumpingRate_SAestimation < stochForcingTransform_abstract & dynamicprop
                     % to the object.
                     for i=1:length(pumpsNames_input)
 
+                        
                         % Check the input field name is within the object
                         % already.
-                        if ~any(strcmp(pumpNumName(:,2), pumpsNames_input{i}))
-                            error('An fieldname within the input "forcingData" is not listed within the pumpingRate_SAestimation object.');
+                        if ~any(strcmp(obj.variables.pumpNumTable.pumpName, pumpsNames_input{i}))
+                            error('A fieldname within the input "forcingData" is not listed within the pumpingRate_SAestimation object.');
                         end
 
                         % Check the input number of days is as expected.
@@ -626,15 +627,20 @@ classdef pumpingRate_SAestimation < stochForcingTransform_abstract & dynamicprop
                         % not to be downscaled.
                         %-------------
 
+                        % Find the pump number for the cirrent value of i.
+                        filt = find(strcmp(obj.variables.pumpNumTable.pumpName, pumpsNames_input{i}));
+                        pumpNum = obj.variables.pumpNumTable.pumpNum(filt);
+                        pumpName = obj.variables.pumpNumTable.pumpName{filt};
+                        
+                        
                         % Filter for any metered periods.
-                        filt = [find(dailyRate(:,1)==pumpNumName{i,1})]';
+                        filt = [find(dailyRate(:,1)==pumpNum)]';
 
                         isValidPumpState = true;
                         for j=filt                            
-                           filt_obsPeriods =  obj.variables.(pumpsNames_input{i})(:,1) >= dailyRate(j,2) ...
-                                              & obj.variables.(pumpsNames_input{i})(:,1) <= dailyRate(j,3); 
-                           if  sum(filt_obsPeriods)>0 ...
-                           && sum(forcingData.(pumpsNames_input{i})(filt_obsPeriods)) <=0
+                           filt_obsPeriods =  obj.variables.(pumpName)(:,1) >= dailyRate(j,2) ...
+                                              & obj.variables.(pumpName)(:,1) <= dailyRate(j,3); 
+                           if  sum(filt_obsPeriods)>0 && sum(forcingData.(pumpName)(filt_obsPeriods)) <=0
                                isValidPumpState = false;
                            end
                         end
@@ -642,7 +648,7 @@ classdef pumpingRate_SAestimation < stochForcingTransform_abstract & dynamicprop
 
                         % Assign input forcing
                         if isValidPumpState
-                            obj.variables.(pumpsNames_input{i})(:,6) = double(forcingData.(pumpsNames_input{i}));
+                            obj.variables.(pumpName)(:,6) = double(forcingData.(pumpName));
                         end
 
                     end
@@ -687,34 +693,50 @@ classdef pumpingRate_SAestimation < stochForcingTransform_abstract & dynamicprop
 
                 end
 
-                % Update the mean daily pumping rate during the metered
-                % periods because the pump state changed.
-                dailyRate = getDailyAveragePumpingRates(obj,obj.variables.t_start_calib, obj.variables.t_end_calib);
-
-                % Filter out periods for which the daily rate could not be
-                % calculated.
-                dailyRate = dailyRate(isfinite(dailyRate(:,end)),:);
-
+                % Reculate the pump rates if the forcing state was input.
+                if nargin>1
+                    % Update the mean daily pumping rate during the metered
+                    % periods because the pump state changed.
+                    dailyRate = getDailyAveragePumpingRates(obj,obj.variables.t_start_calib, obj.variables.t_end_calib);
+                    
+                    % Filter out periods for which the daily rate could not be
+                    % calculated.
+                    dailyRate = dailyRate(isfinite(dailyRate(:,end)),:);
+                end
                 % Update pumping rates based on new pump states
-                for i=1:size(pumpNumName,1)
+                for i=1:size(pumpNumTable,1)
 
-                    % Initialise daily pump rate to mean
-                    filt = dailyRate(:,1) == pumpNumName{i,1};
+                    % Get the current pump name and number.
+                    pumpNum = obj.variables.pumpNumTable.pumpNum(i);
+                    pumpName = obj.variables.pumpNumTable.pumpName{i};
+                    
+                    % Get indexes to the current pump number.
+                    filt = find(dailyRate(:,1) == pumpNum)';
+                    
+                    % Calculate the median metered pump rate. 
                     dailyRate_median = median(dailyRate(filt ,5));
-                    obj.variables.(pumpNumName{i,2})(:,7)=dailyRate_median;
-
-                    % Initialise daily pump volume to nan
-                    obj.variables.(pumpNumName{i,2})(:,8)=nan;
-
-                    % Assign the average daily pumping rate during each metered period
-                    filt = find(dailyRate(:,1) == pumpNumName{i,1})';
-                    for j=filt                        
-                        filt_obsPeriods =  obj.variables.(pumpNumName{i,2})(:,1) >= dailyRate(j,2) & obj.variables.(pumpNumName{i,2})(:,1) <= dailyRate(j,3); 
-                        obj.variables.(pumpNumName{i,2})(filt_obsPeriods,7)=dailyRate(j,5);
+                    
+                    % Assign the average daily pumping rate during each
+                    % metered period. Note, if there are <= 5 time
+                    % points to assign then a for-loop is used. If >5 then
+                    % a vectorised version is used. This is only done for
+                    % computational efficiency. Trails for Warrion, Victoria, 
+                    % found that for seasonal downscaling the vectorised
+                    % form was ~2 time faster than the for loop.
+                    if length(filt)>5                    
+                        filt_obsPeriods=bsxfun(@ge, obj.variables.(pumpName)(:,1), dailyRate(filt,2)') & bsxfun(@le, obj.variables.(pumpName)(:,1), dailyRate(filt,3)');
+                        obj.variables.(pumpName)(:,7) = sum(bsxfun(@times, filt_obsPeriods, dailyRate(filt,5)'),2) + all(~filt_obsPeriods,2) * dailyRate_median;
+                    else
+                        obj.variables.(pumpName)(:,7)=dailyRate_median;
+                        icol=0;                    
+                        for j=filt                        
+                            icol=icol+1;
+                            obj.variables.(pumpName)(filt_obsPeriods(:,icol),7)=dailyRate(j,5);
+                        end                    
                     end
-
+                    
                     % Multiple pump state by daily rate to create down-scaled pumping rate
-                    obj.variables.(pumpNumName{i,2})(:,8)=obj.variables.(pumpNumName{i,2})(:,6).*obj.variables.(pumpNumName{i,2})(:,7);
+                    obj.variables.(pumpName)(:,8)=obj.variables.(pumpName)(:,6).*obj.variables.(pumpName)(:,7);
                 end
             end
         end
@@ -907,8 +929,9 @@ classdef pumpingRate_SAestimation < stochForcingTransform_abstract & dynamicprop
                 % Get the object parameters.
                 [params, param_names] = getParameters(obj);
 
-                % Build a table of pump numbers and names
-                pumpNumTable = unique(cell2table(obj.variables.nonObsPeriods(:,1:2),'VariableNames',{'pumpNum','pumpName'}),'rows');
+                % Get the table of pump numbers and names if it exists,
+                % else built it
+                pumpNumTable = getPumpNumTable(obj);
                 
                 % Loop through each PARAMETER, find the date to edit pumping state and 
                 % then update the state. Once updated, calculate the median
@@ -975,6 +998,10 @@ classdef pumpingRate_SAestimation < stochForcingTransform_abstract & dynamicprop
                         changePumpState = false;
                     end
                 end  
+                
+                % Update the average daily pump date over each time step
+                % and bore and then multiple by the pump state.
+                updateStochForcingData(obj);
             end
         end
         
@@ -1094,6 +1121,7 @@ classdef pumpingRate_SAestimation < stochForcingTransform_abstract & dynamicprop
                                 while forcingData(k,i) == -999
                                     k = k-1;
                                 end
+                                k=k+1;
 
                                 % Set indexes to the -999s for the metered 
                                 % period. Note, the period includes the first 
@@ -1191,6 +1219,18 @@ classdef pumpingRate_SAestimation < stochForcingTransform_abstract & dynamicprop
     
     methods(Access=protected, Hidden=true)
                 
+        % Get/build a table of of pump numes and numbers
+        function pumpNumTable=getPumpNumTable(obj)            
+            if isfield(obj.variables,'pumpNumTable')
+                % Get the table of pump numbers and names if it exists.
+                pumpNumTable = obj.variables.pumpNumTable;
+            else
+                % Build table.
+                pumpNumTable = unique(cell2table(obj.variables.nonObsPeriods(:,1:2),'VariableNames',{'pumpNum','pumpName'}),'rows');
+                obj.variables.pumpNumTable = pumpNumTable;
+            end
+        end
+        
         % Calculate the mean daily pumping rate for each period with metered volume. 
         % Returns matrix of size(obj.variables.nonObsPeriods,1) with
         % pump number, start date for period, end date for period, average

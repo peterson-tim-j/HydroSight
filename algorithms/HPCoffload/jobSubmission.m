@@ -284,9 +284,6 @@ function [ userData, calibLabel ] = jobSubmission(userData, projectPath, HPCmode
 
 
                    % Save model object to .mat file
-                   % NOTE: Calibraton results are clearer to minimise upload time               
-                   model.calibrationResults=[];
-                   model.evaluationResults=[];
                    save(fullfile(projectPath,'HPCmodel.mat'), 'model');
 
                    % Copy .mat to cluster

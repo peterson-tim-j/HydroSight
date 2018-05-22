@@ -40,9 +40,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     double runoff_iday, actualET_iday, drainage_iday, infiltration_iday;
 
     /* Set constants for Newtons solver*/    
-    double const absTol = 1.0e-5;
-    double const funcTol = 1.0e-5;
-    unsigned short const maxIts = 1000;
+    double const absTol = 1.0e-2;
+    double const funcTol = 1.0e-2;
+    unsigned short const maxIts = 100;
     
     /* Create a vectors for results */
     plhs[0] = mxCreateDoubleMatrix(nDays,1,mxREAL);         

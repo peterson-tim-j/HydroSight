@@ -28,7 +28,7 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 * Bug fixed with SCE-UI while-loop for invalid params.
 
 18 August 2017
-* responseFunction_Pearsons.getParameters_physicalLimit() upperlimit for 'A' reduced to log(1/1000) in an attempt to improve est. of free drainage.
+* responseFunction_Pearsons.getParameters_physicalLimit() upper limit for 'A' reduced to log(1/1000) in an attempt to improve est. of free drainage.
 
 18 August 2017
 * Alpha version of a new calibration results GUI. It now allows the plotting of the forcing data.
@@ -56,7 +56,7 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 * GUI derived parameters plot x-axis label trimmed.
 
 15 March 2018
-* Bug fixed on ODE solver for forcingTransform_soilMoisture.c that is likelt to reduce the estimated recharge from models using climateTransform_soilMoistureModels_v2().
+* Bug fixed on ODE solver for forcingTransform_soilMoisture.c that is likely to reduce the estimated recharge from models using climateTransform_soilMoistureModels_v2().
 * The calibration GUI now allows setting of most calibrations settings for all methods and prints the command window output to the GUI.
 * 'Calibration setting' column removed from the calibration table.
 * Error fixed in the estimation of effective precip and the runoff rate in climateTransform_soilMoistureModels().
@@ -77,3 +77,14 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 * GUI now allows the importing of time-series models (not data-preparation models) from another project. 
 * Calibration on a HPC cluster is now working with the GUI calibration window. Note, offloading calibration to a cluster is only available when HydroSight is run from within Matlab.
 * HPC calibration now supports the SLURM HPC system. 
+
+1 May 2018
+* Bug fixed in pumpingRate_SAestimation() that caused a new downscaled time series to only be applied when an SP-UCI calibration evolutution completed. The outcome of this is that the pumping downscaling is now better 'tuned' to the obs. hydrograph.
+* Computational efficiency of pumpingRate_SAestimation.updateStochForcingData() is improved by replacing a for-loop with a vectorised form.
+* climateTransform_soilMoistureModels.setTransformedForcing() is now only undertaken when the soil parameters change. This was undertaken to improve computational efficiency and should not change the results from any model.
+* Calibration scheme SP-UCI tweaked to produce more efficient calibration when stochastic forcing data is being derived (eg from pumpingRate_SAestimation)
+* Bug fixed in HydroSight_GUI() that caused model construction to crash when (somewhow) there are duplicate model labels in the calibration table.
+
+22 May 2018
+* Bug fixed in calibration scheme SP-UCI when calibration when stochastic forcing data. The issue resolved was that after each evolutionary loop the objective fnction value was not updated using the final stochastic forcing. This caused instability in the calibration.
+* Formatting of GUI tool tips reformatted.

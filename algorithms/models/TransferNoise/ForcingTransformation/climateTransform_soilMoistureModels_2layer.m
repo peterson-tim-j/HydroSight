@@ -649,8 +649,11 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
 %
 % Date:
 %   11 April 2012  
-            
-            if obj.variables.isNewParameters || forceRecalculation
+            if nargin==2
+                forceRecalculation=false;
+            end            
+            if obj.variables.isNewParameters || forceRecalculation || ~isfield(obj.variables,'t') || ...
+            (isfield(obj.variables,'t') && obj.variables.t(end) ~= t(end))
 
                 % Run the top layer model
                 setTransformedForcing@climateTransform_soilMoistureModels(obj, t, true);

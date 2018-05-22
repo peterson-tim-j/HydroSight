@@ -1302,7 +1302,10 @@ classdef HydroSightModel < handle
 %   7 May 2012
 %
 
-            % Set up the calibration options.
+            % reset matlab random number generator
+            rng('default');
+
+            % Set up the calibration options including the random seed.
             calibrationSchemeName = upper(calibrationSchemeName);
             switch calibrationSchemeName
                 case {'CMA ES','CMA_ES','CMAES','CMA-ES'}
@@ -1358,6 +1361,9 @@ classdef HydroSightModel < handle
                      calibSchemeSettings.insigmaFrac = insigmaFrac;
                      calibSchemeSettings.Seed = Seed;
                      
+                     % Set the random seed
+                     rng(calibSchemeSettings.Seed);
+                     
                 case {'SP UCI','SP_UCI','SPUCI','SP-UCI'}                    
                     
                     params = getParameters(obj.model);  
@@ -1366,7 +1372,7 @@ classdef HydroSightModel < handle
                     % Set default options
                     maxn = inf;
                     kstop = 10;    
-                    pcento = 1e-10;    
+                    pcento = 1e-6;    
                     peps = 1e-6;
                     ngs = 2 * nparams;
                     iseed = floor(mod(datenum(now),1)*1000000);                    
@@ -1408,7 +1414,10 @@ classdef HydroSightModel < handle
                     calibSchemeSettings.peps = peps;
                     calibSchemeSettings.ngs = ngs;
                     calibSchemeSettings.iseed = iseed;
-                                         
+                                    
+                     % Set the random seed
+                     rng(calibSchemeSettings.iseed);                    
+                    
                 case 'DREAM'
                     % Set default options
                     N_per_param = 1;
@@ -1652,9 +1661,6 @@ classdef HydroSightModel < handle
                 end
                 disp([params_str]);    
             end 
-
-            % Initial the random seed and some variables.
-            rand('seed',seed);
             
             % Update the diary file
             if ~isempty(diaryObj)
@@ -2630,14 +2636,23 @@ classdef HydroSightModel < handle
                 params = params';
             end
 
-            objectiveFunctionValue = inf(1,size(params,2));
-            parfor i=1: size(params,2)
-                %Calculate the residuals
+            if size(params,2)==1
                 try
                     % Calcule sume of squared errors
-                    objectiveFunctionValue(i) =  objectiveFunction( params(:,i), time_points, obj.model, getLikelihood );
+                    objectiveFunctionValue =  objectiveFunction( params, time_points, obj.model, getLikelihood );
                 catch ME
-                    objectiveFunctionValue(i) = inf;
+                    objectiveFunctionValue = inf;
+                end
+            else
+                objectiveFunctionValue = inf(1,size(params,2));
+                parfor i=1: size(params,2)
+                    %Calculate the residuals
+                    try
+                        % Calcule sume of squared errors
+                        objectiveFunctionValue(i) =  objectiveFunction( params(:,i), time_points, obj.model, getLikelihood );
+                    catch ME
+                        objectiveFunctionValue(i) = inf;
+                    end
                 end
             end
         end        

@@ -147,7 +147,7 @@ else % Contraction point
         if ~isValid || fnew > fw
             
             % Find valid parameter set.
-            maxIts = 100;
+            maxIts = 10;
             nIts=0;
             while nIts<=maxIts 
                 sig=cov(s);

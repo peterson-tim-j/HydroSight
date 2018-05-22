@@ -7,7 +7,7 @@ classdef HydroSight_GUI < handle
     properties
         % Version number
         versionNumber = '1.2.9';
-        versionDate= '14 March 2018';
+        versionDate= '22 May 2018';
         
         % Model types supported
         %modelTypes = {'model_TFN','model_TFN_LOA', 'ExpSmooth'};
@@ -436,9 +436,9 @@ classdef HydroSight_GUI < handle
             cformats1t3 = {'logical', 'char', 'char','char','char','char',this.modelTypes,'char','char'};
             cedit1t3 = logical([1 1 1 1 1 1 1 1 0]);            
             rnames1t3 = {[1]};
-            toolTipStr = ['<html>Use this table to define the model label, input data, bore ID and model structure for each model. <br> <br>' ...
-                  'Once all inputs are defined, use the button above to build the model, after which the selected models can be calibrated.<br>', ...
-                  'Below are tips for building models:<br>', ... 
+            toolTipStr = ['<html>Use this table to define the model label, input data, bore ID and model structure for each model. <br>' ...
+                  'Once all inputs are defined, use the button above to build the model, after which the selected<br>', ... 
+                  'models can be calibrated. Below are tips for building models:<br>', ... 
                   '<ul type="bullet type">', ...
                   '<li>The model label must be unique.<br>', ...
                   '<li><b>Right-click</b> displays a menu for copying, pasting, inserting and deleting rows. Use the <br>', ...
@@ -604,7 +604,8 @@ classdef HydroSight_GUI < handle
                   '<ul type="bullet type">', ...
                   '<li>The model calibration results are summarised in the right four columns. <br>', ...
                   '      <li><b>CoE</b> is the coefficient of efficiency where 1 is a perfect fit, <0 worse than using the mean.<br>' ...
-                  '      <li><b>AICc</b> is the corrected Akaike information criterion & is used to compare models of differing number of parameters. Lower is better.<br>' ,...                  
+                  '      <li><b>AICc</b> is the corrected Akaike information criterion & is used to compare models of<br>' ...
+                  '       differing number of parameters. Lower is better.<br>' ,...                  
                   ' </ul>'];              
             
             % Add table. Importantly, this is done using createTable, not
@@ -1314,7 +1315,14 @@ classdef HydroSight_GUI < handle
                 % Analyse the variables in the file
                 %----------------------------------------------------------
                 % Get variables in file
-                vars= whos('-file',this.project_fileName);
+                try
+                    vars= whos('-file',this.project_fileName);
+                catch ME
+                    set(this.Figure, 'pointer', 'arrow');
+                    drawnow update;
+                    errordlg(['The following project file could not be opened:',this.project_fileName],'Project file read error ...');
+                    return;
+                end
 
                 % Filter out 'models' variable
                 j=0;
@@ -5381,7 +5389,20 @@ classdef HydroSight_GUI < handle
                     calibModelLabelsHTML = this.tab_ModelCalibration.Table.Data(:,2);
                     calibModelLabels = HydroSight_GUI.removeHTMLTags(calibModelLabelsHTML);
                     isModelListed = cellfun( @(x) strcmp( model_label, x), calibModelLabels);
+                    isModelListed = find(isModelListed);
                     
+                    % In multiple are listed, then take the top one
+                    if length(isModelListed)>1                        
+                        filt = true(length(calibModelLabels),1);
+                        filt(isModelListed(2:end))=false;
+                        isModelListed=isModelListed(1);
+                        this.tab_ModelCalibration.Table.Data = this.tab_ModelCalibration.Table.Data(filt,:);
+                        
+                        % Update row numbers
+                        nrows = size(this.tab_ModelCalibration.Table.Data,1);
+                        this.tab_ModelCalibration.Table.RowName = mat2cell([1:nrows]',ones(1, nrows));        
+                    end
+
                     % Get model start and end dates
                     obshead_start = min(datenum(headData(:,1),headData(:,2),headData(:,3) ));
                     obshead_end = max(datenum(headData(:,1),headData(:,2),headData(:,3) ));
@@ -5644,7 +5665,7 @@ classdef HydroSight_GUI < handle
       
             uicontrol(SPUCI_tabVbox,'Style','edit','string','Inf','Max',1, 'Tag','SP-UCI maxn','HorizontalAlignment','right');
             uicontrol(SPUCI_tabVbox,'Style','edit','string','10','Max',1, 'Tag','SP-UCI kstop','HorizontalAlignment','right');
-            uicontrol(SPUCI_tabVbox,'Style','edit','string','1e-10','Max',1, 'Tag','SP-UCI pcento','HorizontalAlignment','right');
+            uicontrol(SPUCI_tabVbox,'Style','edit','string','1e-6','Max',1, 'Tag','SP-UCI pcento','HorizontalAlignment','right');
             uicontrol(SPUCI_tabVbox,'Style','edit','string','1e-6','Max',1, 'Tag','SP-UCI peps','HorizontalAlignment','right');
             uicontrol(SPUCI_tabVbox,'Style','edit','string','2','Max',1, 'Tag','SP-UCI ngs','HorizontalAlignment','right');
             uicontrol(SPUCI_tabVbox,'Style','edit','String','1','Max',1, 'Tag','SP-UCI ngs min','HorizontalAlignment','right');
@@ -6039,14 +6060,19 @@ classdef HydroSight_GUI < handle
                             '', ...
                             ''};
             else
-                defaults{1}=this.HPCoffload{1};
-                defaults{2}=this.HPCoffload{2};
-                defaults{4}=this.HPCoffload{5};
+                defaults{1}=this.HPCoffload{2};
+                defaults{2}=this.HPCoffload{3};
+                defaults{4}=this.HPCoffload{6};
                 defaults{3}='';
-                if length(this.HPCoffload)>=13
-                    defaults{5}=this.HPCoffload{13};
+                if length(this.HPCoffload)>=14
+                    defaults{5}=this.HPCoffload{14};
                 else
-                    defaults{5}='';
+                    defaults{5}='';                    
+                end
+                for i=1:length(defaults)
+                    if isempty(defaults{i})
+                        defaults{i}='';
+                    end
                 end
             end
             userData = inputdlg(prompts,dlg_title,num_lines,defaults);
@@ -6060,10 +6086,10 @@ classdef HydroSight_GUI < handle
             password = userData{3};
             folder = userData{4};
             workingFolder = userData{5};
-            this.HPCoffload{1} = URL;
-            this.HPCoffload{2} = username;
-            this.HPCoffload{4} = folder;
-            this.HPCoffload{13} = workingFolder;
+            this.HPCoffload{2} = URL;
+            this.HPCoffload{3} = username;
+            this.HPCoffload{5} = folder;
+            this.HPCoffload{14} = workingFolder;
             
             % Get project folder
             if isempty(this.project_fileName)
@@ -6078,30 +6104,42 @@ classdef HydroSight_GUI < handle
                 end
             end            
 
-            % Create message box for status of offload
-            msgStr=cell(0,1);
-            h = msgbox(msgStr, 'HPC retrieval progress ...','help');
-            set(findobj(h,'style','pushbutton'),'Visible','off')
-            pos=get(h,'Position');
-            pos(3) = 400;
-            pos(4) = 225;
-            set(h,'Position',pos);
-            drawnow update;            
+            % Start the diary and copying of the command window outputs to
+            % the GUI.
+            commandwindowBox = findobj(this.tab_ModelCalibration.GUI, 'Tag','calibration command window');
+            commandwindowBox.Max=Inf;
+            commandwindowBox.Min=0;
+            diaryFilename = strrep(this.project_fileName,'.mat',['_calibOutputs_',strrep(strrep(datestr(now),':','-'),' ','_'),'.txt']);
+            calibGUI_interface_obj = calibGUI_interface(commandwindowBox,diaryFilename);
+            startDiary(calibGUI_interface_obj);                  
             
+            % Display update
+            display('HPC retrieval progress ...');
+            
+            % Update the diary file
+            if ~isempty(calibGUI_interface_obj)
+                updatetextboxFromDiary(calibGUI_interface_obj);
+            end  
+                        
             % Check the local workin folder exists. If not, create it.
             if ~exist(workingFolder,'dir')
-                msgStr{1} = ['   Making local working folder at:',workingFolder];           
-                set(findobj(h,'Tag','MessageBox'),'String',msgStr);
-                drawnow update;                                
+                % Display update
+                display(['   Making local working folder at:',workingFolder]);
+                
+                % Update the diary file
+                if ~isempty(calibGUI_interface_obj)
+                    updatetextboxFromDiary(calibGUI_interface_obj);
+                end
                 
                 mkdir(workingFolder);
             end
             cd(workingFolder);
             
             % Check that a SSH channel can be opened           
-            msgStr{length(msgStr)+1} = '   Checking SSH connection to cluster ...';
-            set(findobj(h,'Tag','MessageBox'),'String',msgStr);
-            drawnow update;                                                        
+            display('   Checking SSH connection to cluster ...');
+            if ~isempty(calibGUI_interface_obj)
+                updatetextboxFromDiary(calibGUI_interface_obj);
+            end            
             sshChannel = ssh2_config(URL,username,password); 
             if isempty(sshChannel)
                 errordlg({'An SSH connection to the cluster could not be established.','Please check the input URL, username and passord.'},'SSH connection failed.');
@@ -6129,19 +6167,26 @@ classdef HydroSight_GUI < handle
             nSelectedModels = length(imodels);
             
             % Get a list of .mat files on remote cluster
-            msgStr{length(msgStr)+1} = '   Getting list of results files on cluster ...';
-            set(findobj(h,'Tag','MessageBox'),'String',msgStr);
-            drawnow update;                            
-            [~,allMatFiles] = ssh2_command(sshChannel,['cd ',folder,'/models ; find -name \*.mat -print']);
+            display('   Getting list of results files on cluster ...');
+            if ~isempty(calibGUI_interface_obj)
+                updatetextboxFromDiary(calibGUI_interface_obj);
+            end        
+            try
+                [~,allMatFiles] = ssh2_command(sshChannel,['cd ',folder,'/models ; find -name \*.mat -print']);
+            catch ME
+                errordlg({'An SSH connection to the cluster could not be established.','Please check the input URL, username and passord.'},'SSH connection failed.');
+                return;
+            end
             
             % Filter out the input data files
             ind = find(cellfun( @(x) isempty(strfind(x, 'HPCmodel.mat')), allMatFiles));
             allMatFiles = allMatFiles(ind);
             
             % Build list of mat files results to download
-            msgStr{length(msgStr)+1} = '   Building list of results files to retieve ...';
-            set(findobj(h,'Tag','MessageBox'),'String',msgStr);
-            drawnow update;                
+            display('   Building list of results files to retieve ...');
+            if ~isempty(calibGUI_interface_obj)
+                updatetextboxFromDiary(calibGUI_interface_obj);
+            end            
             resultsToDownload=cell(0,1);
             j=0;
             imodel_filt=[];            
@@ -6187,31 +6232,34 @@ classdef HydroSight_GUI < handle
 
             % Change file names from results.mat
             if length(SSH_commands)>0
-                msgStr{length(msgStr)+1} = ['   Changing file from results.mat to model label .mat at ', num2str(nModelsNamesToChange), ' models...'];
-                set(findobj(h,'Tag','MessageBox'),'String',msgStr);
-                drawnow update;                
-                
+                display(['   Changing file from results.mat to model label .mat at ', num2str(nModelsNamesToChange), ' models...']);
+                if ~isempty(calibGUI_interface_obj)
+                    updatetextboxFromDiary(calibGUI_interface_obj);
+                end                
                 try
                     [~,status] = ssh2_command(sshChannel,SSH_commands);
                 catch ME
-                    warndlg({'Some results.mat files could not be changed to the model lablel.' ,'These models will not be imported.'},'SSH file name change failed.');
+                    warndlg({'Some results.mat files could not be changed to the model label.' ,'These models will not be imported.'},'SSH file name change failed.');
                 end
             end
             
             % Download .mat files
-            msgStr{length(msgStr)+1} = ['   Downloading ', num2str(length(resultsToDownload)), ' completed models to working folder ...'];
-            set(findobj(h,'Tag','MessageBox'),'String',msgStr);
-            drawnow update;                
-            imodels = imodels(logical(imodel_filt));
+            display(['   Downloading ', num2str(length(resultsToDownload)), ' completed models to working folder ...']);
+            if ~isempty(calibGUI_interface_obj)
+                updatetextboxFromDiary(calibGUI_interface_obj);
+            end
+            imodels = imodels(logical(imodel_filt));            
             try
-                ssh2_struct = scp_get(sshChannel,resultsToDownload, [projectPath,'/tmp'], [folder,'/models/']);
-            catch
+                ssh2_struct = scp_get(sshChannel,resultsToDownload, workingFolder, [folder,'/models/']);
+            catch ME
                 sshChannel  =  ssh2_close(sshChannel);        
             end
+
+            display('   Closing SSH connection to cluster ...');
+            if ~isempty(calibGUI_interface_obj)
+                updatetextboxFromDiary(calibGUI_interface_obj);
+            end
             
-            msgStr{length(msgStr)+1} = '   Closing SSH connection to cluster ...';
-            set(findobj(h,'Tag','MessageBox'),'String',msgStr);
-            drawnow update;                            
             % Closing connection
             try
                 sshChannel  =  ssh2_close(sshChannel);        
@@ -6227,9 +6275,10 @@ classdef HydroSight_GUI < handle
             k=0;
             for i=imodels
                 k=k+1;
-                msgStr{length(msgStr)} = ['   Importing model ',num2str(k),' of ',num2str(nModels) ' into the project ...'];           
-                set(findobj(h,'Tag','MessageBox'),'String',msgStr);
-                drawnow update;                
+                display(['   Importing model ',num2str(k),' of ',num2str(nModels) ' into the project ...']);
+                if ~isempty(calibGUI_interface_obj)
+                    updatetextboxFromDiary(calibGUI_interface_obj);
+                end
 
                 % get the original tabel text
                 tableRowData = this.tab_ModelCalibration.Table.Data(i,:); 
@@ -6243,7 +6292,7 @@ classdef HydroSight_GUI < handle
                                                         
                 % Load model
                 try
-                    cd([projectPath,'/tmp/']);
+                    cd(workingFolder);
                     importedModel = load([calibLabel,'.mat']);
 
                     % Convert double precision residuals to single
@@ -6299,13 +6348,13 @@ classdef HydroSight_GUI < handle
                         importedModel.model.calibrationResults.performance.variogram_residual.gammaHat = gammaHat;
                     end
                     % Assign calib status
-                    tableRowData{1,10} = '<html><font color = "#008000">Calibrated. </font></html>';
+                    tableRowData{1,9} = '<html><font color = "#008000">Calibrated. </font></html>';
 
                     % Get calib status and set into table.
                     exitFlag = importedModel.model.calibrationResults.exitFlag;
                     exitStatus = importedModel.model.calibrationResults.exitStatus;                            
                     if exitFlag ==0 
-                        this.tab_ModelCalibration.Table.Data{i,10} = ['<html><font color = "#FF0000">Calib. failed - ', ME.message,'</font></html>'];
+                        this.tab_ModelCalibration.Table.Data{i,9} = ['<html><font color = "#FF0000">Calib. failed - ', ME.message,'</font></html>'];
 
                         % Update status in GUI
                         %drawnow update
@@ -6313,9 +6362,9 @@ classdef HydroSight_GUI < handle
                         continue
 
                     elseif exitFlag ==1
-                        tableRowData{1,10} = ['<html><font color = "#FFA500">Partially calibrated: ',exitStatus,' </font></html>'];
+                        tableRowData{1,9} = ['<html><font color = "#FFA500">Partially calibrated: ',exitStatus,' </font></html>'];
                     elseif exitFlag ==2
-                        tableRowData{1,10} = ['<html><font color = "#008000">Calibrated: ',exitStatus,' </font></html>'];
+                        tableRowData{1,9} = ['<html><font color = "#008000">Calibrated: ',exitStatus,' </font></html>'];
                     end
 
                     % Update status in GUI
@@ -6357,17 +6406,17 @@ classdef HydroSight_GUI < handle
                     calibAICc = median(importedModel.model.calibrationResults.performance.AICc);
                     calibBIC = median(importedModel.model.calibrationResults.performance.BIC);
                     calibCoE = median(importedModel.model.calibrationResults.performance.CoeffOfEfficiency_mean.CoE);
-                    tableRowData{1,11} = ['<html><font color = "#808080">',num2str(calibCoE),'</font></html>'];
-                    tableRowData{1,13} = ['<html><font color = "#808080">',num2str(calibAICc),'</font></html>'];
-                    tableRowData{1,14} = ['<html><font color = "#808080">',num2str(calibBIC),'</font></html>'];
+                    tableRowData{1,10} = ['<html><font color = "#808080">',num2str(calibCoE),'</font></html>'];
+                    tableRowData{1,12} = ['<html><font color = "#808080">',num2str(calibAICc),'</font></html>'];
+                    tableRowData{1,13} = ['<html><font color = "#808080">',num2str(calibBIC),'</font></html>'];
 
                     % Set eval performance stats
                     if isfield(importedModel.model.evaluationResults,'performance')
                         evalCoE = median(importedModel.model.evaluationResults.performance.CoeffOfEfficiency_mean.CoE_unbias);
-                        tableRowData{1,12} = ['<html><font color = "#808080">',num2str(evalCoE),'</font></html>'];
+                        tableRowData{1,11} = ['<html><font color = "#808080">',num2str(evalCoE),'</font></html>'];
                     else
                         evalCoE = '(NA)';
-                        tableRowData{1,12} = ['<html><font color = "#808080">',evalCoE,'</font></html>'];
+                        tableRowData{1,11} = ['<html><font color = "#808080">',evalCoE,'</font></html>'];
                     end
 
                     %vars=whos('-file','tmp2.mat'); for i=1:6;vars2{i}=vars(i).name;end; for i=1:6; loadedVars=load('tmp2.mat',vars2{i}); if i==1; save('tmp4.mat','-Struct','loadedVars');else;save('tmp4.mat','-Struct','loadedVars','-append');end; end
@@ -6391,16 +6440,21 @@ classdef HydroSight_GUI < handle
             drawnow update;
             
             % Output Summary.
-            msgStr{length(msgStr)+1} = '';
-            msgStr{length(msgStr)+1} = 'Summary of Retrieval';
+            msgStr = {};
+            msgStr{length(msgStr)+1} = 'Finished Retrieval of Models.';
+            msgStr{length(msgStr)+1} = 'Summary of Retrieval:';
             msgStr{length(msgStr)+1} = ['   No. models sucessfully imported to project: ',num2str(nModelsRetieved)];            
             msgStr{length(msgStr)+1} = ['   No. selected models to retrieve: ',num2str(nSelectedModels )];
             msgStr{length(msgStr)+1} = ['   No. selected models not yet complete: ',num2str(nModelsNoResult) ];
             msgStr{length(msgStr)+1} = ['   No. selected models complete: ',num2str(nModels) ];                        
             msgStr{length(msgStr)+1} = ['   No. models files that could not be imported to project: ',num2str(nModelsResultFileErr) ];     
-            set(findobj(h,'Tag','MessageBox'),'String',msgStr);
-            set(findobj(h,'style','pushbutton'),'Visible','on');
-            drawnow update;             
+            
+            for i=1:length(msgStr)
+                display(msgStr{i});
+            end
+            if ~isempty(calibGUI_interface_obj)
+                updatetextboxFromDiary(calibGUI_interface_obj);
+            end
                                    
         end
 
@@ -8354,23 +8408,15 @@ classdef HydroSight_GUI < handle
             %    h = waitbar(0, ['Calibrating ', num2str(nModels), ' models. Please wait ...']);
             %end               
                         
-            % Start the diary and copying of the command window outputs to
-            % the GUI.
+            % Setup inputs for the GUI diary file.
             commandwindowBox = findobj(this.tab_ModelCalibration.GUI, 'Tag','calibration command window');
             commandwindowBox.Max=Inf;
             commandwindowBox.Min=0;
-            diaryFilename = strrep(this.project_fileName,'.mat',['_calibOutputs_',strrep(strrep(datestr(now),':','-'),' ','_'),'.txt']);
-            calibGUI_interface_obj = calibGUI_interface(commandwindowBox,diaryFilename);
-            startDiary(calibGUI_interface_obj);            
                         
             % Set the user data to denote calibration has started.
             lh = addlistener(this,'quitModelCalibration',@calibGUI_interface_obj.quitCalibrationListener);
-            
-            
-            %% Start calibration     
-            %obj = findobj(this.tab_ModelCalibration.GUI, 'Tag','calibration command window');
-            %gui_MirrorCmdWindow(obj);
-            
+                        
+            %% Start calibration                             
             % Loop  through the list of selected bore and apply the model
             % options.
             nModelsCalib = 0;
@@ -8382,12 +8428,11 @@ classdef HydroSight_GUI < handle
                 if isempty(selectedBores{i}) || ~selectedBores{i}
                     continue;
                 end
-
+                
                 % Get the selected model for simulation
                 calibLabel = data{i,2};
                 calibLabel = HydroSight_GUI.removeHTMLTags(calibLabel);
-                                
-
+                
                 % Get start and end date. Note, start date is at the start
                 % of the day and end date is shifted to the end of the day.
                 calibStartDate = datenum( data{i,6},'dd-mmm-yyyy');
@@ -8406,6 +8451,15 @@ classdef HydroSight_GUI < handle
                     continue;
                 end  
 
+                % Start the diary and copying of the command window outputs to
+                % the GUI. Unfortunately a new diary file needs to be
+                % created per model because the updating can be very slow
+                % when multiple models outputs are within one diary file
+                % (eg 12 seconds per update!)
+                diaryFilename = strrep(this.project_fileName,'.mat',['_',calibLabel,'_calibOutputs_',strrep(strrep(datestr(now),':','-'),' ','_'),'.txt']);
+                calibGUI_interface_obj = calibGUI_interface(commandwindowBox,diaryFilename);
+                startDiary(calibGUI_interface_obj);                  
+                
                 % Update status to starting calib.
                 this.tab_ModelCalibration.Table.Data{i,9} = '<html><font color = "#FFA500">Calibrating ... </font></html>';
 
@@ -8495,15 +8549,14 @@ classdef HydroSight_GUI < handle
                         
                 % Start calib.
                 try                    
-
-                    display(['BUILDING OFFLAOD DATA FOR MODEL: ',calibLabel]);
-                    display('  ');
-                    % Update the diary file
-                    if ~isempty(calibGUI_interface_obj)
-                        updatetextboxFromDiary(calibGUI_interface_obj);
-                    end   
-                                        
                     if strcmp(hObject.Tag,'Start calibration - useHPC')
+                        display(['BUILDING OFFLOAD DATA FOR MODEL: ',calibLabel]);
+                        display('  ');
+                        % Update the diary file
+                        if ~isempty(calibGUI_interface_obj)
+                            updatetextboxFromDiary(calibGUI_interface_obj);
+                        end
+                        
                         nHPCmodels = nHPCmodels +1;
                         HPCmodelData{nHPCmodels,1} = tmpModel;
                         HPCmodelData{nHPCmodels,2} = calibStartDate;
