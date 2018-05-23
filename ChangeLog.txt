@@ -91,3 +91,4 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 
 23 May 2018
 * GUI help moved to using that at https://github.com/peterson-tim-j/HydroSight/wiki
+* MEX .C files recompiled for Windows.
