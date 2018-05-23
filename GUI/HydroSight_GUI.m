@@ -7,7 +7,7 @@ classdef HydroSight_GUI < handle
     properties
         % Version number
         versionNumber = '1.2.9';
-        versionDate= '22 May 2018';
+        versionDate= '23 May 2018';
         
         % Model types supported
         %modelTypes = {'model_TFN','model_TFN_LOA', 'ExpSmooth'};
@@ -111,15 +111,12 @@ classdef HydroSight_GUI < handle
             this.figure_Help = uimenu( this.Figure, 'Label', 'Help' );
             uimenu(this.figure_Help, 'Label', 'Overview', 'Tag','doc_Overview','Callback', @this.onDocumentation);
             uimenu(this.figure_Help, 'Label', 'User Interface', 'Tag','doc_GUI','Callback', @this.onDocumentation);
-            uimenu(this.figure_Help, 'Label', 'Programmatic Use', 'Tag','doc_Programmatically','Callback', @this.onDocumentation);            
-            if isdeployed
-                uimenu(this.figure_Help, 'Label', 'Calibration Fundementals','Tag','doc_Calibration','Callback', @this.onDocumentation);            
-                uimenu(this.figure_Help, 'Label', 'Publications', 'Tag','doc_Publications','Callback', @this.onDocumentation);
-            else
-                uimenu(this.figure_Help, 'Label', 'Calibration Fundementals','Tag','doc_Calibration','Callback', @this.onDocumentation);
-                uimenu(this.figure_Help, 'Label', 'Algorithm Documentation', 'Tag','Algorithms','Callback', @this.onDocumentation);                
-                uimenu(this.figure_Help, 'Label', 'Publications', 'Tag','doc_Publications','Callback', @this.onDocumentation);                
-            end
+            uimenu(this.figure_Help, 'Label', 'Data requirements', 'Tag','doc_data_req','Callback', @this.onDocumentation);            
+            uimenu(this.figure_Help, 'Label', 'Time-series algorithms', 'Tag','doc_timeseries_algorithms','Callback', @this.onDocumentation);                
+            uimenu(this.figure_Help, 'Label', 'Tutorials', 'Tag','doc_tutes','Callback', @this.onDocumentation);                            
+            uimenu(this.figure_Help, 'Label', 'Calibration Fundementals','Tag','doc_Calibration','Callback', @this.onDocumentation);            
+            uimenu(this.figure_Help, 'Label', 'Support', 'Tag','doc_Support','Callback', @this.onDocumentation);                            
+            uimenu(this.figure_Help, 'Label', 'Publications', 'Tag','doc_Publications','Callback', @this.onDocumentation);                
             
             uimenu(this.figure_Help, 'Label', 'Check for updates at GitHub', 'Tag','doc_GitHubUpdate','Callback', @this.onGitHub,'Separator','on');
             uimenu(this.figure_Help, 'Label', 'Submit bug report to GitHub', 'Tag','doc_GitHubIssue','Callback', @this.onGitHub);
@@ -7439,35 +7436,53 @@ classdef HydroSight_GUI < handle
         end
         
         function onDocumentation(this, hObject, eventdata)
-            if strcmp(hObject.Tag,'Algorithms') 
-                doc HydroSight                   
+            if isempty(hObject.Tag)  % Open the help on the curretn tab
+                switch this.figure_Layout.Selection
+                    case 1
+                        web('https://github.com/peterson-tim-j/HydroSight/wiki/Project-description','-browser');
+                    case 2
+                        web('https://github.com/peterson-tim-j/HydroSight/wiki/Date-preparation','-browser');
+                    case 3
+                        web('https://github.com/peterson-tim-j/HydroSight/wiki/Model-Construction','-browser');
+                    case 4
+                        web('https://github.com/peterson-tim-j/HydroSight/wiki/Model-Calibration','-browser');
+                    case 5
+                        web('https://github.com/peterson-tim-j/HydroSight/wiki/Model-simulation','-browser');
+                    otherwise
+                        web('https://github.com/peterson-tim-j/HydroSight/wiki/Graphical-interface','-browser');
+                end
             else
-                if isempty(hObject.Tag)  % Open the help on the curretn tab
-                    switch this.figure_Layout.Selection
-                        case 1
-                            hObject.Tag = 'doc_GUI_projectDescription';
-                        case 2 
-                            hObject.Tag = 'doc_GUI_dataPrep';
-                        case 3
-                            hObject.Tag = 'doc_GUI_ModelConstruct';
-                        case 4    
-                            hObject.Tag = 'doc_GUI_ModelCalib';
-                        case 5    
-                            hObject.Tag = 'doc_GUI_ModelSimulate';                            
-                        otherwise
-                            hObject.Tag = 'doc_GUI';
-                    end
-               end               
-               
-               web([hObject.Tag,'.html']);
-           end
+                switch hObject.Tag
+                    case 'doc_Overview'
+                        web('https://github.com/peterson-tim-j/HydroSight/wiki','-browser');
+                    case 'doc_GUI'
+                        web('https://github.com/peterson-tim-j/HydroSight/wiki/Graphical-interface','-browser');
+                    case 'doc_Calibration'
+                        web('https://github.com/peterson-tim-j/HydroSight/wiki/What-is-Calibration%3F','-browser');
+                    case 'doc_Publications'
+                        web('https://github.com/peterson-tim-j/HydroSight/wiki/Publications','-browser');
+                    case 'doc_timeseries_algorithms'
+                        web('https://github.com/peterson-tim-j/HydroSight/wiki/Time-series-models','-browser');
+                    case 'doc_data_req'
+                        web('https://github.com/peterson-tim-j/HydroSight/wiki/Data-Requirements','-browser');
+                    case 'doc_data_req'
+                        web('https://github.com/peterson-tim-j/HydroSight/wiki/Data-Requirements','-browser');
+                    case 'doc_tutes'
+                        web('https://github.com/peterson-tim-j/HydroSight/wiki/Tutorials','-browser');
+                    case 'doc_Support'
+                        web('https://github.com/peterson-tim-j/HydroSight/wiki/Support','-browser');
+                end
+                
+                
+            end
+            
         end       
                
         function onGitHub(this, hObject, eventdata)
            if strcmp(hObject.Tag,'doc_GitHubUpdate') 
-               web('https://github.com/peterson-tim-j/HydroSight/releases');
+               web('https://github.com/peterson-tim-j/HydroSight/releases','-browser');
            elseif strcmp(hObject.Tag,'doc_GitHubIssue') 
-               web('https://github.com/peterson-tim-j/HydroSight/issues');
+               web('https://github.com/peterson-tim-j/HydroSight/issues','-browser');
            end            
                        
         end
@@ -7477,7 +7492,7 @@ classdef HydroSight_GUI < handle
         end
         
         function onLicenseDisclaimer(this, hObject, eventdata)
-           web('doc_License_Disclaimer.html');
+           web('https://github.com/peterson-tim-j/HydroSight/wiki/Disclaimer-and-Licenses','-browser');
         end                       
         
         function onPrint(this, hObject, eventdata)

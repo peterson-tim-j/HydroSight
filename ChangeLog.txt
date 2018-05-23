@@ -88,3 +88,6 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 22 May 2018
 * Bug fixed in calibration scheme SP-UCI when calibration when stochastic forcing data. The issue resolved was that after each evolutionary loop the objective fnction value was not updated using the final stochastic forcing. This caused instability in the calibration.
 * Formatting of GUI tool tips reformatted.
+
+23 May 2018
+* GUI help moved to using that at https://github.com/peterson-tim-j/HydroSight/wiki
