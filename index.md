@@ -6,7 +6,7 @@ _HydroSight_ is a highly flexible statistical toolbox for quantitative hydrogeol
 4. Exploration of groundwater management scenarios.
 5. Interpolation and extrapolation irregularly observed hydrograph at a daily time-step.
 
-The toolbox can be used from a highly flexible and stand-alone graphical user interface (available [here](https://github.com/peterson-tim-j/HydroSight/releases)) or programmatically from within Matlab 2014b (or later). 
+The toolbox can be used from a highly flexible and stand-alone graphical user interface ([available here](https://github.com/peterson-tim-j/HydroSight/releases)) or programmatically from within Matlab 2014b (or later). 
 
 ### What's New
 The next release of the stand alone application is out! It contains some exciting new features:
