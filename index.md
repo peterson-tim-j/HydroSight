@@ -1,4 +1,4 @@
-_HydroSight_ is a highly flexible statistical toolbox for quantitative hydrogeological insights. It comprises of a powerful groundwater hydrograph time-series modelling and simulation framework plus a data quality analysis module. Multiple models can be built for one bore, allowing statistical identification of the dominant processes, or 100's of bores can be modelled to quantify aquifer heterogeneity. This flexibility has allowed many users to develop many novel applications such as:
+_HydroSight_ is a highly flexible statistical toolbox for quantitative hydrogeological insights. It comprises of a powerful groundwater hydrograph time-series modelling and simulation framework plus a data quality analysis module. Multiple models can be built for one bore, allowing statistical identification of the dominant processes, or 100's of bores can be modelled to quantify aquifer heterogeneity. This flexibility allows many novel applications such as:
 
 1. Separations of the impacts from pumping and drought over time.
 2. Probabilistic estimation of aquifer hydraulic properties.
@@ -14,6 +14,9 @@ The next release of the stand alone application is out! It contains some excitin
 - Modelling with infrequently metered pumping rates.
 - probabilistic calibration (using DREAM) and parameter estimation.
 - [Google Groups discussion](https://groups.google.com/forum/#!forum/hydrosight). Join now to share ideas, project and issues. 
+
+### How many use _HydroSight_? 
+The number of downloads per releases are availabe at [Git Hub Release Statistics](https://www.somsubhra.com/github-release-stats/?username=peterson-tim-j&repository=HydroSight). The number of users downloading the source code is however not provided by GitHub, bit GitHub does summarise the [project web traffic](https://github.com/peterson-tim-j/HydroSight/graphs/traffic).
 
 ### Getting Started
 To begin using the stand-alone application, simply download and install the above Windows 64bit executable  (available [here](https://github.com/peterson-tim-j/HydroSight/releases)). Alternatively, visit the project wiki at (https://github.com/peterson-tim-j/HydroSight/wiki).
