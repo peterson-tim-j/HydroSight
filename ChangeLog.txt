@@ -79,16 +79,20 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 * HPC calibration now supports the SLURM HPC system. 
 
 1 May 2018
-* Bug fixed in pumpingRate_SAestimation() that caused a new downscaled time series to only be applied when an SP-UCI calibration evolutution completed. The outcome of this is that the pumping downscaling is now better 'tuned' to the obs. hydrograph.
+* Bug fixed in pumpingRate_SAestimation() that caused a new downscaled time series to only be applied when an SP-UCI calibration evolution completed. The outcome of this is that the pumping downscaling is now better 'tuned' to the obs. hydrograph.
 * Computational efficiency of pumpingRate_SAestimation.updateStochForcingData() is improved by replacing a for-loop with a vectorised form.
 * climateTransform_soilMoistureModels.setTransformedForcing() is now only undertaken when the soil parameters change. This was undertaken to improve computational efficiency and should not change the results from any model.
 * Calibration scheme SP-UCI tweaked to produce more efficient calibration when stochastic forcing data is being derived (eg from pumpingRate_SAestimation)
 * Bug fixed in HydroSight_GUI() that caused model construction to crash when (somewhow) there are duplicate model labels in the calibration table.
 
 22 May 2018
-* Bug fixed in calibration scheme SP-UCI when calibration when stochastic forcing data. The issue resolved was that after each evolutionary loop the objective fnction value was not updated using the final stochastic forcing. This caused instability in the calibration.
+* Bug fixed in calibration scheme SP-UCI when calibration when stochastic forcing data. The issue resolved was that after each evolutionary loop the objective function value was not updated using the final stochastic forcing. This caused instability in the calibration.
 * Formatting of GUI tool tips reformatted.
 
 23 May 2018
 * GUI help moved to using that at https://github.com/peterson-tim-j/HydroSight/wiki
 * MEX .C files recompiled for Windows.
+
+22 May 2018
+* Bug fixed in calibration scheme SP-UCI when calibration when stochastic forcing data. The issue resolved was that after the end of each complex, the final stochastic forcing was not returned. This caused the stochastic forcing to not be updated.
+* Calibration GUI now has a progress bar.

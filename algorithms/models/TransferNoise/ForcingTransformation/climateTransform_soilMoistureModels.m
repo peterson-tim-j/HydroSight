@@ -614,7 +614,11 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
             % Cycle through each parameter and get the parameter value.
             params = zeros(length(param_names),size( obj.(param_names{1}),2));
             for i=1: length(param_names)
-               params(i,:) = obj.(param_names{i}); 
+                if isempty(obj.(param_names{i}))
+                    params(i,:) = NaN;
+                else
+                    params(i,:) = obj.(param_names{i});
+                end
             end
         end   
         

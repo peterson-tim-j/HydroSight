@@ -741,6 +741,21 @@ classdef pumpingRate_SAestimation < stochForcingTransform_abstract & dynamicprop
             end
         end
         
+%% Randomise the model parameters. 
+%  This function should be called at the end of an evolutionary loop to
+%  avoid the parameters converging to a local minimum
+        function updateStochForcingParameters(obj, forcingData)
+
+            % Get the parameter bounds
+            [params_upperLimit, params_lowerLimit] = getParameters_physicalLimit(obj);
+                        
+            % Cycle through each parameter and randoly assign the parameter value.
+            newparams = params_lowerLimit + (params_upperLimit - params_lowerLimit) .* rand(size(params_lowerLimit));
+            
+            % Set the new parameter 
+            setParameters(obj, newparams );            
+        end
+        
 %% Get model parameters
         function [params, param_names] = getParameters(obj)            
 % getParameters sets the soil model parameters.

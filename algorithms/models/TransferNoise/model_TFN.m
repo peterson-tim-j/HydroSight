@@ -1302,6 +1302,36 @@ classdef model_TFN < model_abstract
             end
         end        
         
+        function params = updateStochForcingParameters(obj, stochForcingData, params)
+            % Set the input parameters
+            setParameters(obj, params, obj.variables.param_names);       
+            
+            % For those parameter compant objects with a method
+            % 'updateStochForcingParameters', update the componant
+            % paramerters.
+            componantNames = fieldnames(obj.parameters);
+            didUpdate = false;
+            for i=1:length(componantNames)
+                if isobject(obj.parameters.(componantNames{i}))
+                    if any(strcmp('updateStochForcingParameters',methods(obj.parameters.(componantNames{i}))))
+                        didUpdate = true;
+                        
+                        forcingDataComponant = fieldnames(stochForcingData);
+                        filt = strcmp(forcingDataComponant,componantNames{i});
+                        forcingDataComponant=forcingDataComponant{filt};
+                            
+                        updateStochForcingParameters(obj.parameters.(componantNames{i}),stochForcingData.(forcingDataComponant));
+                    end
+                end
+            end
+            
+            % If updated, then Get the new parameters.
+            if didUpdate
+                params = getParameters(obj);
+            end
+            
+        end 
+        
         function setStochForcingState(obj, doingCalibration, t_start_calib, t_end_calib)
             % Finalsie the calibration of the stochastic forcing data.
             if ~isempty(obj.parameters)

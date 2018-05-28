@@ -26,6 +26,11 @@ classdef stochForcingTransform_abstract < forcingTransform_abstract
         % to the stochastic forcing data. The method can also be used to
         % set the start and end dates for calibrtion.
         setStochForcingState(obj,doingCalibration, t_start_calib, t_end_calib);
+        
+        % Update the the model parameters. 
+        % This function should be called at the end of a, say, SP-UCI, evolutionary loop to
+        % avoid the parameters converging to a local minimum
+        updateStochForcingParameters(obj, forcingData);
     end
     
 end

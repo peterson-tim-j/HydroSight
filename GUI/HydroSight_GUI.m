@@ -7,7 +7,7 @@ classdef HydroSight_GUI < handle
     properties
         % Version number
         versionNumber = '1.2.9';
-        versionDate= '23 May 2018';
+        versionDate= '28 May 2018';
         
         % Model types supported
         %modelTypes = {'model_TFN','model_TFN_LOA', 'ExpSmooth'};
@@ -5480,7 +5480,14 @@ classdef HydroSight_GUI < handle
         end
         
         function onCalibModels(this, hObject, eventdata)
-                        
+                  
+            % The project must be saved to a file. Check the project file
+            % is defined.
+            if isempty(this.project_fileName) || isdir(this.project_fileName)
+                warndlg({'The project must be saved to a file before calibration can start.';'Please first save the project.'}, 'Project not saved...')
+                return
+            end            
+            
             % Get table data
             data = this.tab_ModelCalibration.Table.Data;            
             
@@ -5584,7 +5591,7 @@ classdef HydroSight_GUI < handle
                 'Visible','on', ...
                 'Toolbar','none', ...
                 'DockControls','off', ...
-                'WindowStyle','modal' ...
+                'WindowStyle','normal' ...
                 );
                 %'CloseRequestFcn',@this.onExit); 
                         
@@ -5592,7 +5599,7 @@ classdef HydroSight_GUI < handle
             windowHeight = this.tab_ModelCalibration.GUI.Parent.ScreenSize(4);
             windowWidth = this.tab_ModelCalibration.GUI.Parent.ScreenSize(3);
             figWidth = 0.6*windowWidth;
-            figHeight = 0.8*windowHeight;            
+            figHeight = 0.85*windowHeight;            
             this.tab_ModelCalibration.GUI.Position = [(windowWidth - figWidth)/2 (windowHeight - figHeight)/2 figWidth figHeight];
             
             % Set default panel color
@@ -5614,6 +5621,7 @@ classdef HydroSight_GUI < handle
             outerTabsPanel.TabNames = {'CMA-ES', 'SP-UCI','DREAM', 'Multi-model'};
             outerTabsPanel.SelectedChild = 1;
                        
+            % Add buttons.
             outerButtons = uiextras.HButtonBox('Parent',outerVbox,'Padding', 3, 'Spacing', 3);             
             uicontrol('Parent',outerButtons,'String','Start calibration','Callback', @this.startCalibration, 'Interruptible','on','Tag','Start calibration', 'TooltipString', sprintf('Calibrate all of the selected models.') );
             if ~isdeployed
@@ -5623,11 +5631,30 @@ classdef HydroSight_GUI < handle
             uicontrol('Parent',outerButtons,'String','Quit calibration','Callback', @this.quitCalibration, 'Enable','off','Tag','Quit calibration', 'TooltipString', sprintf('Stop calibrating the models at the end of the current iteration loop.') );
             outerButtons.ButtonSize(1) = 225;            
             
+            % Count the number of models selected
+            nModels=0;
+            iModels=0;
+            for i=1:length(selectedBores);                                
+                if ~isempty(selectedBores{i}) && selectedBores{i}
+                    nModels = nModels +1;
+                end
+            end            
+            
+            % Add progress bar
+            bar_panel = uipanel('Parent',outerVbox, 'BorderType','none');
+            ax = axes( 'Parent', bar_panel);            
+            barh(ax, 0,'Tag','Calib_wait_bar');
+            box(ax,'on');
+            xlim(ax,[0,nModels]);
+            ax.YTick = [];
+            ax.XTick = [0:nModels];
+            title(ax,'Model Calibration Progress','FontSize',10,'FontWeight','normal');
+            
             % Add large box for calib. iterations
             uicontrol(outerVbox,'Style','edit','String','(calibration not started)','Tag','calibration command window', ...
                 'HorizontalAlignment','left', 'Units','normalized','BackgroundColor','white');             
             
-            set(outerVbox, 'Sizes', [30 -1 30 -2]);
+            set(outerVbox, 'Sizes', [30 -1 30 50 -2]);
            
             % Fill in CMA-ES panel               
             CMAES_tabVbox= uiextras.Grid('Parent',CMAES_tab,'Padding', 6, 'Spacing', 6);
@@ -5637,7 +5664,7 @@ classdef HydroSight_GUI < handle
             uicontrol(CMAES_tabVbox,'Style','text','String','Largest absolute change in the parameters for convergency (TolX):','HorizontalAlignment','left', 'Units','normalized');                        
             uicontrol(CMAES_tabVbox,'Style','text','String','Number CMA-ES calibration restarts (Restarts):','HorizontalAlignment','left', 'Units','normalized');                        
             uicontrol(CMAES_tabVbox,'Style','text','String','Standard deviation for the initial parameter sampling, as fraction of plausible parameter bounds (insigmaFrac):','HorizontalAlignment','left', 'Units','normalized');            
-            uicontrol(CMAES_tabVbox,'Style','text','String','Random seed number (only for repetetive testing purposes):','HorizontalAlignment','left', 'Units','normalized');            
+            uicontrol(CMAES_tabVbox,'Style','text','String','Random seed number (only for repetetive testing purposes, an empty value uses a different seed per model):','HorizontalAlignment','left', 'Units','normalized');            
                   
             uicontrol(CMAES_tabVbox,'Style','edit','string','Inf','Max',1, 'Tag','CMAES MaxFunEvals','HorizontalAlignment','right');
             uicontrol(CMAES_tabVbox,'Style','edit','string','Inf','Max',1, 'Tag','CMAES popsize','HorizontalAlignment','right');
@@ -5658,7 +5685,7 @@ classdef HydroSight_GUI < handle
             uicontrol(SPUCI_tabVbox,'Style','text','String','Number of complexes (ngs) per model parameter:','HorizontalAlignment','left', 'Units','normalized');                        
             uicontrol(SPUCI_tabVbox,'Style','text','String','Minimum number of total complexes (ngs):','HorizontalAlignment','left', 'Units','normalized');                        
             uicontrol(SPUCI_tabVbox,'Style','text','String','Maximum number of total complexes (ngs):','HorizontalAlignment','left', 'Units','normalized');                        
-            uicontrol(SPUCI_tabVbox,'Style','text','String','Random seed number (only for repetetive testing purposes):','HorizontalAlignment','left', 'Units','normalized');            
+            uicontrol(SPUCI_tabVbox,'Style','text','String','Random seed number (only for repetetive testing purposes, an empty value uses a different seed per model):','HorizontalAlignment','left', 'Units','normalized');            
       
             uicontrol(SPUCI_tabVbox,'Style','edit','string','Inf','Max',1, 'Tag','SP-UCI maxn','HorizontalAlignment','right');
             uicontrol(SPUCI_tabVbox,'Style','edit','string','10','Max',1, 'Tag','SP-UCI kstop','HorizontalAlignment','right');
@@ -7694,7 +7721,11 @@ classdef HydroSight_GUI < handle
             this.tab_ModelConstruction.Table.RowName = mat2cell([1:nrows]',ones(1, nrows));     
 
             % Model Calib data
-            this.tab_ModelCalibration.Table.Data = exampleModel.tableData.tab_ModelCalibration;
+            if size(exampleModel.tableData.tab_ModelCalibration,2)==14
+                this.tab_ModelCalibration.Table.Data =  exampleModel.tableData.tab_ModelCalibration(:,[1:8,10:14]);
+            else
+                this.tab_ModelCalibration.Table.Data = exampleModel.tableData.tab_ModelCalibration;
+            end
             nrows = size(this.tab_ModelCalibration.Table.Data,1);
             this.tab_ModelCalibration.Table.RowName = mat2cell([1:nrows]',ones(1, nrows));                      
 
@@ -8417,12 +8448,10 @@ classdef HydroSight_GUI < handle
                 end
             end
             
-            % Add wait bar
-            %minModels4Waitbar = 5;
-            %if ~strcmp(hObject.Tag,'useHPC') && nModels>=minModels4Waitbar
-            %    h = waitbar(0, ['Calibrating ', num2str(nModels), ' models. Please wait ...']);
-            %end               
-                        
+            % Setup wait bar
+            waitBarPlot = findobj(this.tab_ModelCalibration.GUI, 'Tag','Calib_wait_bar');
+            waitBarPlot.YData=0;
+                                    
             % Setup inputs for the GUI diary file.
             commandwindowBox = findobj(this.tab_ModelCalibration.GUI, 'Tag','calibration command window');
             commandwindowBox.Max=Inf;
@@ -8664,15 +8693,12 @@ classdef HydroSight_GUI < handle
                     this.tab_ModelCalibration.Table.Data{i,9} = ['<html><font color = "#FF0000">Calib. failed - ', ME.message,'</font></html>'];
                 end
                 
+                % Update wait bar
+                waitBarPlot.YData = waitBarPlot.YData+1;
+                
                 % Update status in GUI
                 drawnow
-                
-%                 % Update wait bar
-%                 minModels4Waitbar=10;
-%                 if ~strcmp(hObject.Tag,'useHPC') && nModels>=minModels4Waitbar            
-%                     iModels=iModels+1;
-%                     waitbar(iModels/nModels);                
-%                 end
+                                
             end
             
             % Close wait bar

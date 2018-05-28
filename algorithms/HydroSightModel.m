@@ -1492,7 +1492,6 @@ classdef HydroSightModel < handle
             % Set general constants.
             obj.calibrationResults = [];
             obj.evaluationResults = [];            
-            seed = sum(100*clock);                          % Seed value for random number generation.
 
             % Add flag to denote the calibration is not complete.
             obj.calibrationResults.isCalibrated = false;
@@ -2841,7 +2840,15 @@ classdef HydroSightModel < handle
                     finishedStochForcing = updateStochForcingData(obj.model, forcingData, refineStochForcingMethod);
                 end
             end            
-        end        
+        end  
+        
+        function params = updateStochForcingParameters(obj, forcingData, params)
+            if any(strcmp(methods(obj.model),'updateStochForcingParameters'))           
+                for i=1:size(params,2)
+                    params(:,i) = updateStochForcingParameters(obj.model, forcingData, params(:,i));
+                end
+            end            
+        end               
       
         
         %% Get the forcing data from the model

@@ -141,7 +141,7 @@ xigs = [];
 bestf_ever=bestf;
 bestx_ever=bestx;
 nloop=0;
-%doReEval_DerivedForcing = false;
+%isbestf_ever_inkstop = false;
 while icall<maxn && gnrng>peps && criter_change>pcento
     nloop=nloop+1;
     %%%%%%%%%%%%%%%%%%%%%%%%
@@ -185,14 +185,23 @@ while icall<maxn && gnrng>peps && criter_change>pcento
     %-----------------
     % Importantly, with the derived forcing changing then objective
     % function value for each parameter set is most likely to change. 
-    % Therefore, all parameter sets are re-evaluated.    
+    % Therefore, all parameter sets are re-evaluated. Also, the stochastic 
+    % forcing parameters are perturbed. This is done to avoid the stoachstic
+    % forcing data from converging to a local miniumum.  
     if useDerivedForcing                
         if ~isempty(xigs) && iscell(stochDerivedForcingData) && length(stochDerivedForcingData)==ngs
             model = varargin{1};
             stochDerivedForcingData_sliced = stochDerivedForcingData(xigs);
+            
             parfor i=1:npt
                 % Assign derived forcing using xigs
                 updateStochForcingData(model, stochDerivedForcingData_sliced{i});
+
+                % Update/perturb the stochastic forcing parameters.
+                %xtmp = updateStochForcingParameters(model, stochDerivedForcingData_sliced{i}, x(i,:)');
+                %x(i,:) = xtmp';
+
+                % Get the new objective function value.
                 xf(i) = feval(funcHandle, x(i,:)', varargin{:});
             end
             clear stochDerivedForcingData_sliced;
@@ -301,49 +310,49 @@ while icall<maxn && gnrng>peps && criter_change>pcento
             bestf_ever = bestf;
             bestx_ever = bestx;
             stochDerivedForcingData_best = stochDerivedForcingData{xigs(1)};                                             
-%         else               
-%             
-%             % Insert the best ever forcing series into a random complex
-%             % (except the best complex)
-%             ind_rand_ngs = xigs(1);
-%             while ind_rand_ngs == xigs(1)
-%                 ind_rand_ngs = randi(ngs);
-%             end
-%             stochDerivedForcingData{ind_rand_ngs}  = stochDerivedForcingData_best;
-%             
-%             % Build an index to only the parameter sets within complex 'ind_rand'.
-%             ind_rand_ngs = find(xigs==ind_rand_ngs);
-%             ind_rand_ngs = sort(ind_rand_ngs);
-%             
-%             % Set the derived forcing from the best ever evolution to the model.
-%             updateStochForcingData(varargin{1},stochDerivedForcingData_best);
-%             
-%             % Recalculate the xf for ONLY complex 'ind_rand'.
-%             x_tmp = x(ind_rand_ngs,:);
-%             xf_tmp = inf(1,length(ind_rand_ngs));
-%             parfor i=1:length(ind_rand_ngs)
-%                 xf_tmp(i) = feval(funcHandle, x_tmp(i,:)', varargin{:});
-%             end
-%             xf(ind_rand_ngs) = xf_tmp;
-%             icall = icall + length(ind_rand_ngs);
-%             
-%             
-%             % Again, re-sort the complexes, and re-record the best and worst points;
-%             [xf,idx] = sort(xf);
-%             x=x(idx,:);
-%             bestx=x(1,:);
-%             bestf=xf(1);
-%             worstx=x(npt,:);
-%             worstf=xf(npt);
-%             
-%             % Again, re-sort xigs numbers using xf order
-%             xigs=xigs(idx);
-%             
-%             % Check if there is a new bestf.
-%             if bestf < bestf_ever
-%                 bestf_ever = bestf;
-%                 bestx_ever = bestx;
-%             end
+        else               
+            
+            % Insert the best ever forcing series into a random complex
+            % (except the best complex)
+            ind_rand_ngs = xigs(1);
+            while ind_rand_ngs == xigs(1)
+                ind_rand_ngs = randi(ngs);
+            end
+            stochDerivedForcingData{ind_rand_ngs}  = stochDerivedForcingData_best;
+            
+            % Build an index to only the parameter sets within complex 'ind_rand'.
+            ind_rand_ngs = find(xigs==ind_rand_ngs);
+            ind_rand_ngs = sort(ind_rand_ngs);
+            
+            % Set the derived forcing from the best ever evolution to the model.
+            updateStochForcingData(varargin{1},stochDerivedForcingData_best);
+            
+            % Recalculate the xf for ONLY complex 'ind_rand'.
+            x_tmp = x(ind_rand_ngs,:);
+            xf_tmp = inf(1,length(ind_rand_ngs));
+            parfor i=1:length(ind_rand_ngs)
+                xf_tmp(i) = feval(funcHandle, x_tmp(i,:)', varargin{:});
+            end
+            xf(ind_rand_ngs) = xf_tmp;
+            icall = icall + length(ind_rand_ngs);
+            
+            
+            % Again, re-sort the complexes, and re-record the best and worst points;
+            [xf,idx] = sort(xf);
+            x=x(idx,:);
+            bestx=x(1,:);
+            bestf=xf(1);
+            worstx=x(npt,:);
+            worstf=xf(npt);
+            
+            % Again, re-sort xigs numbers using xf order
+            xigs=xigs(idx);
+            
+            % Check if there is a new bestf.
+            if bestf < bestf_ever
+                bestf_ever = bestf;
+                bestx_ever = bestx;
+            end
         end
     else 
         if bestf < bestf_ever
@@ -356,15 +365,19 @@ while icall<maxn && gnrng>peps && criter_change>pcento
 
     criter_change = inf;
     criter=[criter;bestf];        
-    isbestf_ever_inkstop = false;
+%     if useDerivedForcing
+%         isbestf_ever_inkstop = false;
+%     else
+%         isbestf_ever_inkstop = true;
+%     end
     if (nloop >= kstop)
         criter_change=abs(criter(nloop)-criter(nloop-kstop+1))*100;
         criter_change=criter_change/mean(abs(criter(nloop-kstop+1:nloop)));
         
-        %Check if bestf_ever is within the last kstop iterations.
-        if any(criter(nloop-kstop+1:nloop)==bestf_ever)
-          isbestf_ever_inkstop = true;
-        end
+%         %Check if bestf_ever is within the last kstop iterations.
+%         if any(criter(nloop-kstop+1:nloop)==bestf_ever)
+%           isbestf_ever_inkstop = true;
+%         end
     end
     
     disp(['LOOP       : ' num2str(nloop) '  - Trial - ' num2str(icall)]);
@@ -392,9 +405,13 @@ while icall<maxn && gnrng>peps && criter_change>pcento
     % should be refined (ie for pumpingRate_SAestimation() the
     % time-step reduced). This feature was added to allow the
     % downscaling to operate an increasingly fine temporal scales. 
-    if useDerivedForcing && ((criter_change < pcento && isbestf_ever_inkstop) || gnrng < peps)
+    if useDerivedForcing && ((criter_change < pcento) || gnrng < peps)
         refineStochForcingMethod = true;
         finishedStochForcing = updateStochForcingData(varargin{1},stochDerivedForcingData_best, refineStochForcingMethod);
+        
+        % Get the stochastic forcing in case it has been updated in the
+        % prior step.
+        stochDerivedForcingData_best = getStochForcingData(varargin{1});
         
         % If the stochastic forcing has been refined, then repeat the
         % calibration using the refined apprach eg a finer downscaling
@@ -404,10 +421,18 @@ while icall<maxn && gnrng>peps && criter_change>pcento
         if ~finishedStochForcing 
             disp('');
             disp('NOTE: The derived stochastic forcing is being refined. The calibration is being re-run.');
+            
+            % Put the nest stoch forcing into each cell of the cell array of stoch
+            % forcing for each complex.
+            for igs = 1: ngs
+                % Get the appropriate derived forcing data for each complex. 
+                stochDerivedForcingData{igs} = stochDerivedForcingData_best;
+            end            
+            
             % Initialization of the populaton and calculate their objective
             % function value AND add the best parameter set so far.
             %bestf_ever = inf;
-            [x,xf, icall] = initialisePopulation(funcHandle, funcHangle_validParams, bestx_ever,bl_plausible, bu_plausible, false, npt, nopt, icall, varargin{:});            
+            [x,xf, icall] = initialisePopulation(funcHandle, funcHangle_validParams, bestx_ever,bl_plausible, bu_plausible, true, npt, nopt, icall, varargin{:});            
 
             % Check if the population degeneration occured
             [x, xf, icall]=DimRest(funcHandle, funcHangle_validParams, x,xf,bl_phys,bu_phys,icall, varargin{:});
@@ -424,7 +449,7 @@ while icall<maxn && gnrng>peps && criter_change>pcento
     end    
         
 
-    if criter_change < pcento && isbestf_ever_inkstop
+    if criter_change < pcento
         disp(['THE BEST POINT HAS IMPROVED IN LAST ' num2str(kstop) ' LOOPS BY ', ...
             'LESS THAN THE THRESHOLD ' num2str(pcento) '%']);
         disp('CONVERGENCY HAS ACHIEVED BASED ON OBJECTIVE FUNCTION CRITERIA!!!')
@@ -546,14 +571,17 @@ function [cx, cf, icall, forcingData] = doComplexEvolution(funcHandle, funcHangl
 
             % End of Inner Loop for Competitive Evolution of Simplexes
         end
+
+        % Get final derived forcing
+        if useDerivedForcing
+            forcingData= getStochForcingData(varargin{1});
+        end        
         
         % Conduct Gaussian Resampling 
         %[cx, cf, icall]=GauSamp(funcHandle, funcHangle_validParams, cx,cf,bl_plausible, bu_plausible,icall,  forcingData, varargin{:});
-        
-%         % Get final derived forcing
+
+%         % Evaluate each parameter set with the final derived forcing
 %         if useDerivedForcing
-%             forcingData= getStochForcingData(varargin{1});
-%             % Re-valuate complex using the final stochastic forcing.            
 %             for loop=1:size(cx,1)
 %                 updateStochForcingData(varargin{1}, forcingData);
 %                 cf(loop)= feval(funcHandle,cx(loop,:)', varargin{:});                                
