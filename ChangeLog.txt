@@ -96,3 +96,4 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 22 May 2018
 * Bug fixed in calibration scheme SP-UCI when calibration when stochastic forcing data. The issue resolved was that after the end of each complex, the final stochastic forcing was not returned. This caused the stochastic forcing to not be updated.
 * Calibration GUI now has a progress bar.
+* Calibration GUI now modal ie the user can't switch to other HydroSight windows.
