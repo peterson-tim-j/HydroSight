@@ -315,7 +315,8 @@ classdef model_TFN_gui < model_gui_abstract
             % Add context menu for Wizard.
             contextMenu = uicontextmenu(this.Figure.Parent.Parent.Parent.Parent.Parent.Parent,'Visible','on');
             uimenu(contextMenu,'Label','Copy all rows','Callback',@this.rowAddDelete);
-            uimenu(contextMenu,'Label','Paste all rows','Callback',@this.rowAddDelete,'Separator','on');
+            uimenu(contextMenu,'Label','Paste all rows','Callback',@this.rowAddDelete);
+            uimenu(contextMenu,'Label','Push "Required Data" to component','Callback',@this.push2component,'Separator','on');
             uimenu(contextMenu,'Label','Wizard ...','Callback',@this.wizard);                
             set(this.modelOptions.options{1,1}.tbl,'UIContextMenu',contextMenu);
             set(this.modelOptions.options{1,1}.tbl.UIContextMenu,'UserData', 'this.modelOptions.options{1,1}.tbl');
@@ -769,6 +770,7 @@ classdef model_TFN_gui < model_gui_abstract
                    this.weightingFunctions.tbl.Data{ind,2} = componentNames{i};
                    this.weightingFunctions.tbl.Data{ind,3} = weightingFunctionName;
                    this.weightingFunctions.tbl.Data{ind,5} = optionsName;
+                   this.weightingFunctions.tbl.RowName = [1:size(this.weightingFunctions.tbl.Data,1)];
 
                    % Check if the input comes from the output of a
                    % transformation function.                   
@@ -810,6 +812,7 @@ classdef model_TFN_gui < model_gui_abstract
                             forcingDataforWeighting = strcat( LHS, forcingDataforWeighting(1:nForcingInputs));
                             forcingDataforWeighting = model_TFN_gui.cell2string(forcingDataforWeighting,'');
                             this.weightingFunctions.tbl.Data{ind,4} = forcingDataforWeighting;
+                            
                                                                                     
                        else
                             this.weightingFunctions.tbl.Data{ind,4} = [transformFunctionName, ' : ', forcingDataforWeighting];
@@ -869,6 +872,7 @@ classdef model_TFN_gui < model_gui_abstract
                    this.derivedWeightingFunctions.tbl.Data{ind,3} = weightingFunctionName;
                    this.derivedWeightingFunctions.tbl.Data{ind,4} = inputcomponentName; 
                    this.derivedWeightingFunctions.tbl.Data{ind,6} = optionsName; 
+                   this.derivedWeightingFunctions.tbl.RowName = [1:size(this.derivedWeightingFunctions.tbl.Data,1)];
                    
                    % Check if the input comes from the output of a
                    % transformation function.
@@ -910,7 +914,7 @@ classdef model_TFN_gui < model_gui_abstract
                             transformOptions = model_TFN_gui.cell2string(transformOptions, []);
                         end 
                         this.forcingTranforms.tbl.Data{ind,4} = transformOptions;
-                                                                                                
+                        this.forcingTranforms.tbl.RowName = [1:size(this.forcingTranforms.tbl.Data,1)];
                     else
                         ind = size(this.derivedForcingTranforms.tbl.Data,1)+1;
                         if ind==1
@@ -930,7 +934,7 @@ classdef model_TFN_gui < model_gui_abstract
                             transformOptions = model_TFN_gui.cell2string(transformOptions, []);
                         end 
                         this.derivedForcingTranforms.tbl.Data{ind,5} = transformOptions;                        
-                        
+                        this.derivedForcingTranforms.tbl.RowName = [1:size(this.derivedForcingTranforms.tbl.Data,1)];
                     end
                     
                     
@@ -2162,6 +2166,7 @@ classdef model_TFN_gui < model_gui_abstract
                                 this.modelOptions.options{1, 1}.tbl.Data{i,1}= wizardResults{i,1};
                                 this.modelOptions.options{1, 1}.tbl.Data{i,2}= wizardResults{i,2};
                            end     
+                           this.modelOptions.options{1, 1}.tbl.RowName = [1:size(this.modelOptions.options{1, 1}.tbl.Data,1)];
                            
                            % In case the user does not input/chnage
                            % the data, then apply it to the forcing
@@ -2177,6 +2182,54 @@ classdef model_TFN_gui < model_gui_abstract
            end
 
            drawnow();   
+         end
+         
+         function push2component(this, hObject, eventdata)
+             
+            dlg_title = 'Push required model data to compnant input data ...';
+            prompt = 'Select the componant:';      
+            ListString = this.weightingFunctions.tbl.Data(:,2);
+           
+            if length(ListString)<1
+                errordlg('The weighting function component names must first be defined.')
+                return
+            end
+            
+            [ind, OK]= listdlg('Name',dlg_title, 'PromptString',prompt, 'ListString',ListString, 'SelectionMode','single');
+            if OK==1
+               
+                
+                % Get the selelcted table, row and col.
+                irow = this.currentSelection.row;
+                icol = this.currentSelection.col;
+                currentTable = this.currentSelection.table;
+                
+                % Get the name of the function within the table
+                switch currentTable
+                    case 'Forcing Transform'
+                        className = this.forcingTranforms.tbl.Data{irow, 2};                                               
+                    otherwise
+                        msgbox('This model componant does not have a data wizard.', 'No data wizard ...','help')
+                        return
+                end
+                
+                % get input data names
+                
+                data = this.modelOptions.options{1, 1}.tbl.Data(:,1);
+                LHS = strcat(className,' : ');
+                data = strcat( LHS, data);
+                               
+                % Get class name (for calling the abstract)
+                className = metaclass(this);
+                className = className.Name;
+                
+                % Convert to string.
+                colnames = 'NA';                    
+                this.weightingFunctions.tbl.Data{ind,4} = eval([className,'.cell2string(data, colnames)']);
+                    
+                
+                
+            end
          end
     end
     

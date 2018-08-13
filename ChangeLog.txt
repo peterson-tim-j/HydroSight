@@ -97,3 +97,8 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 * Bug fixed in calibration scheme SP-UCI when calibration when stochastic forcing data. The issue resolved was that after the end of each complex, the final stochastic forcing was not returned. This caused the stochastic forcing to not be updated.
 * Calibration GUI now has a progress bar.
 * Calibration GUI now modal ie the user can't switch to other HydroSight windows.
+
+13 Aug 2018
+* Feature added to GUI opetions for pumpingRate_SAestimation() allowing the wizard selected bores to be pushed to the pumping weighting component.
+* Bug fixed in calibration GUI daily data results table. Now the day of the month is correct.
+* Significant impovement in the calibration time of models containing pumpingRate_SAestimation(). 

@@ -615,8 +615,12 @@ function [x,xf, icall] = initialisePopulation(funcHandle, funcHangle_validParams
     xf=10000*ones(1,npt);
     stochDerivedForcingData = getStochForcingData(varargin{1}); 
     
+    % Evaluate the model without parallelisation to (1) check it works and
+    % (2) set any possible model variables (eg phi cards used for get_h_star
+    xf(1) = feval(funcHandle, x(1,:)', varargin{:});
+        
     %tic;
-    parfor i=1:npt
+    parfor i=2:npt
         xf(i) = feval(funcHandle, x(i,:)', varargin{:});
         icall = icall + 1;
     end

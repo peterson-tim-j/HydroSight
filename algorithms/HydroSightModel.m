@@ -7,12 +7,12 @@ classdef HydroSightModel < handle
 %   is defined within a seperate class object and must adhere to the structure
 %   as defined within the abstract class 'model_abstract.m'. Currently, the
 %   following models have been developed: 
-%
+%`
 %   * 'model_TFN': Transfer Function Noise model of Peterson and
 %     Western (2014) and von Asmuth et al. (2005). To run this model,
 %     the following MEX .c source-code file may need to be compiled:
 %     * 'doIRFconvolution.c'
-%     * 'forcingTransform_soilMoisture.c'            
+%     * 'forcingTransform_soilMoisture.c'
 %   * 'ExpSmooth': A double exponential smoothing filter where the 'double'
 %     allows a trend to be accounted for in the smoothing.
 % 

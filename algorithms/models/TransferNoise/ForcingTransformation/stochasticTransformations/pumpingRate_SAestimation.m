@@ -588,7 +588,7 @@ classdef pumpingRate_SAestimation < stochForcingTransform_abstract & dynamicprop
 
                 % Estimate the mean daily pumping rate during the metered
                 % periods.
-                dailyRate = getDailyAveragePumpingRates(obj,obj.variables.t_start_calib, obj.variables.t_end_calib);
+                [dailyRate, ind_dailyRate] = getDailyAveragePumpingRates(obj,obj.variables.t_start_calib, obj.variables.t_end_calib);
 
                 % Filter out periods for which the daily rate could not be
                 % calculated.
@@ -697,7 +697,7 @@ classdef pumpingRate_SAestimation < stochForcingTransform_abstract & dynamicprop
                 if nargin>1
                     % Update the mean daily pumping rate during the metered
                     % periods because the pump state changed.
-                    dailyRate = getDailyAveragePumpingRates(obj,obj.variables.t_start_calib, obj.variables.t_end_calib);
+                    [dailyRate, ind_dailyRate] = getDailyAveragePumpingRates(obj,obj.variables.t_start_calib, obj.variables.t_end_calib);
                     
                     % Filter out periods for which the daily rate could not be
                     % calculated.
@@ -717,23 +717,35 @@ classdef pumpingRate_SAestimation < stochForcingTransform_abstract & dynamicprop
                     dailyRate_median = median(dailyRate(filt ,5));
                     
                     % Assign the average daily pumping rate during each
-                    % metered period. Note, if there are <= 5 time
-                    % points to assign then a for-loop is used. If >5 then
-                    % a vectorised version is used. This is only done for
-                    % computational efficiency. Trails for Warrion, Victoria, 
-                    % found that for seasonal downscaling the vectorised
-                    % form was ~2 time faster than the for loop.
-                    if length(filt)>5                    
-                        filt_obsPeriods=bsxfun(@ge, obj.variables.(pumpName)(:,1), dailyRate(filt,2)') & bsxfun(@le, obj.variables.(pumpName)(:,1), dailyRate(filt,3)');
-                        obj.variables.(pumpName)(:,7) = sum(bsxfun(@times, filt_obsPeriods, dailyRate(filt,5)'),2) + all(~filt_obsPeriods,2) * dailyRate_median;
-                    else
-                        obj.variables.(pumpName)(:,7)=dailyRate_median;
-                        icol=0;                    
-                        for j=filt                        
-                            icol=icol+1;
-                            obj.variables.(pumpName)(filt_obsPeriods(:,icol),7)=dailyRate(j,5);
-                        end                    
-                    end
+                    % metered period. NOTE, this task was the most
+                    % computationally intesive steps in the evaluation of
+                    % the objective function. Initially, this was addressed
+                    % by using bsxfun commands for situations when there
+                    % are >5 periods to assign downscaled pumping. However
+                    % in trials for the Warrion management area (Victoria, Australia)
+                    % the bsxfun steps still used ~60% of CPU time. After
+                    % some trials, the computational demand was
+                    % significantly reduced by having getDailyAveragePumpingRates()
+                    % return indexes to each row of obj.variables.(pumpName)
+                    % and the associated downscaled pumping for the row.
+                    % This approach eliminated the need for the bsxfun
+                    % commands!!!
+                    %------------------------------------
+%                     filt=find(dailyRate(:,1) == pumpNum & (dailyRate(:,3)-dailyRate(:,2))>1)';
+%                     if length(filt)>5                           
+%                         filt_obsPeriods=bsxfun(@ge, obj.variables.(pumpName)(:,1), dailyRate(filt,2)') & bsxfun(@le, obj.variables.(pumpName)(:,1), dailyRate(filt,3)');
+%                         obj.variables.(pumpName)(:,7) = sum(bsxfun(@times, filt_obsPeriods, dailyRate(filt,5)'),2) + all(~filt_obsPeriods,2) * dailyRate_median;                        
+%                     else
+%                         obj.variables.(pumpName)(:,7)=dailyRate_median;
+%                         for j=filt                        
+%                             filt_obsPeriods = bsxfun(@ge, obj.variables.(pumpName)(:,1), dailyRate(j,2)') & bsxfun(@le, obj.variables.(pumpName)(:,1), dailyRate(j,3)');
+%                             obj.variables.(pumpName)(ind_obsPeriods,7)=dailyRate(j,5);
+%                         end                    
+%                     end
+                    
+                    obj.variables.(pumpName)(:,7)=dailyRate_median;
+                    obj.variables.(pumpName)(ind_dailyRate.(pumpName)(:,1),7)  = ind_dailyRate.(pumpName)(:,2);
+                    %------------------------------------
                     
                     % Multiple pump state by daily rate to create down-scaled pumping rate
                     obj.variables.(pumpName)(:,8)=obj.variables.(pumpName)(:,6).*obj.variables.(pumpName)(:,7);
@@ -932,15 +944,22 @@ classdef pumpingRate_SAestimation < stochForcingTransform_abstract & dynamicprop
                 % Store the time points
                 obj.variables.t = t(filt_time);
 
-
-                % Estimate the mean daily pumping rate during the metered
-                % periods.
-                dailyRate = getDailyAveragePumpingRates(obj,obj.variables.t_start_calib, obj.variables.t_end_calib);
-
-                % Filter out periods for which the daily rate could not be
-                % calculated.
-                dailyRate = dailyRate(isfinite(dailyRate(:,end)),:);            
-
+                % Get the start and end date for downscaled periods for
+                % each pump.
+                %------------                
+                % Build vector of from non-obs periods 'nonObsPeriods' of bore number, 
+                % start and end date of non-metered periods.
+                dailyRate = cell2mat(obj.variables.nonObsPeriods(:,[1,3,4]));
+                
+                % Filter out periods that do not have a metered reading
+                filt = isfinite(cell2mat(obj.variables.nonObsPeriods(:,5)));
+                dailyRate = dailyRate(filt,:);
+                
+                % Add the daily metered volumes. Since these readings are for a
+                % single day, the the start and end dates are equal.
+                dailyRate = [dailyRate; [obj.variables.obsDays(:,1), obj.variables.obsDays(:,2), obj.variables.obsDays(:,2)]];
+                %------------
+                
                 % Get the object parameters.
                 [params, param_names] = getParameters(obj);
 
@@ -1250,11 +1269,16 @@ classdef pumpingRate_SAestimation < stochForcingTransform_abstract & dynamicprop
         % Returns matrix of size(obj.variables.nonObsPeriods,1) with
         % pump number, start date for period, end date for period, average
         % daily pumping rate for the period.
-        function dailyRate = getDailyAveragePumpingRates(obj, t_start_calib, t_end_calib)
+        function [dailyRate,ind_dailyRate] = getDailyAveragePumpingRates(obj, t_start_calib, t_end_calib)
                   
             % Get list of non-obs periods nonObsPeriods.
             nonObsPeriods = obj.variables.nonObsPeriods;
 
+            pumpName_all = unique(nonObsPeriods(:,2));
+            for i=1:length(pumpName_all)
+                ind_dailyRate.(pumpName_all{i}) = [];
+            end
+            
             % For each bore, calculate the average daily pumping rate
             % during each petered period.
             dailyRate = nan(size(nonObsPeriods,1),5);
@@ -1281,12 +1305,17 @@ classdef pumpingRate_SAestimation < stochForcingTransform_abstract & dynamicprop
                 pumpName = nonObsPeriods{i,2};
                 
                 % Find the number of days the pump is recorded as 'on'. 
-                filt_obsPeriods =  obj.variables.(pumpName)(:,1) >= dailyRate(i,2) & obj.variables.(pumpName)(:,1) <= dailyRate(i,3); 
-                dailyRate(i,4) = sum(obj.variables.(pumpName)(filt_obsPeriods,6));
+                [~,ind_from] = ismember(dailyRate(i,2),obj.variables.(pumpName)(:,1));
+                [~,ind_to] = ismember(dailyRate(i,3),obj.variables.(pumpName)(:,1));
+                ind = ind_from:ind_to;
+                
+                %filt_obsPeriods =  obj.variables.(pumpName)(:,1) >= dailyRate(i,2) & obj.variables.(pumpName)(:,1) <= dailyRate(i,3); 
+                dailyRate(i,4) = sum(obj.variables.(pumpName)(ind,6));
                 
                 % Calculate average daily pumping rate for the period.
                 dailyRate(i,5) = nonObsPeriods{i,5}/dailyRate(i,4);                            
                 
+                ind_dailyRate.(pumpName) = [ind_dailyRate.(pumpName); [ind', repmat(dailyRate(i,5), length(ind),1)]];
             end        
             
             % Add the daily metered volumes. Since these readings are for a

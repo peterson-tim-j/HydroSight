@@ -6,7 +6,7 @@ classdef HydroSight_GUI < handle
     %variables. Useful in different sitionations
     properties
         % Version number
-        versionNumber = '1.2.9';
+        versionNumber = '1.3.0';
         versionDate= '28 May 2018';
         
         % Model types supported
@@ -3409,7 +3409,7 @@ classdef HydroSight_GUI < handle
             tableData_quarter = accumarray(ind,tableData(:,2),[],@max);
             tableData_month = accumarray(ind,tableData(:,3),[],@max);            
             tableData_week = accumarray(ind,tableData(:,4),[],@max);                            
-            tableData_day = accumarray(ind,tableData(:,5),[],@max);
+            tableData_day = accumarray(ind,tableData(:,5),[],@(x) x(end));
             
             % Build new table
             tableData = [tableData_year, tableData_quarter, tableData_month, tableData_week, tableData_day, upscaledData];
@@ -4026,7 +4026,7 @@ classdef HydroSight_GUI < handle
                     tableData_quarter = accumarray(ind,tableData(:,2),[],@max);
                     tableData_month = accumarray(ind,tableData(:,3),[],@max);            
                     tableData_week = accumarray(ind,tableData(:,4),[],@max);                            
-                    tableData_day = accumarray(ind,tableData(:,5),[],@max);
+                    tableData_day = accumarray(ind,tableData(:,5),[],@(x) x(end));
                     tableData = [tableData_year, tableData_quarter, tableData_month, tableData_week, tableData_day, tableData_sum];
                     
                     % Get time step value
@@ -4074,7 +4074,7 @@ classdef HydroSight_GUI < handle
                     if timestepID<6
                         tableData_year = accumarray(ind,tableData(:,1),[],@max);
                         tableData_month = accumarray(ind,tableData(:,3),[],@max);            
-                        tableData_day = accumarray(ind,tableData(:,5),[],@max);
+                        tableData_day = accumarray(ind,tableData(:,5),[],@(x) x(end));
                         t = unique(datenum(tableData_year, tableData_month, tableData_day));
                         xdataTickLabels = datestr(t,xdataTickLabels);
                         set(axisHandle, 'XTickLabel',xdataTickLabels);
@@ -6134,15 +6134,15 @@ classdef HydroSight_GUI < handle
             commandwindowBox.Max=Inf;
             commandwindowBox.Min=0;
             diaryFilename = strrep(this.project_fileName,'.mat',['_calibOutputs_',strrep(strrep(datestr(now),':','-'),' ','_'),'.txt']);
-            calibGUI_interface_obj = calibGUI_interface(commandwindowBox,diaryFilename);
-            startDiary(calibGUI_interface_obj);                  
+            this.tab_ModelCalibration.QuitObj = calibGUI_interface(commandwindowBox,diaryFilename);
+            startDiary(this.tab_ModelCalibration.QuitObj);                  
             
             % Display update
             display('HPC retrieval progress ...');
             
             % Update the diary file
-            if ~isempty(calibGUI_interface_obj)
-                updatetextboxFromDiary(calibGUI_interface_obj);
+            if ~isempty(this.tab_ModelCalibration.QuitObj)
+                updatetextboxFromDiary(this.tab_ModelCalibration.QuitObj);
             end  
                         
             % Check the local workin folder exists. If not, create it.
@@ -6151,8 +6151,8 @@ classdef HydroSight_GUI < handle
                 display(['   Making local working folder at:',workingFolder]);
                 
                 % Update the diary file
-                if ~isempty(calibGUI_interface_obj)
-                    updatetextboxFromDiary(calibGUI_interface_obj);
+                if ~isempty(this.tab_ModelCalibration.QuitObj)
+                    updatetextboxFromDiary(this.tab_ModelCalibration.QuitObj);
                 end
                 
                 mkdir(workingFolder);
@@ -6161,8 +6161,8 @@ classdef HydroSight_GUI < handle
             
             % Check that a SSH channel can be opened           
             display('   Checking SSH connection to cluster ...');
-            if ~isempty(calibGUI_interface_obj)
-                updatetextboxFromDiary(calibGUI_interface_obj);
+            if ~isempty(this.tab_ModelCalibration.QuitObj)
+                updatetextboxFromDiary(this.tab_ModelCalibration.QuitObj);
             end            
             sshChannel = ssh2_config(URL,username,password); 
             if isempty(sshChannel)
@@ -6192,8 +6192,8 @@ classdef HydroSight_GUI < handle
             
             % Get a list of .mat files on remote cluster
             display('   Getting list of results files on cluster ...');
-            if ~isempty(calibGUI_interface_obj)
-                updatetextboxFromDiary(calibGUI_interface_obj);
+            if ~isempty(this.tab_ModelCalibration.QuitObj)
+                updatetextboxFromDiary(this.tab_ModelCalibration.QuitObj);
             end        
             try
                 [~,allMatFiles] = ssh2_command(sshChannel,['cd ',folder,'/models ; find -name \*.mat -print']);
@@ -6208,8 +6208,8 @@ classdef HydroSight_GUI < handle
             
             % Build list of mat files results to download
             display('   Building list of results files to retieve ...');
-            if ~isempty(calibGUI_interface_obj)
-                updatetextboxFromDiary(calibGUI_interface_obj);
+            if ~isempty(this.tab_ModelCalibration.QuitObj)
+                updatetextboxFromDiary(this.tab_ModelCalibration.QuitObj);
             end            
             resultsToDownload=cell(0,1);
             j=0;
@@ -6257,8 +6257,8 @@ classdef HydroSight_GUI < handle
             % Change file names from results.mat
             if length(SSH_commands)>0
                 display(['   Changing file from results.mat to model label .mat at ', num2str(nModelsNamesToChange), ' models...']);
-                if ~isempty(calibGUI_interface_obj)
-                    updatetextboxFromDiary(calibGUI_interface_obj);
+                if ~isempty(this.tab_ModelCalibration.QuitObj)
+                    updatetextboxFromDiary(this.tab_ModelCalibration.QuitObj);
                 end                
                 try
                     [~,status] = ssh2_command(sshChannel,SSH_commands);
@@ -6269,8 +6269,8 @@ classdef HydroSight_GUI < handle
             
             % Download .mat files
             display(['   Downloading ', num2str(length(resultsToDownload)), ' completed models to working folder ...']);
-            if ~isempty(calibGUI_interface_obj)
-                updatetextboxFromDiary(calibGUI_interface_obj);
+            if ~isempty(this.tab_ModelCalibration.QuitObj)
+                updatetextboxFromDiary(this.tab_ModelCalibration.QuitObj);
             end
             imodels = imodels(logical(imodel_filt));            
             try
@@ -6280,8 +6280,8 @@ classdef HydroSight_GUI < handle
             end
 
             display('   Closing SSH connection to cluster ...');
-            if ~isempty(calibGUI_interface_obj)
-                updatetextboxFromDiary(calibGUI_interface_obj);
+            if ~isempty(this.tab_ModelCalibration.QuitObj)
+                updatetextboxFromDiary(this.tab_ModelCalibration.QuitObj);
             end
             
             % Closing connection
@@ -6300,8 +6300,8 @@ classdef HydroSight_GUI < handle
             for i=imodels
                 k=k+1;
                 display(['   Importing model ',num2str(k),' of ',num2str(nModels) ' into the project ...']);
-                if ~isempty(calibGUI_interface_obj)
-                    updatetextboxFromDiary(calibGUI_interface_obj);
+                if ~isempty(this.tab_ModelCalibration.QuitObj)
+                    updatetextboxFromDiary(this.tab_ModelCalibration.QuitObj);
                 end
 
                 % get the original tabel text
@@ -6476,8 +6476,8 @@ classdef HydroSight_GUI < handle
             for i=1:length(msgStr)
                 display(msgStr{i});
             end
-            if ~isempty(calibGUI_interface_obj)
-                updatetextboxFromDiary(calibGUI_interface_obj);
+            if ~isempty(this.tab_ModelCalibration.QuitObj)
+                updatetextboxFromDiary(this.tab_ModelCalibration.QuitObj);
             end
                                    
         end
@@ -8458,7 +8458,8 @@ classdef HydroSight_GUI < handle
             commandwindowBox.Min=0;
                         
             % Set the user data to denote calibration has started.
-            lh = addlistener(this,'quitModelCalibration',@calibGUI_interface_obj.quitCalibrationListener);
+            obj = this.tab_ModelCalibration.QuitObj;
+            lh = addlistener(this,'quitModelCalibration',@obj.quitCalibrationListener);
                         
             %% Start calibration                             
             % Loop  through the list of selected bore and apply the model
@@ -8501,8 +8502,8 @@ classdef HydroSight_GUI < handle
                 % when multiple models outputs are within one diary file
                 % (eg 12 seconds per update!)
                 diaryFilename = strrep(this.project_fileName,'.mat',['_',calibLabel,'_calibOutputs_',strrep(strrep(datestr(now),':','-'),' ','_'),'.txt']);
-                calibGUI_interface_obj = calibGUI_interface(commandwindowBox,diaryFilename);
-                startDiary(calibGUI_interface_obj);                  
+                this.tab_ModelCalibration.QuitObj = calibGUI_interface(commandwindowBox,diaryFilename);
+                startDiary(this.tab_ModelCalibration.QuitObj);                  
                 
                 % Update status to starting calib.
                 this.tab_ModelCalibration.Table.Data{i,9} = '<html><font color = "#FFA500">Calibrating ... </font></html>';
@@ -8597,8 +8598,8 @@ classdef HydroSight_GUI < handle
                         display(['BUILDING OFFLOAD DATA FOR MODEL: ',calibLabel]);
                         display('  ');
                         % Update the diary file
-                        if ~isempty(calibGUI_interface_obj)
-                            updatetextboxFromDiary(calibGUI_interface_obj);
+                        if ~isempty(this.tab_ModelCalibration.QuitObj)
+                            updatetextboxFromDiary(this.tab_ModelCalibration.QuitObj);
                         end
                         
                         nHPCmodels = nHPCmodels +1;
@@ -8612,11 +8613,11 @@ classdef HydroSight_GUI < handle
                         display(['CALIBRATING MODEL: ',calibLabel]);
                         display( '--------------------------------------------------------------------------------');
                         % Update the diary file
-                        if ~isempty(calibGUI_interface_obj)
-                            updatetextboxFromDiary(calibGUI_interface_obj);
+                        if ~isempty(this.tab_ModelCalibration.QuitObj)
+                            updatetextboxFromDiary(this.tab_ModelCalibration.QuitObj);
                         end   
                     
-                        calibrateModel( tmpModel, calibGUI_interface_obj, calibStartDate, calibEndDate, calibMethod,  calibMethodSetting);
+                        calibrateModel( tmpModel, this.tab_ModelCalibration.QuitObj, calibStartDate, calibEndDate, calibMethod,  calibMethodSetting);
 
                         % Delete CMAES working filescopl                        
                         switch calibMethod
@@ -8679,7 +8680,7 @@ classdef HydroSight_GUI < handle
 
 
                     % Check if the user quit the calibration.
-                    [doQuit, exitFlagQuit, exitStatusQuit] = getCalibrationQuitState(calibGUI_interface_obj);                        
+                    [doQuit, exitFlagQuit, exitStatusQuit] = getCalibrationQuitState(this.tab_ModelCalibration.QuitObj);                        
                     if doQuit
                         exitFlag = exitFlagQuit;
                         exitStatus = exitStatusQuit;
@@ -8721,7 +8722,7 @@ classdef HydroSight_GUI < handle
                    project_fileName = fileparts(project_fileName);
                end
                
-               userData = jobSubmission(this.HPCoffload, project_fileName, HPCmodelData, calibGUI_interface_obj) ; 
+               userData = jobSubmission(this.HPCoffload, project_fileName, HPCmodelData, this.tab_ModelCalibration.QuitObj) ; 
                if ~isempty(userData)
                    this.HPCoffload = userData;
                end
