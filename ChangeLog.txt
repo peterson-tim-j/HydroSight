@@ -102,3 +102,7 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 * Feature added to GUI opetions for pumpingRate_SAestimation() allowing the wizard selected bores to be pushed to the pumping weighting component.
 * Bug fixed in calibration GUI daily data results table. Now the day of the month is correct.
 * Significant impovement in the calibration time of models containing pumpingRate_SAestimation(). 
+
+15 Aug 18
+* Bug fixed in model_TFN GUI for pushing transformed forcing data names to weightimg functions.
+* Dropdown option for multi-model removed becasue this feature is has been delayed.

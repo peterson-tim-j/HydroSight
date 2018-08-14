@@ -316,8 +316,9 @@ classdef model_TFN_gui < model_gui_abstract
             contextMenu = uicontextmenu(this.Figure.Parent.Parent.Parent.Parent.Parent.Parent,'Visible','on');
             uimenu(contextMenu,'Label','Copy all rows','Callback',@this.rowAddDelete);
             uimenu(contextMenu,'Label','Paste all rows','Callback',@this.rowAddDelete);
-            uimenu(contextMenu,'Label','Push "Required Data" to component','Callback',@this.push2component,'Separator','on');
-            uimenu(contextMenu,'Label','Wizard ...','Callback',@this.wizard);                
+            uimenu(contextMenu,'Label','Wizard ...','Callback',@this.wizard,'Separator','on'); 
+            uimenu(contextMenu,'Label','Push "Required Data" to component','Callback',@this.push2component);
+                           
             set(this.modelOptions.options{1,1}.tbl,'UIContextMenu',contextMenu);
             set(this.modelOptions.options{1,1}.tbl.UIContextMenu,'UserData', 'this.modelOptions.options{1,1}.tbl');
             
@@ -2216,8 +2217,9 @@ classdef model_TFN_gui < model_gui_abstract
                 % get input data names
                 
                 data = this.modelOptions.options{1, 1}.tbl.Data(:,1);
-                LHS = strcat(className,' : ');
+                LHS = [className,'...'];
                 data = strcat( LHS, data);
+                data = strrep(data,'...',' : ');
                                
                 % Get class name (for calling the abstract)
                 className = metaclass(this);

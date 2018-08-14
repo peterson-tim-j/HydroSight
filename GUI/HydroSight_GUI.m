@@ -592,7 +592,8 @@ classdef HydroSight_GUI < handle
             data = cell(0,14);            
             rnames1t4 = {[1]};
             cedit1t4 = logical([1 0 0 0 0 1 1 1 0 0 0 0 0]);            
-            cformats1t4 = {'logical', 'char', 'char','char','char','char','char', {'SP-UCI' 'CMA-ES' 'DREAM' 'Multi-model'},'char','char','char','char','char'};
+            %cformats1t4 = {'logical', 'char', 'char','char','char','char','char', {'SP-UCI' 'CMA-ES' 'DREAM' 'Multi-model'},'char','char','char','char','char'};
+            cformats1t4 = {'logical', 'char', 'char','char','char','char','char', {'SP-UCI' 'CMA-ES' 'DREAM' },'char','char','char','char','char'};
       
             toolTipStr = ['<html>Use this table to calibrate the models that have been successfully built. <br>' ...
                   'To calibrate a model, first input the start and end dates for the calibration and then select <br>' ...
@@ -8457,10 +8458,6 @@ classdef HydroSight_GUI < handle
             commandwindowBox.Max=Inf;
             commandwindowBox.Min=0;
                         
-            % Set the user data to denote calibration has started.
-            obj = this.tab_ModelCalibration.QuitObj;
-            lh = addlistener(this,'quitModelCalibration',@obj.quitCalibrationListener);
-                        
             %% Start calibration                             
             % Loop  through the list of selected bore and apply the model
             % options.
@@ -8503,7 +8500,10 @@ classdef HydroSight_GUI < handle
                 % (eg 12 seconds per update!)
                 diaryFilename = strrep(this.project_fileName,'.mat',['_',calibLabel,'_calibOutputs_',strrep(strrep(datestr(now),':','-'),' ','_'),'.txt']);
                 this.tab_ModelCalibration.QuitObj = calibGUI_interface(commandwindowBox,diaryFilename);
-                startDiary(this.tab_ModelCalibration.QuitObj);                  
+                startDiary(this.tab_ModelCalibration.QuitObj);   
+
+                obj = this.tab_ModelCalibration.QuitObj;
+                lh = addlistener(this,'quitModelCalibration',@obj.quitCalibrationListener);
                 
                 % Update status to starting calib.
                 this.tab_ModelCalibration.Table.Data{i,9} = '<html><font color = "#FFA500">Calibrating ... </font></html>';
