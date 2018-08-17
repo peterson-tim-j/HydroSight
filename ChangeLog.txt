@@ -110,3 +110,4 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 16 Aug 2018
 * Build_C_code.m added to build mex functions. NOTE, see file for compiler optimisations tips.
 * MEX functions compiled using -0fast and -03 optimisation (Linux/windows respectively)
+* Bug fixed in building models within an otherwise empty project.

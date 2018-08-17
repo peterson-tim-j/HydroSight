@@ -5384,21 +5384,24 @@ classdef HydroSight_GUI < handle
                     
                     % Check if model is listed in calib table. if so get
                     % index
-                    calibModelLabelsHTML = this.tab_ModelCalibration.Table.Data(:,2);
-                    calibModelLabels = HydroSight_GUI.removeHTMLTags(calibModelLabelsHTML);
-                    isModelListed = cellfun( @(x) strcmp( model_label, x), calibModelLabels);
-                    isModelListed = find(isModelListed);
-                    
-                    % In multiple are listed, then take the top one
-                    if length(isModelListed)>1                        
-                        filt = true(length(calibModelLabels),1);
-                        filt(isModelListed(2:end))=false;
-                        isModelListed=isModelListed(1);
-                        this.tab_ModelCalibration.Table.Data = this.tab_ModelCalibration.Table.Data(filt,:);
+                    isModelListed=false;
+                    if size(this.tab_ModelCalibration.Table.Data,1)>0
+                        calibModelLabelsHTML = this.tab_ModelCalibration.Table.Data(:,2);
+                        calibModelLabels = HydroSight_GUI.removeHTMLTags(calibModelLabelsHTML);
+                        isModelListed = cellfun( @(x) strcmp( model_label, x), calibModelLabels);
+                        isModelListed = find(isModelListed);
                         
-                        % Update row numbers
-                        nrows = size(this.tab_ModelCalibration.Table.Data,1);
-                        this.tab_ModelCalibration.Table.RowName = mat2cell([1:nrows]',ones(1, nrows));        
+                        % If multiple are listed, then take the top one
+                        if length(isModelListed)>1
+                            filt = true(length(calibModelLabels),1);
+                            filt(isModelListed(2:end))=false;
+                            isModelListed=isModelListed(1);
+                            this.tab_ModelCalibration.Table.Data = this.tab_ModelCalibration.Table.Data(filt,:);
+                            
+                            % Update row numbers
+                            nrows = size(this.tab_ModelCalibration.Table.Data,1);
+                            this.tab_ModelCalibration.Table.RowName = mat2cell([1:nrows]',ones(1, nrows));
+                        end
                     end
 
                     % Get model start and end dates
@@ -6635,12 +6638,14 @@ classdef HydroSight_GUI < handle
                         modelLabel_src = tbl{i,2};
 
                         % Check if model label is unique.
-                        ind = find(strcmp(this.tab_ModelConstruction.Table.Data(:,2), modelLabel_src));                        
+                        if size(this.tab_ModelConstruction.Table.Data,1)>0
+                            ind = find(strcmp(this.tab_ModelConstruction.Table.Data(:,2), modelLabel_src));                        
 
-                        % Check if the model is found
-                        if ~isempty(ind)
-                            nModelsNotUnique = nModelsNotUnique + 1;
-                            continue;
+                            % Check if the model is found
+                            if ~isempty(ind)
+                                nModelsNotUnique = nModelsNotUnique + 1;
+                                continue;
+                            end
                         end
 
                         % Append table. Note: the select column is input as a logical 
