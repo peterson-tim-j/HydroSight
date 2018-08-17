@@ -367,16 +367,13 @@ double trapazoidal(const int theta_index_start, const int theta_index_end, const
     int i;
     const int n = (int)(theta_index_end - theta_index_start);     /*number of elements using Matlab indexes - hence no + 1 required.*/
     const int endIndex = n - 1;                                   /*index to the last element*/
-    double ret_val;
-     
     /* Use high precision estimate over the first time step 
-     NOTE: the 2* term is bacause of the returned value being halved!.*/
-    ret_val =  2 * *intTheta * dy[endIndex];
+     NOTE: the 2* term is bacause of the returned value being halved!.*/    
+    double ret_val=2 * *intTheta * dy[endIndex];
 
     /* Integrate remaining points*/
     for (i = 1; i <= n; i++)
         ret_val += (dx[endIndex-i] + dx[endIndex-i-1]) * dy[endIndex-i];
-            
     
     return 0.5*ret_val;
 } /* trapazoidal_ */

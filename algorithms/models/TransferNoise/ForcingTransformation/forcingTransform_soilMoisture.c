@@ -54,7 +54,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     soilMoisture[0] = S0;    
     for(iDay=1;iDay<nDays;iDay++) 
     {        
-        //mexPrintf("%s%d\n", "... Solving SMS for iDay=", iDay);
+        /* mexPrintf("%s%d\n", "... Solving SMS for iDay=", iDay);
+         **/
         
         if (precip[iDay]>0.0) 
             noPrecip =  0;
@@ -220,15 +221,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
                 soilMoisture[iDay] = S_cap;
             else {            
             
-                //mexPrintf("%s%f\n", "   ... Staring b-section because SMS=", soilMoisture[iDay]);
+               /* mexPrintf("%s%f\n", "   ... Staring b-section because SMS=", soilMoisture[iDay]); 
+                */
                 
                 
                 nIterations_bisect = 0;
                 while ((abserr > absTol || funcerr > funcTol) && nIterations_bisect<maxIts) {
                 /* Undertake iteration using Bisection method*/                 
                     
-                    //mexPrintf("%s%d\n", "      ... Doing bi-section iteration ", nIterations_bisect);                    
-                    //mexPrintf("%s%f%s%f%s%f\n", "          fa, f, fb:", fa," , ",f," , ",fb);                    
+                    /* mexPrintf("%s%d\n", "      ... Doing bi-section iteration ", nIterations_bisect);                    
+                    mexPrintf("%s%f%s%f%s%f\n", "          fa, f, fb:", fa," , ",f," , ",fb);                    
+                     */
                     if ( fa*f < 0.0) {
                         soilMoisture_iDay_upper = soilMoisture[iDay];                        
                         f_prev = f;
@@ -256,8 +259,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
                     abserr = fabs(f_delta);
                     funcerr = fabs(f - f_prev);
 
-                    //mexPrintf("%s%f%s%f%s%f\n", "          f, f_prev, f_delta:", fa," , ",f_prev," , ",f_delta);                    
-                    //mexPrintf("%s%f%s%f%s%f%\n", "          abserr, funcerr, f-f_prev:", abserr," , ",funcerr," , ",f-f_prev);                    
+                    /*mexPrintf("%s%f%s%f%s%f\n", "          f, f_prev, f_delta:", fa," , ",f_prev," , ",f_delta);                    
+                    mexPrintf("%s%f%s%f%s%f%\n", "          abserr, funcerr, f-f_prev:", abserr," , ",funcerr," , ",f-f_prev);                    
+                     **/
                     
                     nIterations_bisect++;
 

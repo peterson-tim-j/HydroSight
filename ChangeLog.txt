@@ -106,3 +106,7 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 15 Aug 18
 * Bug fixed in model_TFN GUI for pushing transformed forcing data names to weightimg functions.
 * Dropdown option for multi-model removed becasue this feature is has been delayed.
+
+16 Aug 2018
+* Build_C_code.m added to build mex functions. NOTE, see file for compiler optimisations tips.
+* MEX functions compiled using -0fast and -03 optimisation (Linux/windows respectively)
