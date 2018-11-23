@@ -38,10 +38,7 @@ classdef climateTransform_soilMoistureModels_v2 < climateTransform_soilMoistureM
         end
         
         function [variable_names] = outputForcingdata_options(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates)
-            variable_names = {'drainage';'drainage_bypassFlow';'drainage_normalised';'infiltration';'evap_soil';'evap_gw_potential';'runoff';'SMS'; ...
-                              'drainage_tree';'drainage_bypassFlow_tree';'drainage_normalised_tree';'infiltration_tree';'evap_soil_tree';'evap_gw_potential_tree';'runoff_tree';'SMS_tree'; ...
-                              'drainage_nontree';'drainage_bypassFlow_nontree';'drainage_normalised_nontree';'infiltration_nontree';'evap_soil_nontree'; ...
-                              'evap_gw_potential_nontree';'runoff_nontree';'SMS_nontree'};
+            variable_names = climateTransform_soilMoistureModels.outputForcingdata_options(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates);
         end
         
         function [options, colNames, colFormats, colEdits, toolTip] = modelOptions()

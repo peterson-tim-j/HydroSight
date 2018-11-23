@@ -2213,10 +2213,13 @@ classdef model_TFN_gui < model_gui_abstract
                         msgbox('This model componant does not have a data wizard.', 'No data wizard ...','help')
                         return
                 end
+
+                % Build filter for rows where the obs data is not "(none)"
+                filt = ~strcmp(this.modelOptions.options{1, 1}.tbl.Data(:,2),'(none)');
                 
-                % get input data names
+                % get input data names                
+                data = this.modelOptions.options{1, 1}.tbl.Data(filt,1);
                 
-                data = this.modelOptions.options{1, 1}.tbl.Data(:,1);
                 LHS = [className,'...'];
                 data = strcat( LHS, data);
                 data = strrep(data,'...',' : ');

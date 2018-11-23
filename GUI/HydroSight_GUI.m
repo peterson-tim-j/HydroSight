@@ -6,8 +6,8 @@ classdef HydroSight_GUI < handle
     %variables. Useful in different sitionations
     properties
         % Version number
-        versionNumber = '1.3.0';
-        versionDate= '28 May 2018';
+        versionNumber = '1.3.1';
+        versionDate= '22 Nov 2018';
         
         % Model types supported
         %modelTypes = {'model_TFN','model_TFN_LOA', 'ExpSmooth'};
@@ -179,6 +179,13 @@ classdef HydroSight_GUI < handle
             hToolbutton.Visible = 'off';
             hToolbutton.UserData = 'Plot';
             hToolbutton.Separator = 'off';
+            icon = 'implay_export.gif';
+            [cdata,map] = imread(icon);
+            map(find(map(:,1)+map(:,2)+map(:,3)==3)) = NaN;
+            cdata = ind2rgb(cdata,map);
+            uipushtool(hToolbar,'cdata',cdata, 'tooltip','Export displayed plot to PNG file ...', ...
+                'ClickedCallback',@this.onExportPlot, ...
+                'tag','Export.plot', 'Visible','off');
             hToolbutton = findall(hToolbar,'tag','Standard.EditPlot');            
             hToolbutton.Visible = 'off';
             hToolbutton.UserData = 'Plot';
@@ -279,30 +286,19 @@ classdef HydroSight_GUI < handle
                         '<html><center>Threshold for Max. Daily abs(Head)<br />Change</center></html>', ...
                         '<html><center>Threshold Duration for<br />Constant Head (days)?</center></html>', ...
                         '<html><center>Auto-Outlier<br />Num. St. dev?</center></html>', ...                        
+                        '<html><center>Auto-Outlier foward<br />& backward analysis?</center></html>', ...                        
                         '<html><center>Analysis<br />Status</center></html>', ...
                         '<html><center>No. Erroneous<br />Obs.</center></html>', ...
                         '<html><center>No. Outlier<br />Obs.</center></html>', ...
                         };
-            cformats1t2 = {'logical', 'char', 'char','numeric','numeric','numeric','char','logical','logical','logical','logical','numeric','numeric','numeric','char','char','char'};
-            cedit1t2 = logical([1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0]);            
+            cformats1t2 = {'logical', 'char', 'char','numeric','numeric','numeric','char','logical','logical','logical','logical','numeric','numeric','numeric','logical','char','char','char'};
+            cedit1t2 = logical([1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0]);            
             rnames1t2 = {[1]};
-            toolTipStr = ['<html>Use this table to detect and remove erroneous groundwater level observations. This step is provided to ensure <br>' ...
-                  'groundwater time-series models are built using reliable data. However, it is not required for building time-series models and <br>', ...
-                  'is independent from the model construction, calibaration and simulation steps.<br>', ...
-                  'Below are tips for undertaking the analysis:<br>', ... 
-                  '<ul type="bullet type">', ...
-                  '<li>Observation resulting from known problems (eg pump tests, failed bores) must be removed from the input data prior to this analysis.<br>', ...
-                  '<li>The observation start and end date can be check to be within the construction date and today''s date.<br>', ...
-                  '<li>The water level can be checked to ensure it is above the bottom of the bore.<br>', ...
-                  '<li>The water level can be checked to ensure it is below the bore casing.<br>', ...
-                  '<li>The daily absolute rate of water level change can be checked to ensure it is below a user set threshold.<br>', ...
-                  '<li>Periods of constant water level beyond a user set threshold can be identified.<br>', ...
-                  '<li>Outlier observations can be identified using the double-exponential smoothing model.<br>', ...
-                  '<li>The outlier analysis estimates the standard deviation of the noise & observations beyond a user set number of standard deviations are omitted.<br>', ...
-                  ' </ul>'];
+            toolTipStr = ['<html>Optional detection and removal<br>' ...
+                  'of erroneous groundwater level observations.</ul>'];
             
             % Initialise data.
-            data = {false, '', '',0, 0, 0, '01/01/1900',true, true, true, true, 10, 120, 3, ...
+            data = {false, '', '',0, 0, 0, '01/01/1900',true, true, true, true, 10, 120, 4, 1,...
                 '<html><font color = "#FF0000">Bore not analysed.</font></html>', ...
                 ['<html><font color = "#808080">','(NA)','</font></html>'], ...
                 ['<html><font color = "#808080">','(NA)','</font></html>']};
@@ -433,14 +429,7 @@ classdef HydroSight_GUI < handle
             cformats1t3 = {'logical', 'char', 'char','char','char','char',this.modelTypes,'char','char'};
             cedit1t3 = logical([1 1 1 1 1 1 1 1 0]);            
             rnames1t3 = {[1]};
-            toolTipStr = ['<html>Use this table to define the model label, input data, bore ID and model structure for each model. <br>' ...
-                  'Once all inputs are defined, use the button above to build the model, after which the selected<br>', ... 
-                  'models can be calibrated. Below are tips for building models:<br>', ... 
-                  '<ul type="bullet type">', ...
-                  '<li>The model label must be unique.<br>', ...
-                  '<li><b>Right-click</b> displays a menu for copying, pasting, inserting and deleting rows. Use the <br>', ...
-                  'left tick-box to define the rows for copying, deleting etc.<br>', ...
-                  ' </ul>'];
+            toolTipStr = 'Define the model label, input data, bore ID and model structure for each model.';
             
             
             % Initialise data
@@ -595,16 +584,7 @@ classdef HydroSight_GUI < handle
             %cformats1t4 = {'logical', 'char', 'char','char','char','char','char', {'SP-UCI' 'CMA-ES' 'DREAM' 'Multi-model'},'char','char','char','char','char'};
             cformats1t4 = {'logical', 'char', 'char','char','char','char','char', {'SP-UCI' 'CMA-ES' 'DREAM' },'char','char','char','char','char'};
       
-            toolTipStr = ['<html>Use this table to calibrate the models that have been successfully built. <br>' ...
-                  'To calibrate a model, first input the start and end dates for the calibration and then select <br>' ...
-                  'a calibration method. Once all inputs are defined use the button above to calibrate <br>' ...
-                  'the models, after which the selected models can be used in simulations.<br>' ... 
-                  '<ul type="bullet type">', ...
-                  '<li>The model calibration results are summarised in the right four columns. <br>', ...
-                  '      <li><b>CoE</b> is the coefficient of efficiency where 1 is a perfect fit, <0 worse than using the mean.<br>' ...
-                  '      <li><b>AICc</b> is the corrected Akaike information criterion & is used to compare models of<br>' ...
-                  '       differing number of parameters. Lower is better.<br>' ,...                  
-                  ' </ul>'];              
+            toolTipStr = 'Calibration of models that have been successfully built.';              
             
             % Add table. Importantly, this is done using createTable, not
             % uitable. This was required to achieve acceptable perforamnce
@@ -874,15 +854,7 @@ classdef HydroSight_GUI < handle
             rnames1t5 = {[1]};
             cedit1t5 = logical([1 1 0 0 0 1 1 1 1 1 1 0]);            
             cformats1t5 = {'logical', {'(none calibrated)'}', 'char','char','char','char','char','char', 'char',{'Daily' 'Weekly' 'Monthly' 'Yearly'}, 'logical','char' };
-            toolTipStr = ['<html>Use this table to undertake simulation using the models that have been calibrated. <br>' ...
-                  'Below are tips for undertaking simulations:<br>', ... 
-                  '<ul type="bullet type">', ...
-                  '<li>Select a calibrated model for simulation using the drop-down menu in the column "Model Label". <br>', ...
-                  '<li>Scenarios investigations, such as a change of rainfall or pumping, can be explore by inputting a new forcing data file (OPTIONAL). <br>', ...
-                  '<li>Simulation time points can be input using the simulation start, end date and time-step columns (OPTIONAL). <br>', ...
-                  '<li>Simulation can be undertaken using new forcing data by inputing a file name to new forcing data (OPTIONAL). <br>', ...
-                  '<li>Kriging of the simulation residuals can be undertaken (if original forcing is used) to ensure simulations honour the observations (OPTIONAL). <br>', ...
-                  ' </ul>'];
+            toolTipStr = 'Run simulations of calibrated models';
               
             % Add table. Importantly, this is done using createTable, not
             % uitable. This was required to achieve acceptable perforamnce
@@ -1002,6 +974,8 @@ classdef HydroSight_GUI < handle
             hToolbutton = findall(hToolbar,'tag','Exploration.ZoomIn');            
             hToolbutton.Visible = iconState;
             hToolbutton = findall(hToolbar,'tag','Standard.PrintFigure');            
+            hToolbutton.Visible = iconState;
+            hToolbutton = findall(this.Figure,'tag','Export.plot');            
             hToolbutton.Visible = iconState;
             hToolbutton = findall(hToolbar,'tag','Standard.EditPlot');            
             hToolbutton.Visible = 'off';            
@@ -1476,6 +1450,11 @@ classdef HydroSight_GUI < handle
                      drawnow update;
                 end
                 try
+                    if size(savedData.tableData.tab_DataPrep,2)==17
+                       savedData.tableData.tab_DataPrep = [ savedData.tableData.tab_DataPrep(:,1:14), ...
+                                                            repmat(false,size(savedData.tableData.tab_DataPrep,1),1), ...
+                                                            savedData.tableData.tab_DataPrep(:,15:17) ];
+                    end
                     this.tab_DataPrep.Table.Data = savedData.tableData.tab_DataPrep;
                     
                     % Update row numbers
@@ -2035,8 +2014,11 @@ classdef HydroSight_GUI < handle
                          end
                         
                          % Check there are the correct number of columns
-                         if length(tbl.Properties.VariableNames) ~= 6
-                            warndlg('The observed head file must contain 6 columns in the following order: boreID, year, month, day, hour, head');
+                         if length(tbl.Properties.VariableNames) < 5 || length(tbl.Properties.VariableNames) >8
+                            warndlg({'The observed head file must be in one of the following formats:', ...'
+                                '  -boreID, year, month, day, head', ...
+                                '  -boreID, year, month, day, hour, minute, head', ...
+                                '  -boreID, year, month, day, hour, minute, second, head'});
                             return;
                          end
                              
@@ -2061,7 +2043,7 @@ classdef HydroSight_GUI < handle
                         % Show the results if the bore has been analysed.
                         
                         boreID = data{eventdata.Indices(1),3};
-                        modelStatus = HydroSight_GUI.removeHTMLTags(data{eventdata.Indices(1),15});
+                        modelStatus = HydroSight_GUI.removeHTMLTags(data{eventdata.Indices(1),16});
                         
                         if ~isempty(this.dataPrep) && ~isempty(boreID) && ...
                         isfield(this.dataPrep,boreID) && ~isempty(this.dataPrep.(boreID)) && ...
@@ -2140,7 +2122,8 @@ classdef HydroSight_GUI < handle
                             end  
                             
                             % Format plot
-                            datetick(this.tab_DataPrep.modelOptions.resultsOptions.plots,'x','YY');
+                            %datetick(this.tab_DataPrep.modelOptions.resultsOptions.plots,'x','YY');
+                            datetick(this.tab_DataPrep.modelOptions.resultsOptions.plots,'x');
                             xlabel(this.tab_DataPrep.modelOptions.resultsOptions.plots,'Year');
                             ylabel(this.tab_DataPrep.modelOptions.resultsOptions.plots,'Head');
                             hold(this.tab_DataPrep.modelOptions.resultsOptions.plots,'off');
@@ -2166,7 +2149,7 @@ classdef HydroSight_GUI < handle
             % Check the row was found.
             if ~isfield(this.tab_DataPrep,'currentRow') || isempty(this.tab_DataPrep.currentRow)
                 warndlg('An unexpected system error has occured. Please try re-selecting a grid cell from the main to replot the results.','System error ...');
-                returnd;
+                return;
             end            
             
             % Get the current row from the main data preparation table.
@@ -2176,7 +2159,7 @@ classdef HydroSight_GUI < handle
             % Check the row was found.
             if isempty(boreID)
                 warndlg('An unexpected system error has occured. Please try re-selecting a grid cell from the main to replot the results.','System error ...');
-                returnd;
+                return;
             end
 
             % Get the new table of data.
@@ -2297,6 +2280,16 @@ classdef HydroSight_GUI < handle
                              warndlg('The bore ID must be unique.','Bore ID error...');
                              return;
                          end
+                         
+                         % Check the bore ID is a valid field name.
+                         tmp=struct();
+                         try 
+                             tmp.(newBoreID{1}) = 1;
+                         catch ME
+                             warndlg('The bore ID is of an invalid format. It must not start with a number. Consider appending a non-numeric prefix, eg "Bore_"','Bore ID error...');
+                             return;
+                         end
+                         
                          
                          % Add selected bore ID is cell array at the currently
                          % selected bore.
@@ -4724,10 +4717,12 @@ classdef HydroSight_GUI < handle
                         this.tab_ModelCalibration.Table.RowName = mat2cell([1:nrows]',ones(1, nrows));                     
 
                         % Delete models from simulations table.
-                        modelLabels_simTable =  this.tab_ModelSimulation.Table.Data(:,2);                            
-                        modelLabels_simTable = HydroSight_GUI.removeHTMLTags(modelLabels_simTable);
-                        ind = cellfun( @(x) strcmp(x,modelLabel), modelLabels_simTable);
-                        this.tab_ModelSimulation.Table.Data = this.tab_ModelSimulation.Table.Data(~ind,:);   
+                        if ~isempty(this.tab_ModelSimulation.Table.Data)
+                            modelLabels_simTable =  this.tab_ModelSimulation.Table.Data(:,2);
+                            modelLabels_simTable = HydroSight_GUI.removeHTMLTags(modelLabels_simTable);
+                            ind = cellfun( @(x) strcmp(x,modelLabel), modelLabels_simTable);
+                            this.tab_ModelSimulation.Table.Data = this.tab_ModelSimulation.Table.Data(~ind,:);
+                        end
 
                         % Update row numbers
                         nrows = size(this.tab_ModelSimulation.Table.Data,1);
@@ -4938,9 +4933,9 @@ classdef HydroSight_GUI < handle
                 end
 
                 % Update table with progress'
-                this.tab_DataPrep.Table.Data{i, 15} = '<html><font color = "#FFA500">Analysing bore ...</font></html>';
-                this.tab_DataPrep.Table.Data{i,16} = ['<html><font color = "#808080">','(NA)','</font></html>'];
+                this.tab_DataPrep.Table.Data{i, 16} = '<html><font color = "#FFA500">Analysing bore ...</font></html>';
                 this.tab_DataPrep.Table.Data{i,17} = ['<html><font color = "#808080">','(NA)','</font></html>'];
+                this.tab_DataPrep.Table.Data{i,18} = ['<html><font color = "#808080">','(NA)','</font></html>'];
                     
                 % Update status in GUI
                 drawnow;
@@ -4954,14 +4949,14 @@ classdef HydroSight_GUI < handle
                     fname = fullfile(fileparts(this.project_fileName),data{i,2});  
                 end                
                 if isempty(fname)                    
-                    this.tab_DataPrep.Table.Data{i, 15} = '<html><font color = "#FF0000">Head data file error - file name empty.</font></html>';
+                    this.tab_DataPrep.Table.Data{i, 16} = '<html><font color = "#FF0000">Head data file error - file name empty.</font></html>';
                     nAnalysisFailed = nAnalysisFailed + 1;
                     continue;
                 end
 
                 % Check the bore ID file exists.
                 if exist(fname,'file') ~= 2;                    
-                    this.tab_DataPrep.Table.Data{i, 15} = '<html><font color = "#FF0000">Head data file error - file does not exist.</font></html>';
+                    this.tab_DataPrep.Table.Data{i, 16} = '<html><font color = "#FF0000">Head data file error - file does not exist.</font></html>';
                     nAnalysisFailed = nAnalysisFailed + 1;
                     continue;
                 end
@@ -4970,7 +4965,7 @@ classdef HydroSight_GUI < handle
                 try
                     tbl = readtable(fname);
                 catch                    
-                    this.tab_DataPrep.Table.Data{i, 15} = '<html><font color = "#FF0000">Head data file error -  read in failed.</font></html>';
+                    this.tab_DataPrep.Table.Data{i, 16} = '<html><font color = "#FF0000">Head data file error -  read in failed.</font></html>';
                     nAnalysisFailed = nAnalysisFailed + 1;
                     continue;
                 end                
@@ -4979,7 +4974,7 @@ classdef HydroSight_GUI < handle
                 boreID = data{i,3};
                 filt =  strcmp(tbl{:,1},boreID);
                 if sum(filt)<=0
-                    this.tab_DataPrep.Table.Data{i, 15} = '<html><font color = "#FF0000">Bore not found in head data file -  data error.</font></html>';
+                    this.tab_DataPrep.Table.Data{i, 16} = '<html><font color = "#FF0000">Bore not found in head data file -  data error.</font></html>';
                     nBoreNotInHeadFile = nBoreNotInHeadFile +1;
                     continue
                 end
@@ -4992,7 +4987,7 @@ classdef HydroSight_GUI < handle
                 boreDepth = inf;
                 dataCol=4;
                 if ~isnumeric(this.tab_DataPrep.Table.Data{i, dataCol})
-                    this.tab_DataPrep.Table.Data{i, 15} = ['<html><font color = "#FF0000">Input for column ', num2str(dataCol), ' must be a number. </font></html>'];
+                    this.tab_DataPrep.Table.Data{i, 16} = ['<html><font color = "#FF0000">Input for column ', num2str(dataCol), ' must be a number. </font></html>'];
                     nBoreInputsError = nBoreInputsError +1;
                     continue
                 end
@@ -5003,7 +4998,7 @@ classdef HydroSight_GUI < handle
                 surfaceElevation = inf;
                 dataCol = 5;
                 if ~isnumeric(this.tab_DataPrep.Table.Data{i, dataCol})
-                    this.tab_DataPrep.Table.Data{i, 15} = ['<html><font color = "#FF0000">Input for column ', num2str(dataCol), ' must be a number. </font></html>'];
+                    this.tab_DataPrep.Table.Data{i, 16} = ['<html><font color = "#FF0000">Input for column ', num2str(dataCol), ' must be a number. </font></html>'];
                     nBoreInputsError = nBoreInputsError +1;
                     continue
                 end                
@@ -5014,7 +5009,7 @@ classdef HydroSight_GUI < handle
                 caseLength = inf;
                 dataCol = 6;
                 if ~isnumeric(this.tab_DataPrep.Table.Data{i, dataCol})
-                    this.tab_DataPrep.Table.Data{i, 15} = ['<html><font color = "#FF0000">Input for column ', num2str(dataCol), ' must be a number. </font></html>'];
+                    this.tab_DataPrep.Table.Data{i, 16} = ['<html><font color = "#FF0000">Input for column ', num2str(dataCol), ' must be a number. </font></html>'];
                     nBoreInputsError = nBoreInputsError +1;
                     continue
                 end                
@@ -5032,7 +5027,7 @@ classdef HydroSight_GUI < handle
                             continue;
                         end
                     catch
-                        this.tab_DataPrep.Table.Data{i, 15} = '<html><font color = "#FF0000">Bore not found in head data file -  data error.</font></html>';
+                        this.tab_DataPrep.Table.Data{i, 16} = '<html><font color = "#FF0000">Bore not found in head data file -  data error.</font></html>';
                         nBoreInputsError = nBoreInputsError +1;
                         continue
                     end
@@ -5067,7 +5062,7 @@ classdef HydroSight_GUI < handle
                 rateOfChangeThreshold = inf;
                 dataCol = 12;
                 if ~isnumeric(this.tab_DataPrep.Table.Data{i, dataCol})
-                    this.tab_DataPrep.Table.Data{i, 15} = ['<html><font color = "#FF0000">Input for column ', num2str(dataCol), ' must be a number. </font></html>'];
+                    this.tab_DataPrep.Table.Data{i, 16} = ['<html><font color = "#FF0000">Input for column ', num2str(dataCol), ' must be a number. </font></html>'];
                     nBoreInputsError = nBoreInputsError +1;
                     continue
                 end                
@@ -5078,7 +5073,7 @@ classdef HydroSight_GUI < handle
                 constHeadDuration = inf;
                 dataCol = 13;
                 if ~isnumeric(this.tab_DataPrep.Table.Data{i, dataCol})
-                    this.tab_DataPrep.Table.Data{i, 15} = ['<html><font color = "#FF0000">Input for column ', num2str(dataCol), ' must be a number. </font></html>'];
+                    this.tab_DataPrep.Table.Data{i, 16} = ['<html><font color = "#FF0000">Input for column ', num2str(dataCol), ' must be a number. </font></html>'];
                     nBoreInputsError = nBoreInputsError +1;
                     continue
                 end                
@@ -5089,13 +5084,20 @@ classdef HydroSight_GUI < handle
                 numNoiseStdDev = inf;
                 dataCol = 14;
                 if ~isnumeric(this.tab_DataPrep.Table.Data{i, dataCol})
-                    this.tab_DataPrep.Table.Data{i, 15} = ['<html><font color = "#FF0000">Input for column ', num2str(dataCol), ' must be a number. </font></html>'];
+                    this.tab_DataPrep.Table.Data{i, 16} = ['<html><font color = "#FF0000">Input for column ', num2str(dataCol), ' must be a number. </font></html>'];
                     nBoreInputsError = nBoreInputsError +1;
                     continue
                 end                
                 if ~isempty(this.tab_DataPrep.Table.Data{i, dataCol}) && this.tab_DataPrep.Table.Data{i, dataCol}>0
                     numNoiseStdDev = this.tab_DataPrep.Table.Data{i, dataCol};
-                end                      
+                end    
+                
+                
+                outlierForwadBackward=true;
+                dataCol = 15;               
+                if ~isempty(this.tab_DataPrep.Table.Data{i, dataCol})
+                    outlierForwadBackward = this.tab_DataPrep.Table.Data{i, dataCol};
+                end                    
                 %----------------------------------------------------------
                                 
                 % Convert boreID string to appropriate field name and test
@@ -5109,7 +5111,7 @@ classdef HydroSight_GUI < handle
                     tmp.(boreID) = [1 2 3];
                     clear tmp;
                 catch ME
-                    this.tab_DataPrep.Table.Data{i, 15} = '<html><font color = "#FF0000">Bore ID label error - must start with letters and have only letters and numbers.</font></html>';
+                    this.tab_DataPrep.Table.Data{i, 16} = '<html><font color = "#FF0000">Bore ID label error - must start with letters and have only letters and numbers.</font></html>';
                     nBoreIDLabelError = nBoreIDLabelError+1;
                 end
                     
@@ -5133,18 +5135,18 @@ classdef HydroSight_GUI < handle
                     chechDuplicateDates = true;
                     this.dataPrep.(boreID) = doDataQualityAnalysis( [dateVec, headData(:,end)], boreDepth, surfaceElevation, caseLength, constructionDate, ...
                     checkStartDate, checkEndDate, chechDuplicateDates, checkMinHead, checkMaxHead, rateOfChangeThreshold, ...
-                    constHeadDuration, numNoiseStdDev );                                                       
+                    constHeadDuration, numNoiseStdDev, outlierForwadBackward );                                                       
                     
                     % Add summary stats
                     numErroneouObs = sum(any(table2array(this.dataPrep.(boreID)(:,7:12)),2));
                     numOutlierObs = sum(table2array(this.dataPrep.(boreID)(:,13)));                    
-                    this.tab_DataPrep.Table.Data{i,16} = ['<html><font color = "#808080">',num2str(numErroneouObs),'</font></html>'];
-                    this.tab_DataPrep.Table.Data{i,17} = ['<html><font color = "#808080">',num2str(numOutlierObs),'</font></html>'];
+                    this.tab_DataPrep.Table.Data{i,17} = ['<html><font color = "#808080">',num2str(numErroneouObs),'</font></html>'];
+                    this.tab_DataPrep.Table.Data{i,18} = ['<html><font color = "#808080">',num2str(numOutlierObs),'</font></html>'];
                                   
                     nBoresAnalysed = nBoresAnalysed +1;
                     
                     if saveModels
-                        this.tab_DataPrep.Table.Data{i,15} = '<html><font color = "#FFA500">Saving project. </font></html>';
+                        this.tab_DataPrep.Table.Data{i,16} = '<html><font color = "#FFA500">Saving project. </font></html>';
 
                         % Update status in GUI
                         drawnow;                        
@@ -5153,12 +5155,12 @@ classdef HydroSight_GUI < handle
                         onSave(this,hObject,eventdata);
                     end
                     
-                    this.tab_DataPrep.Table.Data{i, 15} = '<html><font color = "#008000">Bore analysed.</font></html>';
+                    this.tab_DataPrep.Table.Data{i, 16} = '<html><font color = "#008000">Bore analysed.</font></html>';
                     
                 catch ME
-                    this.tab_DataPrep.Table.Data{i, 15} = ['<html><font color = "#FF0000">Analysis failed - ', ME.message,'</font></html>'];   
-                    this.tab_DataPrep.Table.Data{i,16} = ['<html><font color = "#808080">','(NA)','</font></html>'];
+                    this.tab_DataPrep.Table.Data{i, 16} = ['<html><font color = "#FF0000">Analysis failed - ', ME.message,'</font></html>'];   
                     this.tab_DataPrep.Table.Data{i,17} = ['<html><font color = "#808080">','(NA)','</font></html>'];
+                    this.tab_DataPrep.Table.Data{i,18} = ['<html><font color = "#808080">','(NA)','</font></html>'];
                     
                     nAnalysisFailed = nAnalysisFailed +1;
                     continue                    
@@ -6570,6 +6572,8 @@ classdef HydroSight_GUI < handle
                                     tableAsCell{i,j} = '';
                                 elseif iscell(colFormat{j}) && ~ischar(tableAsCell{i,j}) && isnan( tableAsCell{i,j} )
                                     tableAsCell{i,j} = '';
+                                elseif isdatetime(tableAsCell{i,j})
+                                    tableAsCell{i,j} = datestr(tableAsCell{i,j});
                                 end
                             end
 
@@ -7563,6 +7567,120 @@ classdef HydroSight_GUI < handle
             end            
         end
         
+        function onExportPlot(this, hObject, eventdata)
+            set(this.Figure, 'pointer', 'watch');
+            switch this.figure_Layout.Selection
+                case {1,3}
+                    errordlg('No plot is displayed within the current tab.');
+                    return;
+                case 2      % Data prep.
+                    pos = get(this.tab_DataPrep.modelOptions.resultsOptions.box.Children(2),'Position'); 
+                    legendObj = this.tab_DataPrep.modelOptions.resultsOptions.plots.Legend;
+                    
+                    f=figure('Visible','off');
+                    copyobj(this.tab_DataPrep.modelOptions.resultsOptions.plots,f);
+                    
+                    % Format figure                    
+                    set(f, 'Color', 'w');
+                    set(f, 'PaperType', 'A4');
+                    set(f, 'PaperOrientation', 'landscape');
+                    set(f, 'Position', pos);
+                case 4      % Model Calib.
+                    f=figure('Visible','off');
+                    switch this.tab_ModelCalibration.resultsTabs.SelectedChild
+                        case 1
+                            pos = get(this.tab_ModelCalibration.resultsOptions.calibPanel.Children.Children(1).Children(1),'Position');
+                            if length(this.tab_ModelCalibration.resultsOptions.calibPanel.Children.Children(1).Children(1))==1
+                                legendObj = [];
+                                copyobj(this.tab_ModelCalibration.resultsOptions.calibPanel.Children.Children(1).Children(1).Children,f);
+                            else
+                                copyobj(this.tab_ModelCalibration.resultsOptions.calibPanel.Children.Children(1).Children(1).Children(2),f);
+                                legendObj = this.tab_ModelCalibration.resultsOptions.calibPanel.Children.Children(1).Children(1).Children(1);
+                            end
+                        case 2
+                            pos = get(this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(4),'Position');
+                            if length(this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(4)==1)
+                                copyobj(this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(4).Children,f);
+                                legendObj = [];
+                            else
+                                copyobj(this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(4).Children(end),f);
+                                legendObj = this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(4).Children(end-1);                                
+                            end
+                        case 3
+                            pos = get(this.tab_ModelCalibration.resultsOptions.paramsPanel.Children.Children(1),'Position');
+                            copyobj(this.tab_ModelCalibration.resultsOptions.paramsPanel.Children.Children(1).Children,f);                             
+                            legendObj = [];
+                        case 4
+                            pos = get(this.tab_ModelCalibration.resultsOptions.derivedParamsPanel.Children.Children(1),'Position');
+                            copyobj(this.tab_ModelCalibration.resultsOptions.derivedParamsPanel.Children.Children(1).Children,f);                             
+                            legendObj = [];
+                            
+                        case 5
+                            pos = get(this.tab_ModelCalibration.resultsOptions.modelSpecificsPanel.Children.Children(1),'Position');
+                            copyobj(this.tab_ModelCalibration.resultsOptions.modelSpecificsPanel.Children.Children(1).Children,f);                             
+                            legendObj = [];                            
+                    end
+
+                    % Format figure
+                    set(f, 'Color', 'w');
+                    set(f, 'PaperType', 'A4');
+                    set(f, 'PaperOrientation', 'landscape');
+                    set(f, 'Position', pos);
+                    
+                case 5      % Model Simulation.    
+                    f=figure('Visible','off');
+                    nplots = length(this.tab_ModelSimulation.resultsOptions.plots.panel.Children);
+                    pos = get(this.tab_ModelSimulation.resultsOptions.plots.panel,'Position');
+                    copyobj(this.tab_ModelSimulation.resultsOptions.plots.panel.Children(1:nplots),f);  
+                    legendObj = [];
+                    
+                    % Format each axes
+                    ax =  findall(f,'type','axes');
+                    for i=1:nplots
+                        set(ax(i), 'Color', 'w');
+                    end
+                    
+                    % Format figure
+                    set(f, 'Color', 'w');
+                    set(f, 'PaperType', 'A4');
+                    set(f, 'PaperOrientation', 'landscape');
+                    set(f, 'Position', pos);                    
+                otherwise
+                    return;
+            end
+                        
+            % set current folder to the project folder (if set)
+            set(this.Figure, 'pointer', 'arrow');
+            currentProjectFolder='';
+            if ~isempty(this.project_fileName)                                
+                try    
+                    if isdir(this.project_fileName)
+                        currentProjectFolder = this.project_fileName;
+                    else
+                        currentProjectFolder = fileparts(this.project_fileName);
+                    end 
+                    
+                    currentProjectFolder = [currentProjectFolder,filesep];
+                    cd(currentProjectFolder);
+                catch
+                    % do nothing
+                end
+            end
+            [fName,pName] = uiputfile({'*.png'},'Save plot PNG image as ...','plot.png');    
+            if fName~=0    
+                set(this.Figure, 'pointer', 'watch');
+                
+                % Export image
+                if ~isempty(legendObj)
+                    legend(gca,legendObj.String,'Location',legendObj.Location)
+                end
+                export_fig(f, fName);
+            end
+            close(f);
+            set(this.Figure, 'pointer', 'arrow');
+            
+        end
+        
         % Show splash 
         function onAbout(this, hObject, eventdata)
              % Create opening window while the GUI is being built.
@@ -8494,7 +8612,7 @@ classdef HydroSight_GUI < handle
                 % Exit if model is model not found
                 if isempty(tmpModel)
                     nModelsCalibFailed = nModelsCalibFailed +1;
-                    this.tab_ModelCalibration.Table.Data{i,9} = '<html><font color = "#FF0000">Calib. failed - Model appears not to have been built.</font></html>';
+                    this.tab_ModelCalibration.Table.Data{i,9} = '<html><font color = "#FF0000">Fail-Model appears not to have been built.</font></html>';
                     continue;
                 end  
 
@@ -8674,7 +8792,7 @@ classdef HydroSight_GUI < handle
 
                         % Update calibr status                          
                         if exitFlag ==0 
-                            this.tab_ModelCalibration.Table.Data{i,9} = ['<html><font color = "#FF0000">Calib. failed - ', ME.message,'</font></html>'];
+                            this.tab_ModelCalibration.Table.Data{i,9} = ['<html><font color = "#FF0000">Fail-', ME.message,'</font></html>'];
                         elseif exitFlag ==1
                             this.tab_ModelCalibration.Table.Data{i,9} = ['<html><font color = "#FFA500">Partially calibrated: ',exitStatus,' </font></html>'];
                         elseif exitFlag ==2
@@ -8689,14 +8807,14 @@ classdef HydroSight_GUI < handle
                     if doQuit
                         exitFlag = exitFlagQuit;
                         exitStatus = exitStatusQuit;
-                        this.tab_ModelCalibration.Table.Data{i,9} = ['<html><font color = "#FF0000">Calib. failed - ', exitStatus,'</font></html>'];                            
+                        this.tab_ModelCalibration.Table.Data{i,9} = ['<html><font color = "#FF0000">Fail-', exitStatus,'</font></html>'];                            
                         break;
                     end
 
 
                 catch ME
                     nModelsCalibFailed = nModelsCalibFailed +1;
-                    this.tab_ModelCalibration.Table.Data{i,9} = ['<html><font color = "#FF0000">Calib. failed - ', ME.message,'</font></html>'];
+                    this.tab_ModelCalibration.Table.Data{i,9} = ['<html><font color = "#FF0000">Fail-', ME.message,'</font></html>'];
                 end
                 
                 % Update wait bar

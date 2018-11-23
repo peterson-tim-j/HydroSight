@@ -33,7 +33,7 @@ function [ isOutlier, noise_sigma, x_opt, model_calib ] = outlierDetection( head
         model_calib = HydroSightModel('Outlier detection', dummyBoreID, 'ExpSmooth', h_obs_model(~isOutlier,:), -999, forcingData, coordinates, false);
         
         % Calibrate model
-        calibrateModel(model_calib, 0, inf, 'SPUCI',2)
+        calibrateModel(model_calib, [],0, inf, 'SPUCI',2)
         
         % Get the standard deviation of the noise.
         noise_sigma = model_calib.model.variables.sigma_n;

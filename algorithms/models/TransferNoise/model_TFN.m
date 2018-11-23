@@ -1688,7 +1688,7 @@ classdef model_TFN < model_abstract
                     if size(params,2)>1
                         continue
                     else
-                        error('Model crashed -  this may be due to the parameter values.');
+                        error(ME.message);
                     end
                 end
 

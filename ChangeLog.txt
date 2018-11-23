@@ -111,3 +111,19 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 * Build_C_code.m added to build mex functions. NOTE, see file for compiler optimisations tips.
 * MEX functions compiled using -0fast and -03 optimisation (Linux/windows respectively)
 * Bug fixed in building models within an otherwise empty project.
+
+23 Aug 2018
+* calibGUI_interface.m added to GIT. This class was added to HydroSight GUI in mid-2018 but unfortunately I forgot to add it to GIT.
+* findjobj() can be VERY slow in linux. This Mathworks File Exchange function was updated to the v1.50.0.0, which is reported as being faster.
+
+4 October 2018
+* Daily integrated ET and drainage results and daily mass balance approximations are now provided by climateTransform_soilMoistureModels() and climateTransform_soilMoistureModels_2layer (and V2 versions). This was added because the standard aforementioned fluxes are instantaneous values at the end of each day and are not daily sums. 
+
+12 Nov 2018
+* Bug fixed in data quality analysis algorithm that caused outlier detection analysis to crash.
+* Bug fixed in quality analysis GUI to ensure variable field names can be created from the bore ID.
+* Bugs fixed in appending quality analysis GUI table data.
+* GUI for quality analysis tweaked to allow for time-step of seconds.
+
+23 Nov 2018
+* All plots can be exported to a PNG image file using a new icon within the GUI.

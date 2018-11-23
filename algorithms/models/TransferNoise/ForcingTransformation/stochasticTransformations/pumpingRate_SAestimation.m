@@ -551,6 +551,11 @@ classdef pumpingRate_SAestimation < stochForcingTransform_abstract & dynamicprop
             % Get pump names and numbers
             getPumpNumTable(obj);    
 
+            % Check if there are sufficient metereed usage observations
+            % WITHIN the calibration at each bore. If there are not any
+            % metered usage values then an error should be thrown.
+            updateStochForcingData(obj);
+            
             % Get pump states from each bore.
             for i=1:size(obj.variables.pumpNumTable ,1)
                 pumpName = obj.variables.pumpNumTable.pumpName{i};
@@ -713,6 +718,16 @@ classdef pumpingRate_SAestimation < stochForcingTransform_abstract & dynamicprop
                     % Get indexes to the current pump number.
                     filt = find(dailyRate(:,1) == pumpNum)';
                     
+                    % If there are no metered usage rates within the calib 
+                    % period AND there are dates where the pumping needs to
+                    % be estimated (but not downscaled), then an estimate 
+                    % can not be made because the median rate cannot be
+                    % estimated.
+                    filt_calibPeriod = obj.variables.(pumpName)(:,1)<=obj.variables.t_end_calib;
+                    if isempty(filt) && any(~isfinite(obj.variables.(pumpName)(filt_calibPeriod ,4)))
+                        error(['Pump ',pumpName,' has no metered usage in calib. period.'])
+                    end
+                    
                     % Calculate the median metered pump rate. 
                     dailyRate_median = median(dailyRate(filt ,5));
                     
@@ -742,9 +757,12 @@ classdef pumpingRate_SAestimation < stochForcingTransform_abstract & dynamicprop
 %                             obj.variables.(pumpName)(ind_obsPeriods,7)=dailyRate(j,5);
 %                         end                    
 %                     end
-                    
-                    obj.variables.(pumpName)(:,7)=dailyRate_median;
-                    obj.variables.(pumpName)(ind_dailyRate.(pumpName)(:,1),7)  = ind_dailyRate.(pumpName)(:,2);
+                    % Add median pump rate to all time points.
+                    obj.variables.(pumpName)(:,7)=dailyRate_median;                   
+                    % Add metered pump rate (is any exists).
+                    if ~isempty(ind_dailyRate.(pumpName))
+                        obj.variables.(pumpName)(ind_dailyRate.(pumpName)(:,1),7)  = ind_dailyRate.(pumpName)(:,2);
+                    end
                     %------------------------------------
                     
                     % Multiple pump state by daily rate to create down-scaled pumping rate
@@ -1091,6 +1109,12 @@ classdef pumpingRate_SAestimation < stochForcingTransform_abstract & dynamicprop
                         forcingData(:,i) = obj.settings.forcingData(:,colForcingData);
                     end
                     
+                    % Skip if the pump was removed because if could not be
+                    % downscaled
+                    if (~isfield(obj.variables,variableName{i}))
+                        continue;
+                    end
+                    
                     % Add stochastically generated forcing data
                     filt_calibPeriod = obj.variables.(variableName{i})(:,2)>0;
                     forcingData(obj.variables.(variableName{i})(filt_calibPeriod,2),i) = obj.variables.(variableName{i})(filt_calibPeriod ,8);                                                         
@@ -1165,12 +1189,14 @@ classdef pumpingRate_SAestimation < stochForcingTransform_abstract & dynamicprop
                                 % preceeding period of -999s.
                                 ind_999s_metered_period  = k:(ind_999s_metered(j)+1);
 
-                                % Find the days and months for the period of
+                                % Build index to the days and months for the period of
                                 % -999s.
+                                ind_monthsDays = zeros(length(ind_999s_metered_period),1);
                                 monthDay_period = month(obsTime(ind_999s_metered_period))*100+day(obsTime(ind_999s_metered_period));
-                                ind_monthsDays = find(monthsDays == monthDay_period(1),1,'first');
-                                ind_monthsDays = ind_monthsDays:(ind_monthsDays+length(ind_999s_metered_period)-1);
-
+                                for el=1:length(ind_999s_metered_period)
+                                    ind_monthsDays(el,1) = find(monthsDays == monthDay_period(el),1,'first');    
+                                end
+                                    
                                 % Get the average pump state for the period.
                                 downscalingWeights = meanProbPumpOn(ind_monthsDays,2);
                                 downscalingWeights = downscalingWeights./sum(downscalingWeights);
@@ -1320,8 +1346,13 @@ classdef pumpingRate_SAestimation < stochForcingTransform_abstract & dynamicprop
             
             % Add the daily metered volumes. Since these readings are for a
             % single day, the the start and end dates are equal.
-            dailyRate = [dailyRate; [obj.variables.obsDays(:,1), ...
-                obj.variables.obsDays(:,2), obj.variables.obsDays(:,2), ones(size(obj.variables.obsDays,1),1), obj.variables.obsDays(:,3)]];           
+            % Importantly, ONLY daily metered usage before the calibration
+            % end date is added.
+            filt = obj.variables.obsDays(:,2)<=t_end_calib;
+            if sum(filt)>0
+                dailyRate = [dailyRate; [obj.variables.obsDays(filt ,1), ...
+                    obj.variables.obsDays(filt ,2), obj.variables.obsDays(filt ,2), ones(sum(filt),1), obj.variables.obsDays(filt ,3)]];           
+            end
         end
         
         function setTimestepIndexes(obj, updateTimeStep, t_start_calib, t_end_calib)

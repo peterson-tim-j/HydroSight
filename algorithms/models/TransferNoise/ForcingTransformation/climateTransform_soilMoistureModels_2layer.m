@@ -183,8 +183,15 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
         end
         
         function [variable_names] = outputForcingdata_options(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates)
-            variable_names = {'drainage';'drainage_bypassFlow';'drainage_normalised';'infiltration';'evap_soil';'evap_gw_potential';'runoff';'SMS'; ...
-                'drainage_deep';'drainage_bypassFlow_deep';'drainage_normalised_deep';'evap_soil_deep';'evap_soil_total';'SMS_deep';'time'};
+            
+            variable_names = climateTransform_soilMoistureModels.outputForcingdata_options(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates);
+                
+            variable_names_deep = {'drainage_deep';'drainage_bypassFlow_deep';'drainage_normalised_deep';'drainage_deep_integrated';'evap_soil_deep';'evap_soil_integrated_deep';'evap_soil_total';'evap_soil_total_integrated';'SMS_deep'; ...
+                'drainage_deep_tree';'drainage_bypassFlow_deep_tree';'drainage_normalised_deep_tree';'drainage_deep_integrated_tree';'evap_soil_deep_tree';'evap_soil_integrated_deep_tree';'evap_soil_total_tree';'SMS_deep_tree'; ...
+                'drainage_deep_nontree';'drainage_bypassFlow_deep_nontree';'drainage_normalised_deep_nontree';'drainage_deep_integrated_nontree';'evap_soil_deep_nontree';'evap_soil_total_nontree';'evap_soil_integrated_deep_nontree';'SMS_deep_nontree';'mass_balance_error'};
+                
+            variable_names = {variable_names{:}, variable_names_deep{:}};
+            variable_names = unique(variable_names);
         end
         
         function [options, colNames, colFormats, colEdits, toolTip] = modelOptions()
@@ -789,11 +796,13 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
             beta_deep = params(end,:);
             
             try 
+                forcingData = zeros(size(obj.variables.SMS,1), length(variableName));
                 for i=1:length(variableName)
                     % Test if the flux can be derived from the parent class.
-                    if ~any(strcmp({'evap_soil_deep', 'evap_soil_total','evap_gw_potential', ...
-                    'drainage_deep','drainage_bypassFlow_deep','drainage_normalised_deep','SMS_deep'}, ...
+                    if ~any(strcmp({'evap_soil_deep','evap_soil_integrated_deep', 'evap_soil_total', 'evap_soil_total_integrated','evap_gw_potential', ...
+                    'drainage_deep','drainage_bypassFlow_deep','drainage_normalised_deep','drainage_deep_integrated','SMS_deep','mass_balance_error'}, ...
                     variableName{i}))
+                
                         if nargin==2
                             [forcingData(:,i), isDailyIntegralFlux(i)] = getTransformedForcing@climateTransform_soilMoistureModels(obj, variableName{i});   
                         else
@@ -804,9 +813,11 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
                     
                     % Get the soil moisture store for the required soil unit
                     if nargin==2 || SMSnumber==1                               
+                        SMS = obj.variables.SMS;
                         SMS_deep = obj.variables.SMS_deep;
                         SMSnumber = 1;
                     elseif SMSnumber==2
+                        SMS = obj.variables.SMS_trees;
                         SMSC_deep = SMSC_deep_trees; 
                         SMS_deep = obj.variables.SMS_deep_trees;                    
                     else
@@ -823,9 +834,21 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
                             forcingData(:,i) = getTransformedForcing(obj, 'evap_soil',SMSnumber) + ...
                                           getTransformedForcing(obj, 'evap_soil_deep',SMSnumber);
                             isDailyIntegralFlux(i) = false;                    
+                            
+                        case 'evap_soil_total_integrated'    
+                            forcingData(:,i) = getTransformedForcing(obj, 'evap_soil_integrated',SMSnumber) + ...
+                                          getTransformedForcing(obj, 'evap_soil_integrated_deep',SMSnumber);
+                            isDailyIntegralFlux(i) = false;                    
+                            
                         case 'evap_gw_potential'
                             forcingData(:,i) = obj.variables.evap - getTransformedForcing(obj, 'evap_soil_total',SMSnumber);                    
-                            isDailyIntegralFlux(i) = false;                    
+                            isDailyIntegralFlux(i) = false;         
+                            
+                        case 'evap_soil_integrated_deep'
+                            AET= getTransformedForcing(obj, 'evap_soil_integrated',SMSnumber);
+                            forcingData(2:end,i) = (obj.variables.evap(2:end)-AET(2:end)) .* min(1,( (SMS_deep(2:end)/SMSC_deep).^gamma + (SMS_deep(1:end-1)/SMSC_deep).^gamma)*0.5);
+                            isDailyIntegralFlux(i) = false;                            
+                            
                         case 'drainage_deep'
                             forcingData(:,i) = k_sat_deep .* getTransformedForcing(obj, 'drainage_normalised_deep');
                             isDailyIntegralFlux(i) = false;                    
@@ -839,11 +862,27 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
                         case 'drainage_normalised_deep'
                             forcingData(:,i) = (SMS_deep/SMSC_deep).^beta_deep;
                             isDailyIntegralFlux(i) = false;     
+                            
+                        case 'drainage_deep_integrated'
+                            %AET = getTransformedForcing(obj, 'evap_soil_integrated_deep',SMSnumber);
+                            %inflow = getTransformedForcing(obj, 'drainage_integrated',SMSnumber);
+                            %SMS = getTransformedForcing(obj, 'SMS_deep',SMSnumber);
+                            
+                            %forcingData(2:end,i) = max(0,-1*((SMS(2:end)-SMS(1:end-1))/1 - inflow(2:end) + AET(2:end)));
+                            drainage = getTransformedForcing(obj, 'drainage_deep',SMSnumber);
+                            forcingData(2:end,i) = (drainage(2:end) + drainage(1:end-1))*0.5;
+                            isDailyIntegralFlux(i) = true;                                                                                    
 
                         case 'SMS_deep'
                             forcingData(:,i) = SMS_deep;
                             isDailyIntegralFlux(i) = false;
-
+                        case 'mass_balance_error'
+                            runoff = getTransformedForcing(obj, 'runoff',SMSnumber);
+                            AET = getTransformedForcing(obj, 'evap_soil_total_integrated',SMSnumber);
+                            drainage = getTransformedForcing(obj, 'drainage_deep_integrated',SMSnumber);
+                            
+                            forcingData(2:end,i) = diff(SMS) + diff(SMS_deep)- obj.variables.precip(2:end) + runoff(2:end) + AET(2:end) + drainage(2:end);
+                                                                                    
                         otherwise
                             error('The requested transformed forcing variable is not known.');
                     end
@@ -860,7 +899,7 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
                     end            
                 end
             catch ME
-                
+                error(ME.message)
             end
             
 

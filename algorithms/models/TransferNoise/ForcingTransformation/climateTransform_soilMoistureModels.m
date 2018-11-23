@@ -166,10 +166,10 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
         end
         
         function [variable_names] = outputForcingdata_options(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates)
-            variable_names = {'drainage';'drainage_bypassFlow';'drainage_normalised';'infiltration';'evap_soil';'evap_gw_potential';'runoff';'SMS'; ...
-                              'drainage_tree';'drainage_bypassFlow_tree';'drainage_normalised_tree';'infiltration_tree';'evap_soil_tree';'evap_gw_potential_tree';'runoff_tree';'SMS_tree'; ...
-                              'drainage_nontree';'drainage_bypassFlow_nontree';'drainage_normalised_nontree';'infiltration_nontree';'evap_soil_nontree'; ...
-                              'evap_gw_potential_nontree';'runoff_nontree';'SMS_nontree'};
+            variable_names = {'drainage';'drainage_bypassFlow';'drainage_normalised';'drainage_integrated';'infiltration';'evap_soil';'evap_soil_integrated';'evap_gw_potential';'runoff';'SMS'; ...
+                              'drainage_tree';'drainage_bypassFlow_tree';'drainage_normalised_tree';'drainage_integrated_tree';'infiltration_tree';'evap_soil_tree';'evap_soil_integrated_tree';'evap_gw_potential_tree';'runoff_tree';'SMS_tree'; ...
+                              'drainage_nontree';'drainage_bypassFlow_nontree';'drainage_normalised_nontree';'drainage_integrated_nontree';'infiltration_nontree';'evap_soil_nontree'; 'evap_soil_integrated_nontree'; ...
+                              'evap_gw_potential_nontree';'runoff_nontree';'SMS_nontree';'mass_balance_error'};
         end
         
         function [options, colNames, colFormats, colEdits, toolTip] = modelOptions()
@@ -1146,6 +1146,7 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
             end
              
             try 
+                forcingData = zeros(size(SMS,1), length(variableName));
                 for i=1:length(variableName)
                     switch variableName{i}
                         case 'drainage'
@@ -1161,17 +1162,31 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                         case 'drainage_normalised'
                             forcingData(:,i) = (SMS/SMSC).^beta;
                             isDailyIntegralFlux(i) = false;
+                            
+                        case 'drainage_integrated'
+%                             AET = getTransformedForcing(obj, 'evap_soil_integrated',SMSnumber);
+%                             inflow = getTransformedForcing(obj, 'infiltration',SMSnumber);
+%                             SMS = getTransformedForcing(obj, 'SMS',SMSnumber);
+%                             
+%                             forcingData(2:end,i) = max(0,-1* ((SMS(2:end)-SMS(1:end-1))/1 - inflow(2:end) + (AET(2:end) - AET(1:end-1))/2));
+                            drainage = getTransformedForcing(obj, 'drainage',SMSnumber);
+                            forcingData(2:end,i) = (drainage(2:end) + drainage(1:end-1))*0.5;
+                            isDailyIntegralFlux(i) = true;                              
 
                         case 'evap_soil'    
                             forcingData(:,i) = obj.variables.evap .* (SMS/SMSC).^gamma;
                             isDailyIntegralFlux(i) = false;
 
+                        case 'evap_soil_integrated'    
+                            forcingData(2:end,i) = obj.variables.evap(2:end) .* min(1,( (SMS(2:end)/SMSC).^gamma + (SMS(1:end-1)/SMSC).^gamma)*0.5);
+                            isDailyIntegralFlux(i) = false;
+                            
                         case 'infiltration'                       
-                            drainage = getTransformedForcing(obj, 'drainage',SMSnumber);
-                            actualET = getTransformedForcing(obj, 'evap_soil',SMSnumber);                        
-                            drainage =  0.5 .* (drainage(1:end-1) + drainage(2:end));
-                            actualET = 0.5 .* (actualET(1:end-1) + actualET(2:end));                    
-                            forcingData(:,i) = [0 ; min(obj.variables.precip(2:end,1),max(0,(obj.variables.precip(2:end,1)>0) .* (diff(SMS) + drainage + actualET)))];
+                            drainage = getTransformedForcing(obj, 'drainage_integrated',SMSnumber);
+                            actualET = getTransformedForcing(obj, 'evap_soil_integrated',SMSnumber);                        
+%                             drainage =  0.5 .* (drainage(1:end-1) + drainage(2:end));
+                            %actualET = 0.5 .* (actualET(1:end-1) + actualET(2:end));                    
+                            forcingData(:,i) = [0 ; min(obj.variables.precip(2:end,1),max(0,(obj.variables.precip(2:end,1)>0) .* (diff(SMS) + drainage(2:end) + actualET(2:end))))];
                             isDailyIntegralFlux(i) = true;
 
                         case 'evap_gw_potential'
@@ -1187,11 +1202,18 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                             interflow = getTransformedForcing(obj, 'interflow',SMSnumber);
                             forcingData(:,i) = max(0,obj.variables.precip - infiltration) + interflow;
                             isDailyIntegralFlux(i) = true;
-
+                            
                         case'SMS'
                             forcingData(:,i) = SMS;
                             isDailyIntegralFlux(i) = false;
 
+                        case 'mass_balance_error'
+                            runoff = getTransformedForcing(obj, 'runoff',SMSnumber);
+                            AET = getTransformedForcing(obj, 'evap_soil_integrated',SMSnumber);
+                            drainage = getTransformedForcing(obj, 'drainage_integrated',SMSnumber);
+                            
+                            forcingData(2:end,i) = diff(SMS) - obj.variables.precip(2:end) - runoff(2:end) - AET(2:end) - drainage(2:end);
+                            
                         otherwise
                             if  isfield(obj.settings,'simulateLandCover') && obj.settings.simulateLandCover && nargin==2 
                                 if isempty(strfind(variableName{i}, '_nontree')) && isempty(strfind(variableName{i}, '_tree'))
@@ -1228,7 +1250,7 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                     end                    
                 end
             catch ME
-                
+                error(ME.message)
             end
             
 
