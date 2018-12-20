@@ -127,3 +127,7 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 
 23 Nov 2018
 * All plots can be exported to a PNG image file using a new icon within the GUI.
+
+20 Dec 2018
+* Requirement for instalaltion of the Financial Toolbox (for use of year.m, month.m, day.m etc) has been removed by the addition of package specific files year.m, month.m, day.m, minute.m and second.m
+* The default number of standard deviations for the auto-outlier detetection has been increased from 3 to 4.

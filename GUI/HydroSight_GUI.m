@@ -345,7 +345,7 @@ classdef HydroSight_GUI < handle
             % Add model options panel for bore IDs
             dynList = [];
             vbox4t2 = uiextras.VBox('Parent',this.tab_DataPrep.modelOptions.vbox, 'Padding', 3, 'Spacing', 3, 'Visible','on');
-            uicontrol( 'Parent', vbox4t2,'Style','text','String',sprintf('%s\n%s%s','Please select the Bore ID(s) for the analysis:'), 'Units','normalized');            
+            uicontrol( 'Parent', vbox4t2,'Style','text','String',sprintf('%s\n%s%s','Please select the Bore ID for the analysis:'), 'Units','normalized');            
             this.tab_DataPrep.modelOptions.boreIDList = uicontrol('Parent',vbox4t2,'Style','list','BackgroundColor','w', ...
                 'String',dynList(:),'Value',1,'Callback',...
                 @this.dataPrep_optionsSelection, 'Units','normalized');     
@@ -482,7 +482,7 @@ classdef HydroSight_GUI < handle
             % Add model options panel for bore IDs
             dynList = [];
             vbox4t3 = uiextras.VBox('Parent',this.tab_ModelConstruction.modelOptions.vbox, 'Padding', 3, 'Spacing', 3, 'Visible','on');
-            uicontrol( 'Parent', vbox4t3,'Style','text','String',sprintf('%s\n%s%s','Please select the Bore ID(s) for the model:'), 'Units','normalized');            
+            uicontrol( 'Parent', vbox4t3,'Style','text','String',sprintf('%s\n%s%s','Please select the Bore ID for the model:'), 'Units','normalized');            
             this.tab_ModelConstruction.boreIDList = uicontrol('Parent',vbox4t3,'Style','list','BackgroundColor','w', ...
                 'String',dynList(:),'Value',1,'Callback',...
                 @this.modelConstruction_optionsSelection, 'Units','normalized');            
@@ -7948,7 +7948,7 @@ classdef HydroSight_GUI < handle
                 case 'Data Preparation'
                     modelStatus = '<html><font color = "#FF0000">Bore not analysed.</font></html>';
                     modelStatus_col = 15;
-                    defaultData = {false, '', '',0, 0, 0, '01/01/1900',true, true, true, true, 10, 120, 3,modelStatus, ...
+                    defaultData = {false, '', '',0, 0, 0, '01/01/1900',true, true, true, true, 10, 120, 4,modelStatus, ...
                     '<html><font color = "#808080">(NA)</font></html>', ...
                     '<html><font color = "#808080">(NA)</font></html>'};
                 case 'Model Construction'
