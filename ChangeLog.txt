@@ -131,3 +131,8 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 20 Dec 2018
 * Requirement for instalaltion of the Financial Toolbox (for use of year.m, month.m, day.m etc) has been removed by the addition of package specific files year.m, month.m, day.m, minute.m and second.m
 * The default number of standard deviations for the auto-outlier detetection has been increased from 3 to 4.
+
+28 Feb 2019
+* GUI become disfunctional under Windows 10. This was resolved by changing the GUI construction from using https://au.mathworks.com/matlabcentral/fileexchange/27758-gui-layout-toolbox to https://au.mathworks.com/matlabcentral/fileexchange/47982-gui-layout-toolbox
+* The code for GUI construction (https://au.mathworks.com/matlabcentral/fileexchange/47982-gui-layout-toolbox) has been removed from the package. For those running HydroSight from within Matlab, the user must now install the toolbox from the prior link.
+

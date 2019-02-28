@@ -6,8 +6,8 @@ classdef HydroSight_GUI < handle
     %variables. Useful in different sitionations
     properties
         % Version number
-        versionNumber = '1.3.1';
-        versionDate= '22 Nov 2018';
+        versionNumber = '1.3.2';
+        versionDate= '27 Feb 2019';
         
         % Model types supported
         %modelTypes = {'model_TFN','model_TFN_LOA', 'ExpSmooth'};
@@ -60,7 +60,22 @@ classdef HydroSight_GUI < handle
     methods
         
         function this = HydroSight_GUI
-                            
+            
+            % Check the toolbox for GUIs exists
+            if ~isdeployed && isempty(ver('layout'))
+                msgbox({'The following toolbox file must be installed within Matlab to use.', ...
+                    'HydroSight. Please download and install it and then re-start', ...
+                    'HydroSight. Also, a web browser will now open at the toolbox site.', ...
+                    '', ...
+                    'https://www.mathworks.com/matlabcentral/fileexchange/47982-gui-layout-toolbox'}, ...
+                'Toolbox missing: gui-layout-toolbox', 'error');
+            
+                web( 'https://www.mathworks.com/matlabcentral/fileexchange/47982-gui-layout-toolbox' ) 
+                
+                return
+            end
+
+            
             %--------------------------------------------------------------
             % Open a window and add some menus
             this.Figure = figure( ...
