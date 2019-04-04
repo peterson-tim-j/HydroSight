@@ -6,8 +6,8 @@ classdef HydroSight_GUI < handle
     %variables. Useful in different sitionations
     properties
         % Version number
-        versionNumber = '1.3.2';
-        versionDate= '27 Feb 2019';
+        versionNumber = '1.3.3';
+        versionDate= '5 April 2019';
         
         % Model types supported
         %modelTypes = {'model_TFN','model_TFN_LOA', 'ExpSmooth'};
