@@ -61,19 +61,19 @@ classdef HydroSight_GUI < handle
         
         function this = HydroSight_GUI
             
-            % Check the toolbox for GUIs exists
-            if ~isdeployed && isempty(ver('layout'))
-                msgbox({'The following toolbox file must be installed within Matlab to use.', ...
-                    'HydroSight. Please download and install it and then re-start', ...
-                    'HydroSight. Also, a web browser will now open at the toolbox site.', ...
-                    '', ...
-                    'https://www.mathworks.com/matlabcentral/fileexchange/47982-gui-layout-toolbox'}, ...
-                'Toolbox missing: gui-layout-toolbox', 'error');
-            
-                web( 'https://www.mathworks.com/matlabcentral/fileexchange/47982-gui-layout-toolbox' ) 
-                
-                return
-            end
+%             % Check the toolbox for GUIs exists
+%             if ~isdeployed && isempty(ver('layout'))
+%                 msgbox({'The following toolbox file must be installed within Matlab to use.', ...
+%                     'HydroSight. Please download and install it and then re-start', ...
+%                     'HydroSight. Also, a web browser will now open at the toolbox site.', ...
+%                     '', ...
+%                     'https://www.mathworks.com/matlabcentral/fileexchange/47982-gui-layout-toolbox'}, ...
+%                 'Toolbox missing: gui-layout-toolbox', 'error');
+%             
+%                 web( 'https://www.mathworks.com/matlabcentral/fileexchange/47982-gui-layout-toolbox' ) 
+%                 
+%                 return
+%             end
 
             
             %--------------------------------------------------------------
@@ -1198,6 +1198,7 @@ classdef HydroSight_GUI < handle
                 end
             end              
             
+            
             % Initialise project data
             set(this.Figure, 'pointer', 'watch');
             drawnow update;              
@@ -1208,7 +1209,7 @@ classdef HydroSight_GUI < handle
             this.tab_Project.project_description.String = '';
             this.tab_DataPrep.Table.Data = {};
             this.tab_DataPrep.Table.RowName = {}; 
-            this.tab_ModelConstruction.Table.Data = {};
+            this.tab_ModelConstruction.Table.Data = { [],[],[],[],[],[],[],[], '<html><font color = "#FF0000">Model not built.</font></html>'};
             this.tab_ModelConstruction.Table.RowName = {}; 
             this.tab_ModelCalibration.Table.Data = {};
             this.tab_ModelCalibration.Table.RowName = {};

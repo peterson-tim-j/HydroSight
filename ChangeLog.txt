@@ -136,3 +136,8 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 * GUI become disfunctional under Windows 10. This was resolved by changing the GUI construction from using https://au.mathworks.com/matlabcentral/fileexchange/27758-gui-layout-toolbox to https://au.mathworks.com/matlabcentral/fileexchange/47982-gui-layout-toolbox
 * The code for GUI construction (https://au.mathworks.com/matlabcentral/fileexchange/47982-gui-layout-toolbox) has been removed from the package. For those running HydroSight from within Matlab, the user must now install the toolbox from the prior link.
 
+5 April 2019
+* Mex file for Windows OS (forcingTransform_soilMoisture.mexa64) added.
+* Error message for missing above file shortened to be visible within the GUI. 
+* GUI on Windows 10 can be incorrectly built. In an attempt to reslove this, HydroSight.m tries to use the Matlab add-on "GUI Layout Toolbox" but only if installed.
+* Bug fixed. Starting a new project now allows the constrcution table to have >0 rows.
