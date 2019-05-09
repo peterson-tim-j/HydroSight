@@ -142,3 +142,11 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 * GUI on Windows 10 can be incorrectly built. In an attempt to reslove this, HydroSight.m tries to use the Matlab add-on "GUI Layout Toolbox" but only if installed.
 * Bug fixed. Starting a new project now allows the constrcution table to have >0 rows.
 * Version number updated
+
+16 April 2019
+* Bug fixed in listing TFN weighting input data types. 
+
+9 May 2019
+* Bug fixed in forward and backward data preparation which cases this feature to fail
+* Bug fixed in editing outlier points which caused the plot to no longer be displayed.
+

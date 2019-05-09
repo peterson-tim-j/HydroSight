@@ -152,8 +152,9 @@ function [headData,noise_sigma, ARMA_params, exp_model] = doDataQualityAnalysis(
             if outlierForwadBackward
                 % Analyse outliers in reverse time.
                 headData_reverse = headData(size(headData,1):-1:1,:);
+                isErrorObs_reverse = isErrorObs(size(headData,1):-1:1,:);
                 headData_reverse(:,1) = headData(end,1) - headData_reverse(:,1);
-                isOutlierObs_reverse = outlierDetection(  headData_reverse, isErrorObs, outlierNumStDevs);
+                isOutlierObs_reverse = outlierDetection(  headData_reverse, isErrorObs_reverse, outlierNumStDevs);
                 isOutlierObs_reverse = isOutlierObs_reverse(size(headData,1):-1:1,:);            
 
                 % Define as outlier if detected forward and reverse in time.
@@ -161,7 +162,7 @@ function [headData,noise_sigma, ARMA_params, exp_model] = doDataQualityAnalysis(
             end
         catch ME
             display(['    WARNING: Outlier detection failed.']); 
-            isOutlierObs = false(size(isErrorObs));
+            isOutlierObs = false(size(isErrorObs_reverse));
             noise_sigma = [];
             ARMA_params = [];           
             exp_model = [];

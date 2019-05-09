@@ -301,7 +301,7 @@ classdef HydroSight_GUI < handle
                         '<html><center>Threshold for Max. Daily abs(Head)<br />Change</center></html>', ...
                         '<html><center>Threshold Duration for<br />Constant Head (days)?</center></html>', ...
                         '<html><center>Auto-Outlier<br />Num. St. dev?</center></html>', ...                        
-                        '<html><center>Auto-Outlier foward<br />& backward analysis?</center></html>', ...                        
+                        '<html><center>Auto-Outlier foward<br />backward analysis?</center></html>', ...                        
                         '<html><center>Analysis<br />Status</center></html>', ...
                         '<html><center>No. Erroneous<br />Obs.</center></html>', ...
                         '<html><center>No. Outlier<br />Obs.</center></html>', ...
@@ -2039,7 +2039,7 @@ classdef HydroSight_GUI < handle
                          end
                              
                          % Check columns 2 to 6 are numeric.
-                         if any(any(~isnumeric(tbl{:,2:6})))
+                         if any(any(~isnumeric(tbl{:,2:end})))
                             warndlg('Columns 2 to 6 within the observed head file must contain only numeric data.');
                             return;
                          end
@@ -2197,8 +2197,8 @@ classdef HydroSight_GUI < handle
             % Update table statistics
             numErroneouObs = sum(any(headData(:,7:12),2));
             numOutlierObs = sum(headData(:,13));                    
-            this.tab_DataPrep.Table.Data{irow,16} = ['<html><font color = "#808080">',num2str(numErroneouObs),'</font></html>'];
-            this.tab_DataPrep.Table.Data{irow,17} = ['<html><font color = "#808080">',num2str(numOutlierObs),'</font></html>'];            
+            this.tab_DataPrep.Table.Data{irow,17} = ['<html><font color = "#808080">',num2str(numErroneouObs),'</font></html>'];
+            this.tab_DataPrep.Table.Data{irow,18} = ['<html><font color = "#808080">',num2str(numOutlierObs),'</font></html>'];            
             
             % Redraw the plot.
             %--------------------------------------------------------------
@@ -6559,10 +6559,10 @@ classdef HydroSight_GUI < handle
             % Check the table format and append to the required table
             switch hObject.Tag
                 case 'Data Preparation'
-                    if size(tbl,2) ~=17
+                    if size(tbl,2) ~=18
                         set(this.Figure, 'pointer', 'arrow');
                         drawnow update;                        
-                        warndlg('The table datafile must have 17 columns. That is, all columns shown in the model construction table.');
+                        warndlg('The table datafile must have 18 columns. That is, all columns shown in the model construction table.');
                         return;
                     end                    
                     
@@ -6594,9 +6594,9 @@ classdef HydroSight_GUI < handle
                             end
 
                             % Add results text.
-                            tableAsCell{i,15} = '<html><font color = "#FF0000">Bore not analysed.</font></html>'; 
-                            tableAsCell{i,16} = ['<html><font color = "#808080">','(NA)','</font></html>'];
+                            tableAsCell{i,16} = '<html><font color = "#FF0000">Bore not analysed.</font></html>'; 
                             tableAsCell{i,17} = ['<html><font color = "#808080">','(NA)','</font></html>'];
+                            tableAsCell{i,18} = ['<html><font color = "#808080">','(NA)','</font></html>'];
                             
                             % Convert integer 0/1 to logicals
                             for j=find(strcmp(colFormat,'logical'))
@@ -7946,13 +7946,15 @@ classdef HydroSight_GUI < handle
             anySelected = any(selectedRows);
             indSelected = find(selectedRows)';
             
-            if size(tableObj.Data(:,1),1)>0 &&  ~anySelected && ~strcmp(hObject.Label,'Paste rows')
-                warndlg('No rows are selected for the requested operation.');
-                return;
-            elseif size(tableObj.Data(:,1),1)==0 ...
-            &&  (strcmp(hObject.Label, 'Copy selected row') || strcmp(hObject.Label, 'Delete selected rows'))                
-                return;
-            end               
+            if ~isempty(tableObj.Data)
+                if size(tableObj.Data(:,1),1)>0 &&  ~anySelected && ~strcmp(hObject.Label,'Paste rows')
+                    warndlg('No rows are selected for the requested operation.');
+                    return;
+                elseif size(tableObj.Data(:,1),1)==0 ...
+                &&  (strcmp(hObject.Label, 'Copy selected row') || strcmp(hObject.Label, 'Delete selected rows'))                
+                    return;
+                end                               
+            end
             
             % Get column widths
             colWidths = tableObj.ColumnWidth;
@@ -7963,8 +7965,8 @@ classdef HydroSight_GUI < handle
             switch tableObj.Tag
                 case 'Data Preparation'
                     modelStatus = '<html><font color = "#FF0000">Bore not analysed.</font></html>';
-                    modelStatus_col = 15;
-                    defaultData = {false, '', '',0, 0, 0, '01/01/1900',true, true, true, true, 10, 120, 4,modelStatus, ...
+                    modelStatus_col = 16;
+                    defaultData = {false, '', '',0, 0, 0, '01/01/1900',true, true, true, true, 10, 120, 4,false, modelStatus, ...
                     '<html><font color = "#808080">(NA)</font></html>', ...
                     '<html><font color = "#808080">(NA)</font></html>'};
                 case 'Model Construction'
@@ -8125,8 +8127,8 @@ classdef HydroSight_GUI < handle
                     tableObj.RowName = mat2cell([1:nrows]',ones(1, nrows));
                     
                 case 'Insert row above selection'
-                    if size(tableObj.Data,1)==0
-                        tableObj.Data = cell(1,size(tableObj.Data,2));
+                    if isempty(tableObj.Data)
+                        tableObj.Data = defaultData;
                     else
                         selectedRows= find(selectedRows);
                         for i=1:length(selectedRows)
@@ -8148,8 +8150,8 @@ classdef HydroSight_GUI < handle
                     tableObj.RowName = mat2cell([1:nrows]',ones(1, nrows));
                         
                 case 'Insert row below selection'    
-                    if size(tableObj.Data,1)==0
-                        tableObj.Data = cell(1,size(tableObj.Data,2));
+                    if isempty(tableObj.Data)
+                        tableObj.Data = defaultData;
                     else
                         selectedRows= find(selectedRows);
                         for i=1:length(selectedRows)

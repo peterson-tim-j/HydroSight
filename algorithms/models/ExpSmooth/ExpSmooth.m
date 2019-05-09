@@ -214,7 +214,7 @@ classdef ExpSmooth < model_abstract
                 while sqrt(mean( 0.05.*obsHead_std^2 ./ (1 - exp( -2 .* 10.^beta_lowerLimit .* obj.variables.delta_t)))) ...
                 > obsHead_std                       
 
-                    if beta_lowerLimit >= obj.variables.beta_upperLimit - 2
+                    if beta_lowerLimit >= (obj.variables.beta_upperLimit - 2)
                         break;
                     end
 

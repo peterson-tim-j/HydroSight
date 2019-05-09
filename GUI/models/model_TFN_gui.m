@@ -1276,6 +1276,11 @@ classdef model_TFN_gui < model_gui_abstract
                                %outputOptions = feval(strcat(this.forcingTranforms.tbl.Data{i,2},'.outputForcingdata_options'),this.forcingData.colnames);
                                outputOptions = feval(strcat(this.forcingTranforms.tbl.Data{i,2},'.outputForcingdata_options'),this.boreID, this.forcingData.data,  this.forcingData.colnames, this.siteData);
 
+                               % Transpose if required
+                               if size(outputOptions,1)==1 && size(outputOptions,2)>1
+                                   outputOptions = outputOptions';
+                               end
+                               
                                % Add output options from the function
                                % to the list of available options
                                lstOptions = [lstOptions; strcat(this.forcingTranforms.tbl.Data{i,2},{' : '}, outputOptions)];
