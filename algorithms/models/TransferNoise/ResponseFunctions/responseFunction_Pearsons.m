@@ -407,8 +407,8 @@ classdef responseFunction_Pearsons < responseFunction_abstract
             t_peak(filt) = (n_backTrans(filt) - 1)./b_backTrans(filt);
             theta_peak(filt) =  t_peak(filt).^(n_backTrans(filt)-1) .* exp( -b_backTrans(filt) .* t_peak(filt) );
                         
-            params = theta_peak;
-            param_names = {'Lag : Lag time from input to head (days)'};
+            params = [t_peak; theta_peak];
+            param_names = {'Lag : Lag time from input to head (days)'; 'Peak : Peak weighting of input to head'};
             
         end
 

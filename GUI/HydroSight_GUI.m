@@ -6,8 +6,8 @@ classdef HydroSight_GUI < handle
     %variables. Useful in different sitionations
     properties
         % Version number
-        versionNumber = '1.3.3';
-        versionDate= '5 April 2019';
+        versionNumber = '1.4.3';
+        versionDate= '29 May 2019';
         
         % Model types supported
         %modelTypes = {'model_TFN','model_TFN_LOA', 'ExpSmooth'};
@@ -102,9 +102,9 @@ classdef HydroSight_GUI < handle
             
             
             % Set default panel color
-            warning('off');
-            uiextras.set( this.Figure, 'DefaultBoxPanelTitleColor', [0.7 1.0 0.7] );
-            warning('on');
+            %warning('off');
+            %uiextras.set( this.Figure, 'DefaultBoxPanelTitleColor', [0.7 1.0 0.7] );
+            %warning('on');
             
             % + File menu
             this.figure_Menu = uimenu( this.Figure, 'Label', 'File' );
@@ -140,18 +140,11 @@ classdef HydroSight_GUI < handle
             uimenu(this.figure_Help, 'Label', 'License and Disclaimer', 'Tag','doc_Publications','Callback', @this.onLicenseDisclaimer,'Separator','on');
             uimenu(this.figure_Help, 'Label', 'Version', 'Tag','doc_Version','Callback', @this.onVersion);
             uimenu(this.figure_Help, 'Label', 'About', 'Callback', @this.onAbout );
-
-            
-            % Add tool bar
+                        
+            % Get toolbar object
             hToolbar = findall(this.Figure,'tag','FigureToolBar');
-            hToolbutton = findall(hToolbar,'tag','Plottools.PlottoolsOn');                        
-            hToolbutton.Visible = 'off';
-            hToolbutton.UserData = 'Plot';	
-            hToolbutton.Separator = 'off';
-            hToolbutton = findall(hToolbar,'tag','Plottools.PlottoolsOff');            
-            hToolbutton.Visible = 'off';
-            hToolbutton.UserData = 'Never';	
-            hToolbutton.Separator = 'off';
+            
+            % Hide toolbar button not used (2018B prior and after)
             hToolbutton = findall(hToolbar,'tag','Annotation.InsertLegend');            
             hToolbutton.Visible = 'off';
             hToolbutton.UserData = 'Never';
@@ -163,32 +156,13 @@ classdef HydroSight_GUI < handle
             hToolbutton = findall(hToolbar,'tag','DataManager.Linking');            
             hToolbutton.Visible = 'off';
             hToolbutton.UserData = 'Never';	
-            hToolbutton.Separator = 'off';
-
-            hToolbutton = findall(hToolbar,'tag','Exploration.Brushing');            
+            hToolbutton.Separator = 'off';      
+            hToolbutton = findall(hToolbar,'tag','Standard.EditPlot');            
             hToolbutton.Visible = 'off';
             hToolbutton.UserData = 'Plot';
-            hToolbutton.Separator = 'off';
-            hToolbutton = findall(hToolbar,'tag','Exploration.DataCursor');            
-            hToolbutton.Visible = 'off';
-            hToolbutton.UserData = 'Plot';
-            hToolbutton.Separator = 'off';
-            hToolbutton = findall(hToolbar,'tag','Exploration.Rotate');            
-            hToolbutton.Visible = 'off';
-            hToolbutton.UserData = 'Never';
-            hToolbutton.Separator = 'off';
-            hToolbutton = findall(hToolbar,'tag','Exploration.Pan');            
-            hToolbutton.Visible = 'off';
-            hToolbutton.UserData = 'Plot';
-            hToolbutton.Separator = 'off';
-            hToolbutton = findall(hToolbar,'tag','Exploration.ZoomOut');            
-            hToolbutton.Visible = 'off';
-            hToolbutton.UserData = 'Plot';
-            hToolbutton.Separator = 'off';
-            hToolbutton = findall(hToolbar,'tag','Exploration.ZoomIn');            
-            hToolbutton.Visible = 'off';
-            hToolbutton.UserData = 'Plot';
-            hToolbutton.Separator = 'off';
+            hToolbutton.Separator = 'off';            
+            
+            % Redefine print button
             hToolbutton = findall(hToolbar,'tag','Standard.PrintFigure');            
             set(hToolbutton, 'ClickedCallback',@this.onPrint, 'TooltipString','Open the print preview window for the displayed plot ...');
             hToolbutton.Visible = 'off';
@@ -198,13 +172,62 @@ classdef HydroSight_GUI < handle
             [cdata,map] = imread(icon);
             map(find(map(:,1)+map(:,2)+map(:,3)==3)) = NaN;
             cdata = ind2rgb(cdata,map);
-            uipushtool(hToolbar,'cdata',cdata, 'tooltip','Export displayed plot to PNG file ...', ...
-                'ClickedCallback',@this.onExportPlot, ...
-                'tag','Export.plot', 'Visible','off');
-            hToolbutton = findall(hToolbar,'tag','Standard.EditPlot');            
-            hToolbutton.Visible = 'off';
-            hToolbutton.UserData = 'Plot';
-            hToolbutton.Separator = 'off';
+            
+            
+            % Check if version is 2018b or later. From this point the
+            % plot toolbar buttons moved into the plot.
+            v=version();
+            isBefore2018b = str2double(v(1:3))<9.5;           
+            
+            % Hide property inspector
+            try 
+                hToolbutton = findall(hToolbar,'tag','Standard.OpenInspector');            
+                hToolbutton.Visible = 'off';
+                hToolbutton.UserData = 'Plot';
+                hToolbutton.Separator = 'off';            
+            catch
+                % do nothing
+            end
+                
+            
+            % Add tool bar          
+            if isBefore2018b
+                hToolbutton = findall(hToolbar,'tag','Plottools.PlottoolsOn');                        
+                hToolbutton.Visible = 'off';
+                hToolbutton.UserData = 'Plot';	
+                hToolbutton.Separator = 'off';
+                hToolbutton = findall(hToolbar,'tag','Plottools.PlottoolsOff');            
+                hToolbutton.Visible = 'off';
+                hToolbutton.UserData = 'Never';	
+                hToolbutton.Separator = 'off';
+                hToolbutton = findall(hToolbar,'tag','Exploration.Brushing');            
+                hToolbutton.Visible = 'off';
+                hToolbutton.UserData = 'Plot';
+                hToolbutton.Separator = 'off';
+                hToolbutton = findall(hToolbar,'tag','Exploration.DataCursor');            
+                hToolbutton.Visible = 'off';
+                hToolbutton.UserData = 'Plot';
+                hToolbutton.Separator = 'off';
+                hToolbutton = findall(hToolbar,'tag','Exploration.Rotate');            
+                hToolbutton.Visible = 'off';
+                hToolbutton.UserData = 'Never';
+                hToolbutton.Separator = 'off';
+                hToolbutton = findall(hToolbar,'tag','Exploration.Pan');            
+                hToolbutton.Visible = 'off';
+                hToolbutton.UserData = 'Plot';
+                hToolbutton.Separator = 'off';
+                hToolbutton = findall(hToolbar,'tag','Exploration.ZoomOut');            
+                hToolbutton.Visible = 'off';
+                hToolbutton.UserData = 'Plot';
+                hToolbutton.Separator = 'off';
+                hToolbutton = findall(hToolbar,'tag','Exploration.ZoomIn');            
+                hToolbutton.Visible = 'off';
+                hToolbutton.UserData = 'Plot';
+                hToolbutton.Separator = 'off';
+                uipushtool(hToolbar,'cdata',cdata, 'tooltip','Export displayed plot to PNG file ...', ...
+                    'ClickedCallback',@this.onExportPlot, ...
+                    'tag','Export.plot', 'Visible','off');
+            end
 
             hToolbutton = findall(hToolbar,'tag','Standard.NewFigure');            
             hToolbutton.Visible = 'on';
@@ -242,7 +265,9 @@ classdef HydroSight_GUI < handle
             uipushtool(hToolbar,'cdata',cdata, 'tooltip','Open help for the current tab ...', 'ClickedCallback',@this.onDocumentation);
             
             % Add separator.
-            hToolbar.Children(13).Separator = 'on';
+            if isBefore2018b
+                hToolbar.Children(13).Separator = 'on';
+            end
             
             % Reset hidden state
             set(0,'ShowHiddenHandles',oldState);
@@ -255,7 +280,7 @@ classdef HydroSight_GUI < handle
             this.tab_ModelConstruction.Panel = uiextras.Panel( 'Parent', this.figure_Layout, 'Padding', 5, 'Tag','ModelConstruction');
             this.tab_ModelCalibration.Panel = uiextras.Panel( 'Parent', this.figure_Layout, 'Padding', 5, 'Tag','ModelCalibration');
             this.tab_ModelSimulation.Panel = uiextras.Panel( 'Parent', this.figure_Layout, 'Padding', 5, 'Tag','ModelSimulation');
-            this.figure_Layout.TabNames = {'Project Description', 'Data Preparation','Model Construction', 'Model Calibration','Model Simulation'};
+            this.figure_Layout.TabNames = {'Project Description', 'Outlier Removal','Model Construction', 'Model Calibration','Model Simulation'};
             this.figure_Layout.SelectedChild = 1;
            
 %%          Layout Tab1 - Project description
@@ -282,9 +307,12 @@ classdef HydroSight_GUI < handle
 %%          Layout Tab2 - Data Preparation
             % -----------------------------------------------------------------
             % Declare panels        
-            hbox1t2 = uiextras.HBoxFlex('Parent', this.tab_DataPrep.Panel,'Padding', 3, 'Spacing', 3);
-            vbox1t2 = uiextras.VBoxFlex('Parent',hbox1t2,'Padding', 3, 'Spacing', 3);
-            vbox3t2 = uiextras.HButtonBox('Parent',vbox1t2,'Padding', 3, 'Spacing', 3);             
+            hbox1t2 = uiextras.HBoxFlex('Parent', this.tab_DataPrep.Panel,'Padding', 3, 'Spacing', 3,'Tag','Outlier detection outer hbox');
+            vbox1t2 = uiextras.VBox('Parent',hbox1t2,'Padding', 3, 'Spacing', 3);
+            %hbox3t2 = uiextras.HButtonBox('Parent',vbox1t2,'Padding', 3, 'Spacing', 3);                
+            hbox3t2 = uiextras.HBox('Parent',vbox1t2,'Padding', 3, 'Spacing', 3);
+            hboxBtn1 = uiextras.HButtonBox('Parent',hbox3t2 ,'Padding', 3, 'Spacing', 3);             
+            hboxBtn2 = uiextras.HButtonBox('Parent',hbox3t2 ,'Padding', 3, 'Spacing', 3);              
             
             % Create table for model construction
             cnames1t2 ={'<html><center>Select<br />Bore</center></html>', ...                                                 
@@ -348,11 +376,15 @@ classdef HydroSight_GUI < handle
 %             end            
                         
             % Add buttons to top left panel               
-            uicontrol('Parent',vbox3t2,'String','Append Table Data','Callback', @this.onImportTable, 'Tag','Data Preparation', 'TooltipString', sprintf('Append a .csv file of table data to the table below. \n Use this feature to efficiently analyse a large number of bores.') );
-            uicontrol('Parent',vbox3t2,'String','Export Table Data','Callback', @this.onExportTable, 'Tag','Data Preparation', 'TooltipString', sprintf('Export a .csv file of the table below.') );
-            uicontrol('Parent',vbox3t2,'String','Analyse Selected Bores','Callback', @this.onAnalyseBores, 'Tag','Data Preparation', 'TooltipString', sprintf('Use the tick-box below to select the models to analyse then click here. \n After analysing, the status is given in the right most column.') );            
-            uicontrol('Parent',vbox3t2,'String','Export Selected Results','Callback', @this.onExportResults, 'Tag','Data Preparation', 'TooltipString', sprintf('Export a .csv file of the analyses results. \n After analysing, the .csv file can be used in the time-series modelling.') );            
-            vbox3t2.ButtonSize(1) = 225;            
+            uicontrol('Parent',hboxBtn2,'String','Append Table Data','Callback', @this.onImportTable, 'Tag','Data Preparation', 'TooltipString', sprintf('Append a .csv file of table data to the table below. \n Use this feature to efficiently analyse a large number of bores.') );
+            uicontrol('Parent',hboxBtn2,'String','Export Table Data','Callback', @this.onExportTable, 'Tag','Data Preparation', 'TooltipString', sprintf('Export a .csv file of the table below.') );
+            uicontrol('Parent',hboxBtn2,'String','Analyse Selected Bores','Callback', @this.onAnalyseBores, 'Tag','Data Preparation', 'TooltipString', sprintf('Use the tick-box below to select the models to analyse then click here. \n After analysing, the status is given in the right most column.') );            
+            uicontrol('Parent',hboxBtn2,'String','Export Selected Results','Callback', @this.onExportResults, 'Tag','Data Preparation', 'TooltipString', sprintf('Export a .csv file of the analyses results. \n After analysing, the .csv file can be used in the time-series modelling.') );            
+            uicontrol('Parent',hboxBtn1,'Style','slider','Min',0.05,'Max',0.95,'Value',0.5,'Tag','WidthofPanelConstruct', ...
+                'Callback', {@this.onChangeTableWidth, 'Outlier detection outer hbox'} , 'TooltipString', 'Adjust table width');                                                     
+            hboxBtn1.ButtonSize(1) = 225;
+            hboxBtn2.ButtonSize(1) = 225;
+            set(hbox3t2,'Sizes',[90 -1])  
             
             % Create vbox for the various model options
             this.tab_DataPrep.modelOptions.vbox = uiextras.VBoxFlex('Parent',hbox1t2,'Padding', 3, 'Spacing', 3, 'DividerMarkings','off');
@@ -427,9 +459,11 @@ classdef HydroSight_GUI < handle
 %%          Layout Tab3 - Model Construction
             %------------------------------------------------------------------
             % Declare panels        
-            hbox1t3 = uiextras.HBoxFlex('Parent', this.tab_ModelConstruction.Panel,'Padding', 3, 'Spacing', 3);
-            vbox1t3 = uiextras.VBoxFlex('Parent',hbox1t3,'Padding', 3, 'Spacing', 3);
-            vbox3t3 = uiextras.HButtonBox('Parent',vbox1t3,'Padding', 3, 'Spacing', 3);             
+            hbox1t3 = uiextras.HBoxFlex('Parent', this.tab_ModelConstruction.Panel,'Padding', 3, 'Spacing', 3, 'Tag', 'Model Construction outer hbox');
+            vbox1t3 = uiextras.VBox('Parent',hbox1t3,'Padding', 3, 'Spacing', 3);
+            hbox1t4 = uiextras.HBox('Parent',vbox1t3,'Padding', 3, 'Spacing', 3);
+            hboxBtn1 = uiextras.HButtonBox('Parent',hbox1t4 ,'Padding', 3, 'Spacing', 3);             
+            hboxBtn2 = uiextras.HButtonBox('Parent',hbox1t4 ,'Padding', 3, 'Spacing', 3);             
             
             % Create table for model construction
             cnames1t3 ={'<html><center>Select<br />Model</center></html>', ... 
@@ -486,10 +520,14 @@ classdef HydroSight_GUI < handle
 %             end
                         
             % Add buttons to top left panel               
-            uicontrol('Parent',vbox3t3,'String','Append Table Data','Callback', @this.onImportTable, 'Tag','Model Construction', 'TooltipString', sprintf('Append a .csv file of table data to the table below. \n Use this feature to efficiently build a large number of models.') );
-            uicontrol('Parent',vbox3t3,'String','Export Table Data','Callback', @this.onExportTable, 'Tag','Model Construction', 'TooltipString', sprintf('Export a .csv file of the table below.') );
-            uicontrol('Parent',vbox3t3,'String','Build Selected Models','Callback', @this.onBuildModels, 'Tag','Model Construction', 'TooltipString', sprintf('Use the tick-box below to select the models to build then click here. \n After building, the status is given in the right most column.') );                        
-            vbox3t3.ButtonSize(1) = 225;
+            uicontrol('Parent',hboxBtn2,'String','Append Table Data','Callback', @this.onImportTable, 'Tag','Model Construction', 'TooltipString', sprintf('Append a .csv file of table data to the table below. \n Use this feature to efficiently build a large number of models.') );
+            uicontrol('Parent',hboxBtn2,'String','Export Table Data','Callback', @this.onExportTable, 'Tag','Model Construction', 'TooltipString', sprintf('Export a .csv file of the table below.') );
+            uicontrol('Parent',hboxBtn2,'String','Build Selected Models','Callback', @this.onBuildModels, 'Tag','Model Construction', 'TooltipString', sprintf('Use the tick-box below to select the models to build then click here. \n After building, the status is given in the right most column.') );                        
+            uicontrol('Parent',hboxBtn1,'Style','slider','Min',0.05,'Max',0.95,'Value',0.5,'Tag','WidthofPanelConstruct', ...
+                'Callback', {@this.onChangeTableWidth, 'Model Construction outer hbox'} , 'TooltipString', 'Adjust table width');                                                     
+            hboxBtn1.ButtonSize(1) = 225;
+            hboxBtn2.ButtonSize(1) = 225;
+            set(hbox1t4,'Sizes',[60 -1])
             
             % Create vbox for the various model options
             this.tab_ModelConstruction.modelOptions.vbox = uiextras.VBoxFlex('Parent',hbox1t3,'Padding', 3, 'Spacing', 3, 'DividerMarkings','off');
@@ -575,10 +613,13 @@ classdef HydroSight_GUI < handle
             
 %%          Layout Tab4 - Calibrate models
             %------------------------------------------------------------------
-            hbox1t4 = uiextras.HBoxFlex('Parent', this.tab_ModelCalibration.Panel,'Padding', 3, 'Spacing', 3);
-            vbox1t4 = uiextras.VBoxFlex('Parent',hbox1t4,'Padding', 3, 'Spacing', 3);
-            hbox2t4 = uiextras.HButtonBox('Parent',vbox1t4,'Padding', 3, 'Spacing', 3);  
-                        
+            hbox1t4 = uiextras.HBoxFlex('Parent', this.tab_ModelCalibration.Panel,'Padding', 3, 'Spacing', 3,'Tag','Model Calibration outer hbox');
+            vbox1t4 = uiextras.VBox('Parent',hbox1t4,'Padding', 3, 'Spacing', 3);
+            hbox1t5 = uiextras.HBox('Parent',vbox1t4,'Padding', 3, 'Spacing', 3);
+            hboxBtn1 = uiextras.HButtonBox('Parent',hbox1t5 ,'Padding', 3, 'Spacing', 3);             
+            hboxBtn2 = uiextras.HButtonBox('Parent',hbox1t5 ,'Padding', 3, 'Spacing', 3);             
+            
+            
             % Add table
             cnames1t4 = {   '<html><center>Select<br />Model</center></html>', ...   
                             '<html><center>Model<br />Label</center></html>', ...   
@@ -636,11 +677,15 @@ classdef HydroSight_GUI < handle
 %             end                
             
             % Add button for calibration
-            uicontrol('Parent',hbox2t4,'String','Import Table Data','Callback', @this.onImportTable, 'Tag','Model Calibration', 'TooltipString', sprintf('Import a .csv file of table data to the table below. \n Only rows with a model label and bore ID matching a row within the table will be imported.') );
-            uicontrol('Parent',hbox2t4,'String','Export Table Data','Callback', @this.onExportTable, 'Tag','Model Calibration', 'TooltipString', sprintf('Export a .csv file of the table below.') );            
-            uicontrol('Parent',hbox2t4,'String','Calibrate Selected Models','Callback', @this.onCalibModels,'Tag','useLocal', 'TooltipString', sprintf('Use the tick-box below to select the models to calibrate then click here. \n During and after calibration, the status is given in the 9th column.') );            
-            uicontrol('Parent',hbox2t4,'String','Export Selected Results','Callback', @this.onExportResults, 'Tag','Model Calibration', 'TooltipString', sprintf('Export a .csv file of the calibration results from all models.') );            
-            hbox2t4.ButtonSize(1) = 225;
+            uicontrol('Parent',hboxBtn2,'String','Import Table Data','Callback', @this.onImportTable, 'Tag','Model Calibration', 'TooltipString', sprintf('Import a .csv file of table data to the table below. \n Only rows with a model label and bore ID matching a row within the table will be imported.') );
+            uicontrol('Parent',hboxBtn2,'String','Export Table Data','Callback', @this.onExportTable, 'Tag','Model Calibration', 'TooltipString', sprintf('Export a .csv file of the table below.') );            
+            uicontrol('Parent',hboxBtn2,'String','Calibrate Selected Models','Callback', @this.onCalibModels,'Tag','useLocal', 'TooltipString', sprintf('Use the tick-box below to select the models to calibrate then click here. \n During and after calibration, the status is given in the 9th column.') );            
+            uicontrol('Parent',hboxBtn2,'String','Export Selected Results','Callback', @this.onExportResults, 'Tag','Model Calibration', 'TooltipString', sprintf('Export a .csv file of the calibration results from all models.') );            
+            uicontrol('Parent',hboxBtn1,'Style','slider','Min',0.05,'Max',0.95,'Value',0.5,'Tag','WidthofPanelConstruct', ...
+                'Callback', {@this.onChangeTableWidth, 'Model Calibration outer hbox'} , 'TooltipString', 'Adjust table width');                                                     
+            hboxBtn1.ButtonSize(1) = 225;
+            hboxBtn2.ButtonSize(1) = 225;
+            set(hbox1t5,'Sizes',[90 -1])                 
             
             % Size boxe
             set(vbox1t4, 'Sizes', [30 -1]);
@@ -839,18 +884,25 @@ classdef HydroSight_GUI < handle
 
 %%          Layout Tab5 - Model Simulation
             %------------------------------------------------------------------            
-            hbox1t5 = uiextras.HBoxFlex('Parent', this.tab_ModelSimulation.Panel,'Padding', 3, 'Spacing', 3);
+            hbox1t5 = uiextras.HBoxFlex('Parent', this.tab_ModelSimulation.Panel,'Padding', 3, 'Spacing', 3, 'Tag','Model Simulation outer hbox');
             vbox1t5 = uiextras.VBox('Parent',hbox1t5,'Padding', 3, 'Spacing', 3);
             vbox2t5 = uiextras.VBox('Parent',hbox1t5,'Padding', 3, 'Spacing', 3);
-            hbox3t5 = uiextras.HButtonBox('Parent',vbox1t5,'Padding', 3, 'Spacing', 3);  
+            hbox1t6 = uiextras.HBox('Parent',vbox1t5,'Padding', 3, 'Spacing', 3);
+            hboxBtn1 = uiextras.HButtonBox('Parent',hbox1t6 ,'Padding', 3, 'Spacing', 3);             
+            hboxBtn2 = uiextras.HButtonBox('Parent',hbox1t6 ,'Padding', 3, 'Spacing', 3);                 
+            
                         
             % Add button for calibration
             % Add buttons to top left panel               
-            uicontrol(hbox3t5,'String','Append Table Data','Callback', @this.onImportTable, 'Tag','Model Simulation', 'TooltipString', sprintf('Append a .csv file of table data to the table below. \n Only rows where the model label is for a model that have been calibrated will be imported.') );
-            uicontrol(hbox3t5,'String','Export Table Data','Callback', @this.onExportTable, 'Tag','Model Simulation', 'TooltipString', sprintf('Export a .csv file of the table below.') );                        
-            uicontrol(hbox3t5,'String','Simulate Selected Models','Callback', @this.onSimModels, 'TooltipString', sprintf('Use the tick-box below to select the models to simulate then click here. \n During and after simulation, the status is given in the 9th column.') );            
-            uicontrol(hbox3t5,'String','Export Selected Results','Callback', @this.onExportResults, 'Tag','Model Simulation', 'TooltipString', sprintf('Export a .csv file of the simulation results from all models.') );            
-            hbox3t5.ButtonSize(1) = 225;
+            uicontrol(hboxBtn2,'String','Append Table Data','Callback', @this.onImportTable, 'Tag','Model Simulation', 'TooltipString', sprintf('Append a .csv file of table data to the table below. \n Only rows where the model label is for a model that have been calibrated will be imported.') );
+            uicontrol(hboxBtn2,'String','Export Table Data','Callback', @this.onExportTable, 'Tag','Model Simulation', 'TooltipString', sprintf('Export a .csv file of the table below.') );                        
+            uicontrol(hboxBtn2,'String','Simulate Selected Models','Callback', @this.onSimModels, 'TooltipString', sprintf('Use the tick-box below to select the models to simulate then click here. \n During and after simulation, the status is given in the 9th column.') );            
+            uicontrol(hboxBtn2,'String','Export Selected Results','Callback', @this.onExportResults, 'Tag','Model Simulation', 'TooltipString', sprintf('Export a .csv file of the simulation results from all models.') );            
+            uicontrol('Parent',hboxBtn1,'Style','slider','Min',0.05,'Max',0.95,'Value',0.5,'Tag','WidthofPanelConstruct', ...
+                'Callback', {@this.onChangeTableWidth, 'Model Simulation outer hbox'} , 'TooltipString', 'Adjust table width');                                                     
+            hboxBtn1.ButtonSize(1) = 225;
+            hboxBtn2.ButtonSize(1) = 225;
+            set(hbox1t6,'Sizes',[90 -1])              
             
             % Add table
             cnames1t5 = {   '<html><center>Select<br />Model</center></html>', ...   
@@ -975,27 +1027,34 @@ classdef HydroSight_GUI < handle
 
         % Show show plotting icons
         function plotToolbarState(this,iconState)
-            hToolbar = findall(this.Figure,'tag','FigureToolBar');
-            hToolbutton = findall(hToolbar,'tag','Exploration.Brushing');            
-            hToolbutton.Visible = 'off';
-            hToolbutton = findall(hToolbar,'tag','Exploration.DataCursor');            
-            hToolbutton.Visible = iconState;
-            hToolbutton = findall(hToolbar,'tag','Exploration.Rotate');            
-            hToolbutton.Visible = 'off';
-            hToolbutton = findall(hToolbar,'tag','Exploration.Pan');            
-            hToolbutton.Visible = iconState;
-            hToolbutton = findall(hToolbar,'tag','Exploration.ZoomOut');            
-            hToolbutton.Visible = iconState;
-            hToolbutton = findall(hToolbar,'tag','Exploration.ZoomIn');            
-            hToolbutton.Visible = iconState;
-            hToolbutton = findall(hToolbar,'tag','Standard.PrintFigure');            
-            hToolbutton.Visible = iconState;
-            hToolbutton = findall(this.Figure,'tag','Export.plot');            
-            hToolbutton.Visible = iconState;
-            hToolbutton = findall(hToolbar,'tag','Standard.EditPlot');            
-            hToolbutton.Visible = 'off';            
-            hToolbutton = findall(hToolbar,'tag','Plottools.PlottoolsOn');            
-            hToolbutton.Visible = 'off';          
+            % Check if version is 2018b or later. From this point the
+            % plot toolbar buttons moved into the plot.
+            v=version();
+            isBefore2018b = str2double(v(1:3))<9.5;
+
+            if isBefore2018b 
+                hToolbar = findall(this.Figure,'tag','FigureToolBar');
+                hToolbutton = findall(hToolbar,'tag','Exploration.Brushing');            
+                hToolbutton.Visible = 'off';
+                hToolbutton = findall(hToolbar,'tag','Exploration.DataCursor');            
+                hToolbutton.Visible = iconState;
+                hToolbutton = findall(hToolbar,'tag','Exploration.Rotate');            
+                hToolbutton.Visible = 'off';
+                hToolbutton = findall(hToolbar,'tag','Exploration.Pan');            
+                hToolbutton.Visible = iconState;
+                hToolbutton = findall(hToolbar,'tag','Exploration.ZoomOut');            
+                hToolbutton.Visible = iconState;
+                hToolbutton = findall(hToolbar,'tag','Exploration.ZoomIn');            
+                hToolbutton.Visible = iconState;
+                hToolbutton = findall(hToolbar,'tag','Standard.PrintFigure');            
+                hToolbutton.Visible = iconState;
+                hToolbutton = findall(this.Figure,'tag','Export.plot');            
+                hToolbutton.Visible = iconState;
+                hToolbutton = findall(hToolbar,'tag','Standard.EditPlot');            
+                hToolbutton.Visible = 'off';            
+                hToolbutton = findall(hToolbar,'tag','Plottools.PlottoolsOn');            
+                hToolbutton.Visible = 'off';                          
+            end
         end        
         
         % Set project folder
@@ -1197,7 +1256,6 @@ classdef HydroSight_GUI < handle
                     return;
                 end
             end              
-            
             
             % Initialise project data
             set(this.Figure, 'pointer', 'watch');
@@ -5366,6 +5424,13 @@ classdef HydroSight_GUI < handle
                    this.tab_ModelConstruction.Table.Data{i, 9} = '<html><font color = "#FF0000">Coordinate file error -  read in failed.</font></html>';
                    continue;
                 end
+                
+                % Check site names are unique
+                if length(coordData(:,1)) ~= length(unique(coordData(:,1)))
+                   nModelsBuiltFailed = nModelsBuiltFailed + 1;
+                   this.tab_ModelConstruction.Table.Data{i, 9} = '<html><font color = "#FF0000">Coordinate site IDs not unique.</font></html>';
+                   continue;                    
+                end
                 %----------------------------------------------------------
 
                 % Get model label
@@ -5629,22 +5694,25 @@ classdef HydroSight_GUI < handle
             uiextras.set( this.tab_ModelCalibration.GUI, 'DefaultBoxPanelTitleColor', [0.7 1.0 0.7] );
             warning('on');
  
-            outerVbox= uiextras.VBox('Parent',this.tab_ModelCalibration.GUI,'Padding', 3, 'Spacing', 3);
+            outerVbox= uiextras.VBoxFlex('Parent',this.tab_ModelCalibration.GUI,'Padding', 3, 'Spacing', 3);
+            innerVbox_top= uiextras.VBox('Parent',outerVbox,'Padding', 3, 'Spacing', 3);
+            innerVbox_bottom= uiextras.VBox('Parent',outerVbox,'Padding', 3, 'Spacing', 3);
  
             % Add label
-            uicontrol(outerVbox,'Style','text','String','Calibration scheme settings: ','HorizontalAlignment','left', 'Units','normalized');
+            uicontrol(innerVbox_top,'Style','text','String','Calibration scheme settings: ','HorizontalAlignment','left', 'Units','normalized');
             
             %Create Panels for different windows       
-            outerTabsPanel = uiextras.TabPanel( 'Parent', outerVbox, 'Padding', 5, 'TabSize',127,'FontSize',8);
+            outerTabsPanel = uiextras.TabPanel( 'Parent', innerVbox_top, 'Padding', 5, 'TabSize',127,'FontSize',8);
             CMAES_tab = uiextras.Panel( 'Parent', outerTabsPanel, 'Padding', 5, 'Tag','CMA-ES tab');            
             SPUCI_tab = uiextras.Panel( 'Parent', outerTabsPanel, 'Padding', 5, 'Tag','SP-UCI tab');
             DREAM_tab = uiextras.Panel( 'Parent', outerTabsPanel, 'Padding', 5, 'Tag','DREAM tab');
-            MultiModel_tab = uiextras.Panel( 'Parent', outerTabsPanel, 'Padding', 5, 'Tag','Multi-Model tab');
-            outerTabsPanel.TabNames = {'CMA-ES', 'SP-UCI','DREAM', 'Multi-model'};
+            %MultiModel_tab = uiextras.Panel( 'Parent', outerTabsPanel, 'Padding', 5, 'Tag','Multi-Model tab');
+            %outerTabsPanel.TabNames = {'CMA-ES', 'SP-UCI','DREAM', 'Multi-model'};
+            outerTabsPanel.TabNames = {'CMA-ES', 'SP-UCI','DREAM'};
             outerTabsPanel.SelectedChild = 1;
                        
             % Add buttons.
-            outerButtons = uiextras.HButtonBox('Parent',outerVbox,'Padding', 3, 'Spacing', 3);             
+            outerButtons = uiextras.HButtonBox('Parent',innerVbox_top,'Padding', 3, 'Spacing', 3);             
             uicontrol('Parent',outerButtons,'String','Start calibration','Callback', @this.startCalibration, 'Interruptible','on','Tag','Start calibration', 'TooltipString', sprintf('Calibrate all of the selected models.') );
             if ~isdeployed
                 uicontrol('Parent',outerButtons,'String','HPC Offload','Callback', @this.startCalibration,'Tag','Start calibration - useHPC', 'TooltipString', sprintf('BETA version to export selected models for calibration on a High Performance Cluster.') );
@@ -5663,7 +5731,7 @@ classdef HydroSight_GUI < handle
             end            
             
             % Add progress bar
-            bar_panel = uipanel('Parent',outerVbox, 'BorderType','none');
+            bar_panel = uipanel('Parent',innerVbox_top, 'BorderType','none');
             ax = axes( 'Parent', bar_panel);            
             barh(ax, 0,'Tag','Calib_wait_bar');
             box(ax,'on');
@@ -5673,10 +5741,12 @@ classdef HydroSight_GUI < handle
             title(ax,'Model Calibration Progress','FontSize',10,'FontWeight','normal');
             
             % Add large box for calib. iterations
-            uicontrol(outerVbox,'Style','edit','String','(calibration not started)','Tag','calibration command window', ...
+            uicontrol(innerVbox_bottom,'Style','edit','String','(calibration not started)','Tag','calibration command window', ...
                 'HorizontalAlignment','left', 'Units','normalized','BackgroundColor','white');             
             
-            set(outerVbox, 'Sizes', [30 -1 30 50 -2]);
+            set(outerVbox, 'Sizes', [-1 -1]);
+            set(innerVbox_top, 'Sizes', [30 -1 30 50]);
+            set(innerVbox_bottom, 'Sizes', [-1]);
            
             % Fill in CMA-ES panel               
             CMAES_tabVbox= uiextras.Grid('Parent',CMAES_tab,'Padding', 6, 'Spacing', 6);
@@ -5743,45 +5813,47 @@ classdef HydroSight_GUI < handle
             
             set(DREAM_tabVbox, 'ColumnSizes', [-1 100], 'RowSizes', repmat(20,1,8));            
             
-            % Fill in MultiModel panel   
-            MultiModel_tabVbox= uiextras.Grid('Parent',MultiModel_tab ,'Padding', 6, 'Spacing', 6);
-            
-            uicontrol(MultiModel_tabVbox,'Style','text','String','Parameters to estimate as fixed-effect (component:parameter-model label):','HorizontalAlignment','left', 'Units','normalized');                        
-            multiModel_leftList = uicontrol(MultiModel_tabVbox,'Style','listbox','String',cell(0,1),'Min',1,'Max',100,'Tag','NLMEFIT paramsLeftList','HorizontalAlignment','left', 'Units','normalized');                        
-            
-            uicontrol(MultiModel_tabVbox,'Style','text','String','Number of randomly selected initial starts for gradient calibration (nStarts):','HorizontalAlignment','left', 'Units','normalized');                        
-            uicontrol(MultiModel_tabVbox,'Style','text','String','Maximum number of model evaluations (MaxIter):','HorizontalAlignment','left', 'Units','normalized');                        
-            uicontrol(MultiModel_tabVbox,'Style','text','String','Absolute change in the objective function allowed for convergency (TolFun):','HorizontalAlignment','left', 'Units','normalized');            
-            uicontrol(MultiModel_tabVbox,'Style','text','String','Maximum absolute change in the parameters allowed for convergency (TolX):','HorizontalAlignment','left', 'Units','normalized');                        
-            uicontrol(MultiModel_tabVbox,'Style','text','String','Relative difference for the finite difference gradient estimation (DerivStep):','HorizontalAlignment','left', 'Units','normalized');                        
-
-            uicontrol(MultiModel_tabVbox,'Style','text','String','')
-            MultiModel_tabButtons = uiextras.VButtonBox('Parent',MultiModel_tabVbox,'Padding', 3, 'Spacing', 3);             
-            uicontrol('Parent',MultiModel_tabButtons,'String','>','Callback', @this.multimodel_moveRight, 'Tag','NLMEFIT paramsRight', 'TooltipString', 'Move the selected left-hand parameters to the right-hand box.' );
-            uicontrol('Parent',MultiModel_tabButtons,'String','<','Callback', @this.multimodel_moveLeft, 'Tag','NLMEFIT paramsLeft', 'TooltipString', 'Move the selected right-hand parameters to the left-hand box.' );            
-            MultiModel_tabButtons.ButtonSize(1) = 225;            
-            uicontrol(MultiModel_tabVbox,'Style','text','String','')
-            uicontrol(MultiModel_tabVbox,'Style','text','String','')
-            uicontrol(MultiModel_tabVbox,'Style','text','String','')
-            uicontrol(MultiModel_tabVbox,'Style','text','String','')
-            uicontrol(MultiModel_tabVbox,'Style','text','String','')            
-            
-            uicontrol(MultiModel_tabVbox,'Style','text','String','Parameters to jointly estimate as random-effect (component:parameter-model label):','HorizontalAlignment','left', 'Units','normalized');                        
-            multiModel_RightList = uicontrol(MultiModel_tabVbox,'Style','listbox','String',cell(0,1),'Min',1,'Max',100,'Tag','NLMEFIT paramsRightList','HorizontalAlignment','left', 'Units','normalized');                        
-                        
-            uicontrol(MultiModel_tabVbox,'Style','edit','string','10','Max',1, 'Tag','NLMEFIT nStarts','HorizontalAlignment','right');
-            uicontrol(MultiModel_tabVbox,'Style','edit','string','Inf','Max',1, 'Tag','NLMEFIT MaxIter','HorizontalAlignment','right');
-            uicontrol(MultiModel_tabVbox,'Style','edit','string','1e-8','Max',1, 'Tag','NLMEFIT TolFun','HorizontalAlignment','right');
-            uicontrol(MultiModel_tabVbox,'Style','edit','string','1e-6','Max',1, 'Tag','NLMEFIT TolX','HorizontalAlignment','right');
-            uicontrol(MultiModel_tabVbox,'Style','edit','string','1e-5','Max',1, 'Tag','NLMEFIT DerivStep','HorizontalAlignment','right');
-
-                        
-            set(MultiModel_tabVbox, 'ColumnSizes', [-1 40 -1], 'RowSizes', [20, -1, 20, 20, 20, 20, 20]);            
+%             % Fill in MultiModel panel   
+%             % MODEL STILL IN DEVELOPMENT
+%             MultiModel_tabVbox= uiextras.Grid('Parent',MultiModel_tab ,'Padding', 6, 'Spacing', 6);
+%             
+%             uicontrol(MultiModel_tabVbox,'Style','text','String','Parameters to estimate as fixed-effect (component:parameter-model label):','HorizontalAlignment','left', 'Units','normalized');                        
+%             multiModel_leftList = uicontrol(MultiModel_tabVbox,'Style','listbox','String',cell(0,1),'Min',1,'Max',100,'Tag','NLMEFIT paramsLeftList','HorizontalAlignment','left', 'Units','normalized');                        
+%             
+%             uicontrol(MultiModel_tabVbox,'Style','text','String','Number of randomly selected initial starts for gradient calibration (nStarts):','HorizontalAlignment','left', 'Units','normalized');                        
+%             uicontrol(MultiModel_tabVbox,'Style','text','String','Maximum number of model evaluations (MaxIter):','HorizontalAlignment','left', 'Units','normalized');                        
+%             uicontrol(MultiModel_tabVbox,'Style','text','String','Absolute change in the objective function allowed for convergency (TolFun):','HorizontalAlignment','left', 'Units','normalized');            
+%             uicontrol(MultiModel_tabVbox,'Style','text','String','Maximum absolute change in the parameters allowed for convergency (TolX):','HorizontalAlignment','left', 'Units','normalized');                        
+%             uicontrol(MultiModel_tabVbox,'Style','text','String','Relative difference for the finite difference gradient estimation (DerivStep):','HorizontalAlignment','left', 'Units','normalized');                        
+% 
+%             uicontrol(MultiModel_tabVbox,'Style','text','String','')
+%             MultiModel_tabButtons = uiextras.VButtonBox('Parent',MultiModel_tabVbox,'Padding', 3, 'Spacing', 3);             
+%             uicontrol('Parent',MultiModel_tabButtons,'String','>','Callback', @this.multimodel_moveRight, 'Tag','NLMEFIT paramsRight', 'TooltipString', 'Move the selected left-hand parameters to the right-hand box.' );
+%             uicontrol('Parent',MultiModel_tabButtons,'String','<','Callback', @this.multimodel_moveLeft, 'Tag','NLMEFIT paramsLeft', 'TooltipString', 'Move the selected right-hand parameters to the left-hand box.' );            
+%             MultiModel_tabButtons.ButtonSize(1) = 225;            
+%             uicontrol(MultiModel_tabVbox,'Style','text','String','')
+%             uicontrol(MultiModel_tabVbox,'Style','text','String','')
+%             uicontrol(MultiModel_tabVbox,'Style','text','String','')
+%             uicontrol(MultiModel_tabVbox,'Style','text','String','')
+%             uicontrol(MultiModel_tabVbox,'Style','text','String','')            
+%             
+%             uicontrol(MultiModel_tabVbox,'Style','text','String','Parameters to jointly estimate as random-effect (component:parameter-model label):','HorizontalAlignment','left', 'Units','normalized');                        
+%             multiModel_RightList = uicontrol(MultiModel_tabVbox,'Style','listbox','String',cell(0,1),'Min',1,'Max',100,'Tag','NLMEFIT paramsRightList','HorizontalAlignment','left', 'Units','normalized');                        
+%                         
+%             uicontrol(MultiModel_tabVbox,'Style','edit','string','10','Max',1, 'Tag','NLMEFIT nStarts','HorizontalAlignment','right');
+%             uicontrol(MultiModel_tabVbox,'Style','edit','string','Inf','Max',1, 'Tag','NLMEFIT MaxIter','HorizontalAlignment','right');
+%             uicontrol(MultiModel_tabVbox,'Style','edit','string','1e-8','Max',1, 'Tag','NLMEFIT TolFun','HorizontalAlignment','right');
+%             uicontrol(MultiModel_tabVbox,'Style','edit','string','1e-6','Max',1, 'Tag','NLMEFIT TolX','HorizontalAlignment','right');
+%             uicontrol(MultiModel_tabVbox,'Style','edit','string','1e-5','Max',1, 'Tag','NLMEFIT DerivStep','HorizontalAlignment','right');
+% 
+%                         
+%             set(MultiModel_tabVbox, 'ColumnSizes', [-1 40 -1], 'RowSizes', [20, -1, 20, 20, 20, 20, 20]);            
                         
             % Loop through each model to be calibrated and disable the
             % calib. tabs that are not required.
             % Loop  through the list of selected bore and apply the model
             % options.
+            initialTab = [];
             showCMAEStab =  false;
             showSPUCItab = false;
             showDREAMtab = false;
@@ -5798,20 +5870,35 @@ classdef HydroSight_GUI < handle
                 calibMethod = data{i,8};                
                  
                 switch calibMethod
-                    case 'SP-UCI'
-                        showSPUCItab =  true;
                     case 'CMA-ES'
                         showCMAEStab = true;
+                        if isempty(initialTab)
+                            initialTab=1;
+                        end                    
+                    case 'SP-UCI'
+                        showSPUCItab =  true;
+                        if isempty(initialTab)
+                            initialTab=2;
+                        end                        
                     case 'DREAM'
                         showDREAMtab = true;
+                        if isempty(initialTab)
+                            initialTab=3;
+                        end                        
                     case 'Multi-model'
                         showMultiModeltab = true;
+                        if isempty(initialTab)
+                            initialTab=4;
+                        end                        
                     otherwise
                         error('The input model type cannot be set-up.')
                 end
                         
             end
-                       
+                    
+            % Show first active tab
+            outerTabsPanel.SelectedChild = initialTab;
+            
             if ~showCMAEStab
                 outerTabsPanel.TabEnables{1} = 'off';
             end
@@ -5821,40 +5908,40 @@ classdef HydroSight_GUI < handle
             if ~showDREAMtab
                 outerTabsPanel.TabEnables{3} = 'off';
             end            
-            if ~showMultiModeltab
-                outerTabsPanel.TabEnables{4} = 'off';
-            end                       
-            
-            % Loop through each model that is part of the multi-model and
-            % get the parameters. Add these to the multi-modle list box.
-            multiModel_leftList.String={};
-            multiModel_rightList.String={};
-            if showMultiModeltab
-                for i=1:length(selectedBores)
-
-                    % Check if the model is to be calibrated.
-                    if isempty(selectedBores{i}) || ~selectedBores{i} || ~strcmp(data{i,8},'Multi-model')
-                        continue;
-                    end
-
-                    % Get the selected model for simulation
-                    calibLabel = data{i,2};
-                    calibLabel = HydroSight_GUI.removeHTMLTags(calibLabel);                    
-                    
-                    tmpModel = getModel(this, calibLabel);
- 
-                    % Get the model parameters and add to the list box
-                    if ~isempty(tmpModel)
-
-                         [params, paramNames] = getParameters(tmpModel.model);
-                         paramNames = strcat(paramNames(:,1),':',paramNames(:,2),['-',calibLabel]);
-                         multiModel_leftList.String = {multiModel_leftList.String{:}, paramNames{:}};
-                    end
-                    
-                end                
-                multiModel_leftList.String = sort(multiModel_leftList.String);
-            end
-
+%             if ~showMultiModeltab
+%                 outerTabsPanel.TabEnables{4} = 'off';
+%             end                       
+%             
+%             % Loop through each model that is part of the multi-model and
+%             % get the parameters. Add these to the multi-modle list box.
+%             multiModel_leftList.String={};
+%             multiModel_rightList.String={};
+%             if showMultiModeltab
+%                 for i=1:length(selectedBores)
+% 
+%                     % Check if the model is to be calibrated.
+%                     if isempty(selectedBores{i}) || ~selectedBores{i} || ~strcmp(data{i,8},'Multi-model')
+%                         continue;
+%                     end
+% 
+%                     % Get the selected model for simulation
+%                     calibLabel = data{i,2};
+%                     calibLabel = HydroSight_GUI.removeHTMLTags(calibLabel);                    
+%                     
+%                     tmpModel = getModel(this, calibLabel);
+%  
+%                     % Get the model parameters and add to the list box
+%                     if ~isempty(tmpModel)
+% 
+%                          [params, paramNames] = getParameters(tmpModel.model);
+%                          paramNames = strcat(paramNames(:,1),':',paramNames(:,2),['-',calibLabel]);
+%                          multiModel_leftList.String = {multiModel_leftList.String{:}, paramNames{:}};
+%                     end
+%                     
+%                 end                
+%                 multiModel_leftList.String = sort(multiModel_leftList.String);
+%             end
+% 
         end
         
         function onSimModels(this, hObject, eventdata)
@@ -7923,6 +8010,27 @@ classdef HydroSight_GUI < handle
         end
         
         
+        function onChangeTableWidth(this, hObject, eventdata, tableTag)
+            
+           % Get current table panel
+           h = findobj(this.figure_Layout, 'Tag',tableTag);
+                      
+           % Get Current width
+           w = get(h,'Widths');
+           
+           % Set the widths abovethe current panel to -1
+           w(2:end) = -1;
+           sumW = sum(w(2:end));
+           
+           % Solve the implict problem defining the relative width of the
+           % current panel.
+           targetWidthRatio = hObject.Value;
+           fun = @(x) x/(x+sumW)-targetWidthRatio;
+           newWidth=fzero(fun,[-1000, -0.01]);
+           set(h,'Widths',[newWidth, w(2:end)]);
+                     
+        end
+        
         function rowAddDelete(this, hObject, eventdata)
            
             % Get the table object from UserData
@@ -7953,7 +8061,7 @@ classdef HydroSight_GUI < handle
                 elseif size(tableObj.Data(:,1),1)==0 ...
                 &&  (strcmp(hObject.Label, 'Copy selected row') || strcmp(hObject.Label, 'Delete selected rows'))                
                     return;
-                end                               
+                end               
             end
             
             % Get column widths

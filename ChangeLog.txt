@@ -150,3 +150,11 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 * Bug fixed in forward and backward data preparation which cases this feature to fail
 * Bug fixed in editing outlier points which caused the plot to no longer be displayed.
 
+29 May 2019
+* Bug fixed that caused the GUI to not open in matlab 2018b+. Importantly, when using 2018b+ the plot zoom etc tools now appear within the plot, not within the toolbar (see GitHub issue #40).
+* Bug fixed that caused the Pearson's fucntion lag time to the peak weighting to be incorrect (see GitHub issue #41).
+* Slider added that allows efficient changing of the GUI table the width (see GitHub issue #42).
+* Bug fixed that caused duplicate site ID names within the coordinates file to cause an unhandled errors (see GitHub issue #43).
+* GUI left hand panels changed to fixed height panels.
+* The function which loads the GUI now reports unhandled errors (Hydrosight.m).
+* The name of the tab 'Date Preparation' has been changed to 'Outlier Removal'
