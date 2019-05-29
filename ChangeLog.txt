@@ -158,3 +158,4 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 * GUI left hand panels changed to fixed height panels.
 * The function which loads the GUI now reports unhandled errors (Hydrosight.m).
 * The name of the tab 'Date Preparation' has been changed to 'Outlier Removal'
+* Bug fixed in example_TFN_model.m.

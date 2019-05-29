@@ -28,10 +28,9 @@
 %clear all
 
 % Comment out the one bore ID that you DO NOT want to model.
-%bore_ID = '124705';
-bore_ID = '124676';
+bore_ID = 'ID124705';
 
-if strcmp(bore_ID,'124705')
+if strcmp(bore_ID,'ID124705')
     load('124705_boreData.mat');
 else
     load('124676_boreData.mat');
@@ -103,9 +102,6 @@ modelOptions_7params = { 'precip','weightingfunction','responseFunction_Pearsons
 % Set the maximum frequency of water level obs
 maxObsFreq = 7;
 
-% Set the number of SP-UCI calibration clusters per parameter
-clustersPerParam = 4;
-
 % Select which model structures to build and calibrate.
 run7paramModel = true;
 run9paramModel = false;
@@ -117,11 +113,11 @@ if run7paramModel
     % Build the 7 parameter model.
     model_7params = HydroSightModel(modelLabel, bore_ID, 'model_TFN', boreDataWL, maxObsFreq, forcingDataStruct, siteCoordinates, modelOptions_7params);
 
+    % Set the number of SP-UCI calibration clusters per parameter
+    SchemeSetting.ngs = 2*7;    
+    
     % Calibrate the 7 parameter model.
-    sTime = now;
-    calibrateModel(model_7params, 0, inf, 'SP-UCI', clustersPerParam);
-    eTime = now;
-    display(['Calibration time = ',num2str((eTime-sTime)*24*3600),'  sec']); 
+    calibrateModel(model_7params, [], 0, inf, 'SP-UCI', SchemeSetting);
     
     % Plot the calibration results.    
     calibrateModelPlotResults(model_7params,[]);
@@ -139,8 +135,12 @@ if run9paramModel
     % Build the 9 parameter model.
     model_9params = HydroSightModel(modelLabel, bore_ID, 'model_TFN', boreDataWL, maxObsFreq, forcingDataStruct, siteCoordinates, modelOptions_9params);
 
+
+    % Set the number of SP-UCI calibration clusters per parameter
+    SchemeSetting.ngs = 4*9;    
+    
     % Calibrate the 7 parameter model.
-    calibrateModel(model_9params, 0, inf, 'SP-UCI', clustersPerParam);
+    calibrateModel(model_9params, [],  0, inf, 'SP-UCI', SchemeSetting);
     
     % Plot the calibration results.
     sTime = tic;
