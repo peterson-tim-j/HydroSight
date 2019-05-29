@@ -6,7 +6,7 @@ classdef HydroSight_GUI < handle
     %variables. Useful in different sitionations
     properties
         % Version number
-        versionNumber = '1.4.3';
+        versionNumber = '1.3.4';
         versionDate= '29 May 2019';
         
         % Model types supported
