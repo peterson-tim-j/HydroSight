@@ -7,7 +7,7 @@ classdef HydroSight_GUI < handle
     properties
         % Version number
         versionNumber = '1.3.4';
-        versionDate= '29 May 2019';
+        versionDate= '30 May 2019';
         
         % Model types supported
         %modelTypes = {'model_TFN','model_TFN_LOA', 'ExpSmooth'};
@@ -1203,6 +1203,19 @@ classdef HydroSight_GUI < handle
                     % remove project folder from file paths
                     [ind_start,ind_end]=regexp(folderName ,fileparts(this.project_fileName));
                     folderName = folderName(ind_end+2:end);
+                    
+                    % Check models are to go into a subfolder.
+                    if isempty(folderName)
+                        msgbox({'Models relocation failed!','','The models must be offloaded to a sub-folder of the project.'},'Relcation of models failed.','error');
+                    
+                        this.modelsOnHDD = modelsOnHDD_orig;
+                        
+                        % Change cursor
+                        set(this.Figure, 'pointer', 'arrow');
+                        drawnow update;   
+                        
+                        return
+                    end
                     
                     % Store sub-folder to models in project
                     this.modelsOnHDD = folderName;

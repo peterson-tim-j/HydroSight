@@ -159,3 +159,6 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 * The function which loads the GUI now reports unhandled errors (Hydrosight.m).
 * The name of the tab 'Date Preparation' has been changed to 'Outlier Removal'
 * Bug fixed in example_TFN_model.m.
+
+30 May 2019
+* Bug fixed in offloading models from RAM to HDD. This feature now works.
