@@ -162,3 +162,6 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 
 30 May 2019
 * Bug fixed in offloading models from RAM to HDD. This feature now works.
+
+19 June 2019
+* Bug fixed in building model_TFN derived weighting model (using the GUI).

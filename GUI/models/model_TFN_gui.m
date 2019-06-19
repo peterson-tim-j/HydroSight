@@ -932,7 +932,7 @@ classdef model_TFN_gui < model_gui_abstract
                    end
 
                    % Add model options 
-                   if ~isempty(cellData{i,5})
+                   if ~isempty(cellData{i,4+k})
                         modelOptionsArray = strcat(modelOptionsArray, sprintf(' ''%s'', ''options'', %s;',cellData{i,2},cellData{i,4+k} )); 
                    end                   
                                       
@@ -1223,6 +1223,11 @@ classdef model_TFN_gui < model_gui_abstract
                                % Get output options.
                                outputOptions = feval(strcat(this.derivedForcingTranforms.tbl.Data{i,2},'.outputForcingdata_options'),this.boreID, this.forcingData.data,  this.forcingData.colnames, this.siteData);
 
+                               % Transpose if required
+                               if size(outputOptions,1)==1 && size(outputOptions,2)>1
+                                   outputOptions = outputOptions';
+                               end
+                               
                                % Add output options from the function
                                % to the list of available options
                                lstOptions = [lstOptions; strcat(this.derivedForcingTranforms.tbl.Data{i,2},{' : '}, outputOptions)];
@@ -1571,6 +1576,11 @@ classdef model_TFN_gui < model_gui_abstract
                                % Get output options.
                                outputOptions = feval(strcat(this.forcingTranforms.tbl.Data{i,2},'.outputForcingdata_options'),this.boreID, this.forcingData.data,  this.forcingData.colnames, this.siteData);
 
+                               % Transpose if required
+                               if size(outputOptions,1)==1 && size(outputOptions,2)>1
+                                   outputOptions = outputOptions';
+                               end
+                               
                                % Add output options from the function
                                % to the list of available options
                                lstOptions = [lstOptions; strcat(this.forcingTranforms.tbl.Data{i,2},{' : '}, outputOptions)];
@@ -1587,6 +1597,11 @@ classdef model_TFN_gui < model_gui_abstract
                                % Get output options.
                                outputOptions = feval(strcat(this.derivedForcingTranforms.tbl.Data{i,2},'.outputForcingdata_options'),this.boreID, this.forcingData.data,  this.forcingData.colnames, this.siteData);
 
+                               % Transpose if required
+                               if size(outputOptions,1)==1 && size(outputOptions,2)>1
+                                   outputOptions = outputOptions';
+                               end                               
+                               
                                % Add output options from the function
                                % to the list of available options
                                lstOptions = [lstOptions; strcat(this.derivedForcingTranforms.tbl.Data{i,2},{' : '}, outputOptions)];
@@ -1599,8 +1614,14 @@ classdef model_TFN_gui < model_gui_abstract
                            this.modelOptions.options{8,1}.lst.Min = 1;
                            this.modelOptions.options{8,1}.lst.Max = length(lstOptions);
 
-                           % Highlight the previosuly selected option
+                           % Highlight the previosuly selected option. If
+                           % it looks like a string expression for a
+                           % cell, evaluate it.
                            userSelections = this.derivedWeightingFunctions.tbl.Data{this.currentSelection.row, 5};
+                           if ~isempty(userSelections) && strcmp(userSelections(1) ,'{') && strcmp(userSelections(end) ,'}')
+                                userSelections = eval(this.derivedWeightingFunctions.tbl.Data{this.currentSelection.row, 5});
+                           end
+                           
                            rowInd= [];
                            if ~iscell(userSelections)
                                userSelections_tmp{1} =userSelections;

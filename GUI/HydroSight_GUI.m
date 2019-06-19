@@ -5464,7 +5464,7 @@ classdef HydroSight_GUI < handle
                 % Get model options
                 try
                     modelOptions= eval(data{i,8});
-                catch
+                catch ME
                     nModelsBuiltFailed = nModelsBuiltFailed + 1;
                     this.tab_ModelConstruction.Table.Data{i, 9} = '<html><font color = "#FF0000">Syntax error in model options - string not convertable to cell array.</font></html>';
                     continue;
