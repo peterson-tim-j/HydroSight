@@ -7,7 +7,7 @@ classdef HydroSight_GUI < handle
     properties
         % Version number
         versionNumber = '1.3.4';
-        versionDate= '30 May 2019';
+        versionDate= '19 May 2019';
         
         % Model types supported
         %modelTypes = {'model_TFN','model_TFN_LOA', 'ExpSmooth'};
