@@ -165,3 +165,15 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 
 19 June 2019
 * Bug fixed in building model_TFN derived weighting model (using the GUI).
+
+11 July 2019
+* The "climateTransform_soilMoistureModels", and the varients for 2 layers and with the constraint on soil ET, have been changed to use 3 
+  subdaily steps when solving the soil moisture differential equations. This was undertaken because estimation of the flux over a day (rather
+  than the instantaneous estimate of the flux) cannot be reliabilty integrated. The substeps now provide 4 values per day, which are 
+  numerically integrated (using trapazoidal rule) to produce a daily flux that is then used with the daily timestep weighting function. 
+  This approach to estimating fluxes produced much lower soil model mass balance errors, but achieving such required a reduction in the ODE 
+  solver error tolerance from 1e-2 to 1e-6. Other relevant change include: (i) removal of the fluxes with the "_integrated" suffix - all are 
+  now integrated; (ii) "interflow" flux has ben removed becuase of complications in estimating the runoff with multiple layers, (iii) the 
+  "effectice precipitation" is now listed as a flux (iv) when the deep layer of a two layer model fills, runoff is produced from  it.
+* Bug fixed in the filtering of flux data by a start and end date.
+* Model examples re-run to reflect changes to the soil moisture model.

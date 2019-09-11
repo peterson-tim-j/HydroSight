@@ -1,7 +1,7 @@
 function HydroSight()
 
     % Add Paths
-    addpath(pwd);
+%    addpath(pwd);
     addpath(genpath([pwd, filesep, 'algorithms']));
     addpath(genpath([pwd, filesep, 'dataPreparationAnalysis']));
     addpath(genpath([pwd, filesep, 'Examples']));
@@ -12,7 +12,7 @@ function HydroSight()
 %     % Remove paths to .git folders
 %     if ~isdeployed
 %         rmpath(genpath( fullfile( pwd, '.git')));
-%     end
+%     end toat 
 %     
     % Load GUI
     try
