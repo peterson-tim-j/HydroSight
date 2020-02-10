@@ -141,8 +141,9 @@ xigs = [];
 bestf_ever=bestf;
 bestx_ever=bestx;
 nloop=0;
+minloops = 2*kstop;
 %isbestf_ever_inkstop = false;
-while icall<maxn && gnrng>peps && criter_change>pcento
+while nloop<=minloops || (icall<maxn && gnrng>peps && criter_change>pcento)
     nloop=nloop+1;
     %%%%%%%%%%%%%%%%%%%%%%%%
     %idexx=randperm(npt);

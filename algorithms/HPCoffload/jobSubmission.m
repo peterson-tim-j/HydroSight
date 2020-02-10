@@ -272,7 +272,7 @@ function [ userData, calibLabel ] = jobSubmission(userData, projectPath, HPCmode
                    for j=1:length(settingNames)
                     if isnumeric(calibMethodSetting.(settingNames{j}))
                         % Set random seed using clock time.
-                        if contains(settingNames{j},'seed','IgnoreCase',true) && ~isfinite(calibMethodSetting.(settingNames{j}))                        
+                        if strcmpi(settingNames{j},'iseed') && ~isfinite(calibMethodSetting.(settingNames{j}))                        
                             calibMethodSetting.(settingNames{j}) = floor(mod(datenum(now),1)*1000000);
                         end
 

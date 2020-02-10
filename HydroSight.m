@@ -1,7 +1,7 @@
 function HydroSight()
 
     % Add Paths
-    addpath(pwd);
+%    addpath(pwd);
     addpath(genpath([pwd, filesep, 'algorithms']));
     addpath(genpath([pwd, filesep, 'dataPreparationAnalysis']));
     addpath(genpath([pwd, filesep, 'Examples']));
@@ -12,18 +12,18 @@ function HydroSight()
 %     % Remove paths to .git folders
 %     if ~isdeployed
 %         rmpath(genpath( fullfile( pwd, '.git')));
-%     end
+%     end toat 
 %     
     % Load GUI
     try
         % Use GUI Layout Toolbox if it exists.
-        if ~isdeployed && ~isempty(ver('layout'))            
+        if ~isdeployed && ~isempty(ver('layout')) && ispc          
             rmpath(genpath(fullfile( pwd, 'GUI','GUI Layout Toolbox 2.3.4')));
         end
         HydroSight_GUI();
     catch ME
         % Check the toolbox for GUIs exists
-        if ~isdeployed && isempty(ver('layout')) && ispc
+        if ~isdeployed && isempty(ver('layout')) 
             msgbox({'The GUI cannot be opened. This may be because the GUI Layout Toolbox is ', ...
                     'not installed within Matlab. Please download it using the URL below and', ...
                     'then install it and re-start HydroSight.', ...

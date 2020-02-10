@@ -6,8 +6,8 @@ classdef HydroSight_GUI < handle
     %variables. Useful in different sitionations
     properties
         % Version number
-        versionNumber = '1.3.4';
-        versionDate= '19 May 2019';
+        versionNumber = '1.3.5';
+        versionDate= '11 September 2019';
         
         % Model types supported
         %modelTypes = {'model_TFN','model_TFN_LOA', 'ExpSmooth'};
@@ -2046,6 +2046,16 @@ classdef HydroSight_GUI < handle
             irow=eventdata.Indices(:,1);            
             data=get(hObject,'Data'); % get the data cell array of the table
             
+            % Fix bug in col 15 bng integer, not logical
+            if ~islogical(data{1,15})
+                if data{1,15}==1
+                    data{1,15}=true;
+                else
+                    data{1,15}=false;
+                end
+                set(hObject,'Data',data);
+            end
+            
             % Undertake column specific operations.
             if ~isempty(icol) && ~isempty(irow)
                 
@@ -3362,7 +3372,7 @@ classdef HydroSight_GUI < handle
             forcingData_colnames_derived = this.tab_ModelCalibration.resultsOptions.forcingData.colnames_derived;            
                         
             % Filter the table data by the input dates
-            t = datetime(tableData(:,1),tableData(:,2),tableData(:,3));
+            t = datetime(tableData(:,1),tableData(:,3),tableData(:,5));
             filt = t>=sdate & t<=edate;
             tableData = tableData(filt,:);
             if length(size(tableData_derived))==3
@@ -7138,7 +7148,7 @@ classdef HydroSight_GUI < handle
                         % table and then check if the row is to be
                         % exported.
                         tableInd = cellfun( @(x) strcmp( x,boreIDs{i}),  this.tab_DataPrep.Table.Data(:,3));
-                        if ~this.tab_DataPrep.Table.Data{tableInd,1}
+                        if sum(tableInd)==0 || ~this.tab_DataPrep.Table.Data{tableInd,1}
                             continue
                         end                        
                         
@@ -7215,6 +7225,14 @@ classdef HydroSight_GUI < handle
                         warndlg({'No rows are selected for export.','Please select the models to export using the left-hand tick boxes.'},'No rows selected for export ...')
                         return;
                     end                    
+
+                    % Ask the user if they want to export the time-series results or the model parameters or the derived parameters.
+                    response = questdlg('Do you want to export the time-series results, or the model and derived parameters?', ...
+                        'Export options.','Time-series results','Model & derived parameters','Cancel','Time-series results');                    
+
+                    if strcmp(response, 'Cancel')
+                        return;
+                    end
                     
                     % Get output file name
                     [fName,pName] = uiputfile({'*.csv'},'Input the .csv file name for results file.'); 
@@ -7231,7 +7249,11 @@ classdef HydroSight_GUI < handle
                     
                     % Open file and write headers
                     fileID = fopen(filename,'w');
-                    fprintf(fileID,'Model_Label,BoreID,Year,Month,Day,Hour,Minute,Obs_Head,Is_Calib_Point?,Calib_Head,Eval_Head,Model_Err,Noise_Lower,Noise_Upper \n');
+                    if strcmp(response, 'Time-series results')
+                        fprintf(fileID,'Model_Label,BoreID,Year,Month,Day,Hour,Minute,Obs_Head,Is_Calib_Point?,Calib_Head,Eval_Head,Model_Err,Noise_Lower,Noise_Upper \n');
+                    else 
+                        fprintf(fileID,'Model_Label,BoreID,ComponentName,ParameterName,ParameterSetNumber,ParameterSetValue \n');
+                    end
                     
                     % Setup wait box
                     h = waitbar(0,'Exporting results. Please wait ...');                                            
@@ -7278,51 +7300,77 @@ classdef HydroSight_GUI < handle
                         
                         % Get model results
                         if isstruct(tmpModel.calibrationResults) && tmpModel.calibrationResults.isCalibrated                    
-                                                   
-                            % Get the model calibration data.
-                            tableData = tmpModel.calibrationResults.data.obsHead;
-                            tableData = [tableData, ones(size(tableData,1),1), tmpModel.calibrationResults.data.modelledHead(:,2), ...
-                                nan(size(tableData,1),1), tmpModel.calibrationResults.data.modelledHead_residuals(:,end), ...
-                                tmpModel.calibrationResults.data.modelledNoiseBounds(:,end-1:end)];
+                    
+                            if strcmp(response, 'Time-series results')
+                                % Get the model calibration data.
+                                tableData = tmpModel.calibrationResults.data.obsHead;
+                                tableData = [tableData, ones(size(tableData,1),1), tmpModel.calibrationResults.data.modelledHead(:,2), ...
+                                    nan(size(tableData,1),1), tmpModel.calibrationResults.data.modelledHead_residuals(:,end), ...
+                                    tmpModel.calibrationResults.data.modelledNoiseBounds(:,end-1:end)];
+                                
+                                % Get evaluation data
+                                if isfield(tmpModel.evaluationResults,'data')
+                                    % Get data
+                                    evalData = tmpModel.evaluationResults.data.obsHead;
+                                    evalData = [evalData, zeros(size(evalData,1),1), nan(size(evalData,1),1), tmpModel.evaluationResults.data.modelledHead(:,2), ...
+                                        tmpModel.evaluationResults.data.modelledHead_residuals(:,end), ...
+                                        tmpModel.evaluationResults.data.modelledNoiseBounds(:,end-1:end)];
+                                    
+                                    % Append to table of calibration data and sort
+                                    % by time.
+                                    tableData = [tableData; evalData];
+                                    tableData = sortrows(tableData, 1);
+                                end
+                                
+                                % Convert table to real (if previously set to
+                                % single for memeory issues)
+                                tableData = double(tableData);
+                                
+                                % Calculate year, month, day etc
+                                tableData = [year(tableData(:,1)), month(tableData(:,1)), day(tableData(:,1)), hour(tableData(:,1)), minute(tableData(:,1)), tableData(:,2:end)];
+                                
+                                % Build write format string
+                                fmt = '%s,%s,%i,%i,%i,%i,%i,%12.3f';
+                                for j=1:size(tableData,2)-6
+                                    fmt = strcat(fmt,',%12.3f');
+                                end
+                                fmt = strcat(fmt,'  \n');
 
-                            % Get evaluation data
-                            if isfield(tmpModel.evaluationResults,'data')
-                                % Get data
-                                evalData = tmpModel.evaluationResults.data.obsHead;
-                                evalData = [evalData, zeros(size(evalData,1),1), nan(size(evalData,1),1), tmpModel.evaluationResults.data.modelledHead(:,2), ...
-                                    tmpModel.evaluationResults.data.modelledHead_residuals(:,end), ...
-                                    tmpModel.evaluationResults.data.modelledNoiseBounds(:,end-1:end)];
+                                % Get Bore ID
+                                boreID = tmpModel.bore_ID;
+                                
+                                %Write each row.
+                                for j=1:size(tableData,1)
+                                    fprintf(fileID,fmt, modelLabel, boreID, tableData(j,:));
+                                end
+                                                                
+                            else
+                                % get the parameters and derived parameters
+                                [ParamValues, ParamsNames] = getParameters(tmpModel.model);
+                                [derivedParamValues, derivedParamsNames] = getDerivedParameters(tmpModel.model);
 
-                                % Append to table of calibration data and sort
-                                % by time.
-                                tableData = [tableData; evalData];
-                                tableData = sortrows(tableData, 1);
+                                % Get Bore ID
+                                boreID = tmpModel.bore_ID;
+                                
+                                % Build write format string
+                                fmt = '%s,%s,%s,%s,%i,%12.6f \n';                          
+                                
+                                %Write each parameter and each parameter set (ie if DREAM was used).
+                                for j=1:size(ParamsNames,1)
+                                    for k=1:size(ParamValues,2)
+                                        fprintf(fileID,fmt, modelLabel, boreID, ParamsNames{j,1},ParamsNames{j,2}, k, ParamValues(j,k));
+                                    end
+                                end
+                                
+                                %Write each derived parameter and each derived parameter set (ie if DREAM was used).
+                                for j=1:size(derivedParamsNames,1)
+                                    for k=1:size(derivedParamValues,2)
+                                        fprintf(fileID,fmt, modelLabel, boreID, derivedParamsNames{j,1},derivedParamsNames{j,2}, k, derivedParamValues(j,k));
+                                    end
+                                end                                
                             end
-
-                            % Convert table to real (if previously set to
-                            % single for memeory issues)
-                            tableData = double(tableData);
-                            
-                            % Calculate year, month, day etc
-                            tableData = [year(tableData(:,1)), month(tableData(:,1)), day(tableData(:,1)), hour(tableData(:,1)), minute(tableData(:,1)), tableData(:,2:end)];                    
-                   
-                            % Build write format string
-                            fmt = '%s,%s,%i,%i,%i,%i,%i,%12.3f';
-                            for j=1:size(tableData,2)-6
-                               fmt = strcat(fmt,',%12.3f'); 
-                            end
-                            fmt = strcat(fmt,'  \n'); 
-                            
-                            % Get Bore ID
-                            boreID = tmpModel.bore_ID;
-                            
-                            %Write each row.
-                            for j=1:size(tableData,1)
-                                fprintf(fileID,fmt, modelLabel, boreID, tableData(j,:));
-                            end
-                            
-                            % write data to the file
-                            %dlmwrite(filename,tableData,'-append');          
+                                
+                            % Update counter
                             nResultsWritten = nResultsWritten + 1;
                         else
                             nModelsNotCalib = nModelsNotCalib + 1;

@@ -1222,7 +1222,7 @@ classdef model_TFN < model_abstract
                             variable_names = feval([modelnames{i},'.outputForcingdata_options'],bore_ID , obj.inputData.forcingData, obj.inputData.forcingData_colnames, siteCoordinates);
 
                             % Set the forcing
-                            setTransformedForcing(obj.parameters.(modelnames{i}),t);
+                            setTransformedForcing(obj.parameters.(modelnames{i}),t, false);
                             
                             % Get the forcing for each variable
                             for j=1:length(variable_names)
@@ -2688,7 +2688,7 @@ classdef model_TFN < model_abstract
                 && ~isfield(obj.inputData.componentData.(companants{i}),'inputForcingComponent') ...
                 && isfield(obj.inputData.componentData.(companants{i}),'isForcingModel2BeRun') ...
                 && obj.inputData.componentData.(companants{i}).isForcingModel2BeRun
-                    setTransformedForcing(obj.parameters.(obj.inputData.componentData.(companants{i}).forcing_object), t, false)                    
+                    setTransformedForcing(obj.parameters.(obj.inputData.componentData.(companants{i}).forcing_object), t, true)                    
                 end
             end
             
@@ -2701,7 +2701,7 @@ classdef model_TFN < model_abstract
                 && isfield(obj.inputData.componentData.(companants{i}),'inputForcingComponent') ...
                 && isfield(obj.inputData.componentData.(companants{i}),'isForcingModel2BeRun') ...
                 && obj.inputData.componentData.(companants{i}).isForcingModel2BeRun            
-                    setTransformedForcing(obj.parameters.(obj.inputData.componentData.(companants{i}).forcing_object), t, false)
+                    setTransformedForcing(obj.parameters.(obj.inputData.componentData.(companants{i}).forcing_object), t, true)
                 end
             end            
             

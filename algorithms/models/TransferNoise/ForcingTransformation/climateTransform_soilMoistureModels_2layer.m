@@ -186,9 +186,10 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
             
             variable_names = climateTransform_soilMoistureModels.outputForcingdata_options(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates);
                 
-            variable_names_deep = {'drainage_deep';'drainage_bypassFlow_deep';'drainage_normalised_deep';'drainage_deep_integrated';'evap_soil_deep';'evap_soil_integrated_deep';'evap_soil_total';'evap_soil_total_integrated';'SMS_deep'; ...
-                'drainage_deep_tree';'drainage_bypassFlow_deep_tree';'drainage_normalised_deep_tree';'drainage_deep_integrated_tree';'evap_soil_deep_tree';'evap_soil_integrated_deep_tree';'evap_soil_total_tree';'SMS_deep_tree'; ...
-                'drainage_deep_nontree';'drainage_bypassFlow_deep_nontree';'drainage_normalised_deep_nontree';'drainage_deep_integrated_nontree';'evap_soil_deep_nontree';'evap_soil_total_nontree';'evap_soil_integrated_deep_nontree';'SMS_deep_nontree';'mass_balance_error'};
+            variable_names_deep = { 'drainage_deep'         ;'evap_soil_deep';       'evap_soil_total';        'runoff_total';            'SMS_deep'; ...
+                                    'drainage_deep_tree'    ;'evap_soil_deep_tree';  'evap_soil_total_tree';   'runoff_total_tree'; 	'SMS_deep_tree'; ...
+                                    'drainage_deep_nontree' ;'evap_soil_deep_nontree';'evap_soil_total_nontree';'runoff_total_nontree';    'SMS_deep_nontree'; ...
+                                    'mass_balance_error'};
                 
             variable_names = {variable_names{:}, variable_names_deep{:}};
             variable_names = unique(variable_names);
@@ -491,6 +492,9 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
                 error('"SMSC_deep" can only be initialsied to Nan if it is "Fixed".');
             end                
             
+            % Initialise soil moisture variables
+            obj.variables.SMS_deep = [];           
+            obj.variables.SMS_deep_subdaily = [];
         end
 
 %% Return fixed upper and lower bounds to the parameters.
@@ -658,12 +662,12 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
 %   11 April 2012  
             if nargin==2
                 forceRecalculation=false;
-            end            
+            end 
             if obj.variables.isNewParameters || forceRecalculation || ~isfield(obj.variables,'t') || ...
             (isfield(obj.variables,'t') && obj.variables.t(end) ~= t(end))
 
                 % Run the top layer model
-                setTransformedForcing@climateTransform_soilMoistureModels(obj, t, true);
+                setTransformedForcing@climateTransform_soilMoistureModels(obj, t, forceRecalculation);
 
                 % Handle deep soil layer parameters taken from the shallow
                 % layer.
@@ -682,7 +686,7 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
                 else
                     beta_deep = 10^(obj.beta_deep);
                 end                
-                
+               
                 % Set deep initial soil moisture.
                 if isnan(obj.S_initialfrac_deep)
                     S_deep_initial = obj.S_initialfrac.*SMSC_deep;
@@ -690,47 +694,88 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
                     S_deep_initial = obj.S_initialfrac_deep.*SMSC_deep;
                 end                             
                 
-                % Get free drainage from the shallow layer
-                drainage = getTransformedForcing(obj, 'drainage',1); 
-                                
-                % Calculate remaining PET after shallow ET
-                PET = max(0,obj.variables.evap - getTransformedForcing(obj, 'evap_soil',1));
-                
-                % Call MEX function for DEEP soil moisture model.                
-                obj.variables.SMS_deep = forcingTransform_soilMoisture(S_deep_initial, drainage, PET, SMSC_deep, k_sat_deep, ...
-                    0, beta_deep, 10.^obj.gamma);                
-                                                
-                % Run soil model again if tree cover is to be simulated
-                if  isfield(obj.settings,'simulateLandCover') && obj.settings.simulateLandCover
-                    
-                    if isempty(obj.SMSC_deep_trees)
-                        SMSC_deep_trees = 10^(obj.SMSC_trees);
-                    else
-                        SMSC_deep_trees = obj.SMSC_deep_trees;
-                    end
-                                                        
-                    if isempty(obj.S_initialfrac)
-                        S_deep_initial = obj.S_initialfrac.*SMSC_deep_trees;
-                    else
-                        S_deep_initial = obj.S_initialfrac_deep * SMSC_deep_trees;
-                    end                    
-
+                % Call MEX function for DEEP soil moisture model.  
+%                 if ~doSubDailyEst
                     % Get free drainage from the shallow layer
-                    drainage = getTransformedForcing(obj, 'drainage',2); 
-                                        
+                    %drainage = getTransformedForcing(obj, 'drainage',1);
+                    
                     % Calculate remaining PET after shallow ET
-                    PET = max(0,obj.variables.evap - getTransformedForcing(obj, 'evap_soil',2));
-                                         
-                    % Call MEX function for DEEP soil moisture model.
-                    obj.variables.SMS_deep_trees = forcingTransform_soilMoisture(S_deep_initial, drainage, PET, SMSC_deep_trees, ...
-                        k_sat_deep, 0, beta_deep, 10.^obj.gamma);                         
-                end                
+                    %PET = max(0,obj.variables.evap - getTransformedForcing(obj, 'evap_soil',1));
+                    
+                    % Calculate the drainage from the shallow layer to the deep layer.
+                    nDays = length(obj.variables.evap);
+                    nDailySubSteps = getNumDailySubsteps(obj);
+                    SMSC = 10^(obj.SMSC);
+                    beta = 10.^(obj.beta);
+                    gamma = 10.^(obj.gamma);
+                    k_sat = 10.^obj.k_sat;
+                    interflow_frac = obj.interflow_frac;
+                    drainage = (1-interflow_frac) .* k_sat/obj.variables.nDailySubSteps .*(obj.variables.SMS/SMSC).^beta;                  
+                    
+                    % Expand input forcing data to have the required number of substeps.
+                    evap = getSubDailyForcing(obj,obj.variables.evap);
+                    
+                    % Calc potential ET for deep layer
+                    PET = evap - getTransformedForcing(obj, 'evap_soil',1, false); 
+                    
+                    % Call MEX soil model
+                    obj.variables.SMS_deep = forcingTransform_soilMoisture(S_deep_initial, drainage, PET, SMSC_deep, k_sat_deep/nDailySubSteps, ...
+                        0, beta_deep, 10.^obj.gamma);
+                    
+                    % Run soil model again if tree cover is to be simulated
+                    if  isfield(obj.settings,'simulateLandCover') && obj.settings.simulateLandCover
+                        
+                        if isempty(obj.SMSC_deep_trees)
+                            SMSC_deep_trees = 10^(obj.SMSC_trees);
+                        else
+                            SMSC_deep_trees = obj.SMSC_deep_trees;
+                        end
+                        
+                        if isempty(obj.S_initialfrac)
+                            S_deep_initial = obj.S_initialfrac.*SMSC_deep_trees;
+                        else
+                            S_deep_initial = obj.S_initialfrac_deep * SMSC_deep_trees;
+                        end
+                        
+                        % Get free drainage from the shallow layer
+                        drainage = (1-interflow_frac) .* k_sat/obj.variables.nDailySubSteps .*(obj.variables.SMS_trees/SMSC_trees).^beta;                  
+                        
+                        % Calculate remaining PET after shallow ET
+                        PET =  evap .*( 1 - (obj.variables.SMS_trees/SMSC_trees).^gamma);
+                        
+                        % Call MEX function for DEEP soil moisture model.
+                        obj.variables.SMS_deep_trees = forcingTransform_soilMoisture(S_deep_initial, drainage, PET, SMSC_deep_trees, ...
+                            k_sat_deep, 0, beta_deep, 10.^obj.gamma);
+                    end
+%                 else
+%                     % Define the number of daily sub-steps.
+%                     nSubSteps = obj.variables.nDailySubSteps;
+%                     t_substeps = linspace(0,1,nSubSteps+1);
+%                     
+%                     % Get number of days
+%                     nDays = length(effectivePrecip);
+%                                         
+%                     % Scale the forcing data by the number of time steps.
+%                     effectivePrecip = effectivePrecip./nSubSteps;
+%                     evap = obj.variables.evap./nSubSteps;
+%                     
+%                     % Scale ksat from units of 'per day' to 'per sub daily
+%                     % time step'
+%                     k_sat = k_sat./nSubSteps;
+%                     
+%                     % Expand input forcing data to have the required number of days.
+%                     effectivePrecip = reshape(repmat(effectivePrecip,1,nSubSteps)',nDays * nSubSteps,1);
+%                     evap = reshape(repmat(evap,1,nSubSteps)',nDays * nSubSteps,1);
+%                     
+%                     % Run the soil models using the sub-steps.
+%                     obj.variables.SMS_subdaily = forcingTransform_soilMoisture(S_initial, effectivePrecip, evap, SMSC, k_sat, alpha, beta, gamma);
+%                 end
                                 
             end
         end
         
 %% Return the transformed forcing data
-        function [forcingData, isDailyIntegralFlux] = getTransformedForcing(obj, variableName, SMSnumber) 
+        function [forcingData, isDailyIntegralFlux] = getTransformedForcing(obj, variableName, SMSnumber, doSubstepIntegration) 
 % getTransformedForcing returns the required flux from the soil model.
 %
 % Syntax:
@@ -784,10 +829,16 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
                 variableName = variableNametmp;
                 clear variableNametmp;
             end
-
+                
             % Get back transformed parameters and assign each param to a variable for efficient access.            
             [params, param_names] = getDerivedParameters(obj);
+            SMSC = params(1,:);
+            SMSC_trees = params(2,:);
             treeArea_frac = params(3,:);
+            k_sat = params(6,:);
+            bypass_frac = params(7,:);
+            interflow_frac = params(8,:);
+            beta = params(10,:);
             gamma = params(11,:);             
             SMSC_deep = params(end-4,:);
             SMSC_deep_trees = params(end-3,:);
@@ -795,18 +846,28 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
             k_sat_deep = params(end-1,:);
             beta_deep = params(end,:);
             
+            % Set if the subdaily steps should be integrated.
+            if nargin < 4
+                doSubstepIntegration = true;
+            end
+            
             try 
-                forcingData = zeros(size(obj.variables.SMS,1), length(variableName));
+                if doSubstepIntegration
+                    nrows = size(obj.variables.precip,1);
+                else
+                    nrows = size(getSubDailyForcing(obj,obj.variables.precip),1);
+                end
+                forcingData = zeros(nrows , length(variableName));
                 for i=1:length(variableName)
                     % Test if the flux can be derived from the parent class.
-                    if ~any(strcmp({'evap_soil_deep','evap_soil_integrated_deep', 'evap_soil_total', 'evap_soil_total_integrated','evap_gw_potential', ...
-                    'drainage_deep','drainage_bypassFlow_deep','drainage_normalised_deep','drainage_deep_integrated','SMS_deep','mass_balance_error'}, ...
+                    if ~any(strcmp({'evap_soil_deep','evap_soil_total', 'evap_gw_potential', ...
+                    'drainage_deep','runoff_total','SMS_deep','mass_balance_error'}, ...
                     variableName{i}))
                 
                         if nargin==2
                             [forcingData(:,i), isDailyIntegralFlux(i)] = getTransformedForcing@climateTransform_soilMoistureModels(obj, variableName{i});   
                         else
-                            [forcingData(:,i), isDailyIntegralFlux(i)] = getTransformedForcing@climateTransform_soilMoistureModels(obj, variableName{i}, SMSnumber);   
+                            [forcingData(:,i), isDailyIntegralFlux(i)] = getTransformedForcing@climateTransform_soilMoistureModels(obj, variableName{i}, SMSnumber, doSubstepIntegration);   
                         end
                         continue
                     end
@@ -825,64 +886,119 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
                     end                     
 
                     switch variableName{i}
-                        case 'evap_soil_deep'    
-                            AET= getTransformedForcing(obj, 'evap_soil',SMSnumber);
-                            forcingData(:,i) = max(0,obj.variables.evap-AET) .* (SMS_deep/SMSC_deep).^gamma;
-                            isDailyIntegralFlux(i) = false;
-
-                        case 'evap_soil_total'    
-                            forcingData(:,i) = getTransformedForcing(obj, 'evap_soil',SMSnumber) + ...
-                                          getTransformedForcing(obj, 'evap_soil_deep',SMSnumber);
-                            isDailyIntegralFlux(i) = false;                    
+                        case 'drainage_deep'
+                            runoff = 0;
+                            if bypass_frac~=0
+                                % Get runoff
+                                runoff = getTransformedForcing(obj, 'runoff',SMSnumber, false);
+                                
+                                % Re-scale runoff from that going to the stream to that going to recharge plus the stream.
+                                runoff  = runoff ./ (1-bypass_frac);
+                            end                              
                             
-                        case 'evap_soil_total_integrated'    
-                            forcingData(:,i) = getTransformedForcing(obj, 'evap_soil_integrated',SMSnumber) + ...
-                                          getTransformedForcing(obj, 'evap_soil_integrated_deep',SMSnumber);
-                            isDailyIntegralFlux(i) = false;                    
+                            drainage = (1-interflow_frac) .* k_sat_deep/obj.variables.nDailySubSteps .*(SMS_deep/SMSC_deep).^beta_deep;
+                            drainage = drainage + bypass_frac.*runoff;
+                            if doSubstepIntegration
+                                forcingData(:,i) = dailyIntegration(obj, drainage);
+                                isDailyIntegralFlux(i) = true;
+                            else
+                               forcingData(:,i) = drainage;  
+                               isDailyIntegralFlux(i) = false;
+                            end                                                                                          
+                            
+                        case 'evap_soil_deep'    
+                            % Expand input forcing data to have the required number of substeps.
+                            evap = getSubDailyForcing(obj,obj.variables.evap);
+                            
+                            %Subtract evap from shallow layer
+                            evap = evap - getTransformedForcing(obj, 'evap_soil',SMSnumber, false);
+                                                        
+                            % Est ET
+                            evap = evap .* (SMS_deep/SMSC_deep).^gamma;                            
+                                                        
+                            if doSubstepIntegration
+                                forcingData(:,i) = dailyIntegration(obj, evap);
+                                isDailyIntegralFlux(i) = true;
+                            else
+                               forcingData(:,i) = evap;  
+                               isDailyIntegralFlux(i) = false;
+                            end                           
+                        case 'evap_soil_total'
+                            evap = getTransformedForcing(obj, 'evap_soil',SMSnumber, false) + ...
+                                   getTransformedForcing(obj, 'evap_soil_deep',SMSnumber, false);
+                            
+                            if doSubstepIntegration
+                                forcingData(:,i) = dailyIntegration(obj, evap);
+                                isDailyIntegralFlux(i) = true;
+                            else
+                                forcingData(:,i) = evap;
+                                isDailyIntegralFlux(i) = false;
+                            end                            
                             
                         case 'evap_gw_potential'
-                            forcingData(:,i) = obj.variables.evap - getTransformedForcing(obj, 'evap_soil_total',SMSnumber);                    
-                            isDailyIntegralFlux(i) = false;         
+                            evap = getSubDailyForcing(obj,obj.variables.evap) - getTransformedForcing(obj, 'evap_soil_total',SMSnumber, false);
                             
-                        case 'evap_soil_integrated_deep'
-                            AET= getTransformedForcing(obj, 'evap_soil_integrated',SMSnumber);
-                            forcingData(2:end,i) = (obj.variables.evap(2:end)-AET(2:end)) .* min(1,( (SMS_deep(2:end)/SMSC_deep).^gamma + (SMS_deep(1:end-1)/SMSC_deep).^gamma)*0.5);
-                            isDailyIntegralFlux(i) = false;                            
+                            if doSubstepIntegration
+                                forcingData(:,i) = dailyIntegration(obj, evap);
+                                isDailyIntegralFlux(i) = true;
+                            else
+                                forcingData(:,i) = evap;
+                                isDailyIntegralFlux(i) = false;
+                            end                            
+                             
+                        case 'runoff_total'
+                            %Calculate the runoff from the shallow layer
+                            runoff = getTransformedForcing@climateTransform_soilMoistureModels(obj, 'runoff',SMSnumber, false);                            
                             
-                        case 'drainage_deep'
-                            forcingData(:,i) = k_sat_deep .* getTransformedForcing(obj, 'drainage_normalised_deep');
-                            isDailyIntegralFlux(i) = false;                    
-
-                        case 'drainage_bypassFlow_deep'
-                            forcingData(:,i) = getTransformedForcing(obj, 'drainage_deep',SMSnumber);
-                            drainage_bypassFlow = getTransformedForcing(obj, 'drainage_bypassFlow',SMSnumber);
-                            forcingData(:,i) = forcingData(:,i) + drainage_bypassFlow;                    
+                            % Calculate the runoff from the deep layer.
+                            % Note, runoff can only occur via interflow or
+                            % saturation of the deep layer.
+                            %---------------------
+                            % Calculate max. infiltration assuming none
+                            % goes to SATURATED runoff.
+                            infiltration_deep = (1-interflow_frac) .* k_sat/obj.variables.nDailySubSteps .*(obj.variables.SMS/SMSC).^beta;                  
+                            
+                            % Calc other losses.
+                            evap_deep = getTransformedForcing(obj, 'evap_soil_deep',SMSnumber, false);       
+                            drainage_deep = k_sat_deep/obj.variables.nDailySubSteps .*(SMS_deep/SMSC_deep).^beta_deep;
+                            
+                            runoff_deep = [0;(SMS_deep(1:end-1) + infiltration_deep(2:end) - evap_deep(2:end) - drainage_deep(2:end)) - SMSC_deep];
+                            runoff_deep(runoff_deep<0) = 0;                            
+                            %---------------------
+                            
+                            % Sum runoff from the top and deep layer (minus bypass runoiff to deep drainage).
+                            runoff  = runoff  + runoff_deep * (1-bypass_frac);
+                            
+                            % Integreate to daily.
+                            if doSubstepIntegration
+                                forcingData(:,i) = dailyIntegration(obj, runoff);
+                                isDailyIntegralFlux(i) = true;
+                            else
+                                forcingData(:,i) = runoff;
+                                isDailyIntegralFlux(i) = false;
+                            end
+                            
+                        case'SMS_deep'
+                            forcingData(:,i) = SMS_deep((1+obj.variables.nDailySubSteps):obj.variables.nDailySubSteps:end);
                             isDailyIntegralFlux(i) = true;
 
-                        case 'drainage_normalised_deep'
-                            forcingData(:,i) = (SMS_deep/SMSC_deep).^beta_deep;
-                            isDailyIntegralFlux(i) = false;     
-                            
-                        case 'drainage_deep_integrated'
-                            %AET = getTransformedForcing(obj, 'evap_soil_integrated_deep',SMSnumber);
-                            %inflow = getTransformedForcing(obj, 'drainage_integrated',SMSnumber);
-                            %SMS = getTransformedForcing(obj, 'SMS_deep',SMSnumber);
-                            
-                            %forcingData(2:end,i) = max(0,-1*((SMS(2:end)-SMS(1:end-1))/1 - inflow(2:end) + AET(2:end)));
-                            drainage = getTransformedForcing(obj, 'drainage_deep',SMSnumber);
-                            forcingData(2:end,i) = (drainage(2:end) + drainage(1:end-1))*0.5;
-                            isDailyIntegralFlux(i) = true;                                                                                    
-
-                        case 'SMS_deep'
-                            forcingData(:,i) = SMS_deep;
-                            isDailyIntegralFlux(i) = false;
                         case 'mass_balance_error'
-                            runoff = getTransformedForcing(obj, 'runoff',SMSnumber);
-                            AET = getTransformedForcing(obj, 'evap_soil_total_integrated',SMSnumber);
-                            drainage = getTransformedForcing(obj, 'drainage_deep_integrated',SMSnumber);
+                            precip = getSubDailyForcing(obj,obj.variables.precip);
+                            runoff = getTransformedForcing(obj, 'runoff_total',SMSnumber, false);
+                            AET = getTransformedForcing(obj, 'evap_soil_total',SMSnumber, false);
+                            drainage = getTransformedForcing(obj, 'drainage_deep',SMSnumber, false);
                             
-                            forcingData(2:end,i) = diff(SMS) + diff(SMS_deep)- obj.variables.precip(2:end) + runoff(2:end) + AET(2:end) + drainage(2:end);
-                                                                                    
+                            fluxEstError = [0;precip(2:end) - diff(SMS + SMS_deep) -  runoff(2:end) - AET(2:end) - drainage(2:end)];
+                            
+                            % Integreate to daily.
+                            if doSubstepIntegration
+                                forcingData(:,i) = dailyIntegration(obj, fluxEstError);
+                                isDailyIntegralFlux(i) = true;
+                            else
+                                forcingData(:,i) = fluxEstError;
+                                isDailyIntegralFlux(i) = false;
+                            end
+                            
                         otherwise
                             error('The requested transformed forcing variable is not known.');
                     end
