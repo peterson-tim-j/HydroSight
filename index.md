@@ -16,7 +16,9 @@ The next release of the stand alone application is out! It contains some excitin
 - [Google Groups discussion](https://groups.google.com/forum/#!forum/hydrosight). Join now to share ideas, project and issues. 
 
 ### How many use _HydroSight_? 
-The number of downloads per releases are availabe at [Git Hub Release Statistics](https://www.somsubhra.com/github-release-stats/?username=peterson-tim-j&repository=HydroSight). The number of users downloading the source code is however not provided by GitHub, bit GitHub does summarise the [project web traffic](https://github.com/peterson-tim-j/HydroSight/graphs/traffic).
+The number of downloads per releases are availabe at [Git Hub Release Statistics](https://somsubhra.github.io/github-release-stats/?username=peterson-tim-j&repository=HydroSight&page=1&per_page=5). As of February 2021, there had been 810 downloads.
+
+The number of users downloading the source code is however not provided by GitHub, bit GitHub does summarise the [project web traffic](https://github.com/peterson-tim-j/HydroSight/graphs/traffic).
 
 ### Getting Started
 To begin using the stand-alone application, simply download and install the above Windows 64bit executable  (available [here](https://github.com/peterson-tim-j/HydroSight/releases)). 
