@@ -44,7 +44,7 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
         
         %% Model constructor
         %function obj = model_TFN_SW_GW(bore_ID, stream_ID, obsHead, forcingData_data,  forcingData_colnames, siteCoordinates, varargin)           
-        function obj = model_TFN_SW_GW_V2(site_IDs, obsData, forcingData_data,  forcingData_colnames, siteCoordinates, varargin)           
+        function obj = model_TFN_SW_GW(site_IDs, obsData, forcingData_data,  forcingData_colnames, siteCoordinates, varargin)           
 % model_TFN constructs for linear and nonlinear Transfer Function Noise model
 %
 % Syntax:
