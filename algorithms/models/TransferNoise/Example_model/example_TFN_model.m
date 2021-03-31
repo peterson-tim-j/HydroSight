@@ -54,7 +54,10 @@ forcingDataStruct.data = forcingDataStruct.data(filt,:);
 
 % Define the bore ID and create sume dummy site coordinates. This must be
 % for the bore and each column in the forcing file.
-siteCoordinates = {bore_ID, 100, 100; 'PRECIP', 100, 100; 'APET', 100, 100; 'RevegFrac',602, 100};
+siteCoordinates = {bore_ID, 100, 100;...
+                    'PRECIP', 100, 100;...
+                    'APET', 100, 100;...
+                    'RevegFrac',602, 100};
 
 % Define the way in which the precipitation is transformed. In this case it
 % is transformed using the 'climateTransform_soilMoistureModels' soil
@@ -69,7 +72,7 @@ siteCoordinates = {bore_ID, 100, 100; 'PRECIP', 100, 100; 'APET', 100, 100; 'Rev
 % fixing alpha to zero.
 forcingTransform_Precip = {'transformfunction', 'climateTransform_soilMoistureModels'; ...
                'forcingdata', {'precip','PRECIP';'et','APET'}; ...
-               'outputdata', 'drainage_normalised'; ...
+               'outputdata', 'drainage'; ...
                'options', {'SMSC',2,[];'beta',0,'';'k_sat',-inf,'fixed';'alpha',0,'fixed'}};
            
 % The transformation of the ET is then defined. However because we've already 
@@ -111,10 +114,10 @@ modelLabel = 'Great Western Catchment - no landuse change';
 
 if run7paramModel
     % Build the 7 parameter model.
-    model_7params = HydroSightModel(modelLabel, bore_ID, 'model_TFN', boreDataWL, maxObsFreq, forcingDataStruct, siteCoordinates, modelOptions_7params);
+    model_7params = HydroSightModel(modelLabel, bore_ID, 'model_TFN_SW_GW', boreDataWL, maxObsFreq, forcingDataStruct, siteCoordinates, modelOptions_7params);
 
     % Set the number of SP-UCI calibration clusters per parameter
-    SchemeSetting.ngs = 2*7;    
+    SchemeSetting.ngs = 7;    
     
     % Calibrate the 7 parameter model.
     calibrateModel(model_7params, [], 0, inf, 'SP-UCI', SchemeSetting);
