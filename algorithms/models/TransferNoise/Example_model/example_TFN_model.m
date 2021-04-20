@@ -112,10 +112,18 @@ run9paramModel = false;
 % Define a model lable
 modelLabel = 'Great Western Catchment - no landuse change';
 
+
+% directory = 'C:\Users\gbonotto\OneDrive - The University of Melbourne\1 - UNIMELB\5 - HydroSight\7 - HydroSight_SW_GW';
+% viewClassTree(directory)
+
 if run7paramModel
     % Build the 7 parameter model.
     model_7params = HydroSightModel(modelLabel, bore_ID, 'model_TFN_SW_GW', boreDataWL, maxObsFreq, forcingDataStruct, siteCoordinates, modelOptions_7params);
 
+    [params, param_names] = getParameters(model_7params.model);
+    t = datenum(boreDataWL(:,1),boreDataWL(:,2),boreDataWL(:,3));
+    [objFn, flow_star, colnames, drainage_elevation] = objectiveFunction(params, t, model_7params.model,{});
+    
     % Set the number of SP-UCI calibration clusters per parameter
     SchemeSetting.ngs = 7;    
     

@@ -44,7 +44,7 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
         
         %% Model constructor
         %function obj = model_TFN_SW_GW(bore_ID, stream_ID, obsHead, forcingData_data,  forcingData_colnames, siteCoordinates, varargin)           
-        function obj = model_TFN_SW_GW(site_IDs, obsData, forcingData_data,  forcingData_colnames, siteCoordinates, varargin)           
+        function obj = model_TFN_SW_GW(bore_ID, obsData, forcingData_data,  forcingData_colnames, siteCoordinates, varargin)           
 % model_TFN constructs for linear and nonlinear Transfer Function Noise model
 %
 % Syntax:
@@ -73,7 +73,7 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
             
             
             % Use sub-class constructor.
-            obj = obj@model_TFN(site_IDs, obsData, forcingData_data,  forcingData_colnames, siteCoordinates, varargin{1});
+            obj = obj@model_TFN(bore_ID, obsData, forcingData_data,  forcingData_colnames, siteCoordinates, varargin{1});
 
             %% Read in file with obs flow.
             % Note, eventually site_IDs needs to be chnaged from a single
@@ -116,18 +116,22 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
             %% Set Obj parameters for the baseflow calculation
             %obj.parameters.streamflow.head_threshold = mean(obsData(:,end));
             %obj.parameters.streamflow.head_to_baseflow = 1;
-            obj.parameters.baseflow = baseflow(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates, forcingData_reqCols, []);
-   
+%             obj.parameters.baseflow = baseflow(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates, forcingData_reqCols, []);
+ 
+            obj.parameters.baseflow = baseflow(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates, [], []);
+
     end
     
     function [objFn, flow_star, colnames, drainage_elevation] = objectiveFunction(params, time_points, obj, varargin)
     
     
+        
+        
         % Call objectiveFunction in model_TFN to get head objFn
         [objFn, h_star, colnames, drainage_elevation] = objectiveFunction@model_TFN(params, time_points, obj, varargin);
         
         % Call some method in model_TFN_SW_GW to return simulated flow
-        % (using the simulated head - so call [head, colnames, noise] = solve@model_TFN(obj, time_points)
+        % (using the simulated head - so call 
         [totalFlow, baseFlow, quickFlow] = getStreamFlow(time_points, obj, varargin);
         
         % Call some method in model_TFN_SW_GW to return obs flow
@@ -148,12 +152,18 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
     % get quickFlow and baseFlow using simulated head and streamflow 
     function [totalFlow, baseFlow, quickFlow] = getStreamFlow(time_points, obj, varargin)
      
-     % get simulated head to use to estimate baseflow 
-       
+     % get simulated head to use to estimate baseflow AT A DAILY TIMESTEP        
      [head, colnames, noise] = solve(obj, time_points); % just the deterministic . is it at the same time step (daily)? 
      
-     % calculate the baseflow
-     baseFlow = max(0,head - obj.parameters.streamflow.head_threshold) .* obj.parameters.streamflow.head_to_baseflow;
+     % set head in baseflow (using setForcingData)
+     
+     setForcingData(obj.parameters.baseflow, head, 'head')
+     
+     % calc. baseflow using setTransformedForcing
+     % setTransformedForcing(obj.parameters.baseflow, time_points, true)
+     
+     % get calcuated baseflow
+     baseflow = getTransformedForcing()
      
      % getting the derived forcing data, which includes the quick flow
      % (runoff and interflow)
@@ -175,192 +185,6 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
         flow = obj.inputData.flow;
     end
     
-%     % alternative, copy the code from Model_TFN... 
-%     function [params_upperLimit, params_lowerLimit] = getParameters_plausibleLimit(obj)
-%         [params_upperLimit, params_lowerLimit] = getParameters_plausibleLimit@model_TFN(obj);
-%         params_lowerLimit = [params_lowerLimit; 250; 0.1];
-%         params_upperLimit = [params_upperLimit; 300; 100];
-%     end
-    
-% %         function [params_upperLimit, params_lowerLimit] = getParameters_plausibleLimit(obj)
-% % getParameters_plausibleLimit returns the plausible limits to each model parameter.
-% %
-% % Syntax:
-% %   [params_upperLimit, params_lowerLimit] = getParameters_plausibleLimit(obj)
-% %
-% % Description:
-% %   Cycles though all model componants and parameters and returns a vector
-% %   of the plausible upper and lower parameter range as defined by the
-% %   weighting functions.
-% %
-% % Input:
-% %   obj -  model object.
-% %
-% % Outputs:
-% %   params_upperLimit - column vector of the upper parameter plausible bounds.
-% %
-% %   params_lowerLimit - column vector of the lower parameter plausible bounds
-% %
-% % Example:
-% %   see HydroSight: time_series_model_calibration_and_construction;
-% %
-% % See also:
-% %   HydroSight: time_series_model_calibration_and_construction;
-% %   model_TFN: model_construction;
-% %   calibration_finalise: initialisation_of_model_prior_to_calibration;
-% %   calibration_initialise: initialisation_of_model_prior_to_calibration;
-% %   get_h_star: main_method_for_calculating_the_head_contributions.
-% %   objectiveFunction: returns_a_vector_of_innovation_errors_for_calibration;  
-% %   setParameters: sets_model_parameters_from_input_vector_of_parameter_values;
-% %   solve: solve_the_model_at_user_input_sime_points;
-% %
-% % Author: 
-% %   Dr. Tim Peterson, The Department of Infrastructure
-% %   Engineering, The University of Melbourne.
-% %
-% % Date:
-% %   26 Sept 2014   
-%                         
-%         params_lowerLimit = [];
-%         params_upperLimit = [];
-%         companants = fieldnames(obj.parameters);            
-%         for ii=1: size(companants,1)
-%             currentField = char( companants(ii) ) ;
-%             % Get model parameters for each componant.
-%             % If the componant is an object, then call the objects
-%             % getParameters_physicalLimit method for each parameter.
-%             if isobject( obj.parameters.( currentField ) )
-%                 % Call object method.
-%                 [params_upperLimit_temp, params_lowerLimit_temp] = getParameters_plausibleLimit( obj.parameters.( currentField ) );
-% 
-%                 params_upperLimit = [params_upperLimit; params_upperLimit_temp];
-%                 params_lowerLimit = [params_lowerLimit; params_lowerLimit_temp];
-%             else
-%                 companant_params = fieldnames( obj.parameters.( currentField ) );
-%                 for j=1: size(companant_params,1)
-%                    if ~strcmp( companant_params(j), 'type')
-%                        if strcmp(currentField,'et') && strcmp( companant_params(j), 'k')
-%                             % This parameter is assumed to be the ET
-%                             % parameter scaling when the ET
-%                             % uses the precipitation transformation
-%                             % function.
-%                             params_upperLimit = [params_upperLimit; 1];
-%                             params_lowerLimit = [params_lowerLimit; 0];
-%                        elseif strcmp(currentField,'landchange') && (strcmp( companant_params(j), 'precip_scalar') ...
-%                        || strcmp(currentField,'landchange') && strcmp( companant_params(j), 'et_scalar'))  
-%                            % This parameter is the scaling parameter
-%                            % for either the ET or precip transformation
-%                            % functions.
-%                            params_upperLimit = [params_upperLimit; 1.0];
-%                            params_lowerLimit = [params_lowerLimit; -1.0];
-%                        else
-%                             % This parameter is assumed to be the noise parameter 'alpha'.  
-%                             alpha_upperLimit = 100; 
-%                             while abs(sum( exp( -2.*alpha_upperLimit .* obj.variables.delta_time ) )) < eps() ...
-%                             || exp(mean(log( 1- exp( -2.*alpha_upperLimit .* obj.variables.delta_time) ))) < eps()
-%                                 alpha_upperLimit = alpha_upperLimit - 0.01;
-%                                 if alpha_upperLimit <= eps()                                   
-%                                     break;
-%                                 end
-%                             end
-%                             if alpha_upperLimit <= eps()
-%                                 alpha_upperLimit = inf;
-%                             else
-%                                 % Transform alpha log10 space.
-%                                 alpha_upperLimit = log10(alpha_upperLimit);
-%                             end                           
-%                             
-%                             params_upperLimit = [params_upperLimit; alpha_upperLimit];
-%                             params_lowerLimit = [params_lowerLimit; log10(sqrt(eps()))+4];
-% 
-%                        end
-%                    end
-%                 end
-%             end
-%         end
-% %         params_lowerLimit = [params_lowerLimit; 250; 0.1];
-% %         params_upperLimit = [params_upperLimit; 300; 100];
-%     end 
-
-    
-    
-%     function [params_upperLimit, params_lowerLimit] = getParameters_physicalLimit(obj)
-%         [params_upperLimit, params_lowerLimit] = getParameters_physicalLimit@model_TFN(obj);
-%         
-%         params_lowerLimit = [params_lowerLimit; 0; 0];
-%         params_upperLimit = [params_upperLimit; Inf; Inf];
-%     end
-
-
-%         function [params_upperLimit, params_lowerLimit] = getParameters_physicalLimit(obj)
-% % getParameters_physicalLimit returns the physical limits to each model parameter.
-% %
-% % Syntax:
-% %   [params_upperLimit, params_lowerLimit] = getParameters_physicalLimit(obj)
-% %
-% % Description:
-% %   Cycles through all model componants and parameters and returns a vector
-% %   of the physical upper and lower parameter bounds as defined by the
-% %   weighting functions.
-% %
-% % Input:
-% %   obj -  model object.
-% %
-% % Outputs:
-% %   params_upperLimit - column vector of the upper parameter bounds.
-% %
-% %   params_lowerLimit - column vector of the lower parameter bounds
-% %
-% % Example:
-% %   see HydroSight: time_series_model_calibration_and_construction;
-% %
-% % See also:
-% %   HydroSight: time_series_model_calibration_and_construction;
-% %   model_TFN: model_construction;
-% %   calibration_finalise: initialisation_of_model_prior_to_calibration;
-% %   calibration_initialise: initialisation_of_model_prior_to_calibration;
-% %   get_h_star: main_method_for_calculating_the_head_contributions.
-% %   objectiveFunction: returns_a_vector_of_innovation_errors_for_calibration;  
-% %   setParameters: sets_model_parameters_from_input_vector_of_parameter_values;
-% %   solve: solve_the_model_at_user_input_sime_points;
-% %
-% % Author: 
-% %   Dr. Tim Peterson, The Department of Infrastructure
-% %   Engineering, The University of Melbourne.
-% %
-% % Date:
-% %   26 Sept 2014   
-% 
-%             params_lowerLimit = [];
-%             params_upperLimit = [];
-%             companants = fieldnames(obj.parameters);            
-%             for ii=1: size(companants,1)
-%                 currentField = char( companants(ii) ) ;
-%                 % Get model parameters for each componant.
-%                 % If the componant is an object, then call the objects
-%                 % getParameters_physicalLimit method for each parameter.
-%                 if isobject( obj.parameters.( currentField ) )
-%                     % Call object method.
-%                     [params_upperLimit_temp, params_lowerLimit_temp] = getParameters_physicalLimit( obj.parameters.( currentField ) );                
-%                     
-%                     params_upperLimit = [params_upperLimit; params_upperLimit_temp];
-%                     params_lowerLimit = [params_lowerLimit; params_lowerLimit_temp];
-%                                         
-%                 else
-% 
-%                     [params_plausibleUpperLimit, params_plausibleLowerLimit] = getParameters_plausibleLimit(obj);
-%                     
-%                     % This parameter is assumed to be the noise parameter 'alpha'.  
-%                     ind = length(params_upperLimit)+1;
-%                     params_upperLimit = [params_upperLimit; params_plausibleUpperLimit(ind)];                                                        
-%                     params_lowerLimit = [params_lowerLimit; params_plausibleLowerLimit(ind)];                                
-%                 end
-%             end 
-%             
-%             params_lowerLimit = [params_lowerLimit; 0; 0];
-%             params_upperLimit = [params_upperLimit; Inf; Inf];
-%         end        
-
 
 
     
