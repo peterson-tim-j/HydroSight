@@ -120,15 +120,21 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
  
             obj.parameters.baseflow = baseflow(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates, [], []);
 
-    end
+        end
+    
+        varargin= true % to pass the condition in "islogical(varargin{1})" in line 1826 in model_TFN of "objectiveFunction@model_TFN"
     
     function [objFn, flow_star, colnames, drainage_elevation] = objectiveFunction(params, time_points, obj, varargin)
-    
-    
+      
+        % Setup matrix of indexes for tor at each time_points    ======== % to pass the condition in line 2679 in model_TFN - "tor_end = tor( obj.variables.theta_est_indexes_min(1,:) )';
+        filt = obj.inputData.forcingData ( : ,1) <= ceil(time_points(end));
+        tor = flipud([0:time_points(end)  - obj.inputData.forcingData(filt,1)+1]');
         
-        
+        obj.variables.theta_est_indexes_min = ones(1,length(tor) ); % this came from line 1426 in model_TFN
+        obj.variables.theta_est_indexes_max = ones(1,length(tor) );
+
         % Call objectiveFunction in model_TFN to get head objFn
-        [objFn, h_star, colnames, drainage_elevation] = objectiveFunction@model_TFN(params, time_points, obj, varargin);
+        [objFn, h_star, colnames, drainage_elevation] = objectiveFunction@model_TFN(params, time_points, obj, true);
         
         % Call some method in model_TFN_SW_GW to return simulated flow
         % (using the simulated head - so call 
