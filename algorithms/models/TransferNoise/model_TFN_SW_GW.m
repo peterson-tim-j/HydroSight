@@ -134,7 +134,7 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
         t_start = 0;
         t_end  = inf;
         %%%%% dont i need to first do this to then get the objective function? 
-        [params_initial, time_points] = calibration_initialise(obj, t_start, t_end)
+        [params_initial, time_points] = calibration_initialise(obj, t_start, t_end);
 %             
 %         calibration_finalise(obj, params, useLikelihood)
 %             
@@ -145,6 +145,30 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
 %         [objFn, h_star, colnames, drainage_elevation] = objectiveFunction@model_TFN(params, time_points, obj, varargin);  % "false" to pass the condition in "islogical(varargin{1})" in line 1826 in model_TFN of "objectiveFunction@model_TFN"
         [objFn, h_star, colnames, drainage_elevation] = objectiveFunction@model_TFN(params, time_points, obj, false);  % "false" to pass the condition in "islogical(varargin{1})" in line 1826 in model_TFN of "objectiveFunction@model_TFN"
         % line 132 above seems not to be working 
+        objFn
+        
+        % Add the drainage elevation to the object. This
+        % is just done because the model needs to be solved for the
+        % streamflow time steps, and to do so model_TFN assumes the
+        % calibration has assigned obj.variables.d.
+        obj.variables.d = drainage_elevation;
+        obj.variables.doingCalibration = false; % false as used in Hydromod, but should it be "true"?
+        
+        % Store some variables that are cleared when the model_TFN
+        % solve() is called. These will be added back.
+        theta_est_indexes_min = obj.variables.theta_est_indexes_min;
+        theta_est_indexes_max = obj.variables.theta_est_indexes_max;
+        delta_time = obj.variables.delta_time;
+        
+        % missing the forcingMean in obj.variables."precip or
+        % ET".forcingMean, which function "solves" requires
+                 
+         companants = fieldnames(obj.inputData.componentData);
+         nCompanants = size(companants,1);  
+          
+        for j=1:nCompanants  
+        obj.variables.(companants{j}).forcingMean(:,1) = mean(obj.variables.(companants{j}).forcingData);
+        end 
         
         % Call some method in model_TFN_SW_GW to return simulated flow
         % (using the simulated head - so call 
