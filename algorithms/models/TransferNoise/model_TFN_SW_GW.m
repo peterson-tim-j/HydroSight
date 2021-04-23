@@ -192,6 +192,9 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
     % get quickFlow and baseFlow using simulated head and streamflow 
     function [totalFlow, baseFlow, quickFlow] = getStreamFlow(time_points, obj, varargin)
      
+        % solve is calling back objectiveFunction that calls
+        % calibration_initialise, maybe take calibration_initialise ouside
+        % of objectiveFunction??? 
      % get simulated head to use to estimate baseflow AT A DAILY TIMESTEP        
      [head, colnames, noise] = solve(obj, time_points); % just the deterministic . is it at the same time step (daily)? 
      
