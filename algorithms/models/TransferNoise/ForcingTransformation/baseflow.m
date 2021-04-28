@@ -142,12 +142,12 @@ classdef baseflow < forcingTransform_abstract
         
             
              % check if lenght of forcingData_colnames is 1
-             if length(forcingData_colnames) ~= 1  
+            if size(forcingData_colnames,1) ~= 1
                 error('The number of column name is not 1.');
-             end
+            end
             
             % check if forcingData_colnames is "head" (simulated head)
-            if ~strcmp('head', forcingData_colnames{1})
+            if ~strcmp('head', forcingData_colnames)
                 error('forcing data col. name is not "head"')
             end
             
@@ -155,9 +155,11 @@ classdef baseflow < forcingTransform_abstract
             % check if the "head" is daily without gaps
             t = forcingData(:,1);
             delta_t = diff(t);
-            if any(delta_t ~=1)
-                error('forcing data must have no gaps and be a daily time-series ')
-            end
+            %%%%%%% need to change antecedent code so we have a daily time-seires of GW for the period where we have GW obs.data and match it with streamflow time-series
+%             if any(delta_t ~=1)
+%                 error('forcing data must have no gaps and be a daily
+%                 time-series ') 
+%             end
                 
             
             % place the forcingData into "obj"
@@ -172,9 +174,11 @@ classdef baseflow < forcingTransform_abstract
                 filt_time = obj.settings.forcingData(:,1) >= t(1) & obj.settings.forcingData(:,1) <= t(end);
                 
                 % Get the required forcing data
-                filt = strcmp(obj.settings.forcingData_cols(:,1),'head');
-                head_col = obj.settings.forcingData_cols{filt,2};
-                obj.variables.head = obj.settings.forcingData(filt_time, head_col );
+%                 filt = strcmp(obj.settings.forcingData_cols(:,1),'head');
+                filt = strcmp(obj.settings.forcingData_colnames,'head');
+%                 head_col = obj.settings.forcingData_cols{filt,2};
+%                 head_col = obj.settings.forcingData_colnames(filt,:);
+                obj.variables.head = obj.settings.forcingData(filt_time, 2 ); % columns in the input data have no name 
                 
                 % Store the time points
                 obj.variables.t = obj.settings.forcingData(filt_time,1);

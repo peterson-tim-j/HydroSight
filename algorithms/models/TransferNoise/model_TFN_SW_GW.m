@@ -123,19 +123,43 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
             
         end
     
-          
+        
+        function  [params_initial, time_points] = calibration_initialise(obj, t_start, t_end);
+       
             
-    function [objFn, flow_star, colnames, drainage_elevation] = objectiveFunction(params, time_points, obj, varargin)
+           % Set a flag to indicate that calibration is being undertaken.
+            obj.variables.doingCalibration = true;
+            
+            % Get parameter names and initial values
+            [params_initial, obj.variables.param_names] = getParameters(obj);
+            
+            calibration_initialise@model_TFN(obj, t_start, t_end);
+
+            
+            % Derive time points for groundwater head objective
+            % function calc.
+            obsHead = getObservedHead(obj);
+            t_filt = find( obsHead(:,1) >=t_start  ...
+                & obsHead(:,1) <= t_end );   
+            time_points = obsHead(t_filt,1);
+
+            
+            
+        end
+        
+        
+        
+    function [objFn, flow_star, colnames, drainage_elevation] = objectiveFunction_joint(params, time_points, obj, varargin)
        
 %         obj.variables.theta_est_indexes_min = ones(1,length(time_points) ); % to pass the condition in line 2679 in model_TFN - "tor_end = tor( obj.variables.theta_est_indexes_min(1,:) )';
 %         obj.variables.theta_est_indexes_max = ones(1,length(time_points) );
 %         obj.variables.doingCalibration = true ; % to see if the model calibrates 
         
-        t_start = 0;
-        t_end  = inf;
-        %%%%% dont i need to first do this to then get the objective function? 
-        [params_initial, time_points] = calibration_initialise(obj, t_start, t_end);
-%             
+%         t_start = 0;
+%         t_end  = inf;
+%         %%%%% dont i need to first do this to then get the objective function? 
+%         [params_initial, time_points] = calibration_initialise(obj, t_start, t_end);
+          
 %         calibration_finalise(obj, params, useLikelihood)
 %             
 %         [objFn, h_star] = objectiveFunction(params, time_points, obj)        
@@ -143,7 +167,7 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
       
         % Call objectiveFunction in model_TFN to get head objFn
 %         [objFn, h_star, colnames, drainage_elevation] = objectiveFunction@model_TFN(params, time_points, obj, varargin);  % "false" to pass the condition in "islogical(varargin{1})" in line 1826 in model_TFN of "objectiveFunction@model_TFN"
-        [objFn, h_star, colnames, drainage_elevation] = objectiveFunction@model_TFN(params, time_points, obj, false);  % "false" to pass the condition in "islogical(varargin{1})" in line 1826 in model_TFN of "objectiveFunction@model_TFN"
+        [objFn, h_star, colnames, drainage_elevation] = objectiveFunction(params, time_points, obj, false);  % "false" to pass the condition in "islogical(varargin{1})" in line 1826 in model_TFN of "objectiveFunction@model_TFN"
         % line 132 above seems not to be working 
         objFn
         
@@ -165,26 +189,57 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
                  
          companants = fieldnames(obj.inputData.componentData);
          nCompanants = size(companants,1);  
-          
+               
+         
         for j=1:nCompanants  
         obj.variables.(companants{j}).forcingMean(:,1) = mean(obj.variables.(companants{j}).forcingData);
         end 
+        
+        
         
         % Call some method in model_TFN_SW_GW to return simulated flow
         % (using the simulated head - so call 
         [totalFlow, baseFlow, quickFlow] = getStreamFlow(time_points, obj, varargin);
         
+        
+        
         % Call some method in model_TFN_SW_GW to return obs flow
         
 %         obsFlow = getObservedFlow(obj);
+
+
                 
         % Calc. flow objFn
+        
+        % Add simulated head to the obj
+        obj.variables.head_sim = head(:,1:2);
+        
+        % Calculate the baseflow and then total streamflow.
+        % NOTE: The threshold is msoothened using eq 13 of
+        % Kavetski, D., and G. Kuczera (2007), Model smoothing strategies to remove microscale discontinuities and spurious
+        % secondary optima in objective functions in hydrological calibration, Water Resour. Res., 43, W03411, doi:10.1029/2006WR005195.
+        obj.variables.baseflow_sim =  (head(:,2) - obj.parameters.baseflow.h_0)./obj.parameters.baseflow.thresholdSmoothing;
+        obj.variables.baseflow_sim = 10.^obj.parameters.baseflow.k * obj.parameters.baseflow.thresholdSmoothing * (obj.variables.baseflow_sim + log(1+exp(-obj.variables.baseflow_sim)));
+        obj.variables.baseflow_sim = [obj.variables.head_sim(:,1), obj.variables.baseflow_sim];
+        obj.variables.streamflow_sim = [runoff(:,1), runoff(:,2) + obj.variables.baseflow_sim(:,2)];
+        
+        % Calculate the streamflow obj function
+        objFn(2,:) = sum((obj.variables.streamflow_sim(:,2) - obj.inputData.streamflow(:,2)).^2)./ ...
+            sum((obj.inputData.streamflow(:,2) - mean(obj.inputData.streamflow(:,2))).^2);
+        
+        
         
         
         % Have some way of merging objFn from head and objFn from flow
         
         
+        
+        
         % Rten combined objFun and other terms 
+        
+        
+        
+        
         
         
     end
@@ -194,19 +249,27 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
      
         % solve is calling back objectiveFunction that calls
         % calibration_initialise, maybe take calibration_initialise ouside
-        % of objectiveFunction??? 
+        % of objectiveFunction???      
      % get simulated head to use to estimate baseflow AT A DAILY TIMESTEP        
      [head, colnames, noise] = solve(obj, time_points); % just the deterministic . is it at the same time step (daily)? 
+      obj.parameters.variables.doingCalibration = true;
+
+      % Add model_TFN variables back
+%       obj.parameters.variables.theta_est_indexes_min = theta_est_indexes_min;
+%       obj.parameters.variables.theta_est_indexes_max = theta_est_indexes_max;
+%       obj.parameters.variables.delta_time = delta_time;
+%       clear theta_est_indexes_min theta_est_indexes_max delta_time
+     
      
      % set head in baseflow (using setForcingData)
      
      setForcingData(obj.parameters.baseflow, head, 'head')
      
-     % calc. baseflow using setTransformedForcing
-     % setTransformedForcing(obj.parameters.baseflow, time_points, true)
+     % calc. baseflow using setTransformedForcing in baseflow
+     setTransformedForcing(obj.parameters.baseflow, time_points, true)
      
-     % get calcuated baseflow
-     baseflow = getTransformedForcing()
+     % get calcuated baseflow in baseflow
+     baseflow = getTransformedForcing(obj.parameters.baseflow, time_points )
      
      % getting the derived forcing data, which includes the quick flow
      % (runoff and interflow)

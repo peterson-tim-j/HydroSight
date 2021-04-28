@@ -103,7 +103,7 @@ modelOptions_7params = { 'precip','weightingfunction','responseFunction_Pearsons
                         'et','forcingdata',forcingTransform_ET};                    
                     
 % Set the maximum frequency of water level obs
-maxObsFreq = 7;
+maxObsFreq = 1;
 
 % Select which model structures to build and calibrate.
 run7paramModel = true;
@@ -111,6 +111,28 @@ run9paramModel = false;
 
 % Define a model lable
 modelLabel = 'Great Western Catchment - no landuse change';
+
+
+% %% to use data from Brucknell creek instead of the example dataset.
+% obsDataHead = readtable('obsHead_2091.csv'); % obs head for bore_2091 in Brucknell creek
+% obsDataHead = obsDataHead(:,2:end);
+% obsDataHead = table2array(obsDataHead);
+% 
+% % Derive columns of year, month, day etc to matlab date value for the obs. head
+% % time-seies 
+% switch size(obsDataHead,2)-1
+%     case 3
+%         obsDates = datenum(obsDataHead(:,1), obsDataHead(:,2), obsDataHead(:,3));
+%     case 4
+%         obsDates = datenum(obsDataHead(:,1), obsDataHead(:,2), obsDataHead(:,3),obsDataHead(:,4), zeros(size(obsDataHead,1),1), zeros(size(obsDataHead,1),1));
+%     case 5
+%         obsDates = datenum(obsDataHead(:,1), obsDataHead(:,2), obsDataHead(:,3),obsDataHead(:,4),obsDataHead(:,5), zeros(size(obsDataHead,1),1));
+%     case 6
+%         obsDates = datenum(obsDataHead(:,1), obsDataHead(:,2), obsDataHead(:,3),obsDataHead(:,4),obsDataHead(:,5),obsDataHead(:,6));
+%     otherwise
+%         error('The input observed head must be 4 to 7 columns with right hand column being the head and the left columns: year; month; day; hour (optional), minute (optionl), second (optional).');
+% end
+% %%
 
 
 % directory = 'C:\Users\gbonotto\OneDrive - The University of Melbourne\1 - UNIMELB\5 - HydroSight\7 - HydroSight_SW_GW';
@@ -122,8 +144,16 @@ if run7paramModel
 
     [params, param_names] = getParameters(model_7params.model);
     t = datenum(boreDataWL(:,1),boreDataWL(:,2),boreDataWL(:,3));
-    [objFn, flow_star, colnames, drainage_elevation] = objectiveFunction(params, t, model_7params.model,{});
     
+    t_start = 0;
+    t_end  = inf;
+    %%%% dont i need to first do this to then get the objective function?
+    [params_initial, time_points] = calibration_initialise(model_7params.model, t_start, t_end); % put it outside of objectiveFunction to avoid initializing it again during the callinf of "solve" inside of "objectiveFunction"
+ 
+%     [objFn, flow_star, colnames, drainage_elevation] = objectiveFunction(params, t, model_7params.model,{});
+    [objFn, flow_star, colnames, drainage_elevation] = objectiveFunction_joint(params_initial, time_points, model_7params.model,{}); % using time points from calibration_initialise to avoid mismatch of dimensions in line 2803 of model_TFN
+
+
     % Set the number of SP-UCI calibration clusters per parameter
     SchemeSetting.ngs = 7;    
     
