@@ -269,15 +269,15 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
      setTransformedForcing(obj.parameters.baseflow, time_points, true)
      
      % get calcuated baseflow in baseflow
-     baseflow = getTransformedForcing(obj.parameters.baseflow, time_points )
+     baseflow = getTransformedForcing(obj.parameters.baseflow, time_points);
      
      % getting the derived forcing data, which includes the quick flow
      % (runoff and interflow)
      [allForcingData, forcingData_colnames] = getDerivedForcingData(obj, time_points);
      
-     quickFlow = []; %catchmentArea * % get the quickflow from the runoff of the lumped 1-d soil moisture model 
+     quickFlow = allForcingData(:,6); % runoff in [mm/day], to get ML/day, mutiply by the catchmentArea - (quickflow from the runoff of the lumped 1-d soil moisture model)
      
-     totalFlow = []; %baseFlow + quickFlow;
+     totalFlow = quickFlow + baseflow; % baseFlow + quickFlow; NEED TO MAKE BASEFLOW BECOME DAILY TIME-SERIES MATCHING THE TIME STEPS OF QUICKFLOW
      
      % limit the total flow to above zero
      if totalFlow < 0 
