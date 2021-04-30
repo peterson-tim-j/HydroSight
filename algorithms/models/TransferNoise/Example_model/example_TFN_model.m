@@ -148,10 +148,10 @@ if run7paramModel
     t_start = 0;
     t_end  = inf;
     %%%% dont i need to first do this to then get the objective function?
-    [params_initial, time_points] = calibration_initialise(model_7params.model, t_start, t_end); % put it outside of objectiveFunction to avoid initializing it again during the callinf of "solve" inside of "objectiveFunction"
+    [params_initial, time_points_head, time_points_streamflow] = calibration_initialise(model_7params.model, t_start, t_end); % put it outside of objectiveFunction to avoid initializing it again during the callinf of "solve" inside of "objectiveFunction"
  
 %     [objFn, flow_star, colnames, drainage_elevation] = objectiveFunction(params, t, model_7params.model,{});
-    [objFn, flow_star, colnames, drainage_elevation] = objectiveFunction_joint(params_initial, time_points, model_7params.model,{}); % using time points from calibration_initialise to avoid mismatch of dimensions in line 2803 of model_TFN
+    [objFn_joint, objFn_head, objFn_flow, flow_star, colnames, drainage_elevation] = objectiveFunction_joint(params_initial, time_points_head, time_points_streamflow, model_7params.model,{}); % using time points from calibration_initialise to avoid mismatch of dimensions in line 2803 of model_TFN
 
 
     % Set the number of SP-UCI calibration clusters per parameter

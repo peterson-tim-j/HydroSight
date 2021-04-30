@@ -80,7 +80,7 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
             % string with the bore ID to a vector of stream and bore IDs.
             % Maybe the first could be the stream ID.
 %             obsDataFlow = csvread('obsFlow_Brucknell.csv');
-            obsDataFlow = readtable('obsFlow_Brucknell.csv');
+            obsDataFlow = readtable('obsFlow_Brucknell_up to 2009.csv');
             obsDataFlow = obsDataFlow(:,2:end);
 
             obsDataFlow = table2array(obsDataFlow);
@@ -124,32 +124,40 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
         end
     
         
-        function  [params_initial, time_points] = calibration_initialise(obj, t_start, t_end);
-       
+        function  [params_initial, time_points_head, time_points_streamflow ] = calibration_initialise(obj, t_start, t_end);
             
-           % Set a flag to indicate that calibration is being undertaken.
+            
+            % Set a flag to indicate that calibration is being undertaken.
             obj.variables.doingCalibration = true;
             
             % Get parameter names and initial values
             [params_initial, obj.variables.param_names] = getParameters(obj);
             
             calibration_initialise@model_TFN(obj, t_start, t_end);
-
+            
             
             % Derive time points for groundwater head objective
             % function calc.
             obsHead = getObservedHead(obj);
             t_filt = find( obsHead(:,1) >=t_start  ...
-                & obsHead(:,1) <= t_end );   
-            time_points = obsHead(t_filt,1);
-
+                & obsHead(:,1) <= t_end );
+            time_points_head = obsHead(t_filt,1);
+            obj.variables.time_points_head = time_points_head;
+            
+            
+            % Derive time steps for streamflow data
+            t_filt = find( obj.inputData.flow(:,1) >=t_start  ...
+                & obj.inputData.flow(:,1) <= t_end );   
+            time_points_streamflow = obj.inputData.flow(t_filt,1);
+            obj.variables.time_points_streamflow = time_points_streamflow;
+            
             
             
         end
         
         
         
-    function [objFn, flow_star, colnames, drainage_elevation] = objectiveFunction_joint(params, time_points, obj, varargin)
+    function [objFn_joint, objFn_head, objFn_flow, totalFlow_sim, colnames, drainage_elevation] = objectiveFunction_joint(params, time_points_head, time_points_streamflow, obj, varargin)
        
 %         obj.variables.theta_est_indexes_min = ones(1,length(time_points) ); % to pass the condition in line 2679 in model_TFN - "tor_end = tor( obj.variables.theta_est_indexes_min(1,:) )';
 %         obj.variables.theta_est_indexes_max = ones(1,length(time_points) );
@@ -167,9 +175,9 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
       
         % Call objectiveFunction in model_TFN to get head objFn
 %         [objFn, h_star, colnames, drainage_elevation] = objectiveFunction@model_TFN(params, time_points, obj, varargin);  % "false" to pass the condition in "islogical(varargin{1})" in line 1826 in model_TFN of "objectiveFunction@model_TFN"
-        [objFn, h_star, colnames, drainage_elevation] = objectiveFunction(params, time_points, obj, false);  % "false" to pass the condition in "islogical(varargin{1})" in line 1826 in model_TFN of "objectiveFunction@model_TFN"
+        [objFn_head, h_star, colnames, drainage_elevation] = objectiveFunction(params, time_points_head, obj, false);  % "false" to pass the condition in "islogical(varargin{1})" in line 1826 in model_TFN of "objectiveFunction@model_TFN"
         % line 132 above seems not to be working 
-        objFn
+        objFn_head
         
         % Add the drainage elevation to the object. This
         % is just done because the model needs to be solved for the
@@ -199,39 +207,28 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
         
         % Call some method in model_TFN_SW_GW to return simulated flow
         % (using the simulated head - so call 
-        [totalFlow, baseFlow, quickFlow] = getStreamFlow(time_points, obj, varargin);
+        [totalFlow_sim, baseFlow, quickFlow] = getStreamFlow(time_points_streamflow, obj, varargin);
         
         
         
         % Call some method in model_TFN_SW_GW to return obs flow
         
-%         obsFlow = getObservedFlow(obj);
+        obsFlow = getObservedFlow(obj);
 
 
                 
-        % Calc. flow objFn
+        % Calc. flow objFn using NSE
+        objFn_flow = 1 - ( sum((totalFlow_sim - obsFlow(:,2)).^2)./ ...
+            sum((obsFlow(:,2) - mean(obsFlow(:,2))).^2));
+        objFn_flow
         
-        % Add simulated head to the obj
-        obj.variables.head_sim = head(:,1:2);
-        
-        % Calculate the baseflow and then total streamflow.
-        % NOTE: The threshold is msoothened using eq 13 of
-        % Kavetski, D., and G. Kuczera (2007), Model smoothing strategies to remove microscale discontinuities and spurious
-        % secondary optima in objective functions in hydrological calibration, Water Resour. Res., 43, W03411, doi:10.1029/2006WR005195.
-        obj.variables.baseflow_sim =  (head(:,2) - obj.parameters.baseflow.h_0)./obj.parameters.baseflow.thresholdSmoothing;
-        obj.variables.baseflow_sim = 10.^obj.parameters.baseflow.k * obj.parameters.baseflow.thresholdSmoothing * (obj.variables.baseflow_sim + log(1+exp(-obj.variables.baseflow_sim)));
-        obj.variables.baseflow_sim = [obj.variables.head_sim(:,1), obj.variables.baseflow_sim];
-        obj.variables.streamflow_sim = [runoff(:,1), runoff(:,2) + obj.variables.baseflow_sim(:,2)];
-        
-        % Calculate the streamflow obj function
-        objFn(2,:) = sum((obj.variables.streamflow_sim(:,2) - obj.inputData.streamflow(:,2)).^2)./ ...
-            sum((obj.inputData.streamflow(:,2) - mean(obj.inputData.streamflow(:,2))).^2);
-        
-        
+        % Calc. flow objFn using normalized NSE
+        objFn_flow_NNSE = 1 / (2- objFn_flow); 
+        objFn_flow_NNSE
         
         
         % Have some way of merging objFn from head and objFn from flow
-        
+        objFn_joint = objFn_head + objFn_flow; % TO DO: we want to maximize both, rigth?
         
         
         
@@ -245,15 +242,16 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
     end
     
     % get quickFlow and baseFlow using simulated head and streamflow 
-    function [totalFlow, baseFlow, quickFlow] = getStreamFlow(time_points, obj, varargin)
+    function [totalFlow, baseFlow, quickFlow] = getStreamFlow(time_points_streamflow, obj, varargin)
      
         % solve is calling back objectiveFunction that calls
         % calibration_initialise, maybe take calibration_initialise ouside
         % of objectiveFunction???      
      % get simulated head to use to estimate baseflow AT A DAILY TIMESTEP        
-     [head, colnames, noise] = solve(obj, time_points); % just the deterministic . is it at the same time step (daily)? 
+     [head, colnames, noise] = solve(obj, time_points_streamflow); % just the deterministic . is it at the same time step (daily)? 
       obj.parameters.variables.doingCalibration = true;
-
+      
+     
       % Add model_TFN variables back
 %       obj.parameters.variables.theta_est_indexes_min = theta_est_indexes_min;
 %       obj.parameters.variables.theta_est_indexes_max = theta_est_indexes_max;
@@ -266,32 +264,54 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
      setForcingData(obj.parameters.baseflow, head, 'head')
      
      % calc. baseflow using setTransformedForcing in baseflow
-     setTransformedForcing(obj.parameters.baseflow, time_points, true)
+     setTransformedForcing(obj.parameters.baseflow, time_points_streamflow, true)
      
      % get calcuated baseflow in baseflow
-     baseflow = getTransformedForcing(obj.parameters.baseflow, time_points);
+     baseFlow = getTransformedForcing(obj.parameters.baseflow, time_points_streamflow);
+     
+     
+     % calc. runoff using setTransformedForcing in model_TFN - this is
+     % needed to get the derived runoff from the
+     % "climateTransform_soilMoistureModels" only for the dates with
+     % streamflow observations 
+     setTransformedForcing(obj.parameters.climateTransform_soilMoistureModels, time_points_streamflow, true) 
+     
      
      % getting the derived forcing data, which includes the quick flow
      % (runoff and interflow)
-     [allForcingData, forcingData_colnames] = getDerivedForcingData(obj, time_points);
+     [allDerivedForcingData, derivedForcingData_colnames] = getDerivedForcingData(obj, time_points_streamflow);
      
-     quickFlow = allForcingData(:,6); % runoff in [mm/day], to get ML/day, mutiply by the catchmentArea - (quickflow from the runoff of the lumped 1-d soil moisture model)
+     % getting the forcing data (precip, ET) with the date column
+     [allForcingData, forcingData_colnames] = getForcingData(obj);
      
-     totalFlow = quickFlow + baseflow; % baseFlow + quickFlow; NEED TO MAKE BASEFLOW BECOME DAILY TIME-SERIES MATCHING THE TIME STEPS OF QUICKFLOW
+        
+     % Initialise function eval counter
+     obj.variables.nobjectiveFunction_calls=0;
+     
+     % Initialise total flow 
+     obj.variables.totalFlow = [];
+     
+     
+     quickFlow = allDerivedForcingData(:,6); % runoff in [mm/day], to get ML/day, mutiply by the catchmentArea - (quickflow from the runoff of the lumped 1-d soil moisture model)
+     
+     totalFlow = quickFlow + baseFlow; % baseFlow + quickFlow;  BASEFLOW IS DAILY TIME-SERIES MATCHING THE TIME STEPS OF QUICKFLOW, DOUBLE CHECH THIS MATCHING....
      
      % limit the total flow to above zero
      if totalFlow < 0 
         totalFlow = 0; 
      end
      
+     % Storing total flow
+     obj.variables.totalFlow = totalFlow;
+     
     end
      
     % Get the observed streamflow
-    function flow = getObservedFlow(obj)
-        flow = obj.inputData.flow;
+    function obsFlow = getObservedFlow(obj)
+        obsFlow = obj.inputData.flow;
     end
     
-
+   
 
     
     end
