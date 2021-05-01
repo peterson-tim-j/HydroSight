@@ -154,6 +154,9 @@ if run7paramModel
     [objFn_joint, objFn_head, objFn_flow, flow_star, colnames, drainage_elevation] = objectiveFunction_joint(params_initial, time_points_head, time_points_streamflow, model_7params.model,{}); % using time points from calibration_initialise to avoid mismatch of dimensions in line 2803 of model_TFN
 
 
+    
+    
+    
     % Set the number of SP-UCI calibration clusters per parameter
     SchemeSetting.ngs = 7;    
     
