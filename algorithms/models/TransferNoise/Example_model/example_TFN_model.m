@@ -40,6 +40,8 @@ load('124705_forcingData.mat');
 
 
 
+
+
 % Reformat the matric of forcing data to a sturctire variable containing
 % the column names.
 forcingDataStruct.data = forcingData;
@@ -112,29 +114,6 @@ run9paramModel = false;
 % Define a model lable
 modelLabel = 'Great Western Catchment - no landuse change';
 
-
-% %% to use data from Brucknell creek instead of the example dataset.
-% obsDataHead = readtable('obsHead_2091.csv'); % obs head for bore_2091 in Brucknell creek
-% obsDataHead = obsDataHead(:,2:end);
-% obsDataHead = table2array(obsDataHead);
-% 
-% % Derive columns of year, month, day etc to matlab date value for the obs. head
-% % time-seies 
-% switch size(obsDataHead,2)-1
-%     case 3
-%         obsDates = datenum(obsDataHead(:,1), obsDataHead(:,2), obsDataHead(:,3));
-%     case 4
-%         obsDates = datenum(obsDataHead(:,1), obsDataHead(:,2), obsDataHead(:,3),obsDataHead(:,4), zeros(size(obsDataHead,1),1), zeros(size(obsDataHead,1),1));
-%     case 5
-%         obsDates = datenum(obsDataHead(:,1), obsDataHead(:,2), obsDataHead(:,3),obsDataHead(:,4),obsDataHead(:,5), zeros(size(obsDataHead,1),1));
-%     case 6
-%         obsDates = datenum(obsDataHead(:,1), obsDataHead(:,2), obsDataHead(:,3),obsDataHead(:,4),obsDataHead(:,5),obsDataHead(:,6));
-%     otherwise
-%         error('The input observed head must be 4 to 7 columns with right hand column being the head and the left columns: year; month; day; hour (optional), minute (optionl), second (optional).');
-% end
-% %%
-
-
 % directory = 'C:\Users\gbonotto\OneDrive - The University of Melbourne\1 - UNIMELB\5 - HydroSight\7 - HydroSight_SW_GW';
 % viewClassTree(directory)
 
@@ -154,6 +133,36 @@ if run7paramModel
     [objFn_joint, objFn_head, objFn_flow, flow_star, colnames, drainage_elevation] = objectiveFunction_joint(params_initial, time_points_head, time_points_streamflow, model_7params.model,{}); % using time points from calibration_initialise to avoid mismatch of dimensions in line 2803 of model_TFN
 
 
+    
+    
+    % TO DO: BEST WAY TO INCLUDE AMALGAM? The script bellow is an example
+    % from the manual 
+    % SHOULD WE INCLUDE BEFORE OR AFTER THE CALIBRATION IN HYDROSIGHT?
+    % ALSO, calibrateModel IN hydrosight calibrates only to head, how to include calibration to flow? 
+    % ----------------------------------------------------------------------------------------- %
+    %% Define fields of AMALGAMPar
+    AMALGAMPar.N = 100; % Define population size
+    AMALGAMPar.T = 150; % How many generations?
+    AMALGAMPar.d = 7; % How many parameters?
+    AMALGAMPar.m = 2; % How many objective functions?
+    %% Define fields of Par_info
+    Par_info.initial = 'latin'; % Latin hypercube sampling
+    Par_info.boundhandling = 'reflect'; % Explicit boundary handling
+    Par_info.min = [1 10 0.1 0.1 -10 0.1 0.1]; % If 'latin', min values
+    Par_info.max = [10 1000 100 100 10 10 150]; % If 'latin', max values
+    %% Define name of function (Schoups and Vrugt, Water Resources Research, 46, W10531, 2010)
+    Func_name = 'AMALGAM_hmodel';  % HERE WE NEED TO INCLUDE model_TFN_SW_GW............... 
+    %% Define structure options
+    options.parallel = 'yes'; % Multi-core calculation model
+    options.IO = 'no'; % No in/out writing model (Default = 'no')
+    options.modout = 'yes'; % Return simulations
+    options.print = 'yes'; % Print output to screen (tables and figures)
+    %% Run the AMALGAM code and obtain non-dominated solution set
+    [X,F,output,Z,sim] = AMALGAM ( AMALGAMPar , Func_name , Par_info , options );
+
+    
+    
+    
     
     
     
