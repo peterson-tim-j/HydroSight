@@ -28,24 +28,44 @@
 %clear all
 
 % Comment out the one bore ID that you DO NOT want to model.
-bore_ID = 'ID124705';
+% bore_ID = 'ID124705';
+% 
+% if strcmp(bore_ID,'ID124705')
+%     load('124705_boreData.mat');
+% else
+%     load('124676_boreData.mat');
+% end
+% 
+% load('124705_forcingData.mat');
 
-if strcmp(bore_ID,'ID124705')
-    load('124705_boreData.mat');
-else
-    load('124676_boreData.mat');
-end
 
-load('124705_forcingData.mat');
+% % read the observed flow time-series 
+% obsDataFlow = readtable('obsFlow_Brucknell_up to 2009.csv');
+% obsDataFlow = obsDataFlow(:,2:end);
+% obsDataFlow = table2array(obsDataFlow);
+
+% read the observed head time-series 
+bore_ID = 'bore_141243'; % just change the bore ID
+LoadBoreDataWL = readtable('obsHead_all_bores_outliers_removed_Run2.csv');
+boreDataWL = LoadBoreDataWL(strcmp(LoadBoreDataWL.BoreID, bore_ID), :);
+boreDataWL = boreDataWL(:,2:end);
+boreDataWL = table2array(boreDataWL);
 
 
+% read the forcging data time-series 
+forcingData = readtable('climate_Brucknell_Catchment_ETMortonCRAE.csv');
+% forcingData = readtable('climate_Ford_Catchment_ETMortonCRAE.csv');
+% forcingData = readtable('climate_Sunday_Catchment_ETMortonCRAE.csv');
+forcingData = forcingData(:,[3:6 12]);
+forcingData = table2array(forcingData);
 
 
 
 % Reformat the matric of forcing data to a sturctire variable containing
 % the column names.
 forcingDataStruct.data = forcingData;
-forcingDataStruct.colnames = {'YEAR','MONTH','DAY','PRECIP','APET','RevegFrac'};
+% forcingDataStruct.colnames = {'YEAR','MONTH','DAY','PRECIP','APET','RevegFrac'};
+forcingDataStruct.colnames = {'YEAR','MONTH','DAY','PRECIP','APET'};
 
 % To increase performance, we can reduce the length of the climate record.
 % This may cause longer time scales to be less reliably estimated.
@@ -56,10 +76,15 @@ forcingDataStruct.data = forcingDataStruct.data(filt,:);
 
 % Define the bore ID and create sume dummy site coordinates. This must be
 % for the bore and each column in the forcing file.
+% siteCoordinates = {bore_ID, 100, 100;...
+%                     'PRECIP', 100, 100;...
+%                     'APET', 100, 100;...
+%                     'RevegFrac',602, 100};
+               
 siteCoordinates = {bore_ID, 100, 100;...
                     'PRECIP', 100, 100;...
-                    'APET', 100, 100;...
-                    'RevegFrac',602, 100};
+                    'APET', 100, 100};
+                
 
 % Define the way in which the precipitation is transformed. In this case it
 % is transformed using the 'climateTransform_soilMoistureModels' soil
@@ -112,7 +137,8 @@ run7paramModel = true;
 run9paramModel = false;
 
 % Define a model lable
-modelLabel = 'Great Western Catchment - no landuse change';
+% modelLabel = 'Great Western Catchment - no landuse change';
+modelLabel = 'Brucknell Catchment - using catchhment average forcing, bore_141234, daily flow';
 
 % directory = 'C:\Users\gbonotto\OneDrive - The University of Melbourne\1 - UNIMELB\5 - HydroSight\7 - HydroSight_SW_GW';
 % viewClassTree(directory)
@@ -140,25 +166,25 @@ if run7paramModel
     % SHOULD WE INCLUDE BEFORE OR AFTER THE CALIBRATION IN HYDROSIGHT?
     % ALSO, calibrateModel IN hydrosight calibrates only to head, how to include calibration to flow? 
     % ----------------------------------------------------------------------------------------- %
-    %% Define fields of AMALGAMPar
-    AMALGAMPar.N = 100; % Define population size
-    AMALGAMPar.T = 150; % How many generations?
-    AMALGAMPar.d = 7; % How many parameters?
-    AMALGAMPar.m = 2; % How many objective functions?
-    %% Define fields of Par_info
-    Par_info.initial = 'latin'; % Latin hypercube sampling
-    Par_info.boundhandling = 'reflect'; % Explicit boundary handling
-    Par_info.min = [1 10 0.1 0.1 -10 0.1 0.1]; % If 'latin', min values
-    Par_info.max = [10 1000 100 100 10 10 150]; % If 'latin', max values
-    %% Define name of function (Schoups and Vrugt, Water Resources Research, 46, W10531, 2010)
-    Func_name = 'AMALGAM_hmodel';  % HERE WE NEED TO INCLUDE model_TFN_SW_GW............... 
-    %% Define structure options
-    options.parallel = 'yes'; % Multi-core calculation model
-    options.IO = 'no'; % No in/out writing model (Default = 'no')
-    options.modout = 'yes'; % Return simulations
-    options.print = 'yes'; % Print output to screen (tables and figures)
-    %% Run the AMALGAM code and obtain non-dominated solution set
-    [X,F,output,Z,sim] = AMALGAM ( AMALGAMPar , Func_name , Par_info , options );
+%     %% Define fields of AMALGAMPar
+%     AMALGAMPar.N = 100; % Define population size
+%     AMALGAMPar.T = 150; % How many generations?
+%     AMALGAMPar.d = 7; % How many parameters?
+%     AMALGAMPar.m = 2; % How many objective functions?
+%     %% Define fields of Par_info
+%     Par_info.initial = 'latin'; % Latin hypercube sampling
+%     Par_info.boundhandling = 'reflect'; % Explicit boundary handling
+%     Par_info.min = [1 10 0.1 0.1 -10 0.1 0.1]; % If 'latin', min values
+%     Par_info.max = [10 1000 100 100 10 10 150]; % If 'latin', max values
+%     %% Define name of function (Schoups and Vrugt, Water Resources Research, 46, W10531, 2010)
+%     Func_name = 'AMALGAM_hmodel';  % HERE WE NEED TO INCLUDE model_TFN_SW_GW............... 
+%     %% Define structure options
+%     options.parallel = 'yes'; % Multi-core calculation model
+%     options.IO = 'no'; % No in/out writing model (Default = 'no')
+%     options.modout = 'yes'; % Return simulations
+%     options.print = 'yes'; % Print output to screen (tables and figures)
+%     %% Run the AMALGAM code and obtain non-dominated solution set
+%     [X,F,output,Z,sim] = AMALGAM ( AMALGAMPar , Func_name , Par_info , options );
 
     
     

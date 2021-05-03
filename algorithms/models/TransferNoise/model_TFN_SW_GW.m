@@ -79,13 +79,14 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
             % Note, eventually site_IDs needs to be chnaged from a single
             % string with the bore ID to a vector of stream and bore IDs.
             % Maybe the first could be the stream ID.
-%             obsDataFlow = csvread('obsFlow_Brucknell.csv');
-            obsDataFlow = readtable('obsFlow_Brucknell_up to 2009.csv');
-            obsDataFlow = obsDataFlow(:,2:end);
-
+%             obsDataFlow = readtable('obsFlow_Sunday.csv'); % read in the obs flow data
+%             obsDataFlow = readtable('obsFlow_Ford.csv'); % read in the obs flow data
+            obsDataFlow = readtable('obsFlow_Brucknell.csv'); % read in the obs flow data
+            obsDataFlow = obsDataFlow(:,[2:4 6]); % FLOW UNIT -> columns -> [5] = daily average [m3/s], [6] = [mm/day], [7] = [ML/day], [8] = [mm/day]^(1/5),
             obsDataFlow = table2array(obsDataFlow);
-            
+
             % Derive columns of year, month, day etc to matlab date value
+            % for the observed streamflow time-series
             switch size(obsDataFlow,2)-1
                 case 3
                     obsDates = datenum(obsDataFlow(:,1), obsDataFlow(:,2), obsDataFlow(:,3));
