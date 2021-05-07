@@ -78,13 +78,16 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
             %% Read in file with obs flow.
             % Note, eventually site_IDs needs to be chnaged from a single
             % string with the bore ID to a vector of stream and bore IDs.
-            % Maybe the first could be the stream ID.
+            % Maybe the first could be the stream ID.  
+            %   -------- CHANGE THE CACTHMENT ACCORDINGLY  -----------
 %             obsDataFlow = readtable('obsFlow_Sunday.csv'); % read in the obs flow data
 %             obsDataFlow = readtable('obsFlow_Ford.csv'); % read in the obs flow data
             obsDataFlow = readtable('obsFlow_Brucknell.csv'); % read in the obs flow data
             obsDataFlow = obsDataFlow(:,[2:4 6]); % FLOW UNIT -> columns -> [5] = daily average [m3/s], [6] = [mm/day], [7] = [ML/day], [8] = [mm/day]^(1/5),
             obsDataFlow = table2array(obsDataFlow);
 
+            
+            
             % Derive columns of year, month, day etc to matlab date value
             % for the observed streamflow time-series
             switch size(obsDataFlow,2)-1
@@ -104,6 +107,26 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
             % Use all input data
             obsDataFlow = [obsDates, obsDataFlow(:,end)];
             
+            
+            % THERE IS A ERROR THAT HAS BEEN CAUSED BY GAPS IN THE
+            % STREAMFLOW TIMESERIES. THIS IS CAUSING THE FORCING TIMESERIES
+            % TO BE LONGER THAN THE STREAMFLOW TIMESERIES, WHICH DATES ARE
+            % USED TO GENERATE THE BASEFLOW OUTPUT...
+            %maybe streamflow starts before gw head timeseries or the opposte? causing
+            % issues....
+            
+            % Trim streamflow data to be <= GW head end date
+            endDate  = min(obsData(end,1), obsDataFlow(end,1));
+            filt = obsDataFlow(:,1)<=endDate;
+            obsDataFlow = obsDataFlow(filt,:);
+%             filt = climateForcing(:,1)<=endDate;
+%             climateForcing = climateForcing(filt,:);
+%             t = datenum(boreDataWL(:,1),boreDataWL(:,2),boreDataWL(:,3));
+%             
+            % Check streamflow for Nans
+            filt = isnan(obsDataFlow(:,2));
+            obsDataFlow = obsDataFlow(~filt,:);
+
             % including the flow data into the input data object
             obj.inputData.flow = obsDataFlow;
 
@@ -158,7 +181,7 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
         
         
         
-    function [objFn_joint, objFn_head, objFn_flow, totalFlow_sim, colnames, drainage_elevation] = objectiveFunction_joint(params, time_points_head, time_points_streamflow, obj, varargin)
+    function [objFn_joint, objFn_head, objFn_flow2, totalFlow_sim, colnames, drainage_elevation] = objectiveFunction_joint(params, time_points_head, time_points_streamflow, obj, varargin)
        
 %         obj.variables.theta_est_indexes_min = ones(1,length(time_points) ); % to pass the condition in line 2679 in model_TFN - "tor_end = tor( obj.variables.theta_est_indexes_min(1,:) )';
 %         obj.variables.theta_est_indexes_max = ones(1,length(time_points) );
@@ -219,19 +242,23 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
 
                 
         % Calc. flow objFn using NSE
-        objFn_flow = 1 - ( sum((totalFlow_sim - obsFlow(:,2)).^2)./ ...
-            sum((obsFlow(:,2) - mean(obsFlow(:,2))).^2));
-        objFn_flow
+%         objFn_flow = 1 - ( sum((totalFlow_sim - obsFlow(:,2)).^2)./ ...
+%             sum((obsFlow(:,2) - mean(obsFlow(:,2))).^2));
+%         objFn_flow
         
         % Calc. flow objFn using normalized NSE
-        objFn_flow_NNSE = 1 / (2- objFn_flow); 
-        objFn_flow_NNSE
+%         objFn_flow_NNSE = 1 / (2- objFn_flow); 
+%         objFn_flow_NNSE
         
+        %maybe use RMSE cause in almagam we want to minize the obj-func!
+%         objFn_flow2 = sqrt(sum((totalFlow_sim - obsFlow(:,2)).^2)/size(obsFlow,2));
+        %maybe use SSE cause in almagam we want to minize the obj-func!
+        objFn_flow2 = sum((totalFlow_sim - obsFlow(:,2)).^2);% TO DO: double-check if AMALGAM EXPECTS BOTH OBJECTIVE FUNCTIONS TO BE MINIMIZED. 
+            
+
         
         % Have some way of merging objFn from head and objFn from flow
-        objFn_joint = objFn_head + objFn_flow; % TO DO: we want to maximize both, rigth?
-        
-        
+        objFn_joint = [objFn_head, objFn_flow2]; 
         
         % Rten combined objFun and other terms 
         
@@ -261,10 +288,9 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
      
      
      % set head in baseflow (using setForcingData)
-     
      setForcingData(obj.parameters.baseflow, head, 'head')
      
-     % calc. baseflow using setTransformedForcing in baseflow
+     % calc. baseflow using setTransformedForcing in "baseflow"
      setTransformedForcing(obj.parameters.baseflow, time_points_streamflow, true)
      
      % get calcuated baseflow in baseflow
@@ -295,6 +321,14 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
      
      quickFlow = allDerivedForcingData(:,6); % runoff in [mm/day], to get ML/day, mutiply by the catchmentArea - (quickflow from the runoff of the lumped 1-d soil moisture model)
      
+     % CHECK IF GW HEAD OBS TIME-SERIES LENGTH IS LONGER OR EQUAL TO STREAMFLOW TIME-SERIES.. IT MAY BE CAUSING THE ERROR FOR FORD AND SUNDAY... 
+
+     
+     % THERE IS A ERROR THAT HAS BEEN CAUSED BY GAPS IN THE
+     % STREAMFLOW TIMESERIES. THIS IS CAUSING THE FORCING TIMESERIES
+     % TO BE LONGER THAN THE STREAMFLOW TIMESERIES, WHICH DATES ARE
+     % USED TO GENERATE THE BASEFLOW OUTPUT...
+            
      totalFlow = quickFlow + baseFlow; % baseFlow + quickFlow;  BASEFLOW IS DAILY TIME-SERIES MATCHING THE TIME STEPS OF QUICKFLOW, DOUBLE CHECH THIS MATCHING....
      
      % limit the total flow to above zero

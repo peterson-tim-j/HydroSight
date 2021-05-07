@@ -45,21 +45,21 @@
 % obsDataFlow = table2array(obsDataFlow);
 
 % read the observed head time-series 
-bore_ID = 'bore_141243'; % just change the bore ID
+bore_ID = 'bore_WRK961326'; %  -------- CHANGE THE BORE ACCORDINGLY 
 LoadBoreDataWL = readtable('obsHead_all_bores_outliers_removed_Run2.csv');
 boreDataWL = LoadBoreDataWL(strcmp(LoadBoreDataWL.BoreID, bore_ID), :);
 boreDataWL = boreDataWL(:,2:end);
 boreDataWL = table2array(boreDataWL);
 
 
-% read the forcging data time-series 
-forcingData = readtable('climate_Brucknell_Catchment_ETMortonCRAE.csv');
+% read the forcging data time-series   -------- CHANGE THE CACTHMENT ACCORDINGLY 
+forcingData = readtable('climate_Brucknell_Catchment_ETMortonCRAE.csv');  
 % forcingData = readtable('climate_Ford_Catchment_ETMortonCRAE.csv');
 % forcingData = readtable('climate_Sunday_Catchment_ETMortonCRAE.csv');
 forcingData = forcingData(:,[3:6 12]);
 forcingData = table2array(forcingData);
 
-
+% CHECK IF GW HEAD OBS TIME-SERIES LENGTH IS LONGER OR EQUAL TO STREAMFLOW TIME-SERIES.. IT MAY BE CAUSING THE ERROR FOR FORD AND SUNDAY... 
 
 % Reformat the matric of forcing data to a sturctire variable containing
 % the column names.
@@ -147,6 +147,8 @@ if run7paramModel
     % Build the 7 parameter model.
     model_7params = HydroSightModel(modelLabel, bore_ID, 'model_TFN_SW_GW', boreDataWL, maxObsFreq, forcingDataStruct, siteCoordinates, modelOptions_7params);
 
+    
+    
     [params, param_names] = getParameters(model_7params.model);
     t = datenum(boreDataWL(:,1),boreDataWL(:,2),boreDataWL(:,3));
     
@@ -155,37 +157,78 @@ if run7paramModel
     %%%% dont i need to first do this to then get the objective function?
     [params_initial, time_points_head, time_points_streamflow] = calibration_initialise(model_7params.model, t_start, t_end); % put it outside of objectiveFunction to avoid initializing it again during the callinf of "solve" inside of "objectiveFunction"
  
+    
+    % call amalgam 
+    
+    
 %     [objFn, flow_star, colnames, drainage_elevation] = objectiveFunction(params, t, model_7params.model,{});
     [objFn_joint, objFn_head, objFn_flow, flow_star, colnames, drainage_elevation] = objectiveFunction_joint(params_initial, time_points_head, time_points_streamflow, model_7params.model,{}); % using time points from calibration_initialise to avoid mismatch of dimensions in line 2803 of model_TFN
 
 
     
+    % ----------------------------------------------------------------------------------------- %
     
     % TO DO: BEST WAY TO INCLUDE AMALGAM? The script bellow is an example
-    % from the manual 
-    % SHOULD WE INCLUDE BEFORE OR AFTER THE CALIBRATION IN HYDROSIGHT?
-    % ALSO, calibrateModel IN hydrosight calibrates only to head, how to include calibration to flow? 
+    % from the manual using hymod 
+    % SHOULD WE INCLUDE BEFORE THE CALIBRATION IN HYDROSIGHT, RIGHT?
     % ----------------------------------------------------------------------------------------- %
-%     %% Define fields of AMALGAMPar
-%     AMALGAMPar.N = 100; % Define population size
-%     AMALGAMPar.T = 150; % How many generations?
-%     AMALGAMPar.d = 7; % How many parameters?
-%     AMALGAMPar.m = 2; % How many objective functions?
-%     %% Define fields of Par_info
-%     Par_info.initial = 'latin'; % Latin hypercube sampling
-%     Par_info.boundhandling = 'reflect'; % Explicit boundary handling
-%     Par_info.min = [1 10 0.1 0.1 -10 0.1 0.1]; % If 'latin', min values
-%     Par_info.max = [10 1000 100 100 10 10 150]; % If 'latin', max values
-%     %% Define name of function (Schoups and Vrugt, Water Resources Research, 46, W10531, 2010)
-%     Func_name = 'AMALGAM_hmodel';  % HERE WE NEED TO INCLUDE model_TFN_SW_GW............... 
-%     %% Define structure options
-%     options.parallel = 'yes'; % Multi-core calculation model
-%     options.IO = 'no'; % No in/out writing model (Default = 'no')
-%     options.modout = 'yes'; % Return simulations
-%     options.print = 'yes'; % Print output to screen (tables and figures)
-%     %% Run the AMALGAM code and obtain non-dominated solution set
-%     [X,F,output,Z,sim] = AMALGAM ( AMALGAMPar , Func_name , Par_info , options );
+    
+    % BOTH OBJ-FUNC SHOULD BE MINIMIZED IN AMALGAM....... 
+    
+    % Define which algorithms to use in AMALGAM
+%     Extra.Alg = {'GA','PSO','AMS','DE'};
+%     % Define the number of algorithms
+%     AMALGAMPar.q = size(Extra.Alg,2);
+%     
+%     % HYMOD rainfall - runoff model
+%     
+%     AMALGAMPar.n = 5;                       % Dimension of the problem    ----  run7paramModel now has 9 parameters? are we allowing head-threshoold and head_to_baseflow to be calibrated? 
+%     AMALGAMPar.N = 100;                     % Size of the population   - LENTGH OF OBS. TIMESERIES?
+%     AMALGAMPar.nobj = 2;                    % Number of objectives
+%     AMALGAMPar.ndraw = 10000;               % Maximum number of function evaluations
+%     
+%     % Define the parameter ranges (minimum and maximum values)
+%     [params_upperLimit, params_lowerLimit] = getParameters_plausibleLimit(model_7params.model);
+%     ParRange.minn = params_lowerLimit;
+%     ParRange.maxn = params_upperLimit;
+%     
+% %     % How is the initial sample created -- Latin Hypercube sampling
+% %     Extra.InitPopulation = 'LHS';
+% %     
+% %     % Load the Leaf River data
+% %     load bound.txt;
+% %     
+% %     % Then read the boundary conditions -- only do two years
+% %     Extra.MaxT = 795;
+% %     
+% %     % Define the PET, Measured Streamflow and Precipitation.
+% %     Extra.PET = bound(1:Extra.MaxT,5); Extra.Precip = sum(bound(1:Extra.MaxT,6:9),2);
+% %     
+% %     % Define the measured streamflow data
+% %     Measurement.MeasData = bound(65:Extra.MaxT,4); Measurement.Sigma = []; Measurement.N = size(Measurement.MeasData,1);
+%     
+%     % Define ModelName
+%     %     ModelName = 'hymod';
+%     Extra = model_7params;
+%     Measurement = [];
+%     ModelName = 'objectiveFunction_joint4AMALGAM'; % which part of hydrosight to input?
+%     
+%     % Define the boundary handling
+%     Extra.BoundHandling = 'Bound';
+%     
+%     % True Pareto front is not available -- real world problem
+%     Fpareto = [];
+%        
+%     
+%     % Store example number in structure Extra
+%     Extra.example = example; Extra.m = AMALGAMPar.n;
+%     
+%     % Run the AMALGAM code and obtain non-dominated solution set
+%     [output,ParGen,ObjVals,ParSet] = AMALGAM(AMALGAMPar,ModelName,ParRange,Measurement,Extra,Fpareto);
 
+
+
+% ---------------------------------------------------------------------------------------------------%
     
     
     
