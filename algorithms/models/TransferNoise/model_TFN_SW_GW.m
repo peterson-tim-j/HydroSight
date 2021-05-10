@@ -231,7 +231,7 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
         
         % Call some method in model_TFN_SW_GW to return simulated flow
         % (using the simulated head - so call 
-        [totalFlow_sim, baseFlow, quickFlow] = getStreamFlow(time_points_streamflow, obj, varargin);
+        [totalFlow_sim, baseFlow, quickFlow] = getStreamFlow(time_points_streamflow, obj, varargin, theta_est_indexes_min, theta_est_indexes_max, delta_time);
         
         
         
@@ -254,7 +254,7 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
 %         objFn_flow2 = sqrt(sum((totalFlow_sim - obsFlow(:,2)).^2)/size(obsFlow,2));
         %maybe use SSE cause in almagam we want to minize the obj-func!
         objFn_flow2 = sum((totalFlow_sim - obsFlow(:,2)).^2);% TO DO: double-check if AMALGAM EXPECTS BOTH OBJECTIVE FUNCTIONS TO BE MINIMIZED. 
-            
+        objFn_flow2
 
         
         % Have some way of merging objFn from head and objFn from flow
@@ -270,7 +270,7 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
     end
     
     % get quickFlow and baseFlow using simulated head and streamflow 
-    function [totalFlow, baseFlow, quickFlow] = getStreamFlow(time_points_streamflow, obj, varargin)
+    function [totalFlow, baseFlow, quickFlow] = getStreamFlow(time_points_streamflow, obj, varargin, theta_est_indexes_min, theta_est_indexes_max, delta_time)
      
         % solve is calling back objectiveFunction that calls
         % calibration_initialise, maybe take calibration_initialise ouside
@@ -280,11 +280,12 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
       obj.parameters.variables.doingCalibration = true;
       
      
-      % Add model_TFN variables back
-%       obj.parameters.variables.theta_est_indexes_min = theta_est_indexes_min;
-%       obj.parameters.variables.theta_est_indexes_max = theta_est_indexes_max;
-%       obj.parameters.variables.delta_time = delta_time;
-%       clear theta_est_indexes_min theta_est_indexes_max delta_time
+      % Add model_TFN variables back that are cleared when the model_TFN
+      % solve() is called
+      obj.variables.theta_est_indexes_min = theta_est_indexes_min;
+      obj.variables.theta_est_indexes_max = theta_est_indexes_max;
+      obj.variables.delta_time = delta_time;
+      clear theta_est_indexes_min theta_est_indexes_max delta_time
      
      
      % set head in baseflow (using setForcingData)

@@ -24,6 +24,10 @@ output.R = zeros(round(AMALGAMPar.ndraw/AMALGAMPar.N),4);
 
 % Define the bounds on the objective functions
 Bounds = [-1000*ones(AMALGAMPar.nobj,1) 1000*ones(AMALGAMPar.nobj,1)];
+% Bounds = [-1000*ones(AMALGAMPar.nobj,1) inf*ones(AMALGAMPar.nobj,1)]; %%
+% TO DO: maybe we need to increase the upper bound depending on the
+% obj-function. Currently using SSE so the value can be very high and
+% require inf. upper bound..
 
 % Define algorithmic parameters
 Extra.Jump = (2.4/sqrt(AMALGAMPar.n)).^2; Extra.m = AMALGAMPar.n;
