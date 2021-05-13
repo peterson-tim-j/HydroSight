@@ -112,18 +112,20 @@ end;
 
 
 ObjVals = repmat(inf, AMALGAMPar.N, 2); % initialize to speed up the parfor loop with the correct matrix of ObjVals
+Cg = repmat(0, AMALGAMPar.N, 1);         % Define the contstraint violation
 
-%     parfor ii = 1:AMALGAMPar.N % computing the Obj-functions using parallel computing
-    for ii = 1:AMALGAMPar.N % computing the Obj-functions using parallel computing
+model_object.variables.doingCalibration = true; % true to pass through objectiveFunction_joint with the correct input during the loop.
 
-        [ObjVals_prime, objFn_head, objFn_flow2, totalFlow_sim, colnames, drainage_elevation] = objectiveFunction_joint(ParGen(ii,:)', Measurement.time_points_head, Measurement.time_points_streamflow, model_object,{}); % using time points from calibration_initialise to avoid mismatch of dimensions in line 2803 of model_TFN
-        model_object.variables.doingCalibration = true; % true to pass through objectiveFunction_joint with the correct input during the loop.
+    parfor ii = 1:AMALGAMPar.N % computing the Obj-functions using parallel computing
+%     for ii = 1:AMALGAMPar.N % computing the Obj-functions using parallel computing
 
+        ObjVals_prime = objectiveFunction_joint(ParGen(ii,:)', Measurement.time_points_head, Measurement.time_points_streamflow, model_object,{}); % using time points from calibration_initialise to avoid mismatch of dimensions in line 2803 of model_TFN
+%         model_object.variables.doingCalibration = true; % true to pass through objectiveFunction_joint with the correct input during the loop.
+        
         % Store the objective function values for each point
-        ObjVals(ii,1:AMALGAMPar.nobj) = ObjVals_prime;
+        ObjVals(ii,:) = ObjVals_prime;
 
-        % Define the contstraint violation
-        Cg(ii,1) = 0;
+%         Cg(ii,1) = 0 % Define the contstraint violation
 
     end
   
@@ -149,7 +151,7 @@ Iter = AMALGAMPar.N;
 output.R(1,1:4) = [Iter Gamma Delta Hvol];
 
 % Store current population in ParSet
-ParSet(1:AMALGAMPar.N,1:AMALGAMPar.n + AMALGAMPar.nobj + 1) = [ParGen' Cg ObjVals]; % need to transpose back ParGen to work in the next methods of AMALGAM
+ParSet(1:AMALGAMPar.N,1:AMALGAMPar.n + AMALGAMPar.nobj + 1) = [ParGen Cg ObjVals]; 
 
 % Define counter
 counter = 2;
@@ -170,25 +172,26 @@ while (Iter < AMALGAMPar.ndraw),
 %     [ChildObjVals,ChildCg] = objectiveFunction_joint4AMALGAM(NewGen,AMALGAMPar,Measurement,ModelName,Extra);
 
     ChildObjVals = repmat(inf, AMALGAMPar.N, 2); % initialize to speed up the parfor loop with the correct matrix of ObjVals
+    ChildCg = repmat(inf, AMALGAMPar.N, 1);
 
-     %     parfor ii = 1:AMALGAMPar.N % computing the Obj-functions using parallel computing
-     for ii = 1:AMALGAMPar.N % computing the Obj-functions using parallel computing
+    parfor ii = 1:AMALGAMPar.N % computing the Obj-functions using parallel computing
+%      for ii = 1:AMALGAMPar.N % computing the Obj-functions using parallel computing
          
-         [ObjVals_prime, objFn_head, objFn_flow2, totalFlow_sim, colnames, drainage_elevation] = objectiveFunction_joint(ParGen(ii,:)', Measurement.time_points_head, Measurement.time_points_streamflow, model_object,{}); % using time points from calibration_initialise to avoid mismatch of dimensions in line 2803 of model_TFN
-         model_object.variables.doingCalibration = true; % true to pass through objectiveFunction_joint with the correct input during the loop.
+         ObjVals_prime = objectiveFunction_joint(NewGen(ii,:)', Measurement.time_points_head, Measurement.time_points_streamflow, model_object,{}); % using time points from calibration_initialise to avoid mismatch of dimensions in line 2803 of model_TFN
+%          model_object.variables.doingCalibration = true; % true to pass through objectiveFunction_joint with the correct input during the loop.
          
          % Store the objective function values for each point
-         ChildObjVals(ii,1:AMALGAMPar.nobj) = ObjVals_prime;
+         ChildObjVals(ii,:) = ObjVals_prime;
          
          % Define the contstraint violation
-         Cg(ii,1) = 0;
+%          ChildCg(ii,1) = 0;
          
      end
      
      
 
     % Step 4: Now merge parent and child populations and generate new one
-    [ParGen,ObjVals,Ranking,CrowdDist,Iout,Cg] = CreateNewPop(ParGen,NewGen',ObjVals,ChildObjVals,Itot,Cg,ChildCg,ParRange,Bounds); % need to transpose back ParGen to work in the next methods of AMALGAM
+    [ParGen,ObjVals,Ranking,CrowdDist,Iout,Cg] = CreateNewPop(ParGen,NewGen,ObjVals,ChildObjVals,Itot,Cg,ChildCg,ParRange,Bounds); 
 
     % Step 5: Determine the new number of offspring points for individual algorithms
     [AMALGAMPar] = DetN(Iout,AMALGAMPar);

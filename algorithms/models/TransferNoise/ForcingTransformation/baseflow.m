@@ -9,7 +9,8 @@ classdef baseflow < forcingTransform_abstract
         %----------------------------------------------------------------
         head_threshold   % GW head threshold that defines if have positive or negative baseflow. Below this threshold, baseflow recharges from the river.
         head_to_baseflow % controls the smoothening of the baseflow response due to the rise of GW head. 
-        
+       % log these parameters? 
+       
         %----------------------------------------------------------------        
     end
     

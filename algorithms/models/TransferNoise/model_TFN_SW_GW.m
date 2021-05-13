@@ -231,7 +231,7 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
         
         % Call some method in model_TFN_SW_GW to return simulated flow
         % (using the simulated head - so call 
-        [totalFlow_sim, baseFlow, quickFlow] = getStreamFlow(time_points_streamflow, obj, varargin, theta_est_indexes_min, theta_est_indexes_max, delta_time);
+        [totalFlow_sim, baseFlow, quickFlow] = getStreamFlow(time_points_streamflow, obj, varargin, theta_est_indexes_min, theta_est_indexes_max, delta_time, params);
         
         
         
@@ -251,9 +251,9 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
 %         objFn_flow_NNSE
         
         %maybe use RMSE cause in almagam we want to minize the obj-func!
-%         objFn_flow2 = sqrt(sum((totalFlow_sim - obsFlow(:,2)).^2)/size(obsFlow,2));
+        objFn_flow2 = sqrt(sum((totalFlow_sim - obsFlow(:,2)).^2)/ size(obsFlow,1)) ;
         %maybe use SSE cause in almagam we want to minize the obj-func!
-        objFn_flow2 = sum((totalFlow_sim - obsFlow(:,2)).^2);% TO DO: double-check if AMALGAM EXPECTS BOTH OBJECTIVE FUNCTIONS TO BE MINIMIZED. 
+%         objFn_flow2 = sum((totalFlow_sim - obsFlow(:,2)).^2);% TO DO: double-check if AMALGAM EXPECTS BOTH OBJECTIVE FUNCTIONS TO BE MINIMIZED. 
         objFn_flow2
 
         
@@ -262,15 +262,25 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
         
         % Rten combined objFun and other terms 
         
-        
-        
+     
+        plot( obsFlow(:,1), obsFlow(:,2))
+        title(' streamflow observations vs simulation')
+        xlabel('Numeric Date ')
+        ylabel('mm/day')
+        grid on
+        ax = gca;
+        ax.FontSize = 13;
+        hold on
+        plot(obsFlow(:,1),totalFlow_sim)
+        hold off
+
         
         
         
     end
     
     % get quickFlow and baseFlow using simulated head and streamflow 
-    function [totalFlow, baseFlow, quickFlow] = getStreamFlow(time_points_streamflow, obj, varargin, theta_est_indexes_min, theta_est_indexes_max, delta_time)
+    function [totalFlow, baseFlow, quickFlow] = getStreamFlow(time_points_streamflow, obj, varargin, theta_est_indexes_min, theta_est_indexes_max, delta_time, params)
      
         % solve is calling back objectiveFunction that calls
         % calibration_initialise, maybe take calibration_initialise ouside
@@ -288,7 +298,7 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
       clear theta_est_indexes_min theta_est_indexes_max delta_time
      
      
-     % set head in baseflow (using setForcingData)
+     % set head in "baseflow" (using setForcingData)
      setForcingData(obj.parameters.baseflow, head, 'head')
      
      % calc. baseflow using setTransformedForcing in "baseflow"
@@ -304,6 +314,7 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
      % streamflow observations 
      setTransformedForcing(obj.parameters.climateTransform_soilMoistureModels, time_points_streamflow, true) 
      
+     detectParameterChange(obj, params)
      
      % getting the derived forcing data, which includes the quick flow
      % (runoff and interflow)
@@ -313,8 +324,7 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
      [allForcingData, forcingData_colnames] = getForcingData(obj);
      
         
-     % Initialise function eval counter
-     obj.variables.nobjectiveFunction_calls=0;
+    
      
      % Initialise total flow 
      obj.variables.totalFlow = [];

@@ -45,7 +45,7 @@
 % obsDataFlow = table2array(obsDataFlow);
 
 % read the observed head time-series 
-bore_ID = 'bore_WRK961326'; %  -------- CHANGE THE BORE ACCORDINGLY 
+bore_ID = 'bore_141243'; %  -------- CHANGE THE BORE ACCORDINGLY 
 LoadBoreDataWL = readtable('obsHead_all_bores_outliers_removed_Run2.csv');
 boreDataWL = LoadBoreDataWL(strcmp(LoadBoreDataWL.BoreID, bore_ID), :);
 boreDataWL = boreDataWL(:,2:end);
@@ -138,7 +138,7 @@ run9paramModel = false;
 
 % Define a model lable
 % modelLabel = 'Great Western Catchment - no landuse change';
-modelLabel = 'Brucknell Catchment - using catchhment average forcing, bore_141234, daily flow';
+modelLabel = 'Brucknell Catchment - using catchhment average forcing, bore_141243, daily flow';
 
 % directory = 'C:\Users\gbonotto\OneDrive - The University of Melbourne\1 - UNIMELB\5 - HydroSight\7 - HydroSight_SW_GW';
 % viewClassTree(directory)
@@ -192,8 +192,8 @@ if run7paramModel
     [params_upperLimit, params_lowerLimit] = getParameters_plausibleLimit(model_7params.model);
 %     ParRange.minn = params_lowerLimit(1:end-1,1); % ignoring the last value cause it refers to "doingCalibration", which is not used in "objectiveFunction_joint"
 %     ParRange.maxn = params_upperLimit(1:end-1,1); % ignoring the last value cause it refers to "doingCalibration", which is not used in "objectiveFunction_joint"
-    ParRange.minn = params_lowerLimit; % ignoring the last value cause it refers to "doingCalibration", which is not used in "objectiveFunction_joint"
-    ParRange.maxn = params_upperLimit; % ignoring the last value cause it refers to "doingCalibration", which is not used in "objectiveFunction_joint"
+    ParRange.minn = params_lowerLimit'; % transpose params_upperLimi to meet expect format in AMALGAM 
+    ParRange.maxn = params_upperLimit'; % transpose params_upperLimi to meet expect format in AMALGAM 
     
     % How is the initial sample created -- Latin Hypercube sampling
     Extra.InitPopulation = 'LHS';
@@ -232,8 +232,23 @@ if run7paramModel
     % Run the AMALGAM code and obtain non-dominated solution set
     [output,ParGen,ObjVals,ParSet] = AMALGAM(AMALGAMPar,ModelName,ParRange,Measurement,Extra,Fpareto,model_object);
 
+    % Plot the Obj-functions
+    scatter( ObjVals(:,1), ObjVals(:,2))
+    title('Pareto Front - SSE for daily GW head and streamflow')
+    xlabel('SSE (GW head)')
+    ylabel('SSE (Flow)')
+    ax = gca;
+    ax.FontSize = 13;
 
-
+    
+    
+    % Plot the Obj-functions
+    scatter( model_7params.model.inputData(:,1), model_7params.model.inputData(:,2))
+    title(' streamflow observations')
+    xlabel('mm/day')
+    ylabel('date')
+    ax = gca;
+    ax.FontSize = 13;
 % ---------------------------------------------------------------------------------------------------%
     
     
