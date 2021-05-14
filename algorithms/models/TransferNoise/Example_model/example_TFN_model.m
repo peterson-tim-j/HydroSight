@@ -147,33 +147,24 @@ if run7paramModel
     % Build the 7 parameter model.
     model_7params = HydroSightModel(modelLabel, bore_ID, 'model_TFN_SW_GW', boreDataWL, maxObsFreq, forcingDataStruct, siteCoordinates, modelOptions_7params);
 
-    
-    
+    % getting the parameters necessary for running the transfer functions 
     [params, param_names] = getParameters(model_7params.model);
     t = datenum(boreDataWL(:,1),boreDataWL(:,2),boreDataWL(:,3));
     
     t_start = 0;
     t_end  = inf;
-    %%%% dont i need to first do this to then get the objective function?
+    
+    %%%% Creating the model structure required to calculate ObjFun for head in model_TFN 
     [params_initial, time_points_head, time_points_streamflow] = calibration_initialise(model_7params.model, t_start, t_end); % put it outside of objectiveFunction to avoid initializing it again during the callinf of "solve" inside of "objectiveFunction"
  
-    
-    % call amalgam 
-    
-    
-%     [objFn, flow_star, colnames, drainage_elevation] = objectiveFunction(params, t, model_7params.model,{});
-%     [objFn_joint, objFn_head, objFn_flow, flow_star, colnames, drainage_elevation] = objectiveFunction_joint(params_initial, time_points_head, time_points_streamflow, model_7params.model,{}); % using time points from calibration_initialise to avoid mismatch of dimensions in line 2803 of model_TFN
-%     objFn_joint
-
-    
+            
     % ----------------------------------------------------------------------------------------- %
-    
     % TO DO: BEST WAY TO INCLUDE AMALGAM? The script bellow is an example
     % from the manual using hymod 
     % SHOULD WE INCLUDE BEFORE THE CALIBRATION IN HYDROSIGHT, RIGHT?
-    % ----------------------------------------------------------------------------------------- %
     
     % BOTH OBJ-FUNC SHOULD BE MINIMIZED IN AMALGAM....... 
+    % ----------------------------------------------------------------------------------------- %
     
     % Define which algorithms to use in AMALGAM
     Extra.Alg = {'GA','PSO','AMS','DE'};
@@ -182,7 +173,6 @@ if run7paramModel
     
     % HydroSight using model_TFN_SW_GW - joint rainfall-runoff model
     
-%     AMALGAMPar.n = 5;                       % Dimension of the problem    
     AMALGAMPar.n = length(params_initial);  % Dimension of the problem    ----  run7paramModel now has 9 parameters? are we allowing head-threshoold and head_to_baseflow to be calibrated? 
     AMALGAMPar.N = 100;                     % Size of the population   - LENTGH OF OBS. TIMESERIES or just a calibration parameter?
     AMALGAMPar.nobj = 2;                    % Number of objectives
@@ -198,24 +188,13 @@ if run7paramModel
     % How is the initial sample created -- Latin Hypercube sampling
     Extra.InitPopulation = 'LHS';
     
-    % Load the Leaf River data
-%     load bound.txt;
-    
-    % Then read the boundary conditions -- use entire obs. time-series
-% %     Extra.MaxT = inf;
-    
-    % Define the PET, Measured Streamflow and Precipitation.
-%     Extra.PET = bound(1:Extra.MaxT,5); Extra.Precip = sum(bound(1:Extra.MaxT,6:9),2);
-    
-    % Define the measured streamflow data
-    %     Measurement.MeasData = bound(65:Extra.MaxT,4); Measurement.Sigma = []; Measurement.N = size(Measurement.MeasData,1);
+   
+    % Define the timepoints for the obs. head and streamflow data
     Measurement.time_points_head = time_points_head; Measurement.time_points_streamflow = time_points_streamflow;
     Measurement.Sigma = []; Measurement.N = size(Measurement.time_points_streamflow,1);
     
     % Define ModelName
-    %     ModelName = 'hymod';
-    model_object = model_7params.model;
-%     Measurement = [];
+    model_object = model_7params.model; % giving the hydrosight model as input 
     ModelName = 'objectiveFunction_joint4AMALGAM'; % which part of hydrosight to input?
     
     % Define the boundary handling
@@ -226,35 +205,22 @@ if run7paramModel
        
     
     % Store example number in structure Extra
-%     Extra.example = example; 
     Extra.m = AMALGAMPar.n;
     
     % Run the AMALGAM code and obtain non-dominated solution set
     [output,ParGen,ObjVals,ParSet] = AMALGAM(AMALGAMPar,ModelName,ParRange,Measurement,Extra,Fpareto,model_object);
 
-    % Plot the Obj-functions
+    % Plot the Obj-functions of the pareto front
     scatter( ObjVals(:,1), ObjVals(:,2))
-    title('Pareto Front - SSE for daily GW head and streamflow')
-    xlabel('SSE (GW head)')
-    ylabel('SSE (Flow)')
+    title('Pareto Front - pseudo likelihood for GW head and RMSE for daily streamflow')
+    xlabel('pseudo likelihood (GW head)')
+    ylabel('RMSE (Flow)')
     ax = gca;
     ax.FontSize = 13;
 
-    
-    
-    % Plot the Obj-functions
-    scatter( model_7params.model.inputData(:,1), model_7params.model.inputData(:,2))
-    title(' streamflow observations')
-    xlabel('mm/day')
-    ylabel('date')
-    ax = gca;
-    ax.FontSize = 13;
+ 
 % ---------------------------------------------------------------------------------------------------%
-    
-    
-    
-    
-    
+% HydroSight built-in calibration scheme only for GW head 
     
     % Set the number of SP-UCI calibration clusters per parameter
     SchemeSetting.ngs = 7;    
