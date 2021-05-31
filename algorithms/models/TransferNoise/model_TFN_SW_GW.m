@@ -300,7 +300,7 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
 %         hold off
 %         legend('totalFlow_sim','baseFlow','quickFlow')
 
-         obj.variables.doingCalibration = true; % true to allow the parfor loop in AMALGAM - TURN THIS OFF when not using AMALGAM 
+%          obj.variables.doingCalibration = true; % true to allow the parfor loop in AMALGAM - TURN THIS OFF when not using AMALGAM 
     end
     
     % get quickFlow and baseFlow using simulated head and streamflow 
