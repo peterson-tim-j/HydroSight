@@ -1,4 +1,4 @@
-function [output,ParGen,ObjVals,ParSet] = AMALGAM(AMALGAMPar,ModelName,ParRange,Measurement,Extra,Fpareto,model_object);
+function [output,ParGen,ObjVals,ParSet,allOriginalObjVals_Flow] = AMALGAM(AMALGAMPar,ModelName,ParRange,Measurement,Extra,Fpareto,model_object);
 % --------------------------------------------------------------------------------------------- %
 %                                                                                               %
 %        AA      MM       MM     AA      LL            GGGGGGGGG       AA      MM       MM      %
@@ -110,29 +110,36 @@ end;
 % Calculate objective function values for each of the AMALGAMPar.N points
 % [ObjVals,Cg] = CompOF(ParGen,AMALGAMPar,Measurement,ModelName,Extra);
 
-
 ObjVals = repmat(inf, AMALGAMPar.N, 2); % initialize to speed up the parfor loop with the correct matrix of ObjVals
-% Cg = repmat(0, AMALGAMPar.N, 1);         % Define the contstraint violation
+allOriginalObjVals_Flow = repmat(inf, AMALGAMPar.N, 5); % initialize to speed up the parfor loop with the correct matrix of all original ObjVals for flow
+Cg = repmat(0, AMALGAMPar.N, 1); % Initialize/Define the contstraint violation
 
-% model_object.variables.doingCalibration = true; % true to pass through objectiveFunction_joint with the correct input during the loop.
+
 
 %     parfor ii = 1:AMALGAMPar.N % computing the Obj-functions using parallel computing
     for ii = 1:AMALGAMPar.N % computing the Obj-functions using parallel computing
 
-        ObjVals_prime = objectiveFunction_joint(ParGen(ii,:)', Measurement.time_points_head, Measurement.time_points_streamflow, model_object,{}); % using time points from calibration_initialise to avoid mismatch of dimensions in line 2803 of model_TFN
-        model_object.variables.doingCalibration = true; % true to pass through objectiveFunction_joint with the correct input during the loop.
+%         ObjVals_prime = objectiveFunction_joint(ParGen(ii,:)', Measurement.time_points_head, Measurement.time_points_streamflow, model_object,{}); % using time points from calibration_initialise to avoid mismatch of dimensions in line 2803 of model_TFN
+        [ObjVals_prime, ~, ~, objFn_flow_NSE, objFn_flow_NNSE, objFn_flow_RMSE, objFn_flow_SSE, objFn_flow_bias, ~, ~,~] = objectiveFunction_joint(ParGen(ii,:)', Measurement.time_points_head, Measurement.time_points_streamflow, model_object,{}); % using time points from calibration_initialise to avoid mismatch of dimensions in line 2803 of model_TFN
+%         model_object.variables.doingCalibration = true; % true to pass through objectiveFunction_joint with the correct input during the loop.
         
-        % Store the objective function values for each point
+%         
+        % Store the objective function values for each point that are minimized in AMALGAM
         ObjVals(ii,:) = ObjVals_prime;
 
-        Cg(ii,1) = 0; % Define the contstraint violation
+        % Store the all original objective function values for flow for each point
+        allOriginalObjVals_Flow(ii,:) = [objFn_flow_NSE objFn_flow_NNSE objFn_flow_RMSE objFn_flow_SSE objFn_flow_bias];
+
+        Cg(ii,1) = 0; % Define the constraint violation
 
     end
   
-  
-  %    [ObjVals, Cg] = objectiveFunction_joint4AMALGAM(ParGen, AMALGAMPar,Measurement,ModelName,Extra);
-%   [ObjVals, objFn_head, objFn_flow2, totalFlow_sim, colnames, drainage_elevation] = objectiveFunction_joint(ParGen(1,:), Measurement.time_points_head, Measurement.time_points_streamflow, model_object,{}); % using time points from calibration_initialise to avoid mismatch of dimensions in line 2803 of model_TFN
-%ParGen a matrix of parameter sets
+% This function now contains the body
+% of the parfor-loop
+
+    
+    
+% ParGen a matrix of parameter sets
 % AMALGAMPar is a struct variable of number of parameters etc
 % Measurements I this can be empty
 % ModelName is 'objectiveFunction_joint'
@@ -172,16 +179,21 @@ while (Iter < AMALGAMPar.ndraw),
 %     [ChildObjVals,ChildCg] = objectiveFunction_joint4AMALGAM(NewGen,AMALGAMPar,Measurement,ModelName,Extra);
 
     ChildObjVals = repmat(inf, AMALGAMPar.N, 2); % initialize to speed up the parfor loop with the correct matrix of ObjVals
-%     ChildCg = repmat(inf, AMALGAMPar.N, 1);
+    ChildallOriginalObjVals_Flow = repmat(inf, AMALGAMPar.N, 5); % initialize to speed up the parfor loop with the correct matrix of all original ObjVals for flow
+    ChildCg = repmat(inf, AMALGAMPar.N, 1); % initialize physical constrains matrix
 
 %     parfor ii = 1:AMALGAMPar.N % computing the Obj-functions using parallel computing
      for ii = 1:AMALGAMPar.N % computing the Obj-functions using parallel computing
          
-         ObjVals_prime = objectiveFunction_joint(NewGen(ii,:)', Measurement.time_points_head, Measurement.time_points_streamflow, model_object,{}); % using time points from calibration_initialise to avoid mismatch of dimensions in line 2803 of model_TFN
-         model_object.variables.doingCalibration = true; % true to pass through objectiveFunction_joint with the correct input during the loop.
+%          ObjVals_prime = objectiveFunction_joint(NewGen(ii,:)', Measurement.time_points_head, Measurement.time_points_streamflow, model_object,{}); % using time points from calibration_initialise to avoid mismatch of dimensions in line 2803 of model_TFN
+         [ObjVals_prime, ~, ~, objFn_flow_NSE, objFn_flow_NNSE, objFn_flow_RMSE, objFn_flow_SSE, objFn_flow_bias, ~, ~,~] = objectiveFunction_joint(ParGen(ii,:)', Measurement.time_points_head, Measurement.time_points_streamflow, model_object,{}); % using time points from calibration_initialise to avoid mismatch of dimensions in line 2803 of model_TFN
+%          model_object.variables.doingCalibration = true; % true to pass through objectiveFunction_joint with the correct input during the loop.
          
          % Store the objective function values for each point
          ChildObjVals(ii,:) = ObjVals_prime;
+         
+         % Store the all original objective function values for flow for each point
+         ChildallOriginalObjVals_Flow(ii,:) = [objFn_flow_NSE objFn_flow_NNSE objFn_flow_RMSE objFn_flow_SSE objFn_flow_bias];
          
          % Define the contstraint violation
          ChildCg(ii,1) = 0;
@@ -198,6 +210,11 @@ while (Iter < AMALGAMPar.ndraw),
 
     % Step 6: Append the new points to ParSet
     ParSet(Iter+1:Iter+AMALGAMPar.N,1:end) = [ParGen Cg ObjVals];
+    
+    
+    % Step 6b: Append the new points to allOriginalObjVals_Flow
+    allOriginalObjVals_Flow(Iter+1:Iter+AMALGAMPar.N,1:end) = ChildallOriginalObjVals_Flow;
+    
 
     % Step 7: Compute convergence statistics -- this can only be done for synthetic problems
     [Gamma,Delta,Hvol] = CompConv(AMALGAMPar,Fpareto,ObjVals);

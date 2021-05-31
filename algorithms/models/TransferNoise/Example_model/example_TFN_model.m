@@ -39,23 +39,38 @@
 % load('124705_forcingData.mat');
 
 
-% % read the observed flow time-series 
-% obsDataFlow = readtable('obsFlow_Brucknell_up to 2009.csv');
-% obsDataFlow = obsDataFlow(:,2:end);
-% obsDataFlow = table2array(obsDataFlow);
+% List of bores in the study area 
+list_bores = {'bore_WRK961324', 'bore_141234','bore_141243' ,'bore_WRK961325' , 'bore_WRK961326'} ; %  ----- Brucknell 
+% list_bores = {'bore_141234','bore_141243' ,'bore_WRK961325' , 'bore_WRK961326'} ; %  ----- Brucknell 
+% list_bores = {'bore_118946', 'bore_118947'} ; %  ----------------------------------------------------------- Ford 
+% list_bores = {'bore_2091', 'bore_WRK958154', 'bore_WRK958156', 'bore_WRK958155', 'bore_2092'} ; %  --------- Sunday 
+
+
+for i=1:length(list_bores)
+
+tic % start timer
+
+catchment = 'Brucknell Creek';
+% catchment = 'Ford Creek';
+% catchment = 'Sunday Creek';
 
 % read the observed head time-series 
-bore_ID = 'bore_141243'; %  -------- CHANGE THE BORE ACCORDINGLY 
+bore_ID = list_bores(i); %  -------- CHANGE THE BORE ACCORDINGLY 
+
+% change bore_ID to matrix to make it usable in the rest of the code
+bore_ID = cell2mat(bore_ID) % print the bore_ID to check progress 
+
+% bore_ID = 'bore_141243'; %  
 LoadBoreDataWL = readtable('obsHead_all_bores_outliers_removed_Run2.csv');
 boreDataWL = LoadBoreDataWL(strcmp(LoadBoreDataWL.BoreID, bore_ID), :);
 boreDataWL = boreDataWL(:,2:end);
 boreDataWL = table2array(boreDataWL);
 
 
-% read the forcging data time-series   -------- CHANGE THE CACTHMENT ACCORDINGLY 
-forcingData = readtable('climate_Brucknell_Catchment_ETMortonCRAE.csv');  
-% forcingData = readtable('climate_Ford_Catchment_ETMortonCRAE.csv');
-% forcingData = readtable('climate_Sunday_Catchment_ETMortonCRAE.csv');
+% read the forcging data time-series   ---------------- CHANGE THE CACTHMENT ACCORDINGLY 
+forcingData = readtable('climate_Brucknell_Catchment_ETMortonCRAE.csv');  % --- Brucknell 
+% forcingData = readtable('climate_Ford_Catchment_ETMortonCRAE.csv'); % ------- Ford
+% forcingData = readtable('climate_Sunday_Catchment_ETMortonCRAE.csv'); % ----- Sunday
 forcingData = forcingData(:,[3:6 12]);
 forcingData = table2array(forcingData);
 
@@ -97,54 +112,80 @@ siteCoordinates = {bore_ID, 100, 100;...
 % Lastly, we can set 'options' for the soil model. In this case we are
 % defining the initial values for three parameters (SMSC, beta, ksat) and
 % fixing alpha to zero.
-forcingTransform_Precip = {'transformfunction', 'climateTransform_soilMoistureModels'; ...
-               'forcingdata', {'precip','PRECIP';'et','APET'}; ...
-               'outputdata', 'drainage'; ...
-               'options', {'SMSC',2,[];'beta',0,'';'k_sat',-inf,'fixed';'alpha',0,'fixed'}};
+
+
+
+% using 1-layer soil model "climateTransform_soilMoistureModels" allowing beta,
+% ksat, beta_deep,ksat_deep be calibrated  
+% forcingTransform_Precip = {'transformfunction', 'climateTransform_soilMoistureModels'; ...
+%                'forcingdata', {'precip','PRECIP';'et','APET'}; ...
+%                'outputdata', 'drainage'; ...
+%                'options', {'SMSC',2,[];'beta',0,'';'k_sat',1,'';'alpha',0,'fixed'}};
            
-% The transformation of the ET is then defined. However because we've already 
+% using 2-layer soil model "climateTransform_soilMoistureModels_2layer_v2" allowing beta,
+% ksat, beta_deep,ksat_deep be calibrated 
+forcingTransform_Precip = {'transformfunction', 'climateTransform_soilMoistureModels_2layer_v2'; ...
+               'forcingdata', {'precip','PRECIP';'et','APET'}; ...
+               'outputdata', 'drainage_deep'; ...
+               'options', {'SMSC',2,[];'SMSC_deep',2,[];'beta',0,'';'k_sat',1,'';'alpha',0,'fixed';'beta_deep',NaN,'fixed';'k_sat_deep',NaN,'fixed'}}; % had to set k_sat_deep and beta_deep as "fixed" to allow it to pass line 480 of climateTransform_soilMoistureModels_2layer_v2
+           
+           
+           
+% The transformation of the ET is then defined. However because we've already
 % defined the soil model, we only need to specify the output we require.
 % Here we're selecting  'evap_gw_potential', which is the potential ET -
 % actual soil ET.
-forcingTransform_ET = {'transformfunction', 'climateTransform_soilMoistureModels'; ...
+
+% % using 1-layer soil model "climateTransform_soilMoistureModels"
+% forcingTransform_ET = {'transformfunction', 'climateTransform_soilMoistureModels'; ...
+%                'outputdata', 'evap_gw_potential'};
+
+% using 2-layer soil model "climateTransform_soilMoistureModels_2layer_v2"           
+forcingTransform_ET = {'transformfunction', 'climateTransform_soilMoistureModels_2layer_v2'; ...
                'outputdata', 'evap_gw_potential'};
+           
+           
+           
 
 % Next we create a cell array for all of the model options. The column format is:            
 % the forcing name (can be anything), the setting we want to define (ie
 % 'weightingfunction' or 'forcingdata'); and the setting we want to apply.
 % Note 'responseFunction_Pearsons' is the name of a function.
-modelOptions_9params = { 'precip','weightingfunction','responseFunction_Pearsons'; ...
-                        'precip','forcingdata',forcingTransform_Precip; ...
-                        'et','weightingfunction','responseFunction_PearsonsNegative'; ...
-                        'et','forcingdata',forcingTransform_ET};
 
-% Alternatively, we can create a cell array for the model options where the
-% ET weighting function inherits the shape from the precipitation. The column format is:            
-% the forcing name (can be anything), the setting we want to define (ie
-% 'weightingfunction' or 'forcingdata'); and the setting we want to apply.
-% Note 'responseFunction_Pearsons' is the name of a function.
+% using only the the transformed PRECIP from the chosen soil model
+% modelOptions_7params = { 'precip','weightingfunction','responseFunction_Pearsons'; ...
+%                         'precip','forcingdata',forcingTransform_Precip};
+
+
+% using the transformed PRECIP and ET from the soil model
 modelOptions_7params = { 'precip','weightingfunction','responseFunction_Pearsons'; ...
                         'precip','forcingdata',forcingTransform_Precip; ...
                         'et','weightingfunction','derivedweighting_PearsonsNegativeRescaled'; ...
                         'et','inputcomponent','precip'; ...
-                        'et','forcingdata',forcingTransform_ET};                    
-                    
+                        'et','forcingdata',forcingTransform_ET};
+
+
 % Set the maximum frequency of water level obs
 maxObsFreq = 1;
 
-% Select which model structures to build and calibrate.
-run7paramModel = true;
-run9paramModel = false;
 
-% Define a model lable
-% modelLabel = 'Great Western Catchment - no landuse change';
-modelLabel = 'Brucknell Catchment - using catchhment average forcing, bore_141243, daily flow';
-
+% Define a model label
+A1 = catchment;
+A2 = '- using catchment average forcing,';
+A3 = bore_ID;
+A4 = ',daily flow, ';
+A5 = modelOptions_7params{1,1}; 
+A6 = modelOptions_7params{3,1};
+A7 = 'weighting functions';
+formatSpec = '%1$s %2$s %3$s %4$s %5$s %6$s %7$s';
+modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7);
+    
 % directory = 'C:\Users\gbonotto\OneDrive - The University of Melbourne\1 - UNIMELB\5 - HydroSight\7 - HydroSight_SW_GW';
 % viewClassTree(directory)
 
-if run7paramModel
     % Build the 7 parameter model.
+    model_7params_gw = HydroSightModel(modelLabel, bore_ID, 'model_TFN', boreDataWL, maxObsFreq, forcingDataStruct, siteCoordinates, modelOptions_7params);
+
     model_7params = HydroSightModel(modelLabel, bore_ID, 'model_TFN_SW_GW', boreDataWL, maxObsFreq, forcingDataStruct, siteCoordinates, modelOptions_7params);
 
     % getting the parameters necessary for running the transfer functions 
@@ -195,7 +236,7 @@ if run7paramModel
     
     % Define ModelName
     model_object = model_7params.model; % giving the hydrosight model as input 
-    ModelName = 'objectiveFunction_joint4AMALGAM'; % which part of hydrosight to input?
+    ModelName = 'objectiveFunction_joint'; % which part of hydrosight to input?
     
     % Define the boundary handling
     Extra.BoundHandling = 'Bound';
@@ -208,17 +249,99 @@ if run7paramModel
     Extra.m = AMALGAMPar.n;
     
     % Run the AMALGAM code and obtain non-dominated solution set
-    [output,ParGen,ObjVals,ParSet] = AMALGAM(AMALGAMPar,ModelName,ParRange,Measurement,Extra,Fpareto,model_object);
+    [output,ParGen,ObjVals,ParSet,allOriginalObjVals_Flow] = AMALGAM(AMALGAMPar,ModelName,ParRange,Measurement,Extra,Fpareto,model_object);
 
-    % Plot the Obj-functions of the pareto front
+    
+       
+    
+    %Storing the model object "model_7params" to show the configuration used for model_TFN_SW_GW
+    A1 = 'Configuration_model_TFN_SW_GW_';
+    A2 = bore_ID;
+    A3 = catchment;
+    A4 = datestr(now,'mm-dd-yyyy HH-MM');
+    A5 = '.mat';
+    formatSpec = '%1$s %2$s %3$s %4$s %5$s';
+    Filename = sprintf(formatSpec,A1,A2,A3,A4,A5);
+    folder = 'C:\Users\gbonotto\OneDrive - The University of Melbourne\1 - UNIMELB\5 - HydroSight\10 - Run Results';
+    path =fullfile(folder, Filename);
+    save(path,'model_7params')  % Save model object
+    
+             
+    %Storing all generation of parameters, including the Obj-Function Value
+    %for each parameter set
+    A1 = 'Amalgam_Params_ObjFun_All Generations_';
+    A2 = bore_ID;
+    A3 = catchment;
+    A4 = datestr(now,'mm-dd-yyyy HH-MM');
+    A5 = '.csv';
+    formatSpec = '%1$s %2$s %3$s %4$s %5$s';
+    Filename = sprintf(formatSpec,A1,A2,A3,A4,A5);
+    folder = 'C:\Users\gbonotto\OneDrive - The University of Melbourne\1 - UNIMELB\5 - HydroSight\10 - Run Results';
+    path =fullfile(folder, Filename);
+    csvwrite(path,ParSet)
+    
+    %Storing last generation of parameters
+    A1 = 'Amalgam_Params_Final Generation_';
+    A2 = bore_ID;
+    A3 = catchment;
+    A4 = datestr(now,'mm-dd-yyyy HH-MM');
+    A5 = '.csv';
+    formatSpec = '%1$s %2$s %3$s %4$s %5$s';
+    Filename = sprintf(formatSpec,A1,A2,A3,A4,A5);
+    folder = 'C:\Users\gbonotto\OneDrive - The University of Melbourne\1 - UNIMELB\5 - HydroSight\10 - Run Results';
+    path =fullfile(folder, Filename);
+    csvwrite(path,ParGen)
+        
+    %Storing the all original Obj-Func for flow (NSE, NNSE, RMSE, SSE) for all generations of parameter sets  
+    A1 = 'Amalgam_Flow_All_ObjFun_All Generations_';
+    A2 = bore_ID;
+    A3 = catchment;
+    A4 = datestr(now,'mm-dd-yyyy HH-MM');
+    A5 = '.csv';
+    formatSpec = '%1$s %2$s %3$s %4$s %5$s';
+    Filename = sprintf(formatSpec,A1,A2,A3,A4,A5);
+    folder = 'C:\Users\gbonotto\OneDrive - The University of Melbourne\1 - UNIMELB\5 - HydroSight\10 - Run Results';
+    path =fullfile(folder, Filename);
+    csvwrite(path,allOriginalObjVals_Flow)
+    
+         
+    %Storing the Pareto front matrix for the last generation of parameters
+    A1 = 'Amalgam_Pareto_ObjFun_Final_Generation';
+    A2 = bore_ID;
+    A3 = catchment;
+    A4 = datestr(now,'mm-dd-yyyy HH-MM');
+    A5 = '.csv';
+    formatSpec = '%1$s %2$s %3$s %4$s %5$s';
+    Filename = sprintf(formatSpec,A1,A2,A3,A4,A5);
+    folder = 'C:\Users\gbonotto\OneDrive - The University of Melbourne\1 - UNIMELB\5 - HydroSight\10 - Run Results';
+    path =fullfile(folder, Filename);
+    csvwrite(path,ObjVals)
+    
+    % Plot the Pareto Front of the last generation
+    figure(1)
     scatter( ObjVals(:,1), ObjVals(:,2))
-    title('Pareto Front - pseudo likelihood for GW head and RMSE for daily streamflow')
+    title({['Pareto Front - GW head vs. Streamflow Obj-Functions' ] 
+                        [bore_ID ' - ' catchment ]});
     xlabel('pseudo likelihood (GW head)')
-    ylabel('RMSE (Flow)')
+    ylabel('(RMSE) (Flow)')
+    grid on
     ax = gca;
     ax.FontSize = 13;
-
- 
+    
+    
+    % Store the figure showing Pareton Front of final generation of params
+    f = figure(1);
+    set(f, 'Color', 'w');
+    A1 = 'Pareto Front_Final Generation_';
+    A2 = bore_ID;
+    A3 = catchment;
+    A4 = datestr(now,'mm-dd-yyyy HH-MM');
+    formatSpec = '%1$s %2$s %3$s %4$s';
+    Filename = sprintf(formatSpec,A1,A2,A3,A4);
+    folder = 'C:\Users\gbonotto\OneDrive - The University of Melbourne\1 - UNIMELB\5 - HydroSight\10 - Run Results';
+    saveas(f, fullfile(folder, Filename), 'png'); 
+    
+    
 % ---------------------------------------------------------------------------------------------------%
 % HydroSight built-in calibration scheme only for GW head 
     
@@ -226,43 +349,59 @@ if run7paramModel
     SchemeSetting.ngs = 7;    
     
     % Calibrate the 7 parameter model.
-    calibrateModel(model_7params, [], 0, inf, 'SP-UCI', SchemeSetting);
+    calibrateModel(model_7params_gw, [], 0, inf, 'SP-UCI', SchemeSetting);
     
     % Plot the calibration results.    
-    calibrateModelPlotResults(model_7params,[]);
-   
-    % Plot the simulation results. 
-    time_points = model_7params.model.variables.time_points;
-    newForcingData = [];
-    simulationLabel = 'default simulation';
-    doKrigingOnResiduals = false;    
-    solveModel(model_7params, time_points, newForcingData, simulationLabel, doKrigingOnResiduals);    
-    solveModelPlotResults(model_7params, simulationLabel, []);    
+    calibrateModelPlotResults(model_7params_gw,[]);
+    
+    % Store the figure showing results when calibrated GW only
+    f = figure(i+1);
+    
+    set(f, 'Color', 'w');
+    f.Units = 'inches';
+    f.OuterPosition = [.5 .5 13 10];
+    A1 = 'Calibration_Diagnostic_Plots_Calib_only_GW';
+    A2 = bore_ID; 
+    A3 = datestr(now,'mm-dd-yyyy HH-MM');
+    formatSpec = '%1$s %2$s %3$s';
+    Filename = sprintf(formatSpec,A1,A2,A3);
+    folder = 'C:\Users\gbonotto\OneDrive - The University of Melbourne\1 - UNIMELB\5 - HydroSight\10 - Run Results';
+    saveas(f, fullfile(folder, Filename), 'png'); 
+    
+    
+    %Storing the model object "model_7params_gw" to show the performance metrics the model only calibrated to GW
+    A1 = 'Configuration_&_Performance_model_TFN_';
+    A2 = bore_ID;
+    A3 = catchment;
+    A4 = datestr(now,'mm-dd-yyyy HH-MM');
+    A5 = '.mat';
+    formatSpec = '%1$s %2$s %3$s %4$s %5$s';
+    Filename = sprintf(formatSpec,A1,A2,A3,A4,A5);
+    folder = 'C:\Users\gbonotto\OneDrive - The University of Melbourne\1 - UNIMELB\5 - HydroSight\10 - Run Results';
+    path =fullfile(folder, Filename);
+    save(path,'model_7params_gw')  % Save model object 
+
+    
+    % Plot the simulation results. ----------This guy is not working.....
+%     time_points = model_7params_gw.model.variables.time_points;
+%     newForcingData = [];
+%     simulationLabel = 'default simulation';
+%     doKrigingOnResiduals = false;    
+%     solveModel(model_7params, time_points, newForcingData, simulationLabel, doKrigingOnResiduals);    
+%     solveModelPlotResults(model_7params, simulationLabel, []);    
+
+    clear all % clear all variables to avoid inheriting parameters from the previous run 
+
+    toc % stop timer
+    
+    
+    % Restating the List of bores in the study area to keep the loop going
+    list_bores = {'bore_WRK961324', 'bore_141234','bore_141243' ,'bore_WRK961325' , 'bore_WRK961326'} ; %  ----- Brucknell
+    % list_bores = {'bore_141234','bore_141243' ,'bore_WRK961325' , 'bore_WRK961326'} ; %  ----- Brucknell
+    % list_bores = {'bore_118946', 'bore_118947'} ; %  ----------------------------------------------------------- Ford
+    % list_bores = {'bore_2091', 'bore_WRK958154', 'bore_WRK958156', 'bore_WRK958155', 'bore_2092'} ; %  --------- Sunday
+    
+    
 end
 
-if run9paramModel
-    % Build the 9 parameter model.
-    model_9params = HydroSightModel(modelLabel, bore_ID, 'model_TFN', boreDataWL, maxObsFreq, forcingDataStruct, siteCoordinates, modelOptions_9params);
-
-
-    % Set the number of SP-UCI calibration clusters per parameter
-    SchemeSetting.ngs = 4*9;    
-    
-    % Calibrate the 7 parameter model.
-    calibrateModel(model_9params, [],  0, inf, 'SP-UCI', SchemeSetting);
-    
-    % Plot the calibration results.
-    sTime = tic;
-    calibrateModelPlotResults(model_9params,[]);
-    eTime = tic;
-    eTime = toc(eTime);
-    display(['Calibration time = ',num2str(eTime-sTime),'  sec']); 
-   
-    % Plot the simulation results. 
-    time_points = model_9params.model.variables.time_points;
-    newForcingData = [];
-    simulationLabel = 'default simulation';
-    doKrigingOnResiduals = false;    
-    solveModel(model_9params, time_points, newForcingData, simulationLabel, doKrigingOnResiduals);    
-    solveModelPlotResults(model_9params, simulationLabel, []);    
-end
+clear all; % to avoid errors in the new loop

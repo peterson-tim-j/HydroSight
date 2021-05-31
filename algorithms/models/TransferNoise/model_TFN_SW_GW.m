@@ -172,6 +172,7 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
 %             time_points_streamflow = obj.inputData.flow(t_filt,1);
 %             obj.variables.time_points_streamflow = time_points_streamflow;
 
+
             % Derive time steps for streamflow data matching the period
             % with gw head obs. data 
             t_filt = find( obj.inputData.flow(:,1) >=time_points_head(1)  ...
@@ -185,13 +186,25 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
         
         
         
-    function [objFn_joint, objFn_head, objFn_flow2, totalFlow_sim, colnames, drainage_elevation] = objectiveFunction_joint(params, time_points_head, time_points_streamflow, obj, varargin)
+    function [objFn_joint, objFn_head, objFn_flow, objFn_flow_NSE, objFn_flow_NNSE, objFn_flow_RMSE, objFn_flow_SSE, objFn_flow_bias, totalFlow_sim, colnames, drainage_elevation] = objectiveFunction_joint(params, time_points_head, time_points_streamflow, obj, varargin)
        
      
+          % here i wad trying to see if using
+          % obj.variables.doingCalibration = false to allow
+          % objectiveFunction to use "time_points_streamflow" and later
+          % calculate the obj-func would solve the issue. 
+%         obj.variables.doingCalibration = false; % false to allow objectiveFunction to use "time_points_streamflow"
+%         [objFn_head, h_star, colnames, drainage_elevation] = objectiveFunction(params, time_points_streamflow, obj, false);  % "false" to pass the condition in "islogical(varargin{1})" in line 1826 in model_TFN of "objectiveFunction@model_TFN"
+%           % Calcaulte mean head.
+%           obj.variables.d = mean(obj.inputData.head( :,2 ));
+%         [head, colnames, noise] = solve(obj, time_points_streamflow); % just the deterministic . is it at the same time step (daily)?
+
+        
         % Call objectiveFunction in model_TFN to get head objFn
         [objFn_head, h_star, colnames, drainage_elevation] = objectiveFunction(params, time_points_head, obj, false);  % "false" to pass the condition in "islogical(varargin{1})" in line 1826 in model_TFN of "objectiveFunction@model_TFN"
-        % line 132 above seems not to be working 
-        objFn_head
+%         [objFn_head, h_star, colnames, drainage_elevation] = objectiveFunction(params, time_points_streamflow, obj, false);  % "false" to pass the condition in "islogical(varargin{1})" in line 1826 in model_TFN of "objectiveFunction@model_TFN"
+
+        objFn_head; % print to show progress
         
         % Add the drainage elevation to the object. This
         % is just done because the model needs to be solved for the
@@ -234,50 +247,60 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
         % Calc. flow objFn using:
         
         % NSE
-%         objFn_flow = 1 - ( sum((totalFlow_sim - obsFlow(:,2)).^2)./ ...
-%                        sum((obsFlow(:,2) - mean(obsFlow(:,2))).^2));
-%         
+        objFn_flow_NSE = 1 - ( sum((totalFlow_sim - obsFlow(:,2)).^2)./ ...
+                       sum((obsFlow(:,2) - mean(obsFlow(:,2))).^2));
+        % normalized NSE, where zero is equivalent to -Inf, 0 to 0, and 1 to 1 in NSE (Nossent and Bauwens, EGU 2012)
+        objFn_flow_NNSE = 1 / (2- objFn_flow_NSE); 
+        % RMSE
+        objFn_flow_RMSE = sqrt(sum((totalFlow_sim - obsFlow(:,2)).^2)/ size(obsFlow,1));
+        % SSE
+        objFn_flow_SSE = sum((totalFlow_sim - obsFlow(:,2)).^2); 
+        % Bias
+        objFn_flow_bias = sum(totalFlow_sim - obsFlow(:,2))/length(obsFlow(:,2));
+
+        %  IMPORTANT: in AMALGAM we want to minize the obj-func!
         
-        % normalized NSE
-%         objFn_flow_NNSE = 1 / (2- objFn_flow); 
-%         objFn_flow_NNSE
+%         objFn_flow = 1 - objFn_flow_NSE; % (1 - NSE) cause AMALGAM is set up to minimize the Obj-Func.
+%         objFn_flow = 1 - objFn_flow_NNSE; % (1 - NNSE) cause AMALGAM is set up to minimize the Obj-Func.
+        objFn_flow = objFn_flow_RMSE; % AMALGAM is set up to minimize the Obj-Func.
+%         objFn_flow = objFn_flow_SSE; % AMALGAM is set up to minimize the Obj-Func.
+%         objFn_flow = abs(objFn_flow_bias); % abs(Bias) cause AMALGAM is set up to minimize the Obj-Func.
         
-        % RMSE, cause in almagam we want to minize the obj-func!
-        objFn_flow = sqrt(sum((totalFlow_sim - obsFlow(:,2)).^2)/ size(obsFlow,1)) ;
-        
-        % SSE, cause in almagam we want to minize the obj-func!
-%         objFn_flow = sum((totalFlow_sim - obsFlow(:,2)).^2);% TO DO: double-check if AMALGAM EXPECTS BOTH OBJECTIVE FUNCTIONS TO BE MINIMIZED. 
-        
-        objFn_flow
 
         
-        % merging objFn for head and objFn for flow
-        objFn_joint = [objFn_head, objFn_flow]; 
+        % merging objFunctions for head and flow
+        objFn_joint = [objFn_head, objFn_flow];
         
         % Rten combined objFun and other terms 
         
         % ploting obs total streamflow
-        figure(1)
-        plot( obsFlow(:,1), obsFlow(:,2))
-        title(' streamflow observations')
-        xlabel('Numeric Date ')
-        ylabel('mm/day')
-        grid on
-        ax = gca;
-        ax.FontSize = 13;
-        %         hold on
+%         figure(1)
+%         plot( obsFlow(:,1), obsFlow(:,2))
+%         title(' streamflow observations')
+%         xlabel('Numeric Date ')
+%         ylabel('mm/day')
+%         grid on
+%         ax = gca;
+%         ax.FontSize = 13;
         
         % ploting simulated total streamflow
-        figure(2)
-        plot(obsFlow(:,1),totalFlow_sim)
-        title(' streamflow simulation')
-        xlabel('Numeric Date ')
-        ylabel('mm/day')
-        grid on
-        ax = gca;
-        ax.FontSize = 13;
-        %         hold off
-    
+%         figure(2)
+%         plot(obsFlow(:,1),totalFlow_sim)
+%         title(' streamflow simulation')
+%         xlabel('Numeric Date ')
+%         ylabel('mm/day')
+%         ylim([0 (max(totalFlow_sim)+10)])
+%         grid on
+%         ax = gca;
+%         ax.FontSize = 12;
+%         hold on
+%         plot(obsFlow(:,1),baseFlow)
+%         hold on
+%         plot(obsFlow(:,1),quickFlow)
+%         hold off
+%         legend('totalFlow_sim','baseFlow','quickFlow')
+
+         obj.variables.doingCalibration = true; % true to allow the parfor loop in AMALGAM - TURN THIS OFF when not using AMALGAM 
     end
     
     % get quickFlow and baseFlow using simulated head and streamflow 
@@ -311,12 +334,22 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
      
      % calc. runoff using setTransformedForcing in model_TFN - this is
      % needed to get the derived runoff from the
-     % "climateTransform_soilMoistureModels" only for the dates with
+     % "climateTransform_soilMoistureModels" or "climateTransform_soilMoistureModels_2layer_v2" only for the dates with
      % streamflow observations 
-     setTransformedForcing(obj.parameters.climateTransform_soilMoistureModels, time_points_streamflow, true) 
      
-     % detect if there was parameter change for the soil model 
-     detectParameterChange(obj.parameters.climateTransform_soilMoistureModels, params(1:2,:)) % didnt make difference.. 
+     % USING 1-D soil model
+%      setTransformedForcing(obj.parameters.climateTransform_soilMoistureModels, time_points_streamflow, true) 
+     % USING 2-D soil model
+     setTransformedForcing(obj.parameters.climateTransform_soilMoistureModels_2layer_v2, time_points_streamflow, true)
+     
+     
+     
+     % detect if there was parameter change for the soil model
+%      detectParameterChange(obj.parameters.climateTransform_soilMoistureModels, params(1:2,:)) % didnt make difference..
+%      detectParameterChange(obj.parameters.climateTransform_soilMoistureModels_2layer_v2,
+%      params(1:2,:)) % didnt make difference, plus this is available in
+%      climateTransform_soilMoistureModels and might not work with a climateTransform_soilMoistureModels_2layers_v2 object
+
      
      % getting the derived forcing data, which includes the quick flow
      % (runoff and interflow)
@@ -329,8 +362,17 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
      % Initialise total flow 
      obj.variables.totalFlow = [];
      
-     % get only the runoff from the derived forcing output
-     quickFlow = allDerivedForcingData(:,6); % runoff in [mm/day], to get ML/day, mutiply by the catchmentArea - (quickflow from the runoff of the lumped 1-d soil moisture model)
+     % Get the runoff from the derived forcing output
+     % USING 2-D soil model
+     [tf, column_number] = ismember('runoff_total', derivedForcingData_colnames); % shall we now use runoff_total??
+     % USING 1-D soil model
+%      [tf, column_number] = ismember('runoff', derivedForcingData_colnames); % shall we now use runoff_total??
+     
+     if ~tf
+         error('runoff_total is not one of the derivedForcingData variables. Check if using 2-layer v2 soil model')
+     end
+
+     quickFlow = allDerivedForcingData(:,column_number); % runoff in [mm/day], to get ML/day, mutiply by the catchmentArea - (quickflow from the runoff of the lumped 1-d soil moisture model)
      
      % TO DO:
      % CHECK IF GW HEAD OBS TIME-SERIES LENGTH IS LONGER OR EQUAL TO STREAMFLOW TIME-SERIES.. IT MAY BE CAUSING THE ERROR FOR FORD AND SUNDAY... 
