@@ -260,9 +260,9 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
 
         %  IMPORTANT: in AMALGAM we want to minize the obj-func!
         
-%         objFn_flow = 1 - objFn_flow_NSE; % (1 - NSE) cause AMALGAM is set up to minimize the Obj-Func.
+        objFn_flow = 1 - objFn_flow_NSE; % (1 - NSE) cause AMALGAM is set up to minimize the Obj-Func.
 %         objFn_flow = 1 - objFn_flow_NNSE; % (1 - NNSE) cause AMALGAM is set up to minimize the Obj-Func.
-        objFn_flow = objFn_flow_RMSE; % AMALGAM is set up to minimize the Obj-Func.
+%         objFn_flow = objFn_flow_RMSE; % AMALGAM is set up to minimize the Obj-Func.
 %         objFn_flow = objFn_flow_SSE; % AMALGAM is set up to minimize the Obj-Func.
 %         objFn_flow = abs(objFn_flow_bias); % abs(Bias) cause AMALGAM is set up to minimize the Obj-Func.
         
@@ -300,7 +300,7 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
 %         hold off
 %         legend('totalFlow_sim','baseFlow','quickFlow')
 
-%          obj.variables.doingCalibration = true; % true to allow the parfor loop in AMALGAM - TURN THIS OFF when not using AMALGAM 
+         obj.variables.doingCalibration = true; % true to allow the parfor loop in AMALGAM - TURN THIS OFF when not using AMALGAM 
     end
     
     % get quickFlow and baseFlow using simulated head and streamflow 

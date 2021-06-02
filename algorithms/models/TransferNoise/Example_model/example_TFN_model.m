@@ -141,8 +141,8 @@ forcingTransform_Precip = {'transformfunction', 'climateTransform_soilMoistureMo
 %                'outputdata', 'evap_gw_potential'};
 
 % using 2-layer soil model "climateTransform_soilMoistureModels_2layer_v2"           
-forcingTransform_ET = {'transformfunction', 'climateTransform_soilMoistureModels_2layer_v2'; ...
-               'outputdata', 'evap_gw_potential'};
+% forcingTransform_ET = {'transformfunction', 'climateTransform_soilMoistureModels_2layer_v2'; ...
+%                'outputdata', 'evap_gw_potential'};
            
            
            
@@ -153,16 +153,16 @@ forcingTransform_ET = {'transformfunction', 'climateTransform_soilMoistureModels
 % Note 'responseFunction_Pearsons' is the name of a function.
 
 % using only the the transformed PRECIP from the chosen soil model
-% modelOptions_7params = { 'precip','weightingfunction','responseFunction_Pearsons'; ...
-%                         'precip','forcingdata',forcingTransform_Precip};
+modelOptions_7params = { 'precip','weightingfunction','responseFunction_Pearsons'; ...
+                        'precip','forcingdata',forcingTransform_Precip};
 
 
 % using the transformed PRECIP and ET from the soil model
-modelOptions_7params = { 'precip','weightingfunction','responseFunction_Pearsons'; ...
-                        'precip','forcingdata',forcingTransform_Precip; ...
-                        'et','weightingfunction','derivedweighting_PearsonsNegativeRescaled'; ...
-                        'et','inputcomponent','precip'; ...
-                        'et','forcingdata',forcingTransform_ET};
+% modelOptions_7params = { 'precip','weightingfunction','responseFunction_Pearsons'; ...
+%                         'precip','forcingdata',forcingTransform_Precip; ...
+%                         'et','weightingfunction','derivedweighting_PearsonsNegativeRescaled'; ...
+%                         'et','inputcomponent','precip'; ...
+%                         'et','forcingdata',forcingTransform_ET};
 
 
 % Set the maximum frequency of water level obs
@@ -175,10 +175,15 @@ A2 = '- using catchment average forcing,';
 A3 = bore_ID;
 A4 = ',daily flow, ';
 A5 = modelOptions_7params{1,1}; 
-A6 = modelOptions_7params{3,1};
-A7 = 'weighting functions';
-formatSpec = '%1$s %2$s %3$s %4$s %5$s %6$s %7$s';
-modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7);
+% A6 = modelOptions_7params{3,1};
+% A7 = 'weighting functions';
+A6 = 'weighting functions';
+% formatSpec = '%1$s %2$s %3$s %4$s %5$s %6$s %7$s';
+formatSpec = '%1$s %2$s %3$s %4$s %5$s %6$s';
+
+% modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7);
+modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
+
     
 % directory = 'C:\Users\gbonotto\OneDrive - The University of Melbourne\1 - UNIMELB\5 - HydroSight\7 - HydroSight_SW_GW';
 % viewClassTree(directory)
@@ -323,7 +328,7 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7);
     title({['Pareto Front - GW head vs. Streamflow Obj-Functions' ] 
                         [bore_ID ' - ' catchment ]});
     xlabel('pseudo likelihood (GW head)')
-    ylabel('(RMSE) (Flow)')
+    ylabel('(1 - NSE) (Flow)')
     grid on
     ax = gca;
     ax.FontSize = 13;
@@ -335,9 +340,18 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7);
     A1 = 'Pareto Front_Final Generation_';
     A2 = bore_ID;
     A3 = catchment;
-    A4 = datestr(now,'mm-dd-yyyy HH-MM');
-    formatSpec = '%1$s %2$s %3$s %4$s';
-    Filename = sprintf(formatSpec,A1,A2,A3,A4);
+    A4 = 'Weighting';
+    weighting_forces = unique(modelOptions_7params(:,1));
+    A5= weighting_forces(1);
+    A5 = cell2mat(A5);
+%     A6 = weighting_forces(2);
+%     A6 = cell2mat(A6);
+%     A7 = datestr(now,'mm-dd-yyyy HH-MM');
+    A6 = datestr(now,'mm-dd-yyyy HH-MM');
+%     formatSpec = '%1$s %2$s %3$s %4$s %5$s %6$s %7$s';
+%     Filename = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7);
+    formatSpec = '%1$s %2$s %3$s %4$s %5$s %6$s';
+    Filename = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
     folder = 'C:\Users\gbonotto\OneDrive - The University of Melbourne\1 - UNIMELB\5 - HydroSight\10 - Run Results';
     saveas(f, fullfile(folder, Filename), 'png'); 
     
