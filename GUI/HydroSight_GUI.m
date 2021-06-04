@@ -6,8 +6,8 @@ classdef HydroSight_GUI < handle
     %variables. Useful in different sitionations
     properties
         % Version number
-        versionNumber = '1.3.5';
-        versionDate= '11 September 2019';
+        versionNumber = '1.3.6';
+        versionDate= '4 June 2021';
         
         % Model types supported
         %modelTypes = {'model_TFN','model_TFN_LOA', 'ExpSmooth'};
@@ -7909,7 +7909,7 @@ classdef HydroSight_GUI < handle
 
             % Get window size and set figure to middle
             splashWidth =  1200;
-            splashHeight = splashWidth/3;
+            splashHeight = 500;
             windowHeight = this.FigureSplash.Parent.ScreenSize(4);
             windowWidth = this.FigureSplash.Parent.ScreenSize(3);
             this.FigureSplash.Position = [(windowWidth - splashWidth)/2 (windowHeight - splashHeight)/2 splashWidth splashHeight];
