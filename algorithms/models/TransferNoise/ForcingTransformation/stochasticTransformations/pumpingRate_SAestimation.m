@@ -177,8 +177,12 @@ classdef pumpingRate_SAestimation < stochForcingTransform_abstract & dynamicprop
                         filt(i) = any(forcingData_data(:,i) == -999);
                     end                
                 end
-                variable_names = strcat(forcingData_colnames(filt),'_infilled');
-                variable_names = variable_names';
+                if ~any(filt) 
+                    variable_names = {'No data gaps (-999s) to infill - remove this function.'};
+                else
+                    variable_names = strcat(forcingData_colnames(filt),'_infilled');
+                    variable_names = variable_names';
+                end
             end
         end
         
@@ -267,6 +271,9 @@ classdef pumpingRate_SAestimation < stochForcingTransform_abstract & dynamicprop
             obj.settings.forcingData_colnames = forcingData_colnames;
             obj.settings.forcingData_cols = forcingData_reqCols;
             obj.settings.siteCoordinates = siteCoordinates;
+            if isempty(modelOptions)
+                modelOptions = obj.modelOptions();
+            end
             obj.settings.downscalingTimeStepFinal = modelOptions{1,1};
             switch modelOptions{1,2}
                 case 0

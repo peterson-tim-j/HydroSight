@@ -17,7 +17,7 @@ function HydroSight()
     % Load GUI
     try
         % Use GUI Layout Toolbox if it exists.
-        if ~isdeployed && ~isempty(ver('layout')) && ispc          
+        if ~isdeployed && ~isempty(ver('layout'))           
             rmpath(genpath(fullfile( pwd, 'GUI','GUI Layout Toolbox 2.3.4')));
         end
         HydroSight_GUI();

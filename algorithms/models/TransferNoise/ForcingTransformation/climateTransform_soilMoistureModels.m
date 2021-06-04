@@ -562,7 +562,7 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
             forcingDataNew = nan(size(forcingData,1),length(obj.settings.forcingData_colnames));
             for i=1:length(forcingData_colnames)               
                 filt  = strcmp(obj.settings.forcingData_colnames, forcingData_colnames{i});
-                if ~isempty(filt)
+                if any(filt)
                     forcingDataNew(:,filt) = forcingData(:,i);
                 end
             end

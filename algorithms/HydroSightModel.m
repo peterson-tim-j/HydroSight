@@ -305,7 +305,26 @@ classdef HydroSightModel < handle
                     error(['The site ',siteCoordinates{i,1}, ' is an invalid name. Use only letters, numbers, dash and underscores.']);                
                   end
                end
-               % Check the bore ID coordinates are input.
+               % Check the bore ID(s) coordinates are input.
+               if iscell(bore_ID)
+                   hasBoreIDCoordinates=false;                   
+                   for i=1:size(siteCoordinates,1)
+                       for j=1:length(bore_ID)
+                           if strcmp(siteCoordinates(i,1), bore_ID{j})
+                               hasBoreIDCoordinates=true;
+                               break;
+                           end
+                       end
+                   end                   
+               else
+                   hasBoreIDCoordinates=false;
+                   for i=1:size(siteCoordinates,1)
+                       if strcmp(siteCoordinates(i,1), bore_ID)
+                           hasBoreIDCoordinates=true;
+                           break;
+                       end
+                   end
+               end
                hasBoreIDCoordinates=false;
                for i=1:size(siteCoordinates,1)
                   if strcmp(siteCoordinates(i,1), bore_ID)
@@ -320,7 +339,7 @@ classdef HydroSightModel < handle
                % Loop through each forcing data column.
                hasForcingCoordinate = false(1,length(forcingData_colnames)-3);
                for i=4:length(forcingData_colnames)
-                   for j=1:size(siteCoordinates,1);                   
+                   for j=1:size(siteCoordinates,1)                 
                       if strcmp(siteCoordinates(j,1), forcingData_colnames(i))
                           hasForcingCoordinate(i-3) = true;
                           break;

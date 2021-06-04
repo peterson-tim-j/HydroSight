@@ -517,7 +517,15 @@ classdef model_TFN_gui < model_gui_abstract
         end
         
         function setBoreID(this, boreID)
-            this.boreID = boreID;
+            if iscell(boreID) && length(boreID)>1
+                warndlg('TFN models must have a single site ID. Only the first will be considered.','Multiple Site ID error');
+                boreID = boreID{1};
+            end
+            if iscell(boreID)
+                    this.boreID = boreID{1};
+            else
+                this.boreID = boreID;
+            end
         end
         
         function setModelOptions(this, modelOptionsStr)
@@ -892,9 +900,9 @@ classdef model_TFN_gui < model_gui_abstract
                    if k==2
                        stringCell = strcat(stringCell, sprintf(' ''inputcomponent'',  ''%s'';',cellData{j,3} ));               
                    end
-                   stringCell = strcat(stringCell, sprintf(' ''forcingdata'', ''%s'';',cellData{j,2+k} )); 
+                   stringCell = strcat(stringCell, sprintf(' ''forcingdata'', %s;',cellData{j,2+k} )); 
                    if ~isempty(cellData{j,3+k})
-                        stringCell = strcat(stringCell, sprintf(' ''options'', ''%s'';',cellData{j,3+k} )); 
+                        stringCell = strcat(stringCell, sprintf(' ''options'', %s;',cellData{j,3+k} )); 
                    end
                    stringCell = strcat(stringCell, '}'); 
                    forcingString.(cellData{j,2}) = stringCell;
@@ -1353,12 +1361,15 @@ classdef model_TFN_gui < model_gui_abstract
                                        % Check 'data' and the model options
                                        % are the same length
                                        if length(data) == length(modelSettings)
-                                           for i=1:length(data)
+                                           for i=1:length(data)                                        
                                                if strcmpi(modelSettings{i}.colNames(1),'Select')
-                                                   data{i} = [ mat2cell(false(size(data{i},1),1),ones(1,size(data{i},1))) , data{i}];
-                                               end
+                                                   data{i} = [ mat2cell(false(size(data{i},1),1),ones(1,size(data{i},1))) , data{i}];                                                   
+                                               end             
+                                               if size(data{i},2)==length(modelSettings{i}.colNames)
+                                                   haveInputData(i) =  true;
+                                               end                                                      
                                            end 
-                                           haveInputData(i) =  true;
+                                           
                                        else
                                            warndlg('There are an inconsistent number of input and expected options. The inputs data is being ignored.');
                                        end
@@ -1385,7 +1396,7 @@ classdef model_TFN_gui < model_gui_abstract
                                    % Input the existing data or else the
                                    % default settings.
                                    if haveInputData(i)
-                                       this.modelOptions.options{4, 1}.tbl.Data = data{i};
+                                       this.modelOptions.options{4, 1}.tbl.Data(i) = data(i);
                                    else                                       
                                        if isempty(modelSettings{i}.options)
                                            optionsTable.Data = cell(1,length(modelSettings{i}.colNames));
@@ -1404,7 +1415,7 @@ classdef model_TFN_gui < model_gui_abstract
                                         uimenu(contextMenu,'Label','Insert row below selection','Callback',@this.rowAddDelete);            
                                         uimenu(contextMenu,'Label','Delete selected rows','Callback',@this.rowAddDelete);            
                                         set(optionsTable,'UIContextMenu',contextMenu);  
-                                        set(optionsTable.UIContextMenu,'UserData', 'this.modelOptions.options{4, 1}.tbl');
+                                        set(optionsTable.UIContextMenu,'UserData', strcat("findobj(this.modelOptions.options{4,1}.tabs,'Tag',['Weighting Functions - Options Tab ",num2str(i)," table'])"));
                                    else
                                        set(optionsTable,'UIContextMenu',[]);
                                    end
@@ -1989,8 +2000,10 @@ classdef model_TFN_gui < model_gui_abstract
             anySelected = any(selectedRow);
             indSelected = find(selectedRow)';
             
-            
-            if ~strcmp(hObject.Label,'Paste rows') && size(tableObj.Data(:,1),1)>0 &&  sum(selectedRow) == 0                             
+            if (strcmp(hObject.Label,'Insert row above selection') || strcmp(hObject.Label,'Insert row below selection')) ...
+            && sum(selectedRow) == 0                             
+                selectedRow(end)=true;
+            elseif ~strcmp(hObject.Label,'Paste rows') && size(tableObj.Data(:,1),1)>0 &&  sum(selectedRow) == 0                             
                 warndlg('No rows are selected for the requested operation.');
                 return;
             elseif size(tableObj.Data(:,1),1)==0 ...

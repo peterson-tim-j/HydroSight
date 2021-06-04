@@ -177,3 +177,13 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
   "effectice precipitation" is now listed as a flux (iv) when the deep layer of a two layer model fills, runoff is produced from  it.
 * Bug fixed in the filtering of flux data by a start and end date.
 * Model examples re-run to reflect changes to the soil moisture model.
+
+12 Feb 2020
+* GUI model construction chnaged to allow the selection of mltiple bores. This was done in preparation for multi-bore analysis.
+
+1 April 2021
+* Bug fixed in GUI weighting function model options ie for setting boundary condistions
+
+4 June 2021
+* Bug fixed in simulations using new forcing data. Note, this caused simulations with soil moisture model to not use the simulation 
+  forcing data. Bug was in climateTransform_soilMoistureModels.m

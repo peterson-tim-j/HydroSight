@@ -471,7 +471,7 @@ classdef HydroSight_GUI < handle
                         '<html><center>Obs. Head<br />File</center></html>', ...   
                         '<html><center>Forcing Data<br />File</center></html>', ...   
                         '<html><center>Coordinates<br />File</center></html>', ...   
-                        '<html><center>Bore<br />ID</center></html>', ...   
+                        '<html><center>Site<br />ID</center></html>', ...   
                         '<html><center>Model<br />Type</center></html>', ...                           
                         '<html><center>Model<br />Options</center></html>', ...                           
                         '<html><center>Build<br />Status</center></html>'};
@@ -534,12 +534,16 @@ classdef HydroSight_GUI < handle
             
             % Add model options panel for bore IDs
             dynList = [];
-            vbox4t3 = uiextras.VBox('Parent',this.tab_ModelConstruction.modelOptions.vbox, 'Padding', 3, 'Spacing', 3, 'Visible','on');
-            uicontrol( 'Parent', vbox4t3,'Style','text','String',sprintf('%s\n%s%s','Please select the Bore ID for the model:'), 'Units','normalized');            
+            hbox4t3 = uiextras.HBox('Parent',this.tab_ModelConstruction.modelOptions.vbox, 'Padding', 3, 'Spacing', 3, 'Visible','on');
+            buttons_boreID = uiextras.VButtonBox('Parent',hbox4t3 ,'Padding', 3, 'Spacing', 3);
+            uicontrol('Parent',buttons_boreID,'String','<','Callback', @this.modelConstruction_optionsSelection, 'TooltipString','Copy the Site IDs to current model.','Tag','current');
+            uicontrol('Parent',buttons_boreID,'String','<<','Callback', @this.modelConstruction_optionsSelection, 'TooltipString','Copy the Site IDs to all selected models.','Tag','selected');            
+            vbox4t3 = uiextras.VBox('Parent',hbox4t3 , 'Padding', 3, 'Spacing', 3, 'Visible','on');
+            uicontrol( 'Parent', vbox4t3,'Style','text','String',sprintf('%s\n%s%s','Please select the Site ID(s) for the model:'), 'Units','normalized');            
             this.tab_ModelConstruction.boreIDList = uicontrol('Parent',vbox4t3,'Style','list','BackgroundColor','w', ...
-                'String',dynList(:),'Value',1,'Callback',...
-                @this.modelConstruction_optionsSelection, 'Units','normalized');            
-
+                'String',dynList(:),'Value',1, 'Units','normalized', 'min',0,'max',2);            
+            set(hbox4t3, 'Sizes', [30 -1]);
+            
             % Add model options panel for decriptions of each model type
             dynList = [];
             vbox5t3 = uiextras.VBox('Parent',this.tab_ModelConstruction.modelOptions.vbox, 'Padding', 3, 'Spacing', 3, 'Visible','on');
@@ -2424,7 +2428,7 @@ classdef HydroSight_GUI < handle
             if ~(strcmp(columnName, 'Obs. Head File') || ...
             strcmp(columnName, 'Forcing Data File') || ...
             strcmp(columnName, 'Coordinates File') || ...
-            strcmp(columnName, 'Bore ID') || ...
+            strcmp(columnName, 'Site ID') || ...
             strcmp(columnName, 'Model Type') || ...
             strcmp(columnName, 'Model Options'))
                 return;
@@ -2483,7 +2487,7 @@ classdef HydroSight_GUI < handle
                     % Hide the panels.
                     this.tab_ModelConstruction.modelOptions.vbox.Heights = [0; 0 ; 0; 0];
 
-                case 'Bore ID'
+                case 'Site ID'
                      % Check the obs. head file is listed
                      fname = data{eventdata.Indices(1),3};
                      if isempty(fname)
@@ -2540,6 +2544,14 @@ classdef HydroSight_GUI < handle
 
                      % Show the list box.
                      this.tab_ModelConstruction.modelOptions.vbox.Heights = [-1; 0 ; 0; 0];
+                     
+                     % Highlight the already selected IDs
+                     boreIDs_selected = hObject.Data{irow,icol};
+                     boreIDs_selected  = textscan(boreIDs_selected,'%s','Delimiter',',');
+                     boreIDs_selected  = boreIDs_selected{1};
+                     ind = find(cellfun(@(x) any(strcmp(boreIDs_selected, x)), boreIDs));
+                     set(this.tab_ModelConstruction.boreIDList,'Value',ind);  
+                     
                 case 'Model Type'                        
                      % Get the current model type.
                      modelType = data{irow,7};
@@ -2580,19 +2592,31 @@ classdef HydroSight_GUI < handle
                         end                            
 
                         fname = fullfile(dirname,data{irow,4}); 
-                        setForcingData(this.tab_ModelConstruction.modelTypes.(modelType).obj, fname);
-                        fname = fullfile(dirname,data{irow,5});
-                        setCoordinatesData(this.tab_ModelConstruction.modelTypes.(modelType).obj, fname);                        
-                        setBoreID(this.tab_ModelConstruction.modelTypes.(modelType).obj, data{irow,6});
-
-                        % If the model options are empty, then add a
-                        % default empty cell, else set the existing
-                        % options into the model type GUI RHS panel.
-                        if isempty(eventdata.Source.Data{irow,8}) || strcmp(eventdata.Source.Data{irow,8},'{}')
-                            %eventdata.Source.Data{irow,8} = [];
-                            data{irow,8} = [];
+                        try 
+                            % Convert bore ID to cell array
+                            boreIDs = textscan(data{irow,6},'%s','Delimiter',',');
+                            boreIDs = boreIDs{1};                            
+                            
+                            setForcingData(this.tab_ModelConstruction.modelTypes.(modelType).obj, fname);
+                            fname = fullfile(dirname,data{irow,5});
+                            setCoordinatesData(this.tab_ModelConstruction.modelTypes.(modelType).obj, fname);
+                            setBoreID(this.tab_ModelConstruction.modelTypes.(modelType).obj, boreIDs );
+                            
+                            % If the model options are empty, then add a
+                            % default empty cell, else set the existing
+                            % options into the model type GUI RHS panel.
+                            if isempty(eventdata.Source.Data{irow,8}) || strcmp(eventdata.Source.Data{irow,8},'{}')
+                                %eventdata.Source.Data{irow,8} = [];
+                                data{irow,8} = [];
+                            end
+                            setModelOptions(this.tab_ModelConstruction.modelTypes.(modelType).obj, data{irow,8})
+                        catch ME
+                            % do nothing
+                            % It is assmumed that the this.tab_ModelConstruction.modelTypes.(modelType).obj
+                            % will throw an error and a message if there is
+                            % something wrong with the inputs.
                         end
-                        setModelOptions(this.tab_ModelConstruction.modelTypes.(modelType).obj, data{irow,8})
+                        
 
                     catch ME
                         warndlg('Unknown model type selected or the GUI for the selected model crashed.');
@@ -2621,7 +2645,7 @@ classdef HydroSight_GUI < handle
                 switch this.tab_ModelConstruction.currentCol
                     case 6
                          % Get selected bores
-                         listSelection = get(hObject,'Value');
+                         listSelection = get(this.tab_ModelConstruction.boreIDList,'Value');
 
                          % Get data from model construction table
                          data=get(this.tab_ModelConstruction.Table,'Data'); 
@@ -2629,9 +2653,35 @@ classdef HydroSight_GUI < handle
                          % Get the selected bore row index.
                          index_selected = this.tab_ModelConstruction.currentRow;
 
+                         % Convert site ID cells to a string.
+                         %siteIDs = '{';
+                         siteIDs = '';
+                         for i=1:length(listSelection)
+                             siteIDs = [siteIDs, this.tab_ModelConstruction.boreIDList.String{listSelection(i),1}, ','];
+                         end
+                         siteIDs = siteIDs(1:(length(siteIDs)-1));
+                         %siteIDs = [siteIDs, '}'];
+                         
                          % Add selected bore ID is cell array at the currently
                          % selected bore.
-                         data(index_selected,6) =  hObject.String(listSelection,1);
+                         if strcmp(hObject.Tag,'current')
+                            data{index_selected,6} = siteIDs;
+                         elseif strcmp(hObject.Tag,'selected')
+                             % Get list of selected bores.
+                             selectedBores = data(:,1);
+                             
+                             % Check some bores have been selected.
+                             if ~any(cellfun(@(x) x, selectedBores))
+                                 warndlg('No models are selected using the left checkboxes.', 'No models selected');
+                                 return;
+                             end                             
+                             
+                             for i=1:length(selectedBores)
+                                if selectedBores{i}==1
+                                    data{i,6} = siteIDs;
+                                end
+                             end                             
+                         end
 
                          % Set bore ID 
                          set(this.tab_ModelConstruction.Table,'Data', data); 

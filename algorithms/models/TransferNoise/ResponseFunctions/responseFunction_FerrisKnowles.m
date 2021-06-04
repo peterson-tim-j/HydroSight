@@ -33,7 +33,8 @@ classdef  responseFunction_FerrisKnowles < responseFunction_abstract & dynamicpr
             options{1}.label = 'Image wells';
             options{1}.colNames ={'Select' 'Pumping Bore ID', 'Image Bore ID', 'Image Bore Type'};
             options{1}.colFormats = {'logical', forcingDataSiteID, siteIDs, {'Recharge','No flow'}};
-            options{1}.colEdits = logical([1 1 1 1]);            
+            options{1}.colEdits = logical([1 1 1 1]);  
+            options{1}.options = {false,'','',''};
             options{1}.TooltipString = ['<html>Use this table to set image wells. Note, the coordinate. <br>', ...
                              'of the boundary must listed within the coordinates input file.'];            
 
