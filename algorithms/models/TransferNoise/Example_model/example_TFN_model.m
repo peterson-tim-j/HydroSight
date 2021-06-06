@@ -175,14 +175,15 @@ A2 = '- using catchment average forcing,';
 A3 = bore_ID;
 A4 = ',daily flow, ';
 A5 = modelOptions_7params{1,1}; 
+A6 = 'weighting functions';
+formatSpec = '%1$s %2$s %3$s %4$s %5$s %6$s';
 % A6 = modelOptions_7params{3,1};
 % A7 = 'weighting functions';
-A6 = 'weighting functions';
 % formatSpec = '%1$s %2$s %3$s %4$s %5$s %6$s %7$s';
-formatSpec = '%1$s %2$s %3$s %4$s %5$s %6$s';
 
-% modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7);
 modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
+% modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7);
+
 
     
 % directory = 'C:\Users\gbonotto\OneDrive - The University of Melbourne\1 - UNIMELB\5 - HydroSight\7 - HydroSight_SW_GW';
@@ -203,7 +204,8 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
     %%%% Creating the model structure required to calculate ObjFun for head in model_TFN 
     [params_initial, time_points_head, time_points_streamflow] = calibration_initialise(model_7params.model, t_start, t_end); % put it outside of objectiveFunction to avoid initializing it again during the callinf of "solve" inside of "objectiveFunction"
  
-            
+    
+    
     % ----------------------------------------------------------------------------------------- %
     % TO DO: BEST WAY TO INCLUDE AMALGAM? The script bellow is an example
     % from the manual using hymod 
@@ -327,8 +329,9 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
     scatter( ObjVals(:,1), ObjVals(:,2))
     title({['Pareto Front - GW head vs. Streamflow Obj-Functions' ] 
                         [bore_ID ' - ' catchment ]});
-    xlabel('pseudo likelihood (GW head)')
-    ylabel('(1 - NSE) (Flow)')
+%     xlabel('pseudo likelihood (GW head)')
+    xlabel('(1-NSE) (Flow)')
+    ylabel('(1-NSE) (Flow)')
     grid on
     ax = gca;
     ax.FontSize = 13;
@@ -344,16 +347,140 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
     weighting_forces = unique(modelOptions_7params(:,1));
     A5= weighting_forces(1);
     A5 = cell2mat(A5);
+    A6 = datestr(now,'mm-dd-yyyy HH-MM');
+    formatSpec = '%1$s %2$s %3$s %4$s %5$s %6$s';
+    Filename = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
 %     A6 = weighting_forces(2);
 %     A6 = cell2mat(A6);
 %     A7 = datestr(now,'mm-dd-yyyy HH-MM');
-    A6 = datestr(now,'mm-dd-yyyy HH-MM');
 %     formatSpec = '%1$s %2$s %3$s %4$s %5$s %6$s %7$s';
 %     Filename = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7);
-    formatSpec = '%1$s %2$s %3$s %4$s %5$s %6$s';
-    Filename = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
+    
     folder = 'C:\Users\gbonotto\OneDrive - The University of Melbourne\1 - UNIMELB\5 - HydroSight\10 - Run Results';
-    saveas(f, fullfile(folder, Filename), 'png'); 
+    saveas(f, fullfile(folder, Filename), 'png');
+    
+    
+    
+    %%%%% Analysing some parameter sets along the pre-calculated Pareto
+    %%%%% Front to analyse model sensitivity and performance
+    
+%     Params_ParetoPoints
+%     % using time points from calibration_initialise to avoid mismatch of dimensions in line 2803 of model_TFN
+%     
+    % For bore WRK931626, using Precip Weighting
+%         Params_ParetoPoints = {1.7118, 1.7927,1.3346,0.97298,0, -2.6674, -1.6921, -3.8264, 13.067, 0.090614, 0, 529.12;...
+%                            2.2238, 1.699,	1.3345, 0.97778, -0.29689, -1.4667, -1.8258, -3.0067, 13.269, 0.090804, 0, 23.334;...
+%                            2.2909, 1.699,	2.4662, 0.89762, -1.3566, -4.9966, -1.9464, -1.9579, 120.34, 0.18926, 0, 0.31592};
+% %         for zz=1:length(Params_ParetoPoints)
+%          
+%        [ObjVals_prime, ~, ~, objFn_flow_NSE, objFn_flow_NNSE, objFn_flow_RMSE, objFn_flow_SSE, objFn_flow_bias, ~, ~,~] = objectiveFunction_joint(Params_ParetoPoints(zz,:), time_points_head, time_points_streamflow, model_7params,{}); 
+% %             
+            % Getting the Observed head/flow vs. Simulated head/flow plots 
+%         figure(i+1)
+%         scatter (obj.inputData.head(:,2), (h_star(:,2) +  drainage_elevation))
+%         title(' Observed Vs. Simulated Head')
+%         xlabel('Obs. Head (mAHD)')
+%         ylabel('Sim. Head (mAHD)')
+%         
+%         figure(i+2)
+%         plot (obj.inputData.head(:,1), obj.inputData.head(:,2))
+%         title(' Observed and Simulated Head')
+%         xlabel('Date (Numeric Date)')
+%         ylabel('Head (mAHD)')
+%         hold on
+%         plot (h_star(:,1), (h_star(:,2) +  drainage_elevation))
+%         legend('Obs. Head','Sim. Head')
+%         hold off
+%         
+%         figure(i+3)
+%         scatter (obsFlow(:,2), totalFlow_sim)
+%         title(' Observed Vs. Simulated Flow')
+%         xlabel('Obs. Flow (mm/day)')
+%         ylabel('Sim. Flow (mm/day)')
+%         
+%         figure(i+4)
+%         plot (obsFlow(:,1), obsFlow(:,2))
+%         title(' Observed and Simulated Flow')
+%         xlabel('Date (Numeric Date)')
+%         ylabel('Flow (mm/day)')
+%         hold on
+%         plot (obsFlow(:,1), totalFlow_sim)
+%         legend('Obs. Flow','Sim. Flow')
+%         hold off
+            
+    % end 
+    
+    
+    
+    
+%     % Plot Pareto front displaying 3 Flow Obj-Funs and 1 Head Obj-Fun, where only the 1st Flow Obj-Fun was
+%     % optimized in the AMALGAM algorithm. 
+%     
+%     % allOriginalObjVals_Flow(1:AMALGAMPar.ndraw,ObjFuns): [1] (NSE), [2] (NNSE), [3] RMSE, [4] SSE, [5] Bias 
+%     Final_ParSet_FlowObjFunctionVals = allOriginalObjVals_Flow((AMALGAMPar.ndraw-AMALGAMPar.N)+1:AMALGAMPar.ndraw,:)
+%     
+%     % trying to use plotyyy
+%     All_Pareto_Fronts_lines = plotyyy(ObjVals(:,1), Final_ParSet_FlowObjFunctionVals(:,1) , ObjVals(:,1), Final_ParSet_FlowObjFunctionVals(:,3), ObjVals(:,1), Final_ParSet_FlowObjFunctionVals(:,5), {'(1-NSE)', 'RMSE', '|Bias|'});
+%     All_Pareto_Fronts_scatter = plotyyy_GB(ObjVals(:,1), Final_ParSet_FlowObjFunctionVals(:,1) , ObjVals(:,1), Final_ParSet_FlowObjFunctionVals(:,3), ObjVals(:,1), Final_ParSet_FlowObjFunctionVals(:,5), {'(1-NSE)', 'RMSE', '|Bias|'}, 'scatter');
+%     % Checking if the values in ObjVals and Final_ParSet_FlowObjFunctionVals match 
+%     figure(29)
+%     scatter( ObjVals(:,1), ObjVals(:,2))
+%     scatter(ObjVals(:,1), 1-Final_ParSet_FlowObjFunctionVals(:,1)) % values do not match cause of the ranking/mixing that occurs in AMALGAM after calculating the ObjFun with "objectiveFunction_joint"
+%     
+%     % Use another piece of code that creates its own 3 y-axis plot. TO DO: include axis labels and legend. 
+%     x = ObjVals(:,1); 
+%     y1 = Final_ParSet_FlowObjFunctionVals(:,1); 
+%     y2 = Final_ParSet_FlowObjFunctionVals(:,3); 
+%     y3 = Final_ParSet_FlowObjFunctionVals(:,5); 
+%     ylabels = {'(1-NSE)', 'RMSE', '|Bias|'};
+% 
+%     % Scatter Plot on the left and right y axes
+%     figure
+%     ax1 = axes; 
+%     yyaxis left                 % see [1]
+%     scatter(x,y1)
+%     pause(0.1)                  % see [3]
+%     % set the y(left) and x tick values, make them permanent 
+%     % This is the tricky part and shoudl receive a lot of thought when 
+%     % you adapt this to your code...
+%     ax1.XTickMode = 'manual'; 
+%     ax1.YTickMode = 'manual'; 
+%     ax1.YLim = [min(ax1.YTick), max(ax1.YTick)];  % see [4]
+%     ax1.XLimMode = 'manual'; 
+%     grid(ax1,'on')
+%     ytick = ax1.YTick;  
+%     yyaxis right                % see [1]
+%     scatter(x,y2)
+%     % create 2nd, transparent axes
+%     ax2 = axes('position', ax1.Position);
+%     scatter(ax2,x,y3, 'k')
+%     pause(0.1)                 % see [3]
+%     ax2.Color = 'none'; 
+%     grid(ax2, 'on')
+%     % Horizontally scale the y axis to alight the grid (again, be careful!)
+%     ax2.XLim = ax1.XLim; 
+%     ax2.XTick = ax1.XTick; 
+%     ax2.YLimMode = 'manual'; 
+%     yl = ax2.YLim; 
+%     ax2.YTick = linspace(yl(1), yl(2), length(ytick));      % see [2]
+%     % horzontally offset y tick labels
+%     ax2.YTickLabel = strcat(ax2.YTickLabel, {'       '}); 
+%     % % trying to set the label to the y-axis
+%     % set(get(ax1(1),'ylabel'),'string',ylabels{1})
+%     % set(get(ax1(2),'ylabel'),'string',ylabels{2})
+%     % set(get(ax2(1),'ylabel'),'string',ylabels{3})
+%     % [1] https://www.mathworks.com/help/matlab/ref/yyaxis.html
+%     % [2] this is the critical step to align the grids. It assumes both 
+%     %       axes contain ticks at the start and end of the y axis
+%     % [3] For some reason when I step through the code, the plots appear
+%     %       as they should but when I run the code at it's natural speed
+%     %       there are graphics issues.  It's as if code execution is 
+%     %       ahead of the graphics which is annoying.  A brief pause 
+%     %       fixes this (r2019a)
+%     % [4] Scaling is easier if the ticks begin and end at the axis limits
+
+
+
     
     
 % ---------------------------------------------------------------------------------------------------%
@@ -406,16 +533,14 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
 
     clear all % clear all variables to avoid inheriting parameters from the previous run 
 
-    toc % stop timer
-    
-    
     % Restating the List of bores in the study area to keep the loop going
     list_bores = {'bore_WRK961324', 'bore_141234','bore_141243' ,'bore_WRK961325' , 'bore_WRK961326'} ; %  ----- Brucknell
     % list_bores = {'bore_141234','bore_141243' ,'bore_WRK961325' , 'bore_WRK961326'} ; %  ----- Brucknell
     % list_bores = {'bore_118946', 'bore_118947'} ; %  ----------------------------------------------------------- Ford
     % list_bores = {'bore_2091', 'bore_WRK958154', 'bore_WRK958156', 'bore_WRK958155', 'bore_2092'} ; %  --------- Sunday
     
-    
+    toc % stop timer
 end
 
 clear all; % to avoid errors in the new loop
+

@@ -183,7 +183,7 @@ while (Iter < AMALGAMPar.ndraw),
     ChildCg = repmat(inf, AMALGAMPar.N, 1); % initialize physical constrains matrix
 
     parfor ii = 1:AMALGAMPar.N % computing the Obj-functions using parallel computing
-%      for ii = 1:AMALGAMPar.N % computing the Obj-functions using parallel computing
+%      for ii = 1:AMALGAMPar.N % computing the Obj-functions 
          
 %          ObjVals_prime = objectiveFunction_joint(NewGen(ii,:)', Measurement.time_points_head, Measurement.time_points_streamflow, model_object,{}); % using time points from calibration_initialise to avoid mismatch of dimensions in line 2803 of model_TFN
          [ObjVals_prime, ~, ~, objFn_flow_NSE, objFn_flow_NNSE, objFn_flow_RMSE, objFn_flow_SSE, objFn_flow_bias, ~, ~,~] = objectiveFunction_joint(NewGen(ii,:)', Measurement.time_points_head, Measurement.time_points_streamflow, model_object,{}); % using time points from calibration_initialise to avoid mismatch of dimensions in line 2803 of model_TFN

@@ -238,7 +238,7 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
         % Call method in model_TFN_SW_GW to return obs flow
         obsFlow = getObservedFlow(obj);
         
-        % trim obs. flow data to match the period used for calibreation
+        % trim obs. flow data to match the period used for calibration
         t_filt = find( obsFlow(:,1) >=time_points_streamflow(1)  ...
             & obsFlow(:,1) <= time_points_streamflow(end) );
         obsFlow = obsFlow(t_filt,:);
@@ -249,7 +249,7 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
         % NSE
         objFn_flow_NSE = 1 - ( sum((totalFlow_sim - obsFlow(:,2)).^2)./ ...
                        sum((obsFlow(:,2) - mean(obsFlow(:,2))).^2));
-        % normalized NSE, where zero is equivalent to -Inf, 0 to 0, and 1 to 1 in NSE (Nossent and Bauwens, EGU 2012)
+        % normalized NSE, where zero is equivalent to -Inf, 0.5 to 0, and 1 to 1 in NSE (Nossent and Bauwens, EGU 2012)
         objFn_flow_NNSE = 1 / (2- objFn_flow_NSE); 
         % RMSE
         objFn_flow_RMSE = sqrt(sum((totalFlow_sim - obsFlow(:,2)).^2)/ size(obsFlow,1));
@@ -259,22 +259,55 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
         objFn_flow_bias = sum(totalFlow_sim - obsFlow(:,2))/length(obsFlow(:,2));
 
         %  IMPORTANT: in AMALGAM we want to minize the obj-func!
-        
         objFn_flow = 1 - objFn_flow_NSE; % (1 - NSE) cause AMALGAM is set up to minimize the Obj-Func.
 %         objFn_flow = 1 - objFn_flow_NNSE; % (1 - NNSE) cause AMALGAM is set up to minimize the Obj-Func.
 %         objFn_flow = objFn_flow_RMSE; % AMALGAM is set up to minimize the Obj-Func.
 %         objFn_flow = objFn_flow_SSE; % AMALGAM is set up to minimize the Obj-Func.
 %         objFn_flow = abs(objFn_flow_bias); % abs(Bias) cause AMALGAM is set up to minimize the Obj-Func.
         
+        % Merging objFunctions for head and flow
+%         objFn_joint = [objFn_head, objFn_flow];
+        
+         % Calibrating only to FLOW using 2 flow obj-fun
+        objFn_joint = [objFn_flow, objFn_flow];
+        
+        % Getting the Observed head/flow vs. Simulated head/flow plots 
+%         figure(i+1)
+%         scatter (obj.inputData.head(:,2), (h_star(:,2) +  drainage_elevation))
+%         title(' Observed Vs. Simulated Head')
+%         xlabel('Obs. Head (mAHD)')
+%         ylabel('Sim. Head (mAHD)')
+%         
+%         figure(i+2)
+%         plot (obj.inputData.head(:,1), obj.inputData.head(:,2))
+%         title(' Observed and Simulated Head')
+%         xlabel('Date (Numeric Date)')
+%         ylabel('Head (mAHD)')
+%         hold on
+%         plot (h_star(:,1), (h_star(:,2) +  drainage_elevation))
+%         legend('Obs. Head','Sim. Head')
+%         hold off
+%         
+%         figure(i+3)
+%         scatter (obsFlow(:,2), totalFlow_sim)
+%         title(' Observed Vs. Simulated Flow')
+%         xlabel('Obs. Flow (mm/day)')
+%         ylabel('Sim. Flow (mm/day)')
+%         
+%         figure(i+4)
+%         plot (obsFlow(:,1), obsFlow(:,2))
+%         title(' Observed and Simulated Flow')
+%         xlabel('Date (Numeric Date)')
+%         ylabel('Flow (mm/day)')
+%         hold on
+%         plot (obsFlow(:,1), totalFlow_sim)
+%         legend('Obs. Flow','Sim. Flow')
+%         hold off
+        
 
-        
-        % merging objFunctions for head and flow
-        objFn_joint = [objFn_head, objFn_flow];
-        
-        % Rten combined objFun and other terms 
-        
+
         % ploting obs total streamflow
-%         figure(1)
+%         figure(13)
 %         plot( obsFlow(:,1), obsFlow(:,2))
 %         title(' streamflow observations')
 %         xlabel('Numeric Date ')
@@ -284,7 +317,7 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
 %         ax.FontSize = 13;
         
         % ploting simulated total streamflow
-%         figure(2)
+%         figure(14)
 %         plot(obsFlow(:,1),totalFlow_sim)
 %         title(' streamflow simulation')
 %         xlabel('Numeric Date ')
