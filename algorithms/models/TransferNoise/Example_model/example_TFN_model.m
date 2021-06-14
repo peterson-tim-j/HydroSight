@@ -41,12 +41,11 @@
 
 % List of bores in the study area 
 list_bores = {'bore_WRK961324', 'bore_141234','bore_141243' ,'bore_WRK961325' , 'bore_WRK961326'} ; %  ----- Brucknell 
-% list_bores = {'bore_141234','bore_141243' ,'bore_WRK961325' , 'bore_WRK961326'} ; %  ----- Brucknell 
 % list_bores = {'bore_118946', 'bore_118947'} ; %  ----------------------------------------------------------- Ford 
 % list_bores = {'bore_2091', 'bore_WRK958154', 'bore_WRK958156', 'bore_WRK958155', 'bore_2092'} ; %  --------- Sunday 
 
-
-for i=1:length(list_bores)
+% for i=1:length(list_bores)
+for i=1:1
 
 tic % start timer
 
@@ -224,7 +223,7 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
     AMALGAMPar.n = length(params_initial);  % Dimension of the problem    ----  run7paramModel now has 9 parameters? are we allowing head-threshoold and head_to_baseflow to be calibrated? 
     AMALGAMPar.N = 100;                     % Size of the population   - LENTGH OF OBS. TIMESERIES or just a calibration parameter?
     AMALGAMPar.nobj = 2;                    % Number of objectives
-    AMALGAMPar.ndraw = 10000;               % Maximum number of function evaluations
+    AMALGAMPar.ndraw = 1000000;               % Maximum number of function evaluations
     
     % Define the parameter ranges (minimum and maximum values)
     [params_upperLimit, params_lowerLimit] = getParameters_plausibleLimit(model_7params.model);
@@ -259,8 +258,32 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
     [output,ParGen,ObjVals,ParSet,allOriginalObjVals_Flow] = AMALGAM(AMALGAMPar,ModelName,ParRange,Measurement,Extra,Fpareto,model_object);
 
     
-       
     
+    % Store the figure showing Pareton Front of all generations of params
+    f = figure(1);
+    set(f, 'Color', 'w');
+    A1 = 'Pareto Front_All Generations_';
+    A2 = AMALGAMPar.ndraw;
+    A3 = bore_ID;
+    A4 = catchment;
+    A5 = 'Weighting';
+    weighting_forces = unique(modelOptions_7params(:,1));
+    A6= weighting_forces(1);
+    A6 = cell2mat(A6);
+    A7 = datestr(now,'mm-dd-yyyy HH-MM');
+    formatSpec = '%1$s %2$s %3$s %4$s %5$s %6$s %7$s';
+    Filename = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7);
+%     A7 = weighting_forces(2);
+%     A7 = cell2mat(A7);
+%     A8 = datestr(now,'mm-dd-yyyy HH-MM');
+%     formatSpec = '%1$s %2$s %3$s %4$s %5$s %6$s %7$s %8$s';
+%     Filename = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7,A8);
+    
+    folder = 'C:\Users\gbonotto\OneDrive - The University of Melbourne\1 - UNIMELB\5 - HydroSight\10 - Run Results';
+    saveas(f, fullfile(folder, Filename), 'fig');
+    
+    
+           
     %Storing the model object "model_7params" to show the configuration used for model_TFN_SW_GW
     A1 = 'Configuration_model_TFN_SW_GW_';
     A2 = bore_ID;
@@ -272,7 +295,6 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
     folder = 'C:\Users\gbonotto\OneDrive - The University of Melbourne\1 - UNIMELB\5 - HydroSight\10 - Run Results';
     path =fullfile(folder, Filename);
     save(path,'model_7params')  % Save model object
-    
              
     %Storing all generation of parameters, including the Obj-Function Value
     %for each parameter set
@@ -325,57 +347,63 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
     csvwrite(path,ObjVals)
     
     % Plot the Pareto Front of the last generation
-    figure(1)
+    figure(2)
     scatter( ObjVals(:,1), ObjVals(:,2))
     title({['Pareto Front - GW head vs. Streamflow Obj-Functions' ] 
                         [bore_ID ' - ' catchment ]});
-%     xlabel('pseudo likelihood (GW head)')
-    xlabel('(1-NSE) (Flow)')
+    xlabel('pseudo likelihood (GW head)')
+%     xlabel('(1-NSE) (Flow)')
     ylabel('(1-NSE) (Flow)')
     grid on
     ax = gca;
     ax.FontSize = 13;
     
-    
-    % Store the figure showing Pareton Front of final generation of params
-    f = figure(1);
+    % Save the Pareto Front of the last generation
+    f = figure(2);
     set(f, 'Color', 'w');
     A1 = 'Pareto Front_Final Generation_';
-    A2 = bore_ID;
-    A3 = catchment;
-    A4 = 'Weighting';
+    A3 = bore_ID;
+    A4 = catchment;
+    A5 = 'Weighting';
     weighting_forces = unique(modelOptions_7params(:,1));
-    A5= weighting_forces(1);
-    A5 = cell2mat(A5);
-    A6 = datestr(now,'mm-dd-yyyy HH-MM');
-    formatSpec = '%1$s %2$s %3$s %4$s %5$s %6$s';
-    Filename = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
-%     A6 = weighting_forces(2);
-%     A6 = cell2mat(A6);
-%     A7 = datestr(now,'mm-dd-yyyy HH-MM');
-%     formatSpec = '%1$s %2$s %3$s %4$s %5$s %6$s %7$s';
-%     Filename = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7);
+    A6= weighting_forces(1);
+    A6 = cell2mat(A6);
+    A7 = datestr(now,'mm-dd-yyyy HH-MM');
+    formatSpec = '%1$s %3$s %4$s %5$s %6$s %7$s';
+    Filename = sprintf(formatSpec,A1,A2,A4,A5,A6,A7);
+%     A7 = weighting_forces(2);
+%     A7 = cell2mat(A7);
+%     A8 = datestr(now,'mm-dd-yyyy HH-MM');
+%     formatSpec = '%1$s %2$s %4$s %5$s %6$s %7$s %8$s';
+%     Filename = sprintf(formatSpec,A1,A2,A4,A5,A6,A7,A8);
     
     folder = 'C:\Users\gbonotto\OneDrive - The University of Melbourne\1 - UNIMELB\5 - HydroSight\10 - Run Results';
     saveas(f, fullfile(folder, Filename), 'png');
     
     
     
+    
+    
+    
     %%%%% Analysing some parameter sets along the pre-calculated Pareto
     %%%%% Front to analyse model sensitivity and performance
     
-%     Params_ParetoPoints
-%     % using time points from calibration_initialise to avoid mismatch of dimensions in line 2803 of model_TFN
-%     
-    % For bore WRK931626, using Precip Weighting
-%         Params_ParetoPoints = {1.7118, 1.7927,1.3346,0.97298,0, -2.6674, -1.6921, -3.8264, 13.067, 0.090614, 0, 529.12;...
-%                            2.2238, 1.699,	1.3345, 0.97778, -0.29689, -1.4667, -1.8258, -3.0067, 13.269, 0.090804, 0, 23.334;...
-%                            2.2909, 1.699,	2.4662, 0.89762, -1.3566, -4.9966, -1.9464, -1.9579, 120.34, 0.18926, 0, 0.31592};
-% %         for zz=1:length(Params_ParetoPoints)
-%          
-%        [ObjVals_prime, ~, ~, objFn_flow_NSE, objFn_flow_NNSE, objFn_flow_RMSE, objFn_flow_SSE, objFn_flow_bias, ~, ~,~] = objectiveFunction_joint(Params_ParetoPoints(zz,:), time_points_head, time_points_streamflow, model_7params,{}); 
-% %             
-            % Getting the Observed head/flow vs. Simulated head/flow plots 
+       %        bore WRK931624 - precip only
+        Params_ParetoPoints = {1.7035, 1.856, 1.3345, 0.95114, -2.0053, -2.4069, -0.16384, -2.1372, 355.16, 235}; % point 1
+        
+        Params_ParetoPoints = {1.6999, 1.7018, 1.3345, 0.65596, -1.9935, -1.9131, 0.0011781, -2.1356, 556.62, 159.49}; % point 2
+        
+        Params_ParetoPoints = {1.8516, 1.6992, 2.9469, 0.93627, -2.0243, -1.9795, 0.00067361, -2.1576, 558.89, 144.2}; % point 3
+
+        
+
+       [ObjVals_prime, ~, ~, objFn_flow_NSE, objFn_flow_NNSE, objFn_flow_RMSE, objFn_flow_SSE, objFn_flow_bias, ~, ~,~] = objectiveFunction_joint(Params_ParetoPoints, time_points_head, time_points_streamflow, model_7params,{}); 
+       [ObjVals_prime, ~, ~, objFn_flow_NSE, objFn_flow_NNSE, objFn_flow_RMSE, objFn_flow_SSE, objFn_flow_bias, ~, ~,~] = objectiveFunction_joint(Params_ParetoPoints, time_points_head, time_points_streamflow, model_object,{}); 
+
+       
+       % %             
+
+%             Getting the Observed head/flow vs. Simulated head/flow plots 
 %         figure(i+1)
 %         scatter (obj.inputData.head(:,2), (h_star(:,2) +  drainage_elevation))
 %         title(' Observed Vs. Simulated Head')
@@ -408,7 +436,7 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
 %         legend('Obs. Flow','Sim. Flow')
 %         hold off
             
-    % end 
+     
     
     
     
@@ -496,7 +524,7 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
     calibrateModelPlotResults(model_7params_gw,[]);
     
     % Store the figure showing results when calibrated GW only
-    f = figure(i+1);
+    f = figure(i+2);
     
     set(f, 'Color', 'w');
     f.Units = 'inches';

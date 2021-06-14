@@ -266,10 +266,10 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
 %         objFn_flow = abs(objFn_flow_bias); % abs(Bias) cause AMALGAM is set up to minimize the Obj-Func.
         
         % Merging objFunctions for head and flow
-%         objFn_joint = [objFn_head, objFn_flow];
+        objFn_joint = [objFn_head, objFn_flow];
         
          % Calibrating only to FLOW using 2 flow obj-fun
-        objFn_joint = [objFn_flow, objFn_flow];
+%         objFn_joint = [objFn_flow, objFn_flow];
         
         % Getting the Observed head/flow vs. Simulated head/flow plots 
 %         figure(i+1)
