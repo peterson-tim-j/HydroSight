@@ -277,6 +277,12 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
 %         title(' Observed Vs. Simulated Head')
 %         xlabel('Obs. Head (mAHD)')
 %         ylabel('Sim. Head (mAHD)')
+%         axis square
+%         %         daspect([1 1 1])
+%         myRefLine = refline(1);
+%         myRefLine.Color = 'r';
+%         myRefLine.LineStyle = '--';
+% 
 %         
 %         figure(i+2)
 %         plot (obj.inputData.head(:,1), obj.inputData.head(:,2))
@@ -293,6 +299,13 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
 %         title(' Observed Vs. Simulated Flow')
 %         xlabel('Obs. Flow (mm/day)')
 %         ylabel('Sim. Flow (mm/day)')
+%         axis square
+% %         daspect([1 1 1])
+%         myRefLine = refline(1);
+%         myRefLine.Color = 'r';
+%         myRefLine.LineStyle = '--';
+% 
+% 
 %         
 %         figure(i+4)
 %         plot (obsFlow(:,1), obsFlow(:,2))
@@ -303,21 +316,10 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
 %         plot (obsFlow(:,1), totalFlow_sim)
 %         legend('Obs. Flow','Sim. Flow')
 %         hold off
-        
-
-
-        % ploting obs total streamflow
-%         figure(13)
-%         plot( obsFlow(:,1), obsFlow(:,2))
-%         title(' streamflow observations')
-%         xlabel('Numeric Date ')
-%         ylabel('mm/day')
-%         grid on
-%         ax = gca;
-%         ax.FontSize = 13;
-        
-        % ploting simulated total streamflow
-%         figure(14)
+%         
+%        
+% %         plotting simulated total streamflow
+%         figure(i+5)
 %         plot(obsFlow(:,1),totalFlow_sim)
 %         title(' streamflow simulation')
 %         xlabel('Numeric Date ')
@@ -330,8 +332,20 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
 %         plot(obsFlow(:,1),baseFlow)
 %         hold on
 %         plot(obsFlow(:,1),quickFlow)
+%         hold on
+%         plot (obsFlow(:,1), obsFlow(:,2))
 %         hold off
-%         legend('totalFlow_sim','baseFlow','quickFlow')
+%         legend('totalFlow_sim','baseFlow','quickFlow','totalFlow_obs')
+
+        % ploting obs total streamflow
+%         figure(i+6)
+%         plot( obsFlow(:,1), obsFlow(:,2))
+%         title(' streamflow observations')
+%         xlabel('Numeric Date ')
+%         ylabel('mm/day')
+%         grid on
+%         ax = gca;
+%         ax.FontSize = 13;
 
          obj.variables.doingCalibration = true; % true to allow the parfor loop in AMALGAM - TURN THIS OFF when not using AMALGAM 
     end
@@ -370,9 +384,9 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
      % "climateTransform_soilMoistureModels" or "climateTransform_soilMoistureModels_2layer_v2" only for the dates with
      % streamflow observations 
      
-     % USING 1-D soil model
+     % USING 1-layer soil model
 %      setTransformedForcing(obj.parameters.climateTransform_soilMoistureModels, time_points_streamflow, true) 
-     % USING 2-D soil model
+     % USING 2-layer soil model
      setTransformedForcing(obj.parameters.climateTransform_soilMoistureModels_2layer_v2, time_points_streamflow, true)
      
      
@@ -396,9 +410,9 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
      obj.variables.totalFlow = [];
      
      % Get the runoff from the derived forcing output
-     % USING 2-D soil model
+     % USING 2-layer soil model
      [tf, column_number] = ismember('runoff_total', derivedForcingData_colnames); % shall we now use runoff_total??
-     % USING 1-D soil model
+     % USING 1-layer soil model
 %      [tf, column_number] = ismember('runoff', derivedForcingData_colnames); % shall we now use runoff_total??
      
      if ~tf
@@ -416,12 +430,9 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
      % USED TO GENERATE THE BASEFLOW OUTPUT...
             
      % calculate total flow 
-     totalFlow = quickFlow + baseFlow; 
+     totalFlow = max(0, quickFlow + baseFlow); % limit the total flow to be above zero
+      
      
-     % limit the total flow to be above zero
-     if totalFlow < 0 
-        totalFlow = 0; 
-     end
      
      % Storing total flow
      obj.variables.totalFlow = totalFlow;

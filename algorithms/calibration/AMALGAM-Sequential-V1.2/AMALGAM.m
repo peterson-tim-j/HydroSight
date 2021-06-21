@@ -235,13 +235,12 @@ while (Iter < AMALGAMPar.ndraw),
     Iter
     
     % Plot Pareto Fronts on top of each other to show progress
-%     hold on
     figure(1)
     scatter( ObjVals(:,1), ObjVals(:,2))
     title({['Pareto Front - GW head vs. Streamflow Obj-Functions' ]
         [model_object.inputData.bore_ID ' - ' 'Brucknell Creek' ]});
-    xlabel('pseudo likelihood (GW head)')
-%     xlabel('(1-NSE) (Flow)')
+%     xlabel('pseudo likelihood (GW head)')
+    xlabel('(1-NSE) (Flow)')
     ylabel('(1-NSE) (Flow)')
     grid on
     ax = gca;

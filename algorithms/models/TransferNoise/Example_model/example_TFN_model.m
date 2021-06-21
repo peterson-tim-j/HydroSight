@@ -44,8 +44,8 @@ list_bores = {'bore_WRK961324', 'bore_141234','bore_141243' ,'bore_WRK961325' , 
 % list_bores = {'bore_118946', 'bore_118947'} ; %  ----------------------------------------------------------- Ford 
 % list_bores = {'bore_2091', 'bore_WRK958154', 'bore_WRK958156', 'bore_WRK958155', 'bore_2092'} ; %  --------- Sunday 
 
-% for i=1:length(list_bores)
-for i=1:1
+for i=1:length(list_bores)
+% for i=1:1
 
 tic % start timer
 
@@ -126,7 +126,7 @@ siteCoordinates = {bore_ID, 100, 100;...
 forcingTransform_Precip = {'transformfunction', 'climateTransform_soilMoistureModels_2layer_v2'; ...
                'forcingdata', {'precip','PRECIP';'et','APET'}; ...
                'outputdata', 'drainage_deep'; ...
-               'options', {'SMSC',2,[];'SMSC_deep',2,[];'beta',0,'';'k_sat',1,'';'alpha',0,'fixed';'beta_deep',NaN,'fixed';'k_sat_deep',NaN,'fixed'}}; % had to set k_sat_deep and beta_deep as "fixed" to allow it to pass line 480 of climateTransform_soilMoistureModels_2layer_v2
+               'options', {'SMSC',2,[];'SMSC_deep',2,[];'beta',0,'';'k_sat',1,'';'alpha',1,'';'beta_deep',NaN,'fixed';'k_sat_deep',NaN,'fixed'}}; % had to set k_sat_deep and beta_deep as "fixed" to allow it to pass line 480 of climateTransform_soilMoistureModels_2layer_v2
            
            
            
@@ -223,7 +223,7 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
     AMALGAMPar.n = length(params_initial);  % Dimension of the problem    ----  run7paramModel now has 9 parameters? are we allowing head-threshoold and head_to_baseflow to be calibrated? 
     AMALGAMPar.N = 100;                     % Size of the population   - LENTGH OF OBS. TIMESERIES or just a calibration parameter?
     AMALGAMPar.nobj = 2;                    % Number of objectives
-    AMALGAMPar.ndraw = 1000000;               % Maximum number of function evaluations
+    AMALGAMPar.ndraw = 300000;               % Maximum number of function evaluations
     
     % Define the parameter ranges (minimum and maximum values)
     [params_upperLimit, params_lowerLimit] = getParameters_plausibleLimit(model_7params.model);
@@ -263,7 +263,6 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
     f = figure(1);
     set(f, 'Color', 'w');
     A1 = 'Pareto Front_All Generations_';
-    A2 = AMALGAMPar.ndraw;
     A3 = bore_ID;
     A4 = catchment;
     A5 = 'Weighting';
@@ -271,17 +270,16 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
     A6= weighting_forces(1);
     A6 = cell2mat(A6);
     A7 = datestr(now,'mm-dd-yyyy HH-MM');
-    formatSpec = '%1$s %2$s %3$s %4$s %5$s %6$s %7$s';
-    Filename = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7);
+    formatSpec = '%1$s %2$s %3$s %4$s %5$s %6$s';
+    Filename = sprintf(formatSpec,A1,A3,A4,A5,A6,A7);
 %     A7 = weighting_forces(2);
 %     A7 = cell2mat(A7);
 %     A8 = datestr(now,'mm-dd-yyyy HH-MM');
 %     formatSpec = '%1$s %2$s %3$s %4$s %5$s %6$s %7$s %8$s';
 %     Filename = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7,A8);
-    
     folder = 'C:\Users\gbonotto\OneDrive - The University of Melbourne\1 - UNIMELB\5 - HydroSight\10 - Run Results';
-    saveas(f, fullfile(folder, Filename), 'fig');
-    
+    savefig(f,fullfile(folder, Filename))
+
     
            
     %Storing the model object "model_7params" to show the configuration used for model_TFN_SW_GW
@@ -347,18 +345,20 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
     csvwrite(path,ObjVals)
     
     % Plot the Pareto Front of the last generation
+%     figure(1)
     figure(2)
     scatter( ObjVals(:,1), ObjVals(:,2))
     title({['Pareto Front - GW head vs. Streamflow Obj-Functions' ] 
                         [bore_ID ' - ' catchment ]});
     xlabel('pseudo likelihood (GW head)')
 %     xlabel('(1-NSE) (Flow)')
-    ylabel('(1-NSE) (Flow)')
+    ylabel('(RMSE) (Flow)')
     grid on
     ax = gca;
     ax.FontSize = 13;
     
     % Save the Pareto Front of the last generation
+%     f = figure(1);
     f = figure(2);
     set(f, 'Color', 'w');
     A1 = 'Pareto Front_Final Generation_';
@@ -388,30 +388,49 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
     %%%%% Analysing some parameter sets along the pre-calculated Pareto
     %%%%% Front to analyse model sensitivity and performance
     
-       %        bore WRK931624 - precip only
-        Params_ParetoPoints = {1.7035, 1.856, 1.3345, 0.95114, -2.0053, -2.4069, -0.16384, -2.1372, 355.16, 235}; % point 1
+%        % bore WRK931624 - precip only
+          % point 1
+%         Params_ParetoPoints = [2.5916, 1.699, 3.1663, 0.76482, -1.3454, -3.0466, -0.41238, -2.027, 37.317, 2.2904]'; % Alpha = zero, NSE, 890k iterations, 14/Jun/2021  
+%         Params_ParetoPoints = [2.5683, 1.699, 3.1663,	0.67665, -1.1342, -3.0921, -0.45796, -1.9979, 209.7, 836.68]' % Alpha = 1, NSE, 300k iterations, 17/Jun/2021       
+%         Params_ParetoPoints = [2.5171, 1.699,	3.1656,	0.048855, 0.77607, -1.4026, -2.8757, -0.34583, -2.0055, 391.13, 96.234]' % Alpha = calibrated, NSE, 300k iterations, 18/Jun/2021       
+%         Params_ParetoPoints = [2.5988, 1.699, 3.1662, 0.075225, 0.75174, -1.3121, -3.0728, -0.42817, -2.027, 553.63, 164.89]' % Alpha = calibrated, RMSE, 300k iterations, 21/Jun/2021       
+
+%         % point 2
+%         Params_ParetoPoints = [1.6992, 1.75, 1.335, 0.78923, -1.4669, -2.535, -0.31971, -2.1195, 36.973, 1.4036]'; % Alpha = zero, NSE, 890k iterations, 14/Jun/2021 
+%         Params_ParetoPoints = [1.699,	2.699, 3.1663, 0.63863, -1.325, -2.8724, -0.30827, -1.71, 892.39, 831.05]' %  Alpha = 1, NSE, 300k iterations, 17/Jun/2021                
+%         Params_ParetoPoints = [1.699,	1.9516,	1.3375,	0.064356, 0.85547, -1.5002, -2.5998, -0.23659, -2.185, 357.2, 236.39]' % Alpha = calibrated, NSE, 300k iterations, 18/Jun/2021              
+%         Params_ParetoPoints = [1.7019, 1.9448, 1.3345, 0.1121, 0.53938, -1.4862, -2.8445, -0.23923, -1.8488, 849.92, 277.39]' % Alpha = calibrated, RMSE, 300k iterations, 21/Jun/2021             
+
+% 
+%         % point 3
+%         Params_ParetoPoints = [1.6991, 1.699, 3.1662, 0.61752, -1.6414, -3.0587, -0.5182, -2.0636, 37.232, 9.353]'; % Alpha = zero, NSE, 890k iterations, 14/Jun/2021 
+%         Params_ParetoPoints = [1.699,	2.699, 1.5087, 0, -1.3699, -2.7822, -0.31574, -1.8051, 871.26, 970.71]' % Alpha = 1, NSE, 300k iterations, 17/Jun/2021  
+%         Params_ParetoPoints = [1.699, 2.428, 1.3345, 0.089784, 1, -1.0041, -3.5064, -1.4233, -2.2622, 909.55, 110.35]' % Alpha = calibrated, NSE, 300k iterations, 18/Jun/2021 
+%         Params_ParetoPoints = [1.699, 2.428, 1.3345, 0.089747, 1, -1.0367, -3.4925, -1.1446, -2.2434, 469.51, 177.8]' % Alpha = calibrated, RMSE, 300k iterations, 21/Jun/2021   
+
+%                            SMSC_deep, SMSC, k_sat,   alpha, beta,    A,      b,     n,     alpha,   head_threshold,  head_to_baseflow   
+%         
+% 
+%        [ObjVals_prime, ~, ~, objFn_flow_NSE, objFn_flow_NNSE, objFn_flow_RMSE, objFn_flow_SSE, objFn_flow_bias, ~, ~,~] = objectiveFunction_joint(Params_ParetoPoints, time_points_head, time_points_streamflow, model_7params.model,{}); 
         
-        Params_ParetoPoints = {1.6999, 1.7018, 1.3345, 0.65596, -1.9935, -1.9131, 0.0011781, -2.1356, 556.62, 159.49}; % point 2
-        
-        Params_ParetoPoints = {1.8516, 1.6992, 2.9469, 0.93627, -2.0243, -1.9795, 0.00067361, -2.1576, 558.89, 144.2}; % point 3
+  
 
-        
 
-       [ObjVals_prime, ~, ~, objFn_flow_NSE, objFn_flow_NNSE, objFn_flow_RMSE, objFn_flow_SSE, objFn_flow_bias, ~, ~,~] = objectiveFunction_joint(Params_ParetoPoints, time_points_head, time_points_streamflow, model_7params,{}); 
-       [ObjVals_prime, ~, ~, objFn_flow_NSE, objFn_flow_NNSE, objFn_flow_RMSE, objFn_flow_SSE, objFn_flow_bias, ~, ~,~] = objectiveFunction_joint(Params_ParetoPoints, time_points_head, time_points_streamflow, model_object,{}); 
-
-       
-       % %             
-
-%             Getting the Observed head/flow vs. Simulated head/flow plots 
+% %        [params, param_names] = getParameters(model_7params)
+% %        [params, param_names] = getParameters(model_object)
+% %        setParameters(obj, params, param_names)
+%        
+% 
+%        
+%         % Getting the Observed head/flow vs. Simulated head/flow plots 
 %         figure(i+1)
-%         scatter (obj.inputData.head(:,2), (h_star(:,2) +  drainage_elevation))
+%         scatter (model_object.inputData.head(:,2), (h_star(:,2) +  drainage_elevation))
 %         title(' Observed Vs. Simulated Head')
 %         xlabel('Obs. Head (mAHD)')
 %         ylabel('Sim. Head (mAHD)')
 %         
 %         figure(i+2)
-%         plot (obj.inputData.head(:,1), obj.inputData.head(:,2))
+%         plot (model_object.inputData.head(:,1), model_object.inputData.head(:,2))
 %         title(' Observed and Simulated Head')
 %         xlabel('Date (Numeric Date)')
 %         ylabel('Head (mAHD)')
@@ -524,8 +543,8 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
     calibrateModelPlotResults(model_7params_gw,[]);
     
     % Store the figure showing results when calibrated GW only
+%     f = figure(i+1);
     f = figure(i+2);
-    
     set(f, 'Color', 'w');
     f.Units = 'inches';
     f.OuterPosition = [.5 .5 13 10];
