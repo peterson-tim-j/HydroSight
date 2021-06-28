@@ -186,7 +186,7 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
         
         
         
-    function [objFn_joint, objFn_head, objFn_flow, objFn_flow_NSE, objFn_flow_NNSE, objFn_flow_RMSE, objFn_flow_SSE, objFn_flow_bias, totalFlow_sim, colnames, drainage_elevation] = objectiveFunction_joint(params, time_points_head, time_points_streamflow, obj, varargin)
+    function [objFn_joint, objFn_head, objFn_flow, objFn_flow_NSE, objFn_flow_NNSE, objFn_flow_RMSE, objFn_flow_SSE, objFn_flow_bias, objFn_flow_KGE, totalFlow_sim, colnames, drainage_elevation] = objectiveFunction_joint(params, time_points_head, time_points_streamflow, obj, varargin)
        
      
           % here i wad trying to see if using
@@ -257,13 +257,21 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
         objFn_flow_SSE = sum((totalFlow_sim - obsFlow(:,2)).^2); 
         % Bias
         objFn_flow_bias = sum(totalFlow_sim - obsFlow(:,2))/length(obsFlow(:,2));
+        % KGE 
+        w = [1,1,1];                              % no weights specified, use defaults
+        c(1) = corr(obsFlow,totalFlow_sim);       % r: linear correlation
+        c(2) = std(totalFlow_sim)/std(obsFlow);   % alpha: ratio of standard deviations
+        c(3) = mean(totalFlow_sim)/mean(obsFlow); % beta: bias
+        objFn_flow_KGE = 1-sqrt((w(1)*(c(1)-1))^2 + (w(2)*(c(2)-1))^2 + (w(3)*(c(3)-1))^2); % weighted KGE
+
 
         %  IMPORTANT: in AMALGAM we want to minize the obj-func!
-        objFn_flow = 1 - objFn_flow_NSE; % (1 - NSE) cause AMALGAM is set up to minimize the Obj-Func.
-%         objFn_flow = 1 - objFn_flow_NNSE; % (1 - NNSE) cause AMALGAM is set up to minimize the Obj-Func.
-%         objFn_flow = objFn_flow_RMSE; % AMALGAM is set up to minimize the Obj-Func.
-%         objFn_flow = objFn_flow_SSE; % AMALGAM is set up to minimize the Obj-Func.
-%         objFn_flow = abs(objFn_flow_bias); % abs(Bias) cause AMALGAM is set up to minimize the Obj-Func.
+        objFn_flow = 1 - objFn_flow_NSE;         %1-NSE
+%         objFn_flow = 1 - objFn_flow_NNSE;      %1-NNSE
+%         objFn_flow = objFn_flow_RMSE;          %RMSE
+%         objFn_flow = objFn_flow_SSE;           %SSE
+%         objFn_flow = abs(objFn_flow_bias);     %BIAS
+%         objFn_flow = 1 - objFn_flow_KGE);      %1-KGE
         
         % Merging objFunctions for head and flow
         objFn_joint = [objFn_head, objFn_flow];
@@ -271,6 +279,8 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
          % Calibrating only to FLOW using 2 flow obj-fun
 %         objFn_joint = [objFn_flow, objFn_flow];
         
+
+
         % Getting the Observed head/flow vs. Simulated head/flow plots 
 %         figure(i+1)
 %         scatter (obj.inputData.head(:,2), (h_star(:,2) +  drainage_elevation))

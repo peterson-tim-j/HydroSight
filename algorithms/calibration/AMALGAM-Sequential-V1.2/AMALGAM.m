@@ -120,7 +120,7 @@ Cg = repmat(0, AMALGAMPar.N, 1); % Initialize/Define the contstraint violation
 %     for ii = 1:AMALGAMPar.N % computing the Obj-functions using parallel computing
 
 %         ObjVals_prime = objectiveFunction_joint(ParGen(ii,:)', Measurement.time_points_head, Measurement.time_points_streamflow, model_object,{}); % using time points from calibration_initialise to avoid mismatch of dimensions in line 2803 of model_TFN
-        [ObjVals_prime, ~, ~, objFn_flow_NSE, objFn_flow_NNSE, objFn_flow_RMSE, objFn_flow_SSE, objFn_flow_bias, ~, ~,~] = objectiveFunction_joint(ParGen(ii,:)', Measurement.time_points_head, Measurement.time_points_streamflow, model_object,{}); % using time points from calibration_initialise to avoid mismatch of dimensions in line 2803 of model_TFN
+        [ObjVals_prime, ~, ~, objFn_flow_NSE, objFn_flow_NNSE, objFn_flow_RMSE, objFn_flow_SSE, objFn_flow_bias, objFn_flow_KGE, ~, ~,~] = objectiveFunction_joint(ParGen(ii,:)', Measurement.time_points_head, Measurement.time_points_streamflow, model_object,{}); % using time points from calibration_initialise to avoid mismatch of dimensions in line 2803 of model_TFN
 %         model_object.variables.doingCalibration = true; % true to pass through objectiveFunction_joint with the correct input during the loop.
         
 %         
@@ -128,7 +128,7 @@ Cg = repmat(0, AMALGAMPar.N, 1); % Initialize/Define the contstraint violation
         ObjVals(ii,:) = ObjVals_prime;
 
         % Store the all original objective function values for flow for each point
-        allOriginalObjVals_Flow(ii,:) = [objFn_flow_NSE objFn_flow_NNSE objFn_flow_RMSE objFn_flow_SSE objFn_flow_bias];
+        allOriginalObjVals_Flow(ii,:) = [objFn_flow_NSE objFn_flow_NNSE objFn_flow_RMSE objFn_flow_SSE objFn_flow_bias objFn_flow_KGE];
 
         Cg(ii,1) = 0; % Define the constraint violation
 
@@ -186,14 +186,14 @@ while (Iter < AMALGAMPar.ndraw),
 %      for ii = 1:AMALGAMPar.N % computing the Obj-functions 
          
 %          ObjVals_prime = objectiveFunction_joint(NewGen(ii,:)', Measurement.time_points_head, Measurement.time_points_streamflow, model_object,{}); % using time points from calibration_initialise to avoid mismatch of dimensions in line 2803 of model_TFN
-         [ObjVals_prime, ~, ~, objFn_flow_NSE, objFn_flow_NNSE, objFn_flow_RMSE, objFn_flow_SSE, objFn_flow_bias, ~, ~,~] = objectiveFunction_joint(NewGen(ii,:)', Measurement.time_points_head, Measurement.time_points_streamflow, model_object,{}); % using time points from calibration_initialise to avoid mismatch of dimensions in line 2803 of model_TFN
+         [ObjVals_prime, ~, ~, objFn_flow_NSE, objFn_flow_NNSE, objFn_flow_RMSE, objFn_flow_SSE, objFn_flow_bias, objFn_flow_KGE, ~, ~,~] = objectiveFunction_joint(NewGen(ii,:)', Measurement.time_points_head, Measurement.time_points_streamflow, model_object,{}); % using time points from calibration_initialise to avoid mismatch of dimensions in line 2803 of model_TFN
 %          model_object.variables.doingCalibration = true; % true to pass through objectiveFunction_joint with the correct input during the loop.
          
          % Store the objective function values for each point
          ChildObjVals(ii,:) = ObjVals_prime;
          
          % Store the all original objective function values for flow for each point
-         ChildallOriginalObjVals_Flow(ii,:) = [objFn_flow_NSE objFn_flow_NNSE objFn_flow_RMSE objFn_flow_SSE objFn_flow_bias];
+         ChildallOriginalObjVals_Flow(ii,:) = [objFn_flow_NSE objFn_flow_NNSE objFn_flow_RMSE objFn_flow_SSE objFn_flow_bias objFn_flow_KGE];
          
          % Define the contstraint violation
          ChildCg(ii,1) = 0;
@@ -235,16 +235,16 @@ while (Iter < AMALGAMPar.ndraw),
     Iter
     
     % Plot Pareto Fronts on top of each other to show progress
-    figure(1)
-    scatter( ObjVals(:,1), ObjVals(:,2))
-    title({['Pareto Front - GW head vs. Streamflow Obj-Functions' ]
-        [model_object.inputData.bore_ID ' - ' 'Brucknell Creek' ]});
-%     xlabel('pseudo likelihood (GW head)')
-    xlabel('(1-NSE) (Flow)')
-    ylabel('(1-NSE) (Flow)')
-    grid on
-    ax = gca;
-    ax.FontSize = 13;
-    hold on
+%     figure(1)
+%     scatter( ObjVals(:,1), ObjVals(:,2))
+%     title({['Pareto Front - GW head vs. Streamflow Obj-Functions' ]
+%         [model_object.inputData.bore_ID ' - ' 'Brucknell Creek' ]});
+% %     xlabel('pseudo likelihood (GW head)')
+%     xlabel('(1-NSE) (Flow)')
+%     ylabel('(1-NSE) (Flow)')
+%     grid on
+%     ax = gca;
+%     ax.FontSize = 13;
+%     hold on
     
 end;

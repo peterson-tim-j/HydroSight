@@ -44,7 +44,9 @@ list_bores = {'bore_WRK961324', 'bore_141234','bore_141243' ,'bore_WRK961325' , 
 % list_bores = {'bore_118946', 'bore_118947'} ; %  ----------------------------------------------------------- Ford 
 % list_bores = {'bore_2091', 'bore_WRK958154', 'bore_WRK958156', 'bore_WRK958155', 'bore_2092'} ; %  --------- Sunday 
 
-for i=1:length(list_bores)
+% for i=1:length(list_bores)
+for i=2:length(list_bores)
+
 % for i=1:1
 
 tic % start timer
@@ -260,25 +262,25 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
     
     
     % Store the figure showing Pareton Front of all generations of params
-    f = figure(1);
-    set(f, 'Color', 'w');
-    A1 = 'Pareto Front_All Generations_';
-    A3 = bore_ID;
-    A4 = catchment;
-    A5 = 'Weighting';
-    weighting_forces = unique(modelOptions_7params(:,1));
-    A6= weighting_forces(1);
-    A6 = cell2mat(A6);
-    A7 = datestr(now,'mm-dd-yyyy HH-MM');
-    formatSpec = '%1$s %2$s %3$s %4$s %5$s %6$s';
-    Filename = sprintf(formatSpec,A1,A3,A4,A5,A6,A7);
-%     A7 = weighting_forces(2);
-%     A7 = cell2mat(A7);
-%     A8 = datestr(now,'mm-dd-yyyy HH-MM');
-%     formatSpec = '%1$s %2$s %3$s %4$s %5$s %6$s %7$s %8$s';
-%     Filename = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7,A8);
-    folder = 'C:\Users\gbonotto\OneDrive - The University of Melbourne\1 - UNIMELB\5 - HydroSight\10 - Run Results';
-    savefig(f,fullfile(folder, Filename))
+%     f = figure(1);
+%     set(f, 'Color', 'w');
+%     A1 = 'Pareto Front_All Generations_';
+%     A3 = bore_ID;
+%     A4 = catchment;
+%     A5 = 'Weighting';
+%     weighting_forces = unique(modelOptions_7params(:,1));
+%     A6= weighting_forces(1);
+%     A6 = cell2mat(A6);
+%     A7 = datestr(now,'mm-dd-yyyy HH-MM');
+%     formatSpec = '%1$s %2$s %3$s %4$s %5$s %6$s';
+%     Filename = sprintf(formatSpec,A1,A3,A4,A5,A6,A7);
+% %     A7 = weighting_forces(2);
+% %     A7 = cell2mat(A7);
+% %     A8 = datestr(now,'mm-dd-yyyy HH-MM');
+% %     formatSpec = '%1$s %2$s %3$s %4$s %5$s %6$s %7$s %8$s';
+% %     Filename = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7,A8);
+%     folder = 'C:\Users\gbonotto\OneDrive - The University of Melbourne\1 - UNIMELB\5 - HydroSight\10 - Run Results';
+%     savefig(f,fullfile(folder, Filename))
 
     
            
@@ -345,8 +347,8 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
     csvwrite(path,ObjVals)
     
     % Plot the Pareto Front of the last generation
-%     figure(1)
-    figure(2)
+    figure(1)
+%     figure(2)
     scatter( ObjVals(:,1), ObjVals(:,2))
     title({['Pareto Front - GW head vs. Streamflow Obj-Functions' ] 
                         [bore_ID ' - ' catchment ]});
@@ -358,8 +360,8 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
     ax.FontSize = 13;
     
     % Save the Pareto Front of the last generation
-%     f = figure(1);
-    f = figure(2);
+    f = figure(1);
+%     f = figure(2);
     set(f, 'Color', 'w');
     A1 = 'Pareto Front_Final Generation_';
     A3 = bore_ID;
@@ -543,8 +545,8 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
     calibrateModelPlotResults(model_7params_gw,[]);
     
     % Store the figure showing results when calibrated GW only
-%     f = figure(i+1);
-    f = figure(i+2);
+    f = figure(i+1);
+%     f = figure(i+2);
     set(f, 'Color', 'w');
     f.Units = 'inches';
     f.OuterPosition = [.5 .5 13 10];
