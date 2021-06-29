@@ -7,8 +7,10 @@ classdef baseflow_v2 < baseflow
         
         % Model Parameters
         %----------------------------------------------------------------
-        head_threshold   % GW head threshold that defines if have positive or negative baseflow. Below this threshold, baseflow recharges from the river.
-        head_to_baseflow % controls the smoothening of the baseflow response due to the rise of GW head. 
+        head_threshold   % GW head threshold that defines if baseflow is negative or positive. Below this threshold, aquifer recharges from the river.
+        decayRate; % controls the smoothening of the baseflow response due to the rise of GW head. --- COULD we get somewhere else from model_TFN?
+        riseRate; % controls the time for free drainage to produce a head response, i.e. some metres below the root zone --- COULD we get somewhere else from model_TFN?
+        totalWeigthScaler; % weighting scaling term  
        % log these parameters? 
        
         %----------------------------------------------------------------        
@@ -24,7 +26,7 @@ classdef baseflow_v2 < baseflow
         end
         
         function [variable_names] = outputForcingdata_options(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates)
-            variable_names = {'baseflow'};
+            variable_names = {'baseflow_v2'};
         end
         
         function [options, colNames, colFormats, colEdits, toolTip] = modelOptions()
@@ -41,7 +43,7 @@ classdef baseflow_v2 < baseflow
         end
         
         function modelDescription = modelDescription()
-           modelDescription = {'Name: baseflow', ...
+           modelDescription = {'Name: baseflow_v2', ...
                                '', ...
                                'Purpose: nonlinear transformation of rainfall and areal potential evaporation to a range of forcing data (eg free-drainage) ', ...
                                'using a highly flexible single layer soil moisture model. Two types of land cover can be simulated using two parrallel soil models.', ...
@@ -70,14 +72,24 @@ classdef baseflow_v2 < baseflow
            
     end
           
-    %% Constructor of the baseflow class
+    %% Constructor of the baseflow_v2 class
     
     methods
-        function obj = baseflow(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates, forcingData_reqCols, modelOptions)            
-            % Constructor of the Baseflow class 
+        function obj = baseflow_v2(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates, forcingData_reqCols, modelOptions);
+            
+            % Constructor of the baseflow_v2 class 
             %   Detailed explanation goes here
-            obj.head_threshold = 200;
-            obj.head_to_baseflow = 1;
+            
+            % Use sub-class constructor to inherit the structure of the object "baseflow"
+            obj = obj@baseflow(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates, forcingData_reqCols, modelOptions);
+            
+            
+            % initializing the parameters of the object
+            obj.head_threshold = 200; % initial guess for the head_threshold, maybe set as mean ObsHead?
+            obj.decayRate = -0.1; % initial guess 
+            obj.riseRate = -1.5; % initial guess 
+            obj.totalWeigthScaler = 0.5; % initial guess 
+            
             obj.variables.baseFlow = [];
             obj.variables.head = [];
             obj.variables.t = [];
@@ -85,18 +97,19 @@ classdef baseflow_v2 < baseflow
             obj.settings.forcingData_colnames = {""};
             obj.settings.forcingData = [];
             obj.settings.siteCoordinates = siteCoordinates;
-
+                 
+            
         end
  
         function [params, param_names] = getParameters(obj)            
-           params = [ obj.head_threshold; obj.head_to_baseflow];
-           param_names = {'head_threshold'; 'head_to_baseflow'};
+           params = [ obj.head_threshold; obj.decayRate; obj.riseRate; obj.totalWeigthScaler];
+           param_names = {'head_threshold'; 'head_decayRate'; 'head_riseRate'; 'head_totalWeigthScaler'};
         end
         
         
         
         function setParameters(obj, params)
-            param_names = {'head_threshold'; 'head_to_baseflow'};
+            param_names = {'head_threshold'; 'head_decayRate'; 'head_riseRate'; 'head_totalWeigthScaler'};
             for i=1: length(param_names)
                 obj.(param_names{i}) = params(i,:);
             end
@@ -105,14 +118,14 @@ classdef baseflow_v2 < baseflow
         
         
         function [params_upperLimit, params_lowerLimit] = getParameters_physicalLimit(obj)
-            params_lowerLimit = [0;0];
-            params_upperLimit = [inf;inf];
+            params_lowerLimit = [0;-inf;-inf;0];
+            params_upperLimit = [inf;inf;inf;inf];
         end
         
         
         function [params_upperLimit, params_lowerLimit] = getParameters_plausibleLimit(obj)
-            params_lowerLimit = [0;0];
-            params_upperLimit = [1000;1000];
+            params_lowerLimit = [0;-100;-100;0];
+            params_upperLimit = [1000;100;100;100];
         end
         
         function isValidParameter = getParameterValidity(obj, params, param_names)
@@ -157,10 +170,9 @@ classdef baseflow_v2 < baseflow
             t = forcingData(:,1);
             delta_t = diff(t);
             %%%%%%% need to change antecedent code so we have a daily time-seires of GW for the period where we have GW obs.data and match it with streamflow time-series
-%             if any(delta_t ~=1)
-%                 error('forcing data must have no gaps and be a daily
-%                 time-series ') 
-%             end
+            if any(delta_t ~=1)
+                error('forcing data must have no gaps and be a daily time-series') 
+            end
                 
             
             % place the forcingData into "obj"
@@ -190,8 +202,20 @@ classdef baseflow_v2 < baseflow
             
 %             [head, colnames, noise] = solve(obj, time_points); % just the deterministic . is it at the same time step (daily)?
             
-            % calculate the baseflow
-            obj.variables.baseFlow = max(0,obj.variables.head - obj.head_threshold) .* obj.head_to_baseflow;
+            % calculate the baseflow 
+            
+            
+            obj.decayWeight = exp(decayRate.*t);
+            
+            obj.riseWeight = -exp(riseRate.*t);
+            
+            obj.totalWeight = obj.decayWeight + obj.riseWeight;
+            
+            obj.totalWeightScaled = obj.totalWeight .* obj.totalWeigthScaler;
+            
+            
+            obj.variables.baseflow = (obj.variables.head - obj.head_threshold)  .* obj.totalWeightScaled
+%             obj.variables.baseFlow = max(0,obj.variables.head - obj.head_threshold) .* obj.head_to_baseflow;
             
         end
       
