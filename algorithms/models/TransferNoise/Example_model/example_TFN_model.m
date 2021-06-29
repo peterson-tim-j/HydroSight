@@ -44,10 +44,8 @@ list_bores = {'bore_WRK961324', 'bore_141234','bore_141243' ,'bore_WRK961325' , 
 % list_bores = {'bore_118946', 'bore_118947'} ; %  ----------------------------------------------------------- Ford 
 % list_bores = {'bore_2091', 'bore_WRK958154', 'bore_WRK958156', 'bore_WRK958155', 'bore_2092'} ; %  --------- Sunday 
 
+for i=1:1
 % for i=1:length(list_bores)
-for i=2:length(list_bores)
-
-% for i=1:1
 
 tic % start timer
 
@@ -225,7 +223,7 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
     AMALGAMPar.n = length(params_initial);  % Dimension of the problem    ----  run7paramModel now has 9 parameters? are we allowing head-threshoold and head_to_baseflow to be calibrated? 
     AMALGAMPar.N = 100;                     % Size of the population   - LENTGH OF OBS. TIMESERIES or just a calibration parameter?
     AMALGAMPar.nobj = 2;                    % Number of objectives
-    AMALGAMPar.ndraw = 300000;               % Maximum number of function evaluations
+    AMALGAMPar.ndraw = 200;               % Maximum number of function evaluations
     
     % Define the parameter ranges (minimum and maximum values)
     [params_upperLimit, params_lowerLimit] = getParameters_plausibleLimit(model_7params.model);
@@ -277,8 +275,8 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
 % %     A7 = weighting_forces(2);
 % %     A7 = cell2mat(A7);
 % %     A8 = datestr(now,'mm-dd-yyyy HH-MM');
-% %     formatSpec = '%1$s %2$s %3$s %4$s %5$s %6$s %7$s %8$s';
-% %     Filename = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7,A8);
+% %     formatSpec = '%1$s %2$s %3$s %4$s %5$s %6$s %7$s';
+% %     Filename = sprintf(formatSpec,A1,A3,A4,A5,A6,A7,A8);
 %     folder = 'C:\Users\gbonotto\OneDrive - The University of Melbourne\1 - UNIMELB\5 - HydroSight\10 - Run Results';
 %     savefig(f,fullfile(folder, Filename))
 
@@ -354,7 +352,7 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
                         [bore_ID ' - ' catchment ]});
     xlabel('pseudo likelihood (GW head)')
 %     xlabel('(1-NSE) (Flow)')
-    ylabel('(RMSE) (Flow)')
+    ylabel('(1-KGE) (Flow)')
     grid on
     ax = gca;
     ax.FontSize = 13;
@@ -371,13 +369,13 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
     A6= weighting_forces(1);
     A6 = cell2mat(A6);
     A7 = datestr(now,'mm-dd-yyyy HH-MM');
-    formatSpec = '%1$s %3$s %4$s %5$s %6$s %7$s';
-    Filename = sprintf(formatSpec,A1,A2,A4,A5,A6,A7);
+    formatSpec = '%1$s %2$s %3$s %4$s %5$s %6$s';
+    Filename = sprintf(formatSpec,A1,A3,A4,A5,A6,A7);
 %     A7 = weighting_forces(2);
 %     A7 = cell2mat(A7);
 %     A8 = datestr(now,'mm-dd-yyyy HH-MM');
-%     formatSpec = '%1$s %2$s %4$s %5$s %6$s %7$s %8$s';
-%     Filename = sprintf(formatSpec,A1,A2,A4,A5,A6,A7,A8);
+%     formatSpec = '%1$s %2$s %3$s %4$s %5$s %6$s %7$s';
+%     Filename = sprintf(formatSpec,A1,A3,A4,A5,A6,A7,A8);
     
     folder = 'C:\Users\gbonotto\OneDrive - The University of Melbourne\1 - UNIMELB\5 - HydroSight\10 - Run Results';
     saveas(f, fullfile(folder, Filename), 'png');

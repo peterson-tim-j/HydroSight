@@ -262,22 +262,22 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
         objFn_flow_bias = sum(totalFlow_sim - obsFlow(:,2))/length(obsFlow(:,2));
         % KGE 
         w = [1,1,1];                              % no weights specified, use defaults
-        c(1) = corr(obsFlow,totalFlow_sim);       % r: linear correlation
-        c(2) = std(totalFlow_sim)/std(obsFlow);   % alpha: ratio of standard deviations
-        c(3) = mean(totalFlow_sim)/mean(obsFlow); % beta: bias
+        c(1) = corr(obsFlow(:,2),totalFlow_sim);       % r: linear correlation
+        c(2) = std(totalFlow_sim)/std(obsFlow(:,2));   % alpha: ratio of standard deviations
+        c(3) = mean(totalFlow_sim)/mean(obsFlow(:,2)); % beta: bias
         objFn_flow_KGE = 1-sqrt((w(1)*(c(1)-1))^2 + (w(2)*(c(2)-1))^2 + (w(3)*(c(3)-1))^2); % weighted KGE
 
 
         %  IMPORTANT: in AMALGAM we want to minize the obj-func!
-        objFn_flow = 1 - objFn_flow_NSE;         %1-NSE
+%         objFn_flow = 1 - objFn_flow_NSE;         %1-NSE
 %         objFn_flow = 1 - objFn_flow_NNSE;      %1-NNSE
 %         objFn_flow = objFn_flow_RMSE;          %RMSE
 %         objFn_flow = objFn_flow_SSE;           %SSE
 %         objFn_flow = abs(objFn_flow_bias);     %BIAS
-%         objFn_flow = 1 - objFn_flow_KGE);      %1-KGE
+        objFn_flow = 1 - objFn_flow_KGE;      %1-KGE
         
         % Merging objFunctions for head and flow
-        objFn_joint = [objFn_head, objFn_flow];
+        objFn_joint = [objFn_head, objFn_flow]
         
          % Calibrating only to FLOW using 2 flow obj-fun
 %         objFn_joint = [objFn_flow, objFn_flow];
@@ -383,10 +383,10 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
      
      
      % set head in "baseflow" (using setForcingData)
-     setForcingData(obj.parameters.baseflow, head, 'head')
+     setForcingData(obj.parameters.baseflow, head, 'head');
      
      % calc. baseflow using setTransformedForcing in "baseflow" object
-     setTransformedForcing(obj.parameters.baseflow, time_points_streamflow, true)
+     setTransformedForcing(obj.parameters.baseflow, time_points_streamflow, true);
      
      % get calculated baseflow in baseflow
      baseFlow = getTransformedForcing(obj.parameters.baseflow, time_points_streamflow);
@@ -400,7 +400,7 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
      % USING 1-layer soil model
 %      setTransformedForcing(obj.parameters.climateTransform_soilMoistureModels, time_points_streamflow, true) 
      % USING 2-layer soil model
-     setTransformedForcing(obj.parameters.climateTransform_soilMoistureModels_2layer_v2, time_points_streamflow, true)
+     setTransformedForcing(obj.parameters.climateTransform_soilMoistureModels_2layer_v2, time_points_streamflow, true);
      
      
      

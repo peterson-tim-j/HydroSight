@@ -1,4 +1,4 @@
-classdef baseflow_v2 < baseflow
+classdef baseflow_v2 < forcingTransform_abstract
     % Defines the behaviour of baseflow according to the GW head and a scaled weighted rate. 
     
     %   Detailed explanation goes here
@@ -75,13 +75,13 @@ classdef baseflow_v2 < baseflow
     %% Constructor of the baseflow_v2 class
     
     methods
-        function obj = baseflow_v2(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates, forcingData_reqCols, modelOptions);
+        function obj = baseflow_v2(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates, forcingData_reqCols, modelOptions)
             
             % Constructor of the baseflow_v2 class 
             %   Detailed explanation goes here
             
             % Use sub-class constructor to inherit the structure of the object "baseflow"
-            obj = obj@baseflow(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates, forcingData_reqCols, modelOptions);
+%             obj = obj@baseflow(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates, forcingData_reqCols, modelOptions);
             
             
             % initializing the parameters of the object
@@ -103,13 +103,13 @@ classdef baseflow_v2 < baseflow
  
         function [params, param_names] = getParameters(obj)            
            params = [ obj.head_threshold; obj.decayRate; obj.riseRate; obj.totalWeigthScaler];
-           param_names = {'head_threshold'; 'head_decayRate'; 'head_riseRate'; 'head_totalWeigthScaler'};
+           param_names = {'head_threshold'; 'decayRate'; 'riseRate'; 'totalWeigthScaler'};
         end
         
         
         
         function setParameters(obj, params)
-            param_names = {'head_threshold'; 'head_decayRate'; 'head_riseRate'; 'head_totalWeigthScaler'};
+            param_names = {'head_threshold'; 'decayRate'; 'riseRate'; 'totalWeigthScaler'};
             for i=1: length(param_names)
                 obj.(param_names{i}) = params(i,:);
             end
@@ -125,7 +125,7 @@ classdef baseflow_v2 < baseflow
         
         function [params_upperLimit, params_lowerLimit] = getParameters_plausibleLimit(obj)
             params_lowerLimit = [0;-100;-100;0];
-            params_upperLimit = [1000;100;100;100];
+            params_upperLimit = [1000;0.0009;0.0009;100];
         end
         
         function isValidParameter = getParameterValidity(obj, params, param_names)
@@ -205,16 +205,16 @@ classdef baseflow_v2 < baseflow
             % calculate the baseflow 
             
             
-            obj.decayWeight = exp(decayRate.*t);
+            decayWeight = exp(obj.decayRate.*t);
             
-            obj.riseWeight = -exp(riseRate.*t);
+            riseWeight = -exp(obj.riseRate.*t);
             
-            obj.totalWeight = obj.decayWeight + obj.riseWeight;
+            totalWeight = decayWeight + riseWeight;
             
-            obj.totalWeightScaled = obj.totalWeight .* obj.totalWeigthScaler;
+            totalWeightScaled = totalWeight .* obj.totalWeigthScaler;
             
             
-            obj.variables.baseflow = (obj.variables.head - obj.head_threshold)  .* obj.totalWeightScaled
+            obj.variables.baseFlow = (obj.variables.head - obj.head_threshold)  .* totalWeightScaled
 %             obj.variables.baseFlow = max(0,obj.variables.head - obj.head_threshold) .* obj.head_to_baseflow;
             
         end
