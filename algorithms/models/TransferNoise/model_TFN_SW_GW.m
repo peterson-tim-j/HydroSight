@@ -139,7 +139,10 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
             
             %% Set Obj parameters for the baseflow calculation
            
-            obj.parameters.baseflow = baseflow(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates, [], []);
+            % using "baseflow" object
+%             obj.parameters.baseflow = baseflow(bore_ID, forcingData_data, forcingData_colnames, siteCoordinates, [], []); 
+            % using "baseflow_v2" object
+            obj.parameters.baseflow = baseflow_v2(bore_ID, forcingData_data, forcingData_colnames, siteCoordinates, [], []); 
 
             
         end
@@ -382,7 +385,7 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
      % set head in "baseflow" (using setForcingData)
      setForcingData(obj.parameters.baseflow, head, 'head')
      
-     % calc. baseflow using setTransformedForcing in "baseflow"
+     % calc. baseflow using setTransformedForcing in "baseflow" object
      setTransformedForcing(obj.parameters.baseflow, time_points_streamflow, true)
      
      % get calculated baseflow in baseflow
@@ -440,7 +443,7 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
      % USED TO GENERATE THE BASEFLOW OUTPUT...
             
      % calculate total flow 
-     totalFlow = max(0, quickFlow + baseFlow); % limit the total flow to be above zero
+     totalFlow = max(0, quickFlow + baseFlow); % limit the total flow to be equal or above zero
       
      
      
