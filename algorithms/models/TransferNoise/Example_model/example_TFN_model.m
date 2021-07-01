@@ -223,7 +223,7 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
     AMALGAMPar.n = length(params_initial);  % Dimension of the problem    ----  run7paramModel now has 9 parameters? are we allowing head-threshoold and head_to_baseflow to be calibrated? 
     AMALGAMPar.N = 100;                     % Size of the population   - LENTGH OF OBS. TIMESERIES or just a calibration parameter?
     AMALGAMPar.nobj = 2;                    % Number of objectives
-    AMALGAMPar.ndraw = 200;               % Maximum number of function evaluations
+    AMALGAMPar.ndraw = 200000;               % Maximum number of function evaluations
     
     % Define the parameter ranges (minimum and maximum values)
     [params_upperLimit, params_lowerLimit] = getParameters_plausibleLimit(model_7params.model);
@@ -350,7 +350,7 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
     scatter( ObjVals(:,1), ObjVals(:,2))
     title({['Pareto Front - GW head vs. Streamflow Obj-Functions' ] 
                         [bore_ID ' - ' catchment ]});
-    xlabel('pseudo likelihood (GW head)')
+    xlabel('SWSI (GW head)')
 %     xlabel('(1-NSE) (Flow)')
     ylabel('(1-KGE) (Flow)')
     grid on

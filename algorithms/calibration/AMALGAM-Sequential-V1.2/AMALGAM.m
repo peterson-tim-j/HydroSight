@@ -116,8 +116,8 @@ Cg = repmat(0, AMALGAMPar.N, 1); % Initialize/Define the contstraint violation
 
 
 
-%     parfor ii = 1:AMALGAMPar.N % computing the Obj-functions using parallel computing
-    for ii = 1:AMALGAMPar.N % computing the Obj-functions using parallel computing
+    parfor ii = 1:AMALGAMPar.N % computing the Obj-functions using parallel computing
+%     for ii = 1:AMALGAMPar.N % computing the Obj-functions using parallel computing
 
 %         ObjVals_prime = objectiveFunction_joint(ParGen(ii,:)', Measurement.time_points_head, Measurement.time_points_streamflow, model_object,{}); % using time points from calibration_initialise to avoid mismatch of dimensions in line 2803 of model_TFN
         [ObjVals_prime, ~, ~, objFn_flow_NSE, objFn_flow_NNSE, objFn_flow_RMSE, objFn_flow_SSE, objFn_flow_bias, objFn_flow_KGE, ~, ~,~] = objectiveFunction_joint(ParGen(ii,:)', Measurement.time_points_head, Measurement.time_points_streamflow, model_object,{}); % using time points from calibration_initialise to avoid mismatch of dimensions in line 2803 of model_TFN
@@ -239,7 +239,7 @@ while (Iter < AMALGAMPar.ndraw),
 %     scatter( ObjVals(:,1), ObjVals(:,2))
 %     title({['Pareto Front - GW head vs. Streamflow Obj-Functions' ]
 %         [model_object.inputData.bore_ID ' - ' 'Brucknell Creek' ]});
-% %     xlabel('pseudo likelihood (GW head)')
+% %     xlabel('SWSI (GW head)')
 %     xlabel('(1-NSE) (Flow)')
 %     ylabel('(1-NSE) (Flow)')
 %     grid on

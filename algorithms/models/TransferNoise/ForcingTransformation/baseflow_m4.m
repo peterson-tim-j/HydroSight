@@ -1,18 +1,21 @@
-classdef baseflow_v2 < forcingTransform_abstract
+classdef baseflow_m4 < forcingTransform_abstract
     % Defines the behaviour of baseflow according to the GW head and a scaled weighted rate. 
     
-    %   Detailed explanation goes here
+    % Detailed explanation goes here
+    % Description:  Exponential outflow from deficit store
     
     properties (GetAccess=public, SetAccess=protected)
         
         % Model Parameters
         %----------------------------------------------------------------
-        head_threshold   % GW head threshold that defines if baseflow is negative or positive. Below this threshold, aquifer recharges from the river.
-        decayRate; % controls the smoothening of the baseflow response due to the rise of GW head. --- COULD we get somewhere else from model_TFN?
-        riseRate; % controls the time for free drainage to produce a head response, i.e. some metres below the root zone --- COULD we get somewhere else from model_TFN?
-        totalWeigthScaler; % weighting scaling term  
-       % log these parameters? 
-       
+        base_rate   % - base outflow rate [mm/d]
+        exponential_scaler % exponential scaling parameter [-]
+        % log these parameters? 
+        
+        
+
+                
+
         %----------------------------------------------------------------        
     end
     
@@ -26,7 +29,7 @@ classdef baseflow_v2 < forcingTransform_abstract
         end
         
         function [variable_names] = outputForcingdata_options(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates)
-            variable_names = {'baseflow_v2'};
+            variable_names = {'baseflow_m4'};
         end
         
         function [options, colNames, colFormats, colEdits, toolTip] = modelOptions()
@@ -43,7 +46,7 @@ classdef baseflow_v2 < forcingTransform_abstract
         end
         
         function modelDescription = modelDescription()
-           modelDescription = {'Name: baseflow_v2', ...
+           modelDescription = {'Name: baseflow_m4', ...
                                '', ...
                                'Purpose: nonlinear transformation of rainfall and areal potential evaporation to a range of forcing data (eg free-drainage) ', ...
                                'using a highly flexible single layer soil moisture model. Two types of land cover can be simulated using two parrallel soil models.', ...
@@ -72,12 +75,12 @@ classdef baseflow_v2 < forcingTransform_abstract
            
     end
           
-    %% Constructor of the baseflow_v2 class
+    %% Constructor of the baseflow_m4 class
     
     methods
-        function obj = baseflow_v2(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates, forcingData_reqCols, modelOptions)
+        function obj = baseflow_m4(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates, forcingData_reqCols, modelOptions)
             
-            % Constructor of the baseflow_v2 class 
+            % Constructor of the baseflow_m4 class 
             %   Detailed explanation goes here
             
             % Use sub-class constructor to inherit the structure of the object "baseflow"
@@ -85,10 +88,8 @@ classdef baseflow_v2 < forcingTransform_abstract
             
             
             % initializing the parameters of the object
-            obj.head_threshold = 200; % initial guess for the head_threshold, maybe set as mean ObsHead?
-            obj.decayRate = -0.1; % initial guess 
-            obj.riseRate = -1.5; % initial guess 
-            obj.totalWeigthScaler = 0.5; % initial guess 
+            obj.base_rate = 0; % initial guess for - base outflow rate [mm/d]
+            obj.exponential_scaler = 1; % initial guess for - exponential scaling parameter [-]
             
             obj.variables.baseFlow = [];
             obj.variables.head = [];
@@ -97,35 +98,37 @@ classdef baseflow_v2 < forcingTransform_abstract
             obj.settings.forcingData_colnames = {""};
             obj.settings.forcingData = [];
             obj.settings.siteCoordinates = siteCoordinates;
-                 
+
+
             
         end
  
         function [params, param_names] = getParameters(obj)            
-           params = [ obj.head_threshold; obj.decayRate; obj.riseRate; obj.totalWeigthScaler];
-           param_names = {'head_threshold'; 'decayRate'; 'riseRate'; 'totalWeigthScaler'};
+           params = [ obj.head_scaler; obj.exponential_scaler];
+           param_names = {'base_rate'; 'exponential_scaler'};
         end
         
         
         
         function setParameters(obj, params)
-            param_names = {'head_threshold'; 'decayRate'; 'riseRate'; 'totalWeigthScaler'};
+            param_names = {'base_rate'; 'exponential_scaler'};
             for i=1: length(param_names)
                 obj.(param_names{i}) = params(i,:);
             end
         end
         
-        
-        
+         
+        % as per range of parameters for model_14 in MaRRMOT (TOPMODEL)
         function [params_upperLimit, params_lowerLimit] = getParameters_physicalLimit(obj)
-            params_lowerLimit = [0;-inf;-inf;0];
-            params_upperLimit = [inf;inf;inf;inf];
+            params_lowerLimit = [0.1 ; 0]; 
+            params_upperLimit = [200; 1];
         end
-        
+        %0.1,200;    % q0, Zero deficit base flow speed [mm/d]
+        %0,1;        % m, Baseflow coefficient [mm-1]
         
         function [params_upperLimit, params_lowerLimit] = getParameters_plausibleLimit(obj)
-            params_lowerLimit = [0;-100;-100;0];
-            params_upperLimit = [1000;0.0009;0.0009;100];
+            params_lowerLimit = [0.1 ; 0];
+            params_upperLimit = [200; 1];
         end
         
         function isValidParameter = getParameterValidity(obj, params, param_names)
@@ -192,31 +195,22 @@ classdef baseflow_v2 < forcingTransform_abstract
 %                 head_col = obj.settings.forcingData_cols{filt,2};
 %                 head_col = obj.settings.forcingData_colnames(filt,:);
                 obj.variables.head = obj.settings.forcingData(filt_time, 2 ); % columns in the input data have no name 
-                
+                                
                 % Store the time points
                 obj.variables.t = obj.settings.forcingData(filt_time,1);
             
-        
-            
-            % get simulated head to use to estimate baseflow
-            
-%             [head, colnames, noise] = solve(obj, time_points); % just the deterministic . is it at the same time step (daily)?
-            
-            % calculate the baseflow 
-            
-            
-            decayWeight = exp(obj.decayRate.*t);
-            
-            riseWeight = -exp(obj.riseRate.*t);
-            
-            totalWeight = decayWeight + riseWeight;
-            
-            totalWeightScaled = totalWeight .* obj.totalWeigthScaler;
-            
-            
-            obj.variables.baseFlow = (obj.variables.head - obj.head_threshold)  .* totalWeightScaled;
-%             obj.variables.baseFlow = max(0,obj.variables.head - obj.head_threshold) .* obj.head_to_baseflow;
-            
+
+                
+           % calculate the baseflow 
+            obj.variables.baseFlow = obj.base_rate .* exp(-1 .* obj.exponential_scaler .* obj.variables.head);
+            % Description:  Exponential outflow from deficit store
+            % Constraints:  -
+            % @(Inputs):    p1   - base outflow rate [mm/d]
+            %               p2   - exponent parameter [mm-1]
+            %               S    - current storage [mm]
+            %func = @(p1,p2,S) p1*exp(-1*p2*S);
+
+
         end
       
         function [forcingData, isDailyIntegralFlux] = getTransformedForcing(obj, t)
