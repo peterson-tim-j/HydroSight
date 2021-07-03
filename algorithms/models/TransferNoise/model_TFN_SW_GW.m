@@ -139,10 +139,13 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
             
             %% Set Obj parameters for the baseflow calculation
            
-            % using "baseflow" object
-%             obj.parameters.baseflow = baseflow(bore_ID, forcingData_data, forcingData_colnames, siteCoordinates, [], []); 
-            % using "baseflow_v2" object
-            obj.parameters.baseflow = baseflow_v2(bore_ID, forcingData_data, forcingData_colnames, siteCoordinates, [], []); 
+            % Choose "baseflow" object from the following options:
+            %-----------------------------------------------------
+            % baseflow, baseflow_v2, baseflow_m1, baseflow_m2, baseflow_m3,
+            % baseflow_m4, baseflow_m5, baseflow_m6, baseflow_m7,
+            % baseflow_m8, baseflow_m9
+            %----------------------------------------------------
+            obj.parameters.baseflow = baseflow(bore_ID, forcingData_data, forcingData_colnames, siteCoordinates, [], []);
 
             
         end

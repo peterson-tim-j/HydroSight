@@ -199,9 +199,10 @@ classdef baseflow_m7 < forcingTransform_abstract
             
                 % delta_t in input head to the baseflow obj
                 delta_t = diff(obj.variables.t);
+                delta_t(end+1,1) = delta_t(end,1); % duplicate last point to match head/delta_t matrixes
                 
            % calculate the baseflow 
-            obj.variables.baseFlow = min(obj.variables.head/delta_t,obj.linear_scaler.*max(0,obj.variables.head).^obj.exponential_scaler);
+            obj.variables.baseFlow = min(obj.variables.head./delta_t, obj.linear_scaler.* max(0, obj.variables.head).^obj.exponential_scaler);
             % Description:  Non-linear outflow from a reservoir
             % Constraints:  f <= S/dt
             %               S >= 0

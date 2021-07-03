@@ -90,7 +90,7 @@ classdef baseflow_m5 < forcingTransform_abstract
             % initializing the parameters of the object
             obj.base_rate = 0; % initial guess for - base outflow rate [mm/d]
             obj.exponential_scaler = 1; % initial guess for - exponential scaling parameter [-]
-            obj.head_max % initial guess for - maximum contributing storage [mm]
+            obj.head_max = 200;% initial guess for - maximum contributing storage [mm]
 
             obj.variables.baseFlow = [];
             obj.variables.head = [];
@@ -105,7 +105,7 @@ classdef baseflow_m5 < forcingTransform_abstract
         end
  
         function [params, param_names] = getParameters(obj)            
-           params = [ obj.head_scaler; obj.exponetial_scaler; obj.head_max];
+           params = [ obj.base_rate; obj.exponential_scaler; obj.head_max];
            param_names = {'base_rate'; 'exponential_scaler'; 'head_max'};
         end
         
@@ -206,9 +206,11 @@ classdef baseflow_m5 < forcingTransform_abstract
             
                 % delta_t in input head to the baseflow obj
                 delta_t = diff(obj.variables.t);
+                delta_t(end+1,1) = delta_t(end,1); % duplicate last point to match head/delta_t matrixes
+
                                 
            % calculate the baseflow 
-            obj.variables.baseFlow = min(obj.variables.head/delta_t, obj.base_rate.*((max(obj.variables.head,0)./ obj.head_max)^obj.exponential_scaler));
+            obj.variables.baseFlow = min(obj.variables.head ./delta_t, obj.base_rate.*((max(obj.variables.head,0)./ obj.head_max).^obj.exponential_scaler));
             % Description:  Non-linear scaled outflow from a reservoir
             % Constraints:  f <= S/dt
             % @(Inputs):    p1   - base outflow rate [mm/d]

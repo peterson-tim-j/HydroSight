@@ -198,6 +198,7 @@ classdef baseflow_m6 < forcingTransform_abstract
                 
                 % delta_t in input head to the baseflow obj
                 delta_t = diff(obj.variables.t);
+                delta_t(end+1,1) = delta_t(end,1); % duplicate last point to match head/delta_t matrixes
 
                 
                 r = 0.01;

@@ -101,7 +101,7 @@ classdef baseflow_m3 < forcingTransform_abstract
         end
  
         function [params, param_names] = getParameters(obj)            
-           params = [ obj.head_scaler; obj.exponetial_scaler];
+           params = [ obj.head_max];
            param_names = {'head_max'};
         end
         
@@ -115,12 +115,12 @@ classdef baseflow_m3 < forcingTransform_abstract
         end
         
         
-        % as per range of parameters for model_7 in MaRRMOT (GR4J)    (1   , 300)     % x3 [mm]
+        % as per range of parameters for model_7 in MaRRMOT (GR4J)    
         function [params_upperLimit, params_lowerLimit] = getParameters_physicalLimit(obj)
             params_lowerLimit = [1]; 
             params_upperLimit = [300];
         end
-
+        %(1   , 300)     % x3 [mm]
         
         function [params_upperLimit, params_lowerLimit] = getParameters_plausibleLimit(obj)
             params_lowerLimit = [1];

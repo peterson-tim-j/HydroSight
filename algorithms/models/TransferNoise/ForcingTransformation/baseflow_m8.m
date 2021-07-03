@@ -103,7 +103,7 @@ classdef baseflow_m8 < forcingTransform_abstract
         end
  
         function [params, param_names] = getParameters(obj)            
-           params = [ obj.head_scaler; obj.exponential_scaler; obj.head_max];
+           params = [ obj.base_rate; obj.exponential_scaler; obj.head_max];
            param_names = {'base_rate'; 'exponential_scaler'; 'head_max'};
         end
         

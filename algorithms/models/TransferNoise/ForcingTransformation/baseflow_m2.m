@@ -102,7 +102,7 @@ classdef baseflow_m2 < forcingTransform_abstract
         end
  
         function [params, param_names] = getParameters(obj)            
-           params = [ obj.head_scaler; obj.exponetial_scaler];
+           params = [ obj.head_scaler; obj.exponential_scaler];
            param_names = {'head_scaler'; 'exponential_scaler'};
         end
         
@@ -195,11 +195,13 @@ classdef baseflow_m2 < forcingTransform_abstract
                                 
                 % Store the time points
                 obj.variables.t = obj.settings.forcingData(filt_time,1);
-            
+                
                 delta_t = diff(obj.variables.t); % dt=1 as we use daily head as input
-                   
+                delta_t(end+1,1) = delta_t(end,1); % duplicate last point to match head/delta_t matrixes
+   
+                
            % calculate the baseflow 
-            obj.variables.baseFlow = min(1 ./ obj.head_scaler .* max(obj.variables.head,0) .^(1./obj.exponential_scaler), max(obj.variables.head,0)./delta_t); 
+            obj.variables.baseFlow = min(1 ./ obj.head_scaler .* max(obj.variables.head, 0) .^(1./obj.exponential_scaler), max(obj.variables.head,0)./delta_t); 
             % Description:  Non-linear outflow from a reservoir
             % Constraints:  f <= S/dt
             %               S >= 0       prevents numerical issues with complex numbers
