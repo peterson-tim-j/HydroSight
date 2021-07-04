@@ -44,7 +44,7 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
         
         %% Model constructor
         %function obj = model_TFN_SW_GW(bore_ID, stream_ID, obsHead, forcingData_data,  forcingData_colnames, siteCoordinates, varargin)           
-        function obj = model_TFN_SW_GW(bore_ID, obsData, forcingData_data,  forcingData_colnames, siteCoordinates, varargin)           
+        function obj = model_TFN_SW_GW(model_label, bore_ID, obsData, forcingData_data,  forcingData_colnames, siteCoordinates, varargin)           
 % model_TFN constructs for linear and nonlinear Transfer Function Noise model
 %
 % Syntax:
@@ -145,9 +145,34 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
             % baseflow_m4, baseflow_m5, baseflow_m6, baseflow_m7,
             % baseflow_m8, baseflow_m9
             %----------------------------------------------------
-            obj.parameters.baseflow = baseflow_m9(bore_ID, forcingData_data, forcingData_colnames, siteCoordinates, [], []);
-
             
+            if contains(model_label,'baseflow_v1')
+                obj.parameters.baseflow = baseflow_v1(bore_ID, forcingData_data, forcingData_colnames, siteCoordinates, [], []);
+            elseif contains(model_label,'baseflow_v2')
+                obj.parameters.baseflow = baseflow_v2(bore_ID, forcingData_data, forcingData_colnames, siteCoordinates, [], []);
+            elseif contains(model_label,'baseflow_m1')
+                obj.parameters.baseflow = baseflow_m1(bore_ID, forcingData_data, forcingData_colnames, siteCoordinates, [], []);                
+            elseif contains(model_label,'baseflow_m2')
+                obj.parameters.baseflow = baseflow_m2(bore_ID, forcingData_data, forcingData_colnames, siteCoordinates, [], []);                
+            elseif contains(model_label,'baseflow_m3')
+                obj.parameters.baseflow = baseflow_m3(bore_ID, forcingData_data, forcingData_colnames, siteCoordinates, [], []);                
+            elseif contains(model_label,'baseflow_m4')
+                obj.parameters.baseflow = baseflow_m4(bore_ID, forcingData_data, forcingData_colnames, siteCoordinates, [], []);                
+            elseif contains(model_label,'baseflow_m5')
+                obj.parameters.baseflow = baseflow_m5(bore_ID, forcingData_data, forcingData_colnames, siteCoordinates, [], []);                
+            elseif contains(model_label,'baseflow_m6')                
+                obj.parameters.baseflow = baseflow_m6(bore_ID, forcingData_data, forcingData_colnames, siteCoordinates, [], []);                
+            elseif contains(model_label,'baseflow_m7')
+                obj.parameters.baseflow = baseflow_m7(bore_ID, forcingData_data, forcingData_colnames, siteCoordinates, [], []);                
+            elseif contains(model_label,'baseflow_m8')
+                obj.parameters.baseflow = baseflow_m8(bore_ID, forcingData_data, forcingData_colnames, siteCoordinates, [], []);
+            elseif contains(model_label,'baseflow_m9')
+                obj.parameters.baseflow = baseflow_m9(bore_ID, forcingData_data, forcingData_colnames, siteCoordinates, [], []);
+            else
+               error('Please, include a valid baseflow object option in the model_label. Options are: baseflow_v1, baseflow_v2, baseflow_m1, baseflow_m2, baseflow_m3, baseflow_m4, baseflow_m5, baseflow_m6, baseflow_m7, baseflow_m8, baseflow_m9');
+            end
+                        
+        obj.parameters.baseflow % print the baseflow object to see if indeedusing the one assigned
         end
     
         

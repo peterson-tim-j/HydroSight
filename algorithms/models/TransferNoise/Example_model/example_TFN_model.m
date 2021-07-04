@@ -44,10 +44,21 @@ list_bores = {'bore_WRK961324', 'bore_141234','bore_141243' ,'bore_WRK961325' , 
 % list_bores = {'bore_118946', 'bore_118947'} ; %  ----------------------------------------------------------- Ford 
 % list_bores = {'bore_2091', 'bore_WRK958154', 'bore_WRK958156', 'bore_WRK958155', 'bore_2092'} ; %  --------- Sunday 
 
-for i=1:1
-% for i=1:length(list_bores)
+% baseflow options 
+baseflow_options = {'baseflow_v1'; 'baseflow_v2'; 'baseflow_m1';'baseflow_m2';
+                    'baseflow_m3'; 'baseflow_m4'; 'baseflow_m5'; 'baseflow_m6';
+                    'baseflow_m7'; 'baseflow_m8'; 'baseflow_m9'};
 
+
+for i = 1:1
+% for i = 1:length(list_bores)
+
+for bb = 1:length(baseflow_options)
+% for bb = 11:11
+
+    
 tic % start timer
+
 
 catchment = 'Brucknell Creek';
 % catchment = 'Ford Creek';
@@ -167,20 +178,29 @@ modelOptions_7params = { 'precip','weightingfunction','responseFunction_Pearsons
 % Set the maximum frequency of water level obs
 maxObsFreq = 1;
 
+%-----------------------------------------------------
+% Define a model label and baseflow option from list:
+                
+% baseflow_v1, baseflow_v2, baseflow_m1, baseflow_m2, baseflow_m3,
+% baseflow_m4, baseflow_m5, baseflow_m6, baseflow_m7,
+% baseflow_m8, baseflow_m9
+%----------------------------------------------------
+baseflow_option = baseflow_options(bb);  % define baseflow option 
+baseflow_option = cell2mat(baseflow_option) % print the baseflow option to check progress 
 
-% Define a model label
 A1 = catchment;
 A2 = '- using catchment average forcing,';
 A3 = bore_ID;
-A4 = ',daily flow, ';
+A4 = ',daily flow,';
 A5 = modelOptions_7params{1,1}; 
-A6 = 'weighting functions';
-formatSpec = '%1$s %2$s %3$s %4$s %5$s %6$s';
+A6 = 'weighting functions,';
+A7 = baseflow_option;
+formatSpec = '%1$s %2$s %3$s %4$s %5$s %6$s %7$s';
 % A6 = modelOptions_7params{3,1};
 % A7 = 'weighting functions';
 % formatSpec = '%1$s %2$s %3$s %4$s %5$s %6$s %7$s';
 
-modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
+modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7)
 % modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7);
 
 
@@ -223,7 +243,7 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
     AMALGAMPar.n = length(params_initial);  % Dimension of the problem    ----  run7paramModel now has 9 parameters? are we allowing head-threshoold and head_to_baseflow to be calibrated? 
     AMALGAMPar.N = 100;                     % Size of the population   - LENTGH OF OBS. TIMESERIES or just a calibration parameter?
     AMALGAMPar.nobj = 2;                    % Number of objectives
-    AMALGAMPar.ndraw = 100000;               % Maximum number of function evaluations
+    AMALGAMPar.ndraw = 20000;               % Maximum number of function evaluations
     
     % Define the parameter ranges (minimum and maximum values)
     [params_upperLimit, params_lowerLimit] = getParameters_plausibleLimit(model_7params.model);
@@ -286,10 +306,11 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
     A1 = 'Configuration_model_TFN_SW_GW_';
     A2 = bore_ID;
     A3 = catchment;
-    A4 = datestr(now,'mm-dd-yyyy HH-MM');
-    A5 = '.mat';
-    formatSpec = '%1$s %2$s %3$s %4$s %5$s';
-    Filename = sprintf(formatSpec,A1,A2,A3,A4,A5);
+    A4 = baseflow_option;
+    A5 = datestr(now,'mm-dd-yyyy HH-MM');
+    A6 = '.mat';
+    formatSpec = '%1$s %2$s %3$s %4$s %5$s %6$s';
+    Filename = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
     folder = 'C:\Users\gbonotto\OneDrive - The University of Melbourne\1 - UNIMELB\5 - HydroSight\10 - Run Results';
     path =fullfile(folder, Filename);
     save(path,'model_7params')  % Save model object
@@ -299,10 +320,11 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
     A1 = 'Amalgam_Params_ObjFun_All Generations_';
     A2 = bore_ID;
     A3 = catchment;
-    A4 = datestr(now,'mm-dd-yyyy HH-MM');
-    A5 = '.csv';
-    formatSpec = '%1$s %2$s %3$s %4$s %5$s';
-    Filename = sprintf(formatSpec,A1,A2,A3,A4,A5);
+    A4 = baseflow_option;
+    A5 = datestr(now,'mm-dd-yyyy HH-MM');
+    A6 = '.csv';
+    formatSpec = '%1$s %2$s %3$s %4$s %5$s %6$s';
+    Filename = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
     folder = 'C:\Users\gbonotto\OneDrive - The University of Melbourne\1 - UNIMELB\5 - HydroSight\10 - Run Results';
     path =fullfile(folder, Filename);
     csvwrite(path,ParSet)
@@ -311,10 +333,11 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
     A1 = 'Amalgam_Params_Final Generation_';
     A2 = bore_ID;
     A3 = catchment;
-    A4 = datestr(now,'mm-dd-yyyy HH-MM');
-    A5 = '.csv';
-    formatSpec = '%1$s %2$s %3$s %4$s %5$s';
-    Filename = sprintf(formatSpec,A1,A2,A3,A4,A5);
+    A4 = baseflow_option;
+    A5 = datestr(now,'mm-dd-yyyy HH-MM');
+    A6 = '.csv';
+    formatSpec = '%1$s %2$s %3$s %4$s %5$s %6$s';
+    Filename = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
     folder = 'C:\Users\gbonotto\OneDrive - The University of Melbourne\1 - UNIMELB\5 - HydroSight\10 - Run Results';
     path =fullfile(folder, Filename);
     csvwrite(path,ParGen)
@@ -323,23 +346,25 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
     A1 = 'Amalgam_Flow_All_ObjFun_All Generations_';
     A2 = bore_ID;
     A3 = catchment;
-    A4 = datestr(now,'mm-dd-yyyy HH-MM');
-    A5 = '.csv';
-    formatSpec = '%1$s %2$s %3$s %4$s %5$s';
-    Filename = sprintf(formatSpec,A1,A2,A3,A4,A5);
+    A4 = baseflow_option;
+    A5 = datestr(now,'mm-dd-yyyy HH-MM');
+    A6 = '.csv';
+    formatSpec = '%1$s %2$s %3$s %4$s %5$s %6$s';
+    Filename = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
     folder = 'C:\Users\gbonotto\OneDrive - The University of Melbourne\1 - UNIMELB\5 - HydroSight\10 - Run Results';
     path =fullfile(folder, Filename);
     csvwrite(path,allOriginalObjVals_Flow)
     
-         
+    
     %Storing the Pareto front matrix for the last generation of parameters
     A1 = 'Amalgam_Pareto_ObjFun_Final_Generation';
     A2 = bore_ID;
     A3 = catchment;
-    A4 = datestr(now,'mm-dd-yyyy HH-MM');
-    A5 = '.csv';
-    formatSpec = '%1$s %2$s %3$s %4$s %5$s';
-    Filename = sprintf(formatSpec,A1,A2,A3,A4,A5);
+    A4 = baseflow_option;
+    A5 = datestr(now,'mm-dd-yyyy HH-MM');
+    A6 = '.csv';
+    formatSpec = '%1$s %2$s %3$s %4$s %5$s %6$s';
+    Filename = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
     folder = 'C:\Users\gbonotto\OneDrive - The University of Melbourne\1 - UNIMELB\5 - HydroSight\10 - Run Results';
     path =fullfile(folder, Filename);
     csvwrite(path,ObjVals)
@@ -363,15 +388,16 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
 %     f = figure(2);
     set(f, 'Color', 'w');
     A1 = 'Pareto Front_Final Generation_';
-    A3 = bore_ID;
-    A4 = catchment;
+    A2 = bore_ID;
+    A3 = catchment;
+    A4 = baseflow_option;
     A5 = 'Weighting';
     weighting_forces = unique(modelOptions_7params(:,1));
     A6= weighting_forces(1);
     A6 = cell2mat(A6);
     A7 = datestr(now,'mm-dd-yyyy HH-MM');
-    formatSpec = '%1$s %2$s %3$s %4$s %5$s %6$s';
-    Filename = sprintf(formatSpec,A1,A3,A4,A5,A6,A7);
+    formatSpec = '%1$s %2$s %3$s %4$s %5$s %6$s %7$s';
+    Filename = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7);
 %     A7 = weighting_forces(2);
 %     A7 = cell2mat(A7);
 %     A8 = datestr(now,'mm-dd-yyyy HH-MM');
@@ -397,7 +423,6 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
     title({['Evolution of the Pareto Fronts - GW head vs. Streamflow Obj-Function' ] 
                         [bore_ID ' - ' catchment ]});
     xlabel('SWSI (GW head)')
-    xlabel('SWSI (GW head)')
     % SWSI = sum of weighted squared innovations
 %     xlabel('(1-NSE) (Flow)')
     ylabel('(1-KGE) (Flow)')
@@ -416,15 +441,16 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
     f.OuterPosition = [.5 .5 8 8]; % adjusting the size of the figure
     set(f, 'Color', 'w');
     A1 = 'Evolution of Pareto Fronts_';
-    A3 = bore_ID;
-    A4 = catchment;
+    A2 = bore_ID;
+    A3 = catchment;
+    A4 = baseflow_option;
     A5 = 'Weighting';
     weighting_forces = unique(modelOptions_7params(:,1));
     A6= weighting_forces(1);
     A6 = cell2mat(A6);
     A7 = datestr(now,'mm-dd-yyyy HH-MM');
-    formatSpec = '%1$s %2$s %3$s %4$s %5$s %6$s';
-    Filename = sprintf(formatSpec,A1,A3,A4,A5,A6,A7);
+    formatSpec = '%1$s %2$s %3$s %4$s %5$s %6$s %7$s';
+    Filename = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7);
 %     A7 = weighting_forces(2);
 %     A7 = cell2mat(A7);
 %     A8 = datestr(now,'mm-dd-yyyy HH-MM');
@@ -580,7 +606,7 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
             ['Optimized for ' ylabels{1} ', respective ' ylabels{2} ', ' ylabels{3}]
             [bore_ID ' - ' catchment ]});
     xlabel(' Head Objective Function (SWSI)')
-      hold off
+    hold off
         
     % [1] https://www.mathworks.com/help/matlab/ref/yyaxis.html
     % [2] this is the critical step to align the grids. It assumes both 
@@ -596,16 +622,17 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
     % Save the YYY-plot with the Pareto Front of the final generation for the optimized ObjFun and respective ObjFuns 
     f = figure(3);
 %     f = figure(4);
-        A1 = 'YYY plot_Pareto Front_Final Generation_';
-    A3 = bore_ID;
-    A4 = catchment;
+    A1 = 'YYY plot_Pareto Front_Final Generation_';
+    A2 = bore_ID;
+    A3 = catchment;
+    A4 = baseflow_option;
     A5 = 'Weighting';
     weighting_forces = unique(modelOptions_7params(:,1));
     A6= weighting_forces(1);
     A6 = cell2mat(A6);
     A7 = datestr(now,'mm-dd-yyyy HH-MM');
-    formatSpec = '%1$s %2$s %3$s %4$s %5$s %6$s';
-    Filename = sprintf(formatSpec,A1,A3,A4,A5,A6,A7);
+    formatSpec = '%1$s %2$s %3$s %4$s %5$s %6$s %7$s';
+    Filename = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7);
 %     A7 = weighting_forces(2);
 %     A7 = cell2mat(A7);
 %     A8 = datestr(now,'mm-dd-yyyy HH-MM');
@@ -643,15 +670,16 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
 %     f.Units = 'inches';
 %     f.OuterPosition = [.5 .5 15 10]; % adjusting the size of the figure
     A1 = 'YYY Scatter_Pareto Front_Final Generation_';
-    A3 = bore_ID;
-    A4 = catchment;
+    A2 = bore_ID;
+    A3 = catchment;
+    A4 = baseflow_option;
     A5 = 'Weighting';
     weighting_forces = unique(modelOptions_7params(:,1));
     A6= weighting_forces(1);
     A6 = cell2mat(A6);
     A7 = datestr(now,'mm-dd-yyyy HH-MM');
-    formatSpec = '%1$s %2$s %3$s %4$s %5$s %6$s';
-    Filename = sprintf(formatSpec,A1,A3,A4,A5,A6,A7);
+    formatSpec = '%1$s %2$s %3$s %4$s %5$s %6$s %7$s';
+    Filename = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7);
 %     A7 = weighting_forces(2);
 %     A7 = cell2mat(A7);
 %     A8 = datestr(now,'mm-dd-yyyy HH-MM');
@@ -661,7 +689,7 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
     saveas(f, fullfile(folder, Filename), 'png');
 
     
-
+end
 
     
     
@@ -678,8 +706,8 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
     calibrateModelPlotResults(model_7params_gw,[]);
     
     % Store the figure showing results when calibrated GW only
-    f = figure(i+3);
-%     f = figure(i+2);
+    f = figure(i+4);
+%     f = figure(5);
     set(f, 'Color', 'w');
     f.Units = 'inches';
     f.OuterPosition = [.5 .5 13 10];
@@ -696,10 +724,11 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
     A1 = 'Configuration_&_Performance_model_TFN_';
     A2 = bore_ID;
     A3 = catchment;
-    A4 = datestr(now,'mm-dd-yyyy HH-MM');
-    A5 = '.mat';
-    formatSpec = '%1$s %2$s %3$s %4$s %5$s';
-    Filename = sprintf(formatSpec,A1,A2,A3,A4,A5);
+    A4 = baseflow_option;    
+    A5 = datestr(now,'mm-dd-yyyy HH-MM');
+    A6 = '.mat';
+    formatSpec = '%1$s %2$s %3$s %4$s %5$s %6$s';
+    Filename = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
     folder = 'C:\Users\gbonotto\OneDrive - The University of Melbourne\1 - UNIMELB\5 - HydroSight\10 - Run Results';
     path =fullfile(folder, Filename);
     save(path,'model_7params_gw')  % Save model object 
@@ -713,6 +742,21 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
 %     solveModel(model_7params, time_points, newForcingData, simulationLabel, doKrigingOnResiduals);    
 %     solveModelPlotResults(model_7params, simulationLabel, []);    
 
+    % save all workspace before new run 
+    A1 = 'All_workspace_';
+    A2 = bore_ID;
+    A3 = catchment;
+    A4 = baseflow_option;
+    A5 = datestr(now,'mm-dd-yyyy HH-MM');
+    A6 = '.mat';
+    formatSpec = '%1$s %2$s %3$s %4$s %5$s %6$s';
+    Filename = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
+    folder = 'C:\Users\gbonotto\OneDrive - The University of Melbourne\1 - UNIMELB\5 - HydroSight\10 - Run Results';
+    path =fullfile(folder, Filename);
+    save(path)  % Save all workspace 
+
+
+
     clear all % clear all variables to avoid inheriting parameters from the previous run 
 
     % Restating the List of bores in the study area to keep the loop going
@@ -721,8 +765,14 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
     % list_bores = {'bore_118946', 'bore_118947'} ; %  ----------------------------------------------------------- Ford
     % list_bores = {'bore_2091', 'bore_WRK958154', 'bore_WRK958156', 'bore_WRK958155', 'bore_2092'} ; %  --------- Sunday
     
+    % Restating baseflow options to keep the loop going
+    baseflow_options = {'baseflow_v1'; 'baseflow_v2'; 'baseflow_m1';'baseflow_m2';
+                    'baseflow_m3'; 'baseflow_m4'; 'baseflow_m5'; 'baseflow_m6';
+                    'baseflow_m7'; 'baseflow_m8'; 'baseflow_m9'};
+    
     toc % stop timer
-end
 
+    
+end
 clear all; % to avoid errors in the new loop
 

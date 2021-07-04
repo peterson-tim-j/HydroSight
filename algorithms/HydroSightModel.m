@@ -394,7 +394,13 @@ classdef HydroSightModel < handle
             % Add data to object.
             obj.model_label = model_label;            
             obj.bore_ID = bore_ID;            
-            obj.model = feval(model_class_name, bore_ID, obsHead, forcingData_data, forcingData_colnames, siteCoordinates, varargin{1} );
+%             obj.model = feval(model_class_name, bore_ID, obsHead, forcingData_data, forcingData_colnames, siteCoordinates, varargin{1} );
+            
+            if contains(model_class_name,'model_TFN_SW_GW')
+                obj.model = feval(model_class_name, model_label, bore_ID, obsHead, forcingData_data, forcingData_colnames, siteCoordinates, varargin{1} );
+            else
+                obj.model = feval(model_class_name, bore_ID, obsHead, forcingData_data, forcingData_colnames, siteCoordinates, varargin{1} );
+            end 
             
             % Add flag to denote the calibration has not been undertaken.
             obj.calibrationResults.isCalibrated = false;

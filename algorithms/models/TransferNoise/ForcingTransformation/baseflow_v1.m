@@ -1,4 +1,4 @@
-classdef baseflow < forcingTransform_abstract
+classdef baseflow_v1 < forcingTransform_abstract
     % Defines the behaviour of baseflow according to the GW head. 
     
     %   Detailed explanation goes here
@@ -73,7 +73,7 @@ classdef baseflow < forcingTransform_abstract
     %% Constructor of the baseflow class
     
     methods
-        function obj = baseflow(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates, forcingData_reqCols, modelOptions)            
+        function obj = baseflow_v1(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates, forcingData_reqCols, modelOptions)            
             % Constructor of the Baseflow class 
             %   Detailed explanation goes here
             obj.head_threshold = 200;
