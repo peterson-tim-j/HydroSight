@@ -53,8 +53,8 @@ baseflow_options = {'baseflow_v1'; 'baseflow_v2'; 'baseflow_m1';'baseflow_m2';
 for i = 1:1
 % for i = 1:length(list_bores)
 
-% for bb = 1:length(baseflow_options)
-for bb = 3:3
+for bb = 1:length(baseflow_options)
+% for bb = 3:3
 
     
 tic % start timer
