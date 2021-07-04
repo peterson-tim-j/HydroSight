@@ -88,7 +88,7 @@ classdef baseflow_m8 < forcingTransform_abstract
             % initializing the parameters of the object
             obj.base_rate = 0; % initial guess for - base outflow rate [mm/d]
             obj.exponential_scaler = 1; % initial guess for - exponential scaling parameter [-]
-            obj.head_max = 200  % initial guess for - maximum contributing storage [mm]
+            obj.head_max = 200;  % initial guess for - maximum contributing storage [mm]
             
             obj.variables.baseFlow = [];
             obj.variables.head = [];

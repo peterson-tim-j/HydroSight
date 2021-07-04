@@ -145,7 +145,7 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
             % baseflow_m4, baseflow_m5, baseflow_m6, baseflow_m7,
             % baseflow_m8, baseflow_m9
             %----------------------------------------------------
-            obj.parameters.baseflow = baseflow(bore_ID, forcingData_data, forcingData_colnames, siteCoordinates, [], []);
+            obj.parameters.baseflow = baseflow_m9(bore_ID, forcingData_data, forcingData_colnames, siteCoordinates, [], []);
 
             
         end

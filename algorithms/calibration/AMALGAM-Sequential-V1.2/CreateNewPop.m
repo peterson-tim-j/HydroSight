@@ -1,4 +1,4 @@
-function [ParGen,ObjVals,Ranking,CrowdDist,Iout,Cg] = CreateNewPop(ParGen,ChildGen,ObjVals,ChildObjVals,Itot,Cg,ChildCg,ParRange,Bounds);
+function [ParGen,ObjVals,Ranking,CrowdDist,Iout,Cg, Par_Flow_ObjFuns] = CreateNewPop(ParGen,ChildGen,ObjVals,ChildObjVals,Itot,Cg,ChildCg,ParRange,Bounds, Par_Flow_ObjFuns,Child_Flow_ObjFuns);
 % Function selects new population based on current offspring and parents
 
 % Save ParGen in memory
@@ -9,6 +9,9 @@ oldParGen = ParGen; counter = 0; rk = 1;
 
 % Append children to parents
 Par_ChildGen = [ParGen;ChildGen]; ObjVals = [ObjVals;ChildObjVals]; Cg = [Cg;ChildCg];
+
+% ADDED THIS: Append children to parents in terms of all original flow Objective
+Par_Child_FlowObjFuns = [Par_Flow_ObjFuns; Child_Flow_ObjFuns];
 
 % Rank children and parents together
 [Ranking,CrowdDist] = CalcRank(ObjVals,Bounds,Cg);
@@ -50,6 +53,9 @@ end;
 
 % Generate new population
 ParGen = Par_ChildGen(ii,:); ObjVals = ObjVals(ii,:); Cg = Cg(ii,:);
+
+% ADDED THIS: Generate new generation of all original flow Obj-func
+Par_Flow_ObjFuns = Par_Child_FlowObjFuns(ii,:);
 
 % Select appropriate Rank and Distance Operator
 Ranking = Ranking(ii,:); CrowdDist = CrowdDist(ii,:);
