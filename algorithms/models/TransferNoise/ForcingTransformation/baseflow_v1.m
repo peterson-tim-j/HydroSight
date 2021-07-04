@@ -24,7 +24,8 @@ classdef baseflow_v1 < forcingTransform_abstract
         end
         
         function [variable_names] = outputForcingdata_options(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates)
-            variable_names = {'baseflow'};
+                                    
+            variable_names ={'baseflow'};
         end
         
         function [options, colNames, colFormats, colEdits, toolTip] = modelOptions()
@@ -78,6 +79,7 @@ classdef baseflow_v1 < forcingTransform_abstract
             %   Detailed explanation goes here
             obj.head_threshold = 200;
             obj.head_to_baseflow = 1;
+            
             obj.variables.baseFlow = [];
             obj.variables.head = [];
             obj.variables.t = [];
