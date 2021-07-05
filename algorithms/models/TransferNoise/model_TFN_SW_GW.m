@@ -311,7 +311,7 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
 %         objFn_joint = [objFn_flow, objFn_flow];
         
 
-
+        
         % Getting the Observed head/flow vs. Simulated head/flow plots 
 %         figure(i+1)
 %         scatter (obj.inputData.head(:,2), (h_star(:,2) +  drainage_elevation))
@@ -328,11 +328,12 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
 %         figure(i+2)
 %         plot (obj.inputData.head(:,1), obj.inputData.head(:,2))
 %         title(' Observed and Simulated Head')
-%         xlabel('Date (Numeric Date)')
+%         xlabel('Date')
 %         ylabel('Head (mAHD)')
 %         hold on
 %         plot (h_star(:,1), (h_star(:,2) +  drainage_elevation))
 %         legend('Obs. Head','Sim. Head')
+%         datetick('x', 'dd/mm/yy', 'keepticks')
 %         hold off
 %         
 %         figure(i+3)
@@ -347,36 +348,39 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
 %         myRefLine.LineStyle = '--';
 % 
 % 
+% 
 %         
 %         figure(i+4)
 %         plot (obsFlow(:,1), obsFlow(:,2))
 %         title(' Observed and Simulated Flow')
-%         xlabel('Date (Numeric Date)')
+%         xlabel('Date')
 %         ylabel('Flow (mm/day)')
 %         hold on
 %         plot (obsFlow(:,1), totalFlow_sim)
 %         legend('Obs. Flow','Sim. Flow')
+%         datetick('x', 'dd/mm/yy', 'keepticks')
 %         hold off
 %         
 %        
 % %         plotting simulated total streamflow
 %         figure(i+5)
 %         plot(obsFlow(:,1),totalFlow_sim)
-%         title(' streamflow simulation')
-%         xlabel('Numeric Date ')
+%         title('observed and simulated streamflow')
+%         xlabel('Date')
 %         ylabel('mm/day')
 %         ylim([0 (max(totalFlow_sim)+10)])
 %         grid on
 %         ax = gca;
-%         ax.FontSize = 12;
+%         ax.FontSize = 11;
 %         hold on
 %         plot(obsFlow(:,1),baseFlow)
 %         hold on
 %         plot(obsFlow(:,1),quickFlow)
 %         hold on
 %         plot (obsFlow(:,1), obsFlow(:,2))
+%         datetick('x', 'dd/mm/yy', 'keepticks')
 %         hold off
-%         legend('totalFlow_sim','baseFlow','quickFlow','totalFlow_obs')
+%         legend('totalFlow_sim','baseFlow','quickFlow','totalFlow_obs')  
 
         % ploting obs total streamflow
 %         figure(i+6)

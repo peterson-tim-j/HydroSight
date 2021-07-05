@@ -53,8 +53,8 @@ baseflow_options = {'baseflow_v1'; 'baseflow_v2'; 'baseflow_m1';'baseflow_m2';
 for i = 1:1
 % for i = 1:length(list_bores)
 
-for bb = 1:length(baseflow_options)
-% for bb = 3:3
+% for bb = 1:length(baseflow_options)
+for bb = 2:2
 
     
 tic % start timer
@@ -462,78 +462,56 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7)
     
     
     
-    
+%-----------------------------------------------------------------------------------------------------------------------------------------------%    
     %%%%% Analysing some parameter sets along the pre-calculated Pareto
     %%%%% Front to analyse model sensitivity and performance
     
 %        % bore WRK931624 - precip only
           % point 1
-%         Params_ParetoPoints = [2.5916, 1.699, 3.1663, 0.76482, -1.3454, -3.0466, -0.41238, -2.027, 37.317, 2.2904]'; % Alpha = zero, NSE, 890k iterations, 14/Jun/2021  
-%         Params_ParetoPoints = [2.5683, 1.699, 3.1663,	0.67665, -1.1342, -3.0921, -0.45796, -1.9979, 209.7, 836.68]' % Alpha = 1, NSE, 300k iterations, 17/Jun/2021       
-%         Params_ParetoPoints = [2.5171, 1.699,	3.1656,	0.048855, 0.77607, -1.4026, -2.8757, -0.34583, -2.0055, 391.13, 96.234]' % Alpha = calibrated, NSE, 300k iterations, 18/Jun/2021       
-%         Params_ParetoPoints = [2.5988, 1.699, 3.1662, 0.075225, 0.75174, -1.3121, -3.0728, -0.42817, -2.027, 553.63, 164.89]' % Alpha = calibrated, RMSE, 300k iterations, 21/Jun/2021       
+              % baseflow_v1     %SMSC_deep, SMSC, k_sat,   alpha, beta,    A,      b,     n,     alpha,   head_threshold,  head_to_baseflow
+%         Params_ParetoPoints = [2.5916, 1.699, 3.1663, 0.76482, -1.3454, -3.0466, -0.41238, -2.027, 37.317, 2.2904]'; % Baseflow_v1, Alpha = zero, NSE, 890k iterations, 14/Jun/2021  
+%         Params_ParetoPoints = [2.5683, 1.699, 3.1663,	0.67665, -1.1342, -3.0921, -0.45796, -1.9979, 209.7, 836.68]' % Baseflow_v1, Alpha = 1, NSE, 300k iterations, 17/Jun/2021       
+%         Params_ParetoPoints = [2.5171, 1.699,	3.1656,	0.048855, 0.77607, -1.4026, -2.8757, -0.34583, -2.0055, 391.13, 96.234]' % Baseflow_v1, Alpha = calibrated, NSE, 300k iterations, 18/Jun/2021       
+%         Params_ParetoPoints = [2.5988, 1.699, 3.1662, 0.075225, 0.75174, -1.3121, -3.0728, -0.42817, -2.027, 553.63, 164.89]' % Baseflow_v1, Alpha = calibrated, RMSE, 300k iterations, 21/Jun/2021       
+             % baseflow_m9     %SMSC_deep, SMSC, k_sat,   alpha, beta,    A,      b,     n,     alpha, linear_scaler  ,  head_threshold   
+%           Params_ParetoPoints = [1.6991,1.7171	,1.3346	,0.14123	,0.66715	,-1.5062	,-2.8888	,-0.20674	,-2.0671,	0.0055465,	357.03]' % Brucknell, WRK..24, Baseflow_m9, Alpha = calibrated, 1-KGE, 100k iterations, 04/July/2021, 18:21
+%                % baseflow_m8     %SMSC_deep, SMSC, k_sat,   alpha, beta,    A,      b,     n,     alpha,  base_rate , exponential_scaler  , head_max  ,
+%         Params_ParetoPoints = [1.699,	1.8108,	1.3345,	0.15817,	0.62041, -1.4753,	-2.7145,	-0.21537,	-1.9807,	37.675,	0.0021138,	1409.8]'      % Brucknell, WRK..24, Baseflow_m8, Alpha = calibrated, 1-KGE, 100k iterations, 04/July/2021, 04:24
+%                % baseflow_v2     %SMSC_deep, SMSC, k_sat,   alpha, beta,    A,      b,     n,     alpha,  head_threshold , decayRate  , riseRate  ,totalWeigthScaler
+%         Params_ParetoPoints = [1.7044,	1.8059,	1.3346,	0.16162,	0.60535,	-1.4792,	-2.8465,	-0.20392,	-1.9357,	0,	-46.63,	-94.184,	83.497]'      % Brucknell, WRK..24, Baseflow_v2, Alpha = calibrated, 1-KGE, 100k iterations, 30/Jun/2021, 05:34
 
 %         % point 2
-%         Params_ParetoPoints = [1.6992, 1.75, 1.335, 0.78923, -1.4669, -2.535, -0.31971, -2.1195, 36.973, 1.4036]'; % Alpha = zero, NSE, 890k iterations, 14/Jun/2021 
-%         Params_ParetoPoints = [1.699,	2.699, 3.1663, 0.63863, -1.325, -2.8724, -0.30827, -1.71, 892.39, 831.05]' %  Alpha = 1, NSE, 300k iterations, 17/Jun/2021                
-%         Params_ParetoPoints = [1.699,	1.9516,	1.3375,	0.064356, 0.85547, -1.5002, -2.5998, -0.23659, -2.185, 357.2, 236.39]' % Alpha = calibrated, NSE, 300k iterations, 18/Jun/2021              
-%         Params_ParetoPoints = [1.7019, 1.9448, 1.3345, 0.1121, 0.53938, -1.4862, -2.8445, -0.23923, -1.8488, 849.92, 277.39]' % Alpha = calibrated, RMSE, 300k iterations, 21/Jun/2021             
+              % baseflow_v1     %SMSC_deep, SMSC, k_sat,   alpha, beta,    A,      b,     n,     alpha,   head_threshold,  head_to_baseflow
+%         Params_ParetoPoints = [1.6992, 1.75, 1.335, 0.78923, -1.4669, -2.535, -0.31971, -2.1195, 36.973, 1.4036]'; % Baseflow_v1, Alpha = zero, NSE, 890k iterations, 14/Jun/2021 
+%         Params_ParetoPoints = [1.699,	2.699, 3.1663, 0.63863, -1.325, -2.8724, -0.30827, -1.71, 892.39, 831.05]' % Baseflow_v1, Alpha = 1, NSE, 300k iterations, 17/Jun/2021                
+%         Params_ParetoPoints = [1.699,	1.9516,	1.3375,	0.064356, 0.85547, -1.5002, -2.5998, -0.23659, -2.185, 357.2, 236.39]' % Baseflow_v1, Alpha = calibrated, NSE, 300k iterations, 18/Jun/2021              
+%         Params_ParetoPoints = [1.7019, 1.9448, 1.3345, 0.1121, 0.53938, -1.4862, -2.8445, -0.23923, -1.8488, 849.92, 277.39]' % Baseflow_v1, Alpha = calibrated, RMSE, 300k iterations, 21/Jun/2021             
+            % baseflow_m9     %SMSC_deep, SMSC, k_sat,   alpha, beta,    A,      b,     n,     alpha, linear_scaler  ,  head_threshold   
+%         Params_ParetoPoints = [1.699	,1.858	,1.3349	,0.13023	,0.82128	,-1.4519	,-2.8058	,-0.22138	,-2.1682,	0.37731,	545.68]' % Brucknell, WRK..24, Baseflow_m9, Alpha = calibrated, 1-KGE, 100k iterations, 04/July/2021, 18:21
+%             % baseflow_m8     %SMSC_deep, SMSC, k_sat,   alpha, beta,    A,      b,     n,     alpha,  base_rate , exponential_scaler  , head_max  ,
+%         Params_ParetoPoints = [1.6998,	1.8887,	1.3346,	0.13948,	0.78443, -1.4194,	-2.774,	-0.23971,	-2.156,	0.01,	0.00039514,	1248.1]'      % Brucknell, WRK..24, Baseflow_m8, Alpha = calibrated, 1-KGE, 100k iterations, 04/July/2021, 04:24
+%             % baseflow_v2     %SMSC_deep, SMSC, k_sat,   alpha, beta,    A,      b,     n,     alpha,  head_threshold , decayRate  , riseRate  ,totalWeigthScaler
+%         Params_ParetoPoints = [1.6994,	1.8757,	1.3345,	0.12899,	0.84231,	-1.4475,	-2.7365,	-0.22785,	-2.1314,	601.37,	-49.802,	-28.151,	66.538]'      % Brucknell, WRK..24, Baseflow_v2, Alpha = calibrated, 1-KGE, 100k iterations, 30/Jun/2021, 05:34
 
-% 
 %         % point 3
-%         Params_ParetoPoints = [1.6991, 1.699, 3.1662, 0.61752, -1.6414, -3.0587, -0.5182, -2.0636, 37.232, 9.353]'; % Alpha = zero, NSE, 890k iterations, 14/Jun/2021 
-%         Params_ParetoPoints = [1.699,	2.699, 1.5087, 0, -1.3699, -2.7822, -0.31574, -1.8051, 871.26, 970.71]' % Alpha = 1, NSE, 300k iterations, 17/Jun/2021  
-%         Params_ParetoPoints = [1.699, 2.428, 1.3345, 0.089784, 1, -1.0041, -3.5064, -1.4233, -2.2622, 909.55, 110.35]' % Alpha = calibrated, NSE, 300k iterations, 18/Jun/2021 
-%         Params_ParetoPoints = [1.699, 2.428, 1.3345, 0.089747, 1, -1.0367, -3.4925, -1.1446, -2.2434, 469.51, 177.8]' % Alpha = calibrated, RMSE, 300k iterations, 21/Jun/2021   
+              % baseflow_v1     %SMSC_deep, SMSC, k_sat,   alpha, beta,    A,      b,     n,     alpha,   head_threshold,  head_to_baseflow
+%         Params_ParetoPoints = [1.6991, 1.699, 3.1662, 0.61752, -1.6414, -3.0587, -0.5182, -2.0636, 37.232, 9.353]'; % Baseflow_v1, Alpha = zero, NSE, 890k iterations, 14/Jun/2021 
+%         Params_ParetoPoints = [1.699,	2.699, 1.5087, 0, -1.3699, -2.7822, -0.31574, -1.8051, 871.26, 970.71]' % Baseflow_v1, Alpha = 1, NSE, 300k iterations, 17/Jun/2021  
+%         Params_ParetoPoints = [1.699, 2.428, 1.3345, 0.089784, 1, -1.0041, -3.5064, -1.4233, -2.2622, 909.55, 110.35]' % Baseflow_v1, Alpha = calibrated, NSE, 300k iterations, 18/Jun/2021 
+%         Params_ParetoPoints = [1.699, 2.428, 1.3345, 0.089747, 1, -1.0367, -3.4925, -1.1446, -2.2434, 469.51, 177.8]' % Baseflow_v1, Alpha = calibrated, RMSE, 300k iterations, 21/Jun/2021   
+              % baseflow_m9     %SMSC_deep, SMSC, k_sat,   alpha, beta,    A,      b,     n,     alpha, linear_scaler  ,  head_threshold               
+%         Params_ParetoPoints = [1.6992,	2.0684,	1.3345,	0.12537,	1,	-1.4427,	-2.7475	,-0.23014,	-2.1417,	0.53613,	975.01]' % Brucknell, WRK..24, Baseflow_m9, Alpha = calibrated, 1-KGE, 100k iterations, 04/July/2021, 18:21
+%               % baseflow_m8     %SMSC_deep, SMSC, k_sat,   alpha, beta,    A,      b,     n,     alpha,  base_rate , exponential_scaler  , head_max  ,
+%         Params_ParetoPoints = [1.6992,	2.0686,	1.3345,	0.12542,	1,	-1.4391,	-2.6655,	-0.25542,	-2.0967,	0.099638,	0,	29.254]'      % Brucknell, WRK..24, Baseflow_m8, Alpha = calibrated, 1-KGE, 100k iterations, 04/July/2021, 04:24
+%               % baseflow_v2     %SMSC_deep, SMSC, k_sat,   alpha, beta,    A,      b,     n,     alpha,  head_threshold , decayRate  , riseRate  ,totalWeigthScaler
+%         Params_ParetoPoints = [1.6997,	2.0657,	1.3345,	0.12516,	1,	-1.376,	-2.9038,	-0.29794,	-2.247,	257.39,	-13.272,	-47.786,	21.569]'      % Brucknell, WRK..24, Baseflow_v2, Alpha = calibrated, 1-KGE, 100k iterations, 30/Jun/2021, 05:34                                  
+ 
 
-%                            SMSC_deep, SMSC, k_sat,   alpha, beta,    A,      b,     n,     alpha,   head_threshold,  head_to_baseflow   
-%         
-% 
+
 %        [ObjVals_prime, ~, ~, objFn_flow_NSE, objFn_flow_NNSE, objFn_flow_RMSE, objFn_flow_SSE, objFn_flow_bias, ~, ~,~] = objectiveFunction_joint(Params_ParetoPoints, time_points_head, time_points_streamflow, model_7params.model,{}); 
-        
+%-------------------------------------------------------------------------------------------------------------------------------------------------------------------%        
   
 
-
-% %        [params, param_names] = getParameters(model_7params)
-% %        [params, param_names] = getParameters(model_object)
-% %        setParameters(obj, params, param_names)
-%        
-% 
-%        
-%         % Getting the Observed head/flow vs. Simulated head/flow plots 
-%         figure(i+1)
-%         scatter (model_object.inputData.head(:,2), (h_star(:,2) +  drainage_elevation))
-%         title(' Observed Vs. Simulated Head')
-%         xlabel('Obs. Head (mAHD)')
-%         ylabel('Sim. Head (mAHD)')
-%         
-%         figure(i+2)
-%         plot (model_object.inputData.head(:,1), model_object.inputData.head(:,2))
-%         title(' Observed and Simulated Head')
-%         xlabel('Date (Numeric Date)')
-%         ylabel('Head (mAHD)')
-%         hold on
-%         plot (h_star(:,1), (h_star(:,2) +  drainage_elevation))
-%         legend('Obs. Head','Sim. Head')
-%         hold off
-%         
-%         figure(i+3)
-%         scatter (obsFlow(:,2), totalFlow_sim)
-%         title(' Observed Vs. Simulated Flow')
-%         xlabel('Obs. Flow (mm/day)')
-%         ylabel('Sim. Flow (mm/day)')
-%         
-%         figure(i+4)
-%         plot (obsFlow(:,1), obsFlow(:,2))
-%         title(' Observed and Simulated Flow')
-%         xlabel('Date (Numeric Date)')
-%         ylabel('Flow (mm/day)')
-%         hold on
-%         plot (obsFlow(:,1), totalFlow_sim)
-%         legend('Obs. Flow','Sim. Flow')
-%         hold off
-            
-     
     
     
     
@@ -689,6 +667,23 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7)
     saveas(f, fullfile(folder, Filename), 'png');
 
     
+    
+    % save all workspace before new run 
+    A1 = 'All_workspace_';
+    A2 = bore_ID;
+    A3 = catchment;
+    A4 = baseflow_option;
+    A5 = datestr(now,'mm-dd-yyyy HH-MM');
+    A6 = '.mat';
+    formatSpec = '%1$s %2$s %3$s %4$s %5$s %6$s';
+    Filename = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
+    folder = 'C:\Users\gbonotto\OneDrive - The University of Melbourne\1 - UNIMELB\5 - HydroSight\10 - Run Results';
+    path =fullfile(folder, Filename);
+    save(path)  % Save all workspace 
+    
+    close all % close all open figures to avoid data overlapping
+
+    
 end
 
     
@@ -706,8 +701,8 @@ end
     calibrateModelPlotResults(model_7params_gw,[]);
     
     % Store the figure showing results when calibrated GW only
-    f = figure(i+4);
-%     f = figure(5);
+%     f = figure(i+4);
+    f = figure(5);
     set(f, 'Color', 'w');
     f.Units = 'inches';
     f.OuterPosition = [.5 .5 13 10];
@@ -742,20 +737,7 @@ end
 %     solveModel(model_7params, time_points, newForcingData, simulationLabel, doKrigingOnResiduals);    
 %     solveModelPlotResults(model_7params, simulationLabel, []);    
 
-    % save all workspace before new run 
-    A1 = 'All_workspace_';
-    A2 = bore_ID;
-    A3 = catchment;
-    A4 = baseflow_option;
-    A5 = datestr(now,'mm-dd-yyyy HH-MM');
-    A6 = '.mat';
-    formatSpec = '%1$s %2$s %3$s %4$s %5$s %6$s';
-    Filename = sprintf(formatSpec,A1,A2,A3,A4,A5,A6);
-    folder = 'C:\Users\gbonotto\OneDrive - The University of Melbourne\1 - UNIMELB\5 - HydroSight\10 - Run Results';
-    path =fullfile(folder, Filename);
-    save(path)  % Save all workspace 
-
-
+    
 
     clear all % clear all variables to avoid inheriting parameters from the previous run 
 
@@ -772,7 +754,7 @@ end
     
     toc % stop timer
 
-    
+    close all % close all open figures to avoid data overlapping
 end
 clear all; % to avoid errors in the new loop
 
