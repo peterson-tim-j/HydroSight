@@ -432,8 +432,10 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
      % USING 1-layer soil model
 %      setTransformedForcing(obj.parameters.climateTransform_soilMoistureModels, time_points_streamflow, true) 
      % USING 2-layer soil model
-     setTransformedForcing(obj.parameters.climateTransform_soilMoistureModels_2layer_v2, time_points_streamflow, true);
-     
+%      setTransformedForcing(obj.parameters.climateTransform_soilMoistureModels_2layer_v2, time_points_streamflow, true);
+     % USING 2-layer soil model with threshold behaviour of runoff
+     setTransformedForcing(obj.parameters.climateTransform_soilMoistureModels_2layer_v3, time_points_streamflow, true);
+
      
      
      % detect if there was parameter change for the soil model
