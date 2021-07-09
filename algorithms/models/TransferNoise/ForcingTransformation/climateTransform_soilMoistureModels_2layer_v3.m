@@ -371,7 +371,7 @@ end
             % Upper and lower bounds of SMSC_threshold.
             if obj.settings.activeParameters.SMSC_threshold
                 ind = cellfun(@(x)(strcmp(x,'SMSC_threshold')),param_names);
-                params_lowerLimit(ind,1) = log10(1);                    
+                params_lowerLimit(ind,1) = log10(10);                    
                 %params_upperLimit(ind,1) = Inf; 
                 params_upperLimit(ind,1) = log10(1000);
             end           
@@ -396,8 +396,8 @@ end
             % Upper and lower bounds of SMSC.
             if obj.settings.activeParameters.SMSC_threshold
                 ind = cellfun(@(x)(strcmp(x,'SMSC_threshold')),param_names);
-                params_lowerLimit(ind,1) = log10(1); % Initiate SMSC_threshold as equal to zero -> (log10(1)=0)
-                params_upperLimit(ind,1) = log10(800);
+                params_lowerLimit(ind,1) = log10(50); % Initiate SMSC_threshold as equal to zero -> (log10(1)=0)
+                params_upperLimit(ind,1) = log10(500);
             end           
                                        
         end
@@ -498,9 +498,9 @@ end
                     variableName{i}))
                 
                         if nargin==2
-                            [forcingData(:,i), isDailyIntegralFlux(i)] = getTransformedForcing@climateTransform_soilMoistureModels(obj, variableName{i});   
+                            [forcingData(:,i), isDailyIntegralFlux(i)] = getTransformedForcing@climateTransform_soilMoistureModels_2layer(obj, variableName{i});   
                         else
-                            [forcingData(:,i), isDailyIntegralFlux(i)] = getTransformedForcing@climateTransform_soilMoistureModels(obj, variableName{i}, SMSnumber, doSubstepIntegration);   
+                            [forcingData(:,i), isDailyIntegralFlux(i)] = getTransformedForcing@climateTransform_soilMoistureModels_2layer(obj, variableName{i}, SMSnumber, doSubstepIntegration);   
                         end
                         continue
                     end

@@ -840,11 +840,16 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
             interflow_frac = params(8,:);
             beta = params(10,:);
             gamma = params(11,:);             
-            SMSC_deep = params(end-4,:);
-            SMSC_deep_trees = params(end-3,:);
-            S_deep_initial = params(end-2,:);
-            k_sat_deep = params(end-1,:);
-            beta_deep = params(end,:);
+%             SMSC_deep = params(end-4,:);
+            SMSC_deep = params(12,:);
+%             SMSC_deep_trees = params(end-3,:);
+            SMSC_deep_trees = params(13,:);
+%             S_deep_initial = params(end-2,:);
+            S_deep_initial = params(14,:);
+%             k_sat_deep = params(end-1,:);
+            k_sat_deep = params(15,:);
+%             beta_deep = params(end,:);
+            beta_deep = params(16,:);
             
             % Set if the subdaily steps should be integrated.
             if nargin < 4
