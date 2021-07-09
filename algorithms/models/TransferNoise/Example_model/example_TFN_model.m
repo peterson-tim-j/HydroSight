@@ -54,7 +54,7 @@ for i = 1:1
 % for i = 1:length(list_bores)
 
 % for bb = 1:length(baseflow_options)
-for bb = 2:2
+for bb = 1:1
 
     
 tic % start timer
@@ -148,7 +148,7 @@ siteCoordinates = {bore_ID, 100, 100;...
 forcingTransform_Precip = {'transformfunction', 'climateTransform_soilMoistureModels_2layer_v3'; ...
                'forcingdata', {'precip','PRECIP';'et','APET'}; ...
                'outputdata', 'drainage_deep'; ...
-               'options', {'SMSC',2,[];'SMSC_deep',2,[];'beta',0,'';'k_sat',1,'';'alpha',1,'';'beta_deep',NaN,'fixed';'k_sat_deep',NaN,'fixed'}}; % had to set k_sat_deep and beta_deep as "fixed" to allow it to pass line 480 of climateTransform_soilMoistureModels_2layer_v2
+               'options', {'SMSC',2,[];'SMSC_threshold',1,[];'SMSC_deep',2,[];'beta',0,'';'k_sat',1,'';'alpha',1,'';'beta_deep',NaN,'fixed';'k_sat_deep',NaN,'fixed'}}; % had to set k_sat_deep and beta_deep as "fixed" to allow it to pass line 480 of climateTransform_soilMoistureModels_2layer_v2
            
            
            

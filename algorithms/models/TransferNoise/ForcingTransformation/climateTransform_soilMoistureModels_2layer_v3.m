@@ -356,6 +356,7 @@ end
             % Initialise soil moisture variables
 %             obj.variables.SMS_deep = [];           
 %             obj.variables.SMS_deep_subdaily = [];
+%               obj.SMSC_threshold = 1;
         end
 
         
