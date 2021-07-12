@@ -53,8 +53,8 @@ baseflow_options = {'baseflow_v1'; 'baseflow_v2'; 'baseflow_m1';'baseflow_m2';
 for i = 1:1
 % for i = 1:length(list_bores)
 
-% for bb = 1:length(baseflow_options)
-for bb = 1:1
+for bb = 1:length(baseflow_options)
+% for bb = 1:1
 
     
 tic % start timer
@@ -134,21 +134,21 @@ siteCoordinates = {bore_ID, 100, 100;...
            
 % using 2-layer soil model "climateTransform_soilMoistureModels_2layer_v2" allowing beta,
 % ksat, beta_deep,ksat_deep be calibrated 
-% forcingTransform_Precip = {'transformfunction', 'climateTransform_soilMoistureModels_2layer_v2'; ...
-%                'forcingdata', {'precip','PRECIP';'et','APET'}; ...
-%                'outputdata', 'drainage_deep'; ...
-%                'options', {'SMSC',2,[];'SMSC_deep',2,[];'beta',0,'';'k_sat',1,'';'alpha',1,'';'beta_deep',NaN,'fixed';'k_sat_deep',NaN,'fixed'}}; % had to set k_sat_deep and beta_deep as "fixed" to allow it to pass line 480 of climateTransform_soilMoistureModels_2layer_v2
-%            
+forcingTransform_Precip = {'transformfunction', 'climateTransform_soilMoistureModels_2layer_v2'; ...
+               'forcingdata', {'precip','PRECIP';'et','APET'}; ...
+               'outputdata', 'drainage_deep'; ...
+               'options', {'SMSC',2,[];'SMSC_deep',2,[];'beta',0,'';'k_sat',1,'';'alpha',0,'fixed';'beta_deep',NaN,'fixed';'k_sat_deep',NaN,'fixed'}}; % had to set k_sat_deep and beta_deep as "fixed" to allow it to pass line 480 of climateTransform_soilMoistureModels_2layer_v2
+           
            
            
 % using 2-layer soil model "climateTransform_soilMoistureModels_2layer_v3" allowing beta,
 % ksat, beta_deep,ksat_deep, SMSC_threshold be calibrated. This object has
 % a mininum soil moisture threshold for generating runoff-quickflow, this
 % parameter is by default calibrated. (I GUESS)
-forcingTransform_Precip = {'transformfunction', 'climateTransform_soilMoistureModels_2layer_v3'; ...
-               'forcingdata', {'precip','PRECIP';'et','APET'}; ...
-               'outputdata', 'drainage_deep'; ...
-               'options', {'SMSC',2,[];'SMSC_threshold',1,[];'SMSC_deep',2,[];'beta',0,'';'k_sat',1,'';'alpha',1,'';'beta_deep',NaN,'fixed';'k_sat_deep',NaN,'fixed'}}; % had to set k_sat_deep and beta_deep as "fixed" to allow it to pass line 480 of climateTransform_soilMoistureModels_2layer_v2
+% forcingTransform_Precip = {'transformfunction', 'climateTransform_soilMoistureModels_2layer_v3'; ...
+%                'forcingdata', {'precip','PRECIP';'et','APET'}; ...
+%                'outputdata', 'drainage_deep'; ...
+%                'options', {'SMSC',2,[];'SMSC_threshold',1,[];'SMSC_deep',2,[];'beta',0,'';'k_sat',1,'';'alpha',1,'';'beta_deep',NaN,'fixed';'k_sat_deep',NaN,'fixed'}}; % had to set k_sat_deep and beta_deep as "fixed" to allow it to pass line 480 of climateTransform_soilMoistureModels_2layer_v2
            
            
            
@@ -315,7 +315,7 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7)
     
            
     %Storing the model object "model_7params" to show the configuration used for model_TFN_SW_GW
-    A1 = 'Configuration_model_TFN_SW_GW_';
+    A1 = 'Configuration_model_TFN_SW_GW_Alpha0_';
     A2 = bore_ID;
     A3 = catchment;
     A4 = baseflow_option;
@@ -329,7 +329,7 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7)
              
     %Storing all generation of parameters, including the Obj-Function Value
     %for each parameter set
-    A1 = 'Amalgam_Params_ObjFun_All Generations_';
+    A1 = 'Amalgam_Params_ObjFun_All Generations_Alpha0_';
     A2 = bore_ID;
     A3 = catchment;
     A4 = baseflow_option;
@@ -342,7 +342,7 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7)
     csvwrite(path,ParSet)
     
     %Storing last generation of parameters
-    A1 = 'Amalgam_Params_Final Generation_';
+    A1 = 'Amalgam_Params_Final Generation_Alpha0_';
     A2 = bore_ID;
     A3 = catchment;
     A4 = baseflow_option;
@@ -355,7 +355,7 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7)
     csvwrite(path,ParGen)
         
     %Storing the all original Obj-Func for flow (NSE, NNSE, RMSE, SSE) for all generations of parameter sets  
-    A1 = 'Amalgam_Flow_All_ObjFun_All Generations_';
+    A1 = 'Amalgam_Flow_All_ObjFun_All Generations_Alpha0_';
     A2 = bore_ID;
     A3 = catchment;
     A4 = baseflow_option;
@@ -369,7 +369,7 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7)
     
     
     %Storing the Pareto front matrix for the last generation of parameters
-    A1 = 'Amalgam_Pareto_ObjFun_Final_Generation';
+    A1 = 'Amalgam_Pareto_ObjFun_Final_Generation_Alpha0_';
     A2 = bore_ID;
     A3 = catchment;
     A4 = baseflow_option;
@@ -399,7 +399,7 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7)
     f = figure(1);
 %     f = figure(2);
     set(f, 'Color', 'w');
-    A1 = 'Pareto Front_Final Generation_';
+    A1 = 'Pareto Front_Final Generation_Alpha0_';
     A2 = bore_ID;
     A3 = catchment;
     A4 = baseflow_option;
@@ -452,7 +452,7 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7)
     f.Units = 'inches';
     f.OuterPosition = [.5 .5 8 8]; % adjusting the size of the figure
     set(f, 'Color', 'w');
-    A1 = 'Evolution of Pareto Fronts_';
+    A1 = 'Evolution of Pareto Fronts_Alpha0_';
     A2 = bore_ID;
     A3 = catchment;
     A4 = baseflow_option;
@@ -612,7 +612,7 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7)
     % Save the YYY-plot with the Pareto Front of the final generation for the optimized ObjFun and respective ObjFuns 
     f = figure(3);
 %     f = figure(4);
-    A1 = 'YYY plot_Pareto Front_Final Generation_';
+    A1 = 'YYY plot_Pareto Front_Final Generation_Alpha0_';
     A2 = bore_ID;
     A3 = catchment;
     A4 = baseflow_option;
@@ -659,7 +659,7 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7)
     set(f, 'Color', 'w');
 %     f.Units = 'inches';
 %     f.OuterPosition = [.5 .5 15 10]; % adjusting the size of the figure
-    A1 = 'YYY Scatter_Pareto Front_Final Generation_';
+    A1 = 'YYY Scatter_Pareto Front_Final Generation_Alpha0_';
     A2 = bore_ID;
     A3 = catchment;
     A4 = baseflow_option;
@@ -681,7 +681,7 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7)
     
     
     % save all workspace before new run 
-    A1 = 'All_workspace_';
+    A1 = 'All_workspace_Alpha0_';
     A2 = bore_ID;
     A3 = catchment;
     A4 = baseflow_option;
@@ -718,7 +718,7 @@ end
     set(f, 'Color', 'w');
     f.Units = 'inches';
     f.OuterPosition = [.5 .5 13 10];
-    A1 = 'Calibration_Diagnostic_Plots_Calib_only_GW';
+    A1 = 'Calibration_Diagnostic_Plots_Calib_only_GW_Alpha0_';
     A2 = bore_ID; 
     A3 = datestr(now,'mm-dd-yyyy HH-MM');
     formatSpec = '%1$s %2$s %3$s';
@@ -728,7 +728,7 @@ end
     
     
     %Storing the model object "model_7params_gw" to show the performance metrics the model only calibrated to GW
-    A1 = 'Configuration_&_Performance_model_TFN_';
+    A1 = 'Configuration_&_Performance_model_TFN_Alpha0_';
     A2 = bore_ID;
     A3 = catchment;
     A4 = baseflow_option;    

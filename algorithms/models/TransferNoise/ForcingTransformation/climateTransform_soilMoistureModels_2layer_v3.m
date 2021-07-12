@@ -46,7 +46,7 @@ methods(Static)
         
         function [variable_names] = outputForcingdata_options(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates)
             
-            variable_names = climateTransform_soilMoistureModels_2layer.outputForcingdata_options(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates);
+            variable_names = climateTransform_soilMoistureModels_2layer_v2.outputForcingdata_options(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates);
                 
 %             variable_names_deep = { 'drainage_deep'         ;'evap_soil_deep';       'evap_soil_total';        'runoff_total';            'SMS_deep'; ...
 %                                     'drainage_deep_tree'    ;'evap_soil_deep_tree';  'evap_soil_total_tree';   'runoff_total_tree'; 	'SMS_deep_tree'; ...
@@ -367,7 +367,7 @@ end
             [params, param_names] = getParameters(obj);
 
             % Get the bounds from the original soil model
-            [params_upperLimit, params_lowerLimit] = getParameters_physicalLimit@climateTransform_soilMoistureModels_2layers_v2(obj);
+            [params_upperLimit, params_lowerLimit] = getParameters_physicalLimit@climateTransform_soilMoistureModels_2layer_v2(obj);
                         
             % Upper and lower bounds of SMSC_threshold.
             if obj.settings.activeParameters.SMSC_threshold
@@ -438,7 +438,7 @@ end
 %   numerical integration within modelTFN.get_h_star().
 %
 % See also:
-%   climateTransform_soilMoistureModels_2layer: class_definition;
+%   climateTransform_soilMoistureModels_2layer_v2: class_definition;
 %   setParameters: set_calibration_parameters_values;
 %   getParameters: get_calibration_parameters_values;
 %   detectParameterChange: assesst_if_parameters_have_changed_recently;
@@ -499,9 +499,9 @@ end
                     variableName{i}))
                 
                         if nargin==2
-                            [forcingData(:,i), isDailyIntegralFlux(i)] = getTransformedForcing@climateTransform_soilMoistureModels_2layer(obj, variableName{i});   
+                            [forcingData(:,i), isDailyIntegralFlux(i)] = getTransformedForcing@climateTransform_soilMoistureModels_2layer_v2(obj, variableName{i});   
                         else
-                            [forcingData(:,i), isDailyIntegralFlux(i)] = getTransformedForcing@climateTransform_soilMoistureModels_2layer(obj, variableName{i}, SMSnumber, doSubstepIntegration);   
+                            [forcingData(:,i), isDailyIntegralFlux(i)] = getTransformedForcing@climateTransform_soilMoistureModels_2layer_v2(obj, variableName{i}, SMSnumber, doSubstepIntegration);   
                         end
                         continue
                     end
@@ -570,22 +570,22 @@ end
                             
                             
 
-%                         case 'mass_balance_error'
-%                             precip = getSubDailyForcing(obj,obj.variables.precip);
-%                             runoff = getTransformedForcing(obj, 'runoff_total',SMSnumber, false);
-%                             AET = getTransformedForcing(obj, 'evap_soil_total',SMSnumber, false);
-%                             drainage = getTransformedForcing(obj, 'drainage_deep',SMSnumber, false);
-%                             
-%                             fluxEstError = [0;precip(2:end) - diff(SMS + SMS_deep) -  runoff(2:end) - AET(2:end) - drainage(2:end)];
-%                             
-%                             % Integreate to daily.
-%                             if doSubstepIntegration
-%                                 forcingData(:,i) = dailyIntegration(obj, fluxEstError);
-%                                 isDailyIntegralFlux(i) = true;
-%                             else
-%                                 forcingData(:,i) = fluxEstError;
-%                                 isDailyIntegralFlux(i) = false;
-%                             end
+                        case 'mass_balance_error'
+                            precip = getSubDailyForcing(obj,obj.variables.precip);
+                            runoff = getTransformedForcing(obj, 'runoff_total',SMSnumber, false);
+                            AET = getTransformedForcing(obj, 'evap_soil_total',SMSnumber, false);
+                            drainage = getTransformedForcing(obj, 'drainage_deep',SMSnumber, false);
+                            
+                            fluxEstError = [0;precip(2:end) - diff(SMS + SMS_deep) -  runoff(2:end) - AET(2:end) - drainage(2:end)];
+                            
+                            % Integreate to daily.
+                            if doSubstepIntegration
+                                forcingData(:,i) = dailyIntegration(obj, fluxEstError);
+                                isDailyIntegralFlux(i) = true;
+                            else
+                                forcingData(:,i) = fluxEstError;
+                                isDailyIntegralFlux(i) = false;
+                            end
                             
                         otherwise
                             error('The requested transformed forcing variable is not known.');

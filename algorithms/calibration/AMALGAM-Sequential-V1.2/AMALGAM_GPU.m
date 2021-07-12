@@ -1,4 +1,4 @@
-function [output,ParGen,ObjVals,ParSet,allOriginalObjVals_Flow] = AMALGAM(AMALGAMPar,ModelName,ParRange,Measurement,Extra,Fpareto,model_object);
+function [output,ParGen,ObjVals,ParSet,allOriginalObjVals_Flow] = AMALGAM_GPU(AMALGAMPar,ModelName,ParRange,Measurement,Extra,Fpareto,model_object);
 % --------------------------------------------------------------------------------------------- %
 %                                                                                               %
 %        AA      MM       MM     AA      LL            GGGGGGGGG       AA      MM       MM      %
