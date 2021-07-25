@@ -1,5 +1,16 @@
 % example_TFN_model:
 %
+
+
+    % Add Paths
+%    addpath(pwd);
+    addpath(genpath([pwd, filesep, 'algorithms']));
+    addpath(genpath([pwd, filesep, 'dataPreparationAnalysis']));
+    addpath(genpath([pwd, filesep, 'Examples']));
+    addpath(genpath([pwd, filesep, 'documentation']));
+    addpath(genpath([pwd, filesep, 'GUI']));
+
+
 % Description
 %   This example builds and calibrates a nonlinear transfer-function noise
 %   model. The example is taken from Peterson & Western (2014). The model
@@ -53,8 +64,8 @@ baseflow_options = {'baseflow_v1'; 'baseflow_v2'; 'baseflow_m1';'baseflow_m2';
 for i = 1:1
 % for i = 1:length(list_bores)
 
-for bb = 1:length(baseflow_options)
-% for bb = 1:1
+% for bb = 1:length(baseflow_options)
+for bb = 5:5
 
     
 tic % start timer
@@ -137,7 +148,7 @@ siteCoordinates = {bore_ID, 100, 100;...
 forcingTransform_Precip = {'transformfunction', 'climateTransform_soilMoistureModels_2layer_v2'; ...
                'forcingdata', {'precip','PRECIP';'et','APET'}; ...
                'outputdata', 'drainage_deep'; ...
-               'options', {'SMSC',2,[];'SMSC_deep',2,[];'beta',0,'';'k_sat',1,'';'alpha',0,'fixed';'beta_deep',NaN,'fixed';'k_sat_deep',NaN,'fixed'}}; % had to set k_sat_deep and beta_deep as "fixed" to allow it to pass line 480 of climateTransform_soilMoistureModels_2layer_v2
+               'options', {'SMSC',2,[];'SMSC_deep',2,[];'beta',0,'';'k_sat',1,'';'alpha',0,'';'beta_deep',NaN,'fixed';'k_sat_deep',NaN,'fixed'}}; % had to set k_sat_deep and beta_deep as "fixed" to allow it to pass line 480 of climateTransform_soilMoistureModels_2layer_v2
            
            
            
@@ -504,6 +515,8 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7)
 %         Params_ParetoPoints = [1.6998,	1.8887,	1.3346,	0.13948,	0.78443, -1.4194,	-2.774,	-0.23971,	-2.156,	0.01,	0.00039514,	1248.1]'      % Brucknell, WRK..24, Baseflow_m8, Alpha = calibrated, 1-KGE, 100k iterations, 04/July/2021, 04:24
 %             % baseflow_v2     %SMSC_deep, SMSC, k_sat,   alpha, beta,    A,      b,     n,     alpha,  head_threshold , decayRate  , riseRate  ,totalWeigthScaler
 %         Params_ParetoPoints = [1.6994,	1.8757,	1.3345,	0.12899,	0.84231,	-1.4475,	-2.7365,	-0.22785,	-2.1314,	601.37,	-49.802,	-28.151,	66.538]'      % Brucknell, WRK..24, Baseflow_v2, Alpha = calibrated, 1-KGE, 100k iterations, 30/Jun/2021, 05:34
+%             % baseflow_m3     %SMSC_deep, SMSC,  k_sat,    alpha,        beta,      A,          b,          n,        alpha,     head_max
+%         Params_ParetoPoints = [1.7,	1.9262,	1.3352,	0.0019241,	0.99743,	-0.0010278,	-2.1795,	-0.69449,	-1.6911,	96.789]'      % Brucknell, WRK..24, Baseflow_m3, Alpha = calibrated, 1-KGE, 100k iterations, 05/July/2021, 06:29
 
 %         % point 3
               % baseflow_v1     %SMSC_deep, SMSC, k_sat,   alpha, beta,    A,      b,     n,     alpha,   head_threshold,  head_to_baseflow

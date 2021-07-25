@@ -319,7 +319,7 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
 %         xlabel('Obs. Head (mAHD)')
 %         ylabel('Sim. Head (mAHD)')
 %         axis square
-%         %         daspect([1 1 1])
+% %                 daspect([1 1 1])
 %         myRefLine = refline(1);
 %         myRefLine.Color = 'r';
 %         myRefLine.LineStyle = '--';
