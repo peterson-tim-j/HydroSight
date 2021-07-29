@@ -2,7 +2,8 @@ classdef baseflow_m4 < forcingTransform_abstract
     % Defines the behaviour of baseflow according to the GW head and a scaled weighted rate. 
     
     % Detailed explanation goes here
-    % Description:  Exponential outflow from deficit store
+    % Description:  Exponential outflow from deficit store, therefore, uses
+    % 1/head instead of head. 
     
     properties (GetAccess=public, SetAccess=protected)
         
@@ -202,7 +203,7 @@ classdef baseflow_m4 < forcingTransform_abstract
 
                 
            % calculate the baseflow 
-            obj.variables.baseFlow = obj.base_rate .* exp(-1 .* obj.exponential_scaler .* obj.variables.head);
+            obj.variables.baseFlow = obj.base_rate .* exp(-1 .* obj.exponential_scaler .* (1./obj.variables.head));
             % Description:  Exponential outflow from deficit store
             % Constraints:  -
             % @(Inputs):    p1   - base outflow rate [mm/d]

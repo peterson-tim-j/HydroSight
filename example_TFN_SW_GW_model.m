@@ -148,8 +148,13 @@ siteCoordinates = {bore_ID, 100, 100;...
 forcingTransform_Precip = {'transformfunction', 'climateTransform_soilMoistureModels_2layer_v2'; ...
                'forcingdata', {'precip','PRECIP';'et','APET'}; ...
                'outputdata', 'drainage_deep'; ...
-               'options', {'SMSC',2,[];'SMSC_deep',2,[];'beta',0,'';'k_sat',1,'';'alpha',0,'';'beta_deep',NaN,'fixed';'k_sat_deep',NaN,'fixed'}}; % had to set k_sat_deep and beta_deep as "fixed" to allow it to pass line 480 of climateTransform_soilMoistureModels_2layer_v2
-           
+               'options', {'SMSC',2,[];'SMSC_deep',2,[];'beta',0,'';'k_sat',1,'';'alpha',0,'';'beta_deep',NaN,'fixed';'k_sat_deep',NaN,'fixed';'eps',0.5,'' }}; % had to set k_sat_deep and beta_deep as "fixed" to allow it to pass line 480 of climateTransform_soilMoistureModels_2layer_v2
+        
+% forcingTransform_Precip = {'transformfunction', 'climateTransform_soilMoistureModels_2layer_v2'; ...
+%                'forcingdata', {'precip','PRECIP';'et','APET'}; ...
+%                'outputdata', 'drainage_deep'; ...
+%                'options', {'SMSC',2,[];'SMSC_deep',2,[];'beta',0,'';'k_sat',1,'';'alpha',0,'';'beta_deep',NaN,'fixed';'k_sat_deep',NaN,'fixed'}}; % had to set k_sat_deep and beta_deep as "fixed" to allow it to pass line 480 of climateTransform_soilMoistureModels_2layer_v2
+        
            
            
 % using 2-layer soil model "climateTransform_soilMoistureModels_2layer_v3" allowing beta,
@@ -266,7 +271,7 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7)
     AMALGAMPar.n = length(params_initial);  % Dimension of the problem    ----  run7paramModel now has 9 parameters? are we allowing head-threshoold and head_to_baseflow to be calibrated? 
     AMALGAMPar.N = 100;                     % Size of the population   - LENTGH OF OBS. TIMESERIES or just a calibration parameter?
     AMALGAMPar.nobj = 2;                    % Number of objectives
-    AMALGAMPar.ndraw = 20000;               % Maximum number of function evaluations
+    AMALGAMPar.ndraw = 50000;               % Maximum number of function evaluations
     
     % Define the parameter ranges (minimum and maximum values)
     [params_upperLimit, params_lowerLimit] = getParameters_plausibleLimit(model_7params.model);
@@ -326,7 +331,7 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7)
     
            
     %Storing the model object "model_7params" to show the configuration used for model_TFN_SW_GW
-    A1 = 'Configuration_model_TFN_SW_GW_Alpha0_';
+    A1 = 'Configuration_model_TFN_SW_GW_';
     A2 = bore_ID;
     A3 = catchment;
     A4 = baseflow_option;
@@ -340,7 +345,7 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7)
              
     %Storing all generation of parameters, including the Obj-Function Value
     %for each parameter set
-    A1 = 'Amalgam_Params_ObjFun_All Generations_Alpha0_';
+    A1 = 'Amalgam_Params_ObjFun_All Generations_';
     A2 = bore_ID;
     A3 = catchment;
     A4 = baseflow_option;
@@ -353,7 +358,7 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7)
     csvwrite(path,ParSet)
     
     %Storing last generation of parameters
-    A1 = 'Amalgam_Params_Final Generation_Alpha0_';
+    A1 = 'Amalgam_Params_Final Generation_';
     A2 = bore_ID;
     A3 = catchment;
     A4 = baseflow_option;
@@ -366,7 +371,7 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7)
     csvwrite(path,ParGen)
         
     %Storing the all original Obj-Func for flow (NSE, NNSE, RMSE, SSE) for all generations of parameter sets  
-    A1 = 'Amalgam_Flow_All_ObjFun_All Generations_Alpha0_';
+    A1 = 'Amalgam_Flow_All_ObjFun_All Generations_';
     A2 = bore_ID;
     A3 = catchment;
     A4 = baseflow_option;
@@ -380,7 +385,7 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7)
     
     
     %Storing the Pareto front matrix for the last generation of parameters
-    A1 = 'Amalgam_Pareto_ObjFun_Final_Generation_Alpha0_';
+    A1 = 'Amalgam_Pareto_ObjFun_Final_Generation_';
     A2 = bore_ID;
     A3 = catchment;
     A4 = baseflow_option;
@@ -410,7 +415,7 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7)
     f = figure(1);
 %     f = figure(2);
     set(f, 'Color', 'w');
-    A1 = 'Pareto Front_Final Generation_Alpha0_';
+    A1 = 'Pareto Front_Final Generation_';
     A2 = bore_ID;
     A3 = catchment;
     A4 = baseflow_option;
@@ -463,7 +468,7 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7)
     f.Units = 'inches';
     f.OuterPosition = [.5 .5 8 8]; % adjusting the size of the figure
     set(f, 'Color', 'w');
-    A1 = 'Evolution of Pareto Fronts_Alpha0_';
+    A1 = 'Evolution of Pareto Fronts_';
     A2 = bore_ID;
     A3 = catchment;
     A4 = baseflow_option;
@@ -517,6 +522,14 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7)
 %         Params_ParetoPoints = [1.6994,	1.8757,	1.3345,	0.12899,	0.84231,	-1.4475,	-2.7365,	-0.22785,	-2.1314,	601.37,	-49.802,	-28.151,	66.538]'      % Brucknell, WRK..24, Baseflow_v2, Alpha = calibrated, 1-KGE, 100k iterations, 30/Jun/2021, 05:34
 %             % baseflow_m3     %SMSC_deep, SMSC,  k_sat,    alpha,        beta,      A,          b,          n,        alpha,     head_max
 %         Params_ParetoPoints = [1.7,	1.9262,	1.3352,	0.0019241,	0.99743,	-0.0010278,	-2.1795,	-0.69449,	-1.6911,	96.789]'      % Brucknell, WRK..24, Baseflow_m3, Alpha = calibrated, 1-KGE, 100k iterations, 05/July/2021, 06:29
+              % baseflow_v1,    %SMSC_deep, SMSC,   k_sat,    alpha,       % beta,       eps ,     A,          b,      n,     alpha,    head_max  head_to_baseflow
+%         Params_ParetoPoints = [2.6855,	  2.5773,	2.0866,	 3.2609,	    0.96585,  0.28118,	-2.024,	-2.6169,	-1.5912,	-2.1877,	497.42,	  999.66]'      % Brucknell, WRK..24, Kavestki 2003, eps = calib, Baseflow_v1, Alpha = calibrated, 1-KGE, 10k iterations, 26/July/2021, 21:01
+              % baseflow_m6,    %SMSC_deep, SMSC, k_sat, alpha,   beta,     eps ,     A,          b,          n,        alpha,    linear_scaler  head_threshold
+%         Params_ParetoPoints = [1.7009,	2.5283,	1.4133,	2.3925,	0.59471, 0.27596,	-0.67087,	-1.4543,	-0.16531,	-2.3143,	0.70699,	446.82]'      % Brucknell, WRK..24, Kavestki 2003, eps = calib, Baseflow_m6, Alpha = calibrated, 1-KGE, 50k iterations, 28/July/2021, 11:35
+              % baseflow_m3     %SMSC_deep, SMSC, k_sat,  alpha,   beta,    eps ,          A,          b,          n,   alpha,     head_max
+%         Params_ParetoPoints = [1.7781,	2.3949,	1.3395,	4.9797,	0.41425,	0.20068,	-0.055364,	-1.508,	0.025912,	-2.0272,	131.48]'      % Brucknell, WRK..24, Kavestki 2003, eps = calib, Baseflow_m3, Alpha = calibrated, 1-KGE, 50k iterations, 27/July/2021, 20:36
+
+
 
 %         % point 3
               % baseflow_v1     %SMSC_deep, SMSC, k_sat,   alpha, beta,    A,      b,     n,     alpha,   head_threshold,  head_to_baseflow
@@ -625,7 +638,7 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7)
     % Save the YYY-plot with the Pareto Front of the final generation for the optimized ObjFun and respective ObjFuns 
     f = figure(3);
 %     f = figure(4);
-    A1 = 'YYY plot_Pareto Front_Final Generation_Alpha0_';
+    A1 = 'YYY plot_Pareto Front_Final Generation_';
     A2 = bore_ID;
     A3 = catchment;
     A4 = baseflow_option;
@@ -672,7 +685,7 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7)
     set(f, 'Color', 'w');
 %     f.Units = 'inches';
 %     f.OuterPosition = [.5 .5 15 10]; % adjusting the size of the figure
-    A1 = 'YYY Scatter_Pareto Front_Final Generation_Alpha0_';
+    A1 = 'YYY Scatter_Pareto Front_Final Generation_';
     A2 = bore_ID;
     A3 = catchment;
     A4 = baseflow_option;
@@ -694,7 +707,7 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7)
     
     
     % save all workspace before new run 
-    A1 = 'All_workspace_Alpha0_';
+    A1 = 'All_workspace_';
     A2 = bore_ID;
     A3 = catchment;
     A4 = baseflow_option;
@@ -727,11 +740,11 @@ end
     
     % Store the figure showing results when calibrated GW only
 %     f = figure(i+4);
-    f = figure(5);
+    f = figure(1);
     set(f, 'Color', 'w');
     f.Units = 'inches';
     f.OuterPosition = [.5 .5 13 10];
-    A1 = 'Calibration_Diagnostic_Plots_Calib_only_GW_Alpha0_';
+    A1 = 'Calibration_Diagnostic_Plots_Calib_only_GW_';
     A2 = bore_ID; 
     A3 = datestr(now,'mm-dd-yyyy HH-MM');
     formatSpec = '%1$s %2$s %3$s';
@@ -741,7 +754,7 @@ end
     
     
     %Storing the model object "model_7params_gw" to show the performance metrics the model only calibrated to GW
-    A1 = 'Configuration_&_Performance_model_TFN_Alpha0_';
+    A1 = 'Configuration_&_Performance_model_TFN_';
     A2 = bore_ID;
     A3 = catchment;
     A4 = baseflow_option;    

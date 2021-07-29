@@ -450,6 +450,8 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                         obj.(all_parameter_names{i}) = 0;                        
                     elseif strcmp(all_parameter_names{i}, 'S_initialfrac')
                         obj.(all_parameter_names{i}) = 0.5;  
+                    elseif strcmp(all_parameter_names{i}, 'eps')
+                        obj.(all_parameter_names{i}) = 0;
                     else
                         obj.(all_parameter_names{i}) = 0;
                     end
@@ -1038,7 +1040,8 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                 interflow_frac = params(8,:);
                 alpha = params(9,:);
                 beta = params(10,:);
-                gamma = params(11,:);                 
+                gamma = params(11,:);
+                eps = params(12,:);
                 
                 % Filter the forcing data to input t.
                 filt_time = obj.settings.forcingData(:,1) >= t(1) & obj.settings.forcingData(:,1) <= t(end);
@@ -1129,7 +1132,7 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                     evap = getSubDailyForcing(obj,obj.variables.evap);
                     
                     % Run the soil models using the sub-steps.
-                    obj.variables.SMS = forcingTransform_soilMoisture(S_initial, effectivePrecip, evap, SMSC, k_sat, alpha, beta, gamma);
+                    obj.variables.SMS = forcingTransform_soilMoisture(S_initial, effectivePrecip, evap, SMSC, k_sat, alpha, beta, gamma, eps);
                     
                     % Run soil model again if tree cover is to be simulated
                     if  isfield(obj.settings,'simulateLandCover') && obj.settings.simulateLandCover
@@ -1140,7 +1143,7 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                         end
                         
                         obj.variables.SMS_trees = forcingTransform_soilMoisture(S_initial, effectivePrecip, obj.variables.evap, ...
-                            SMSC_trees, k_sat, alpha, beta, gamma);
+                            SMSC_trees, k_sat, alpha, beta, gamma, eps);
                     end
 %                 end                                                 
             end
@@ -1216,7 +1219,9 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
             interflow_frac = params(8,:);
             alpha = params(9,:);
             beta = params(10,:);
-            gamma = params(11,:);            
+            gamma = params(11,:); 
+            eps = params(12,:);
+                            
              
             % Set if the subdaily steps should be integrated.
             if nargin < 4
@@ -1289,9 +1294,19 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                                 infiltration_daily =  effectivePrecip_daily;
                                 infiltration =  effectivePrecip;                                
                             else
-                                infiltration =  effectivePrecip .* (1-SMS/SMSC).^alpha;
+                                % infiltration =  effectivePrecip .* (1-SMS/SMSC).^alpha;
+                                infiltration =  effectivePrecip .* ((SMSC - SMS)/(SMSC*(1-eps))).^alpha;
+%                                 infiltration(infiltration>effectivePrecip) = effectivePrecip; % something is WRONG HERE  =======================
+                                for ii = 1:length(infiltration) % so i did this
+                                    if infiltration(ii) > effectivePrecip(ii);
+                                       infiltration(ii) = effectivePrecip(ii);
+                                    else
+                                       infiltration(ii) = infiltration(ii);
+                                    end
+                                end                                     
                             end
-                            
+                                                                             
+                                                        
                             % Calculatre when the soil is probably
                             % saturated. 
                             drainage = getTransformedForcing(obj, 'drainage',SMSnumber, false);
@@ -1444,7 +1459,8 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                            'interflow_frac : fraction of free drainage going to interflow (-)'; ...        
                            'alpha : power term for infiltration rate (-)'; ...       
                            'beta : back transformed power term for dainage rate (eg approx. Brook-Corey pore index power term)'; ...
-                           'gamma : back transformed power term for soil evaporation rate (-)'};    
+                           'gamma : back transformed power term for soil evaporation rate (-)';...
+                           'eps: S_min/SMSC ratio. S_min is the minimum soil moisture threshold.(-)'};    
         
             params = [  10.^(obj.SMSC); ...
                         10.^(obj.SMSC_trees); ...
@@ -1456,7 +1472,8 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                         obj.interflow_frac; ...
                         obj.alpha; ...
                         10.^(obj.beta); ...
-                        10.^(obj.gamma)];
+                        10.^(obj.gamma);...
+                        obj.eps];
         end
 
         % Return coordinates for forcing variable

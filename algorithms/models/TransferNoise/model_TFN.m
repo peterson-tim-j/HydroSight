@@ -1228,7 +1228,7 @@ classdef model_TFN < model_abstract
                             for j=1:length(variable_names)
                                 try
                                     forcingData = [forcingData, getTransformedForcing(obj.parameters.(modelnames{i}),variable_names{j})];
-                                    forcingData_colnames = {forcingData_colnames{:}, variable_names{j}};
+                                    forcingData_colnames = {forcingData_colnames{:}, variable_names{j}}; % SOMETHING GOES WRONG HERE SO THAT RUNOFF IS NOT STORED OR CALCULATED PROPERLY. 
                                 catch ME
                                     continue;
                                 end

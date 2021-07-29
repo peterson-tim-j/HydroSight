@@ -262,6 +262,7 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
                                 'alpha        : Power term for infiltration rate.', ...
                                 'beta         : log10(Power term for dainage rate).', ...
                                 'gamma        : log10(Power term for soil evap. rate).', ...
+                                'eps           : S_min/SMSC ratio. S_min is the minimum soil moisture threshold.',...
                                 'SMSC_deep    : log10(Deep layer soil moisture capacity as water depth). ', ...
                                 '               Input an empty value and "fixed" to for it to equal SMSC.', ...
                                 'SMSC_deep_tree : log10(Tree deep layer soil moisture capacity as water depth).', ... 
@@ -709,6 +710,7 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
                     beta = 10.^(obj.beta);
                     gamma = 10.^(obj.gamma);
                     k_sat = 10.^obj.k_sat;
+                    % eps_deep=0;
                     interflow_frac = obj.interflow_frac;
                     drainage = (1-interflow_frac) .* k_sat/obj.variables.nDailySubSteps .*(obj.variables.SMS/SMSC).^beta;                  
                     
@@ -720,7 +722,7 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
                     
                     % Call MEX soil model
                     obj.variables.SMS_deep = forcingTransform_soilMoisture(S_deep_initial, drainage, PET, SMSC_deep, k_sat_deep/nDailySubSteps, ...
-                        0, beta_deep, 10.^obj.gamma);
+                        0, beta_deep, 10.^obj.gamma, 0);
                     
                     % Run soil model again if tree cover is to be simulated
                     if  isfield(obj.settings,'simulateLandCover') && obj.settings.simulateLandCover
@@ -745,7 +747,7 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
                         
                         % Call MEX function for DEEP soil moisture model.
                         obj.variables.SMS_deep_trees = forcingTransform_soilMoisture(S_deep_initial, drainage, PET, SMSC_deep_trees, ...
-                            k_sat_deep, 0, beta_deep, 10.^obj.gamma);
+                            k_sat_deep, 0, beta_deep, 10.^obj.gamma, 0);
                     end
 %                 else
 %                     % Define the number of daily sub-steps.
@@ -841,15 +843,15 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
             beta = params(10,:);
             gamma = params(11,:);             
 %             SMSC_deep = params(end-4,:);
-            SMSC_deep = params(12,:);
+            SMSC_deep = params(13,:);
 %             SMSC_deep_trees = params(end-3,:);
-            SMSC_deep_trees = params(13,:);
+            SMSC_deep_trees = params(14,:);
 %             S_deep_initial = params(end-2,:);
-            S_deep_initial = params(14,:);
+            S_deep_initial = params(15,:);
 %             k_sat_deep = params(end-1,:);
-            k_sat_deep = params(15,:);
+            k_sat_deep = params(16,:);
 %             beta_deep = params(end,:);
-            beta_deep = params(16,:);
+            beta_deep = params(17,:);
             
             % Set if the subdaily steps should be integrated.
             if nargin < 4
