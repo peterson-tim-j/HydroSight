@@ -1224,6 +1224,7 @@ classdef model_TFN < model_abstract
                             % Set the forcing
                             setTransformedForcing(obj.parameters.(modelnames{i}),t, false);
                             
+                            
                             % Get the forcing for each variable
                             for j=1:length(variable_names)
                                 try
