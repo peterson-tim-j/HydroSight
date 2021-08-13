@@ -186,7 +186,7 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                               'drainage';       'infiltration';             'evap_soil';        'evap_gw_potential';        'runoff';       'SMS'; ...
                               'drainage_tree';  'infiltration_tree';        'evap_soil_tree';   'evap_gw_potential_tree';   'runoff_tree';  'SMS_tree'; ...
                               'drainage_nontree';'infiltration_nontree';    'evap_soil_nontree';'evap_gw_potential_nontree';'runoff_nontree';'SMS_nontree'; ...
-                              'mass_balance_error'};
+                              'infiltration_fractional_capacity';     'mass_balance_error'};
         end
         
         function [options, colNames, colFormats, colEdits, toolTip] = modelOptions()
@@ -1284,26 +1284,52 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                                 isDailyIntegralFlux(i) = false;
                             end
                             
+                        case 'infiltration_fractional_capacity'                       
+                            % Calculate infiltration fractional capacity, representing the fraction of rainfall that is infiltrated 
+                            
+                            infiltration_fractional_capacity = min(1, ((SMSC - SMS)/(SMSC*(1-eps))).^alpha);
+                            forcingData(:,i) = infiltration_fractional_capacity;
+                            isDailyIntegralFlux(i) = false;
+
+%                             
+%                             if doSubstepIntegration
+%                                 forcingData(:,i) = dailyIntegration(obj, infiltration_fractional_capacity);
+%                             else
+%                                 forcingData(:,i) = infiltration_fractional_capacity;
+%                             end
+%                             
+%                             
+%                             if doSubstepIntegration
+%                                 isDailyIntegralFlux(i) = true;
+%                             else
+%                                 isDailyIntegralFlux(i) = false;
+%                             end
+                                                    
                             
                         case 'infiltration'                       
                             % Calculate max. infiltration assuming none
                             % goes to SATURATED runoff.
                             effectivePrecip_daily = getTransformedForcing(obj, 'effectivePrecip',SMSnumber); 
                             effectivePrecip = getSubDailyForcing(obj,effectivePrecip_daily);
+                            
+                            infiltration_fractional_capacity = getTransformedForcing(obj, 'infiltration_fractional_capacity', SMSnumber, false); 
+%                             infiltration_fractional_capacity_daily = getTransformedForcing(obj, 'infiltration_fractional_capacity',SMSnumber); 
+                            
                             if alpha==0
                                 infiltration_daily =  effectivePrecip_daily;
                                 infiltration =  effectivePrecip;                                
                             else
                                 % infiltration =  effectivePrecip .* (1-SMS/SMSC).^alpha;
-                                infiltration =  effectivePrecip .* ((SMSC - SMS)/(SMSC*(1-eps))).^alpha;
-%                                 infiltration(infiltration>effectivePrecip) = effectivePrecip; % something is WRONG HERE  =======================
-                                for ii = 1:length(infiltration) % so i did this
-                                    if infiltration(ii) > effectivePrecip(ii);
-                                       infiltration(ii) = effectivePrecip(ii);
-                                    else
-                                       infiltration(ii) = infiltration(ii);
-                                    end
-                                end                                     
+                                infiltration =  effectivePrecip .* infiltration_fractional_capacity;
+                                
+%                                 infiltration =  effectivePrecip .* ((SMSC - SMS)/(SMSC*(1-eps))).^alpha;
+%                                 for ii = 1:length(infiltration) % so i did this
+%                                     if infiltration(ii) > effectivePrecip(ii);
+%                                        infiltration(ii) = effectivePrecip(ii);
+%                                     else
+%                                        infiltration(ii) = infiltration(ii);
+%                                     end
+%                                 end                                     
                             end
                                                                              
                                                         

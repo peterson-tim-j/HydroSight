@@ -312,7 +312,7 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
         
 
         
-        % Getting the Observed head/flow vs. Simulated head/flow plots 
+% %         Getting the Observed head/flow vs. Simulated head/flow plots 
 %         figure(i+1)
 %         scatter (obj.inputData.head(:,2), (h_star(:,2) +  drainage_elevation))
 %         title(' Observed Vs. Simulated Head')

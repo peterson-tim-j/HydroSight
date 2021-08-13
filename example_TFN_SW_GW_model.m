@@ -65,7 +65,7 @@ for i = 1:1
 % for i = 1:length(list_bores)
 
 % for bb = 1:length(baseflow_options)
-for bb = 5:5
+for bb = 1:1
 
     
 tic % start timer
@@ -154,7 +154,7 @@ forcingTransform_Precip = {'transformfunction', 'climateTransform_soilMoistureMo
 %                'forcingdata', {'precip','PRECIP';'et','APET'}; ...
 %                'outputdata', 'drainage_deep'; ...
 %                'options', {'SMSC',2,[];'SMSC_deep',2,[];'beta',0,'';'k_sat',1,'';'alpha',0,'';'beta_deep',NaN,'fixed';'k_sat_deep',NaN,'fixed'}}; % had to set k_sat_deep and beta_deep as "fixed" to allow it to pass line 480 of climateTransform_soilMoistureModels_2layer_v2
-        
+%         
            
            
 % using 2-layer soil model "climateTransform_soilMoistureModels_2layer_v3" allowing beta,
@@ -500,7 +500,8 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7)
 %         Params_ParetoPoints = [2.5916, 1.699, 3.1663, 0.76482, -1.3454, -3.0466, -0.41238, -2.027, 37.317, 2.2904]'; % Baseflow_v1, Alpha = zero, NSE, 890k iterations, 14/Jun/2021  
 %         Params_ParetoPoints = [2.5683, 1.699, 3.1663,	0.67665, -1.1342, -3.0921, -0.45796, -1.9979, 209.7, 836.68]' % Baseflow_v1, Alpha = 1, NSE, 300k iterations, 17/Jun/2021       
 %         Params_ParetoPoints = [2.5171, 1.699,	3.1656,	0.048855, 0.77607, -1.4026, -2.8757, -0.34583, -2.0055, 391.13, 96.234]' % Baseflow_v1, Alpha = calibrated, NSE, 300k iterations, 18/Jun/2021       
-%         Params_ParetoPoints = [2.5988, 1.699, 3.1662, 0.075225, 0.75174, -1.3121, -3.0728, -0.42817, -2.027, 553.63, 164.89]' % Baseflow_v1, Alpha = calibrated, RMSE, 300k iterations, 21/Jun/2021       
+%         Params_ParetoPoints = [2.5988, 1.699, 3.1662, 0.075225, 0.75174, -1.3121, -3.0728, -0.42817, -2.027, 553.63, 164.89]' % Baseflow_v1, Alpha = calibrated, RMSE, 300k iterations, 21/Jun/2021    
+   
              % baseflow_m9     %SMSC_deep, SMSC, k_sat,   alpha, beta,    A,      b,     n,     alpha, linear_scaler  ,  head_threshold   
 %           Params_ParetoPoints = [1.6991,1.7171	,1.3346	,0.14123	,0.66715	,-1.5062	,-2.8888	,-0.20674	,-2.0671,	0.0055465,	357.03]' % Brucknell, WRK..24, Baseflow_m9, Alpha = calibrated, 1-KGE, 100k iterations, 04/July/2021, 18:21
 %                % baseflow_m8     %SMSC_deep, SMSC, k_sat,   alpha, beta,    A,      b,     n,     alpha,  base_rate , exponential_scaler  , head_max  ,
@@ -513,7 +514,9 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7)
 %         Params_ParetoPoints = [1.6992, 1.75, 1.335, 0.78923, -1.4669, -2.535, -0.31971, -2.1195, 36.973, 1.4036]'; % Baseflow_v1, Alpha = zero, NSE, 890k iterations, 14/Jun/2021 
 %         Params_ParetoPoints = [1.699,	2.699, 3.1663, 0.63863, -1.325, -2.8724, -0.30827, -1.71, 892.39, 831.05]' % Baseflow_v1, Alpha = 1, NSE, 300k iterations, 17/Jun/2021                
 %         Params_ParetoPoints = [1.699,	1.9516,	1.3375,	0.064356, 0.85547, -1.5002, -2.5998, -0.23659, -2.185, 357.2, 236.39]' % Baseflow_v1, Alpha = calibrated, NSE, 300k iterations, 18/Jun/2021              
-%         Params_ParetoPoints = [1.7019, 1.9448, 1.3345, 0.1121, 0.53938, -1.4862, -2.8445, -0.23923, -1.8488, 849.92, 277.39]' % Baseflow_v1, Alpha = calibrated, RMSE, 300k iterations, 21/Jun/2021             
+%         Params_ParetoPoints = [1.7019, 1.9448, 1.3345, 0.1121, 0.53938, -1.4862, -2.8445, -0.23923, -1.8488, 849.92, 277.39]' % Baseflow_v1, Alpha = calibrated, RMSE, 300k iterations, 21/Jun/2021 
+%         Params_ParetoPoints = [1.699,	1.699,	3.1657,	0.10395, 0.71595, -1.629, -2.6554, -0.30524, -2.042, 37.394, 8.6176]' % Baseflow_v1, Kavestki 2006, Alpha = calibrated, 1-KGE, 1MM iterations, 15/July/2021, 23:49
+
             % baseflow_m9     %SMSC_deep, SMSC, k_sat,   alpha, beta,    A,      b,     n,     alpha, linear_scaler  ,  head_threshold   
 %         Params_ParetoPoints = [1.699	,1.858	,1.3349	,0.13023	,0.82128	,-1.4519	,-2.8058	,-0.22138	,-2.1682,	0.37731,	545.68]' % Brucknell, WRK..24, Baseflow_m9, Alpha = calibrated, 1-KGE, 100k iterations, 04/July/2021, 18:21
 %             % baseflow_m8     %SMSC_deep, SMSC, k_sat,   alpha, beta,    A,      b,     n,     alpha,  base_rate , exponential_scaler  , head_max  ,
@@ -522,12 +525,13 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7)
 %         Params_ParetoPoints = [1.6994,	1.8757,	1.3345,	0.12899,	0.84231,	-1.4475,	-2.7365,	-0.22785,	-2.1314,	601.37,	-49.802,	-28.151,	66.538]'      % Brucknell, WRK..24, Baseflow_v2, Alpha = calibrated, 1-KGE, 100k iterations, 30/Jun/2021, 05:34
 %             % baseflow_m3     %SMSC_deep, SMSC,  k_sat,    alpha,        beta,      A,          b,          n,        alpha,     head_max
 %         Params_ParetoPoints = [1.7,	1.9262,	1.3352,	0.0019241,	0.99743,	-0.0010278,	-2.1795,	-0.69449,	-1.6911,	96.789]'      % Brucknell, WRK..24, Baseflow_m3, Alpha = calibrated, 1-KGE, 100k iterations, 05/July/2021, 06:29
-              % baseflow_v1,    %SMSC_deep, SMSC,   k_sat,    alpha,       % beta,       eps ,     A,          b,      n,     alpha,    head_max  head_to_baseflow
-%         Params_ParetoPoints = [2.6855,	  2.5773,	2.0866,	 3.2609,	    0.96585,  0.28118,	-2.024,	-2.6169,	-1.5912,	-2.1877,	497.42,	  999.66]'      % Brucknell, WRK..24, Kavestki 2003, eps = calib, Baseflow_v1, Alpha = calibrated, 1-KGE, 10k iterations, 26/July/2021, 21:01
-              % baseflow_m6,    %SMSC_deep, SMSC, k_sat, alpha,   beta,     eps ,     A,          b,          n,        alpha,    linear_scaler  head_threshold
-%         Params_ParetoPoints = [1.7009,	2.5283,	1.4133,	2.3925,	0.59471, 0.27596,	-0.67087,	-1.4543,	-0.16531,	-2.3143,	0.70699,	446.82]'      % Brucknell, WRK..24, Kavestki 2003, eps = calib, Baseflow_m6, Alpha = calibrated, 1-KGE, 50k iterations, 28/July/2021, 11:35
-              % baseflow_m3     %SMSC_deep, SMSC, k_sat,  alpha,   beta,    eps ,          A,          b,          n,   alpha,     head_max
-%         Params_ParetoPoints = [1.7781,	2.3949,	1.3395,	4.9797,	0.41425,	0.20068,	-0.055364,	-1.508,	0.025912,	-2.0272,	131.48]'      % Brucknell, WRK..24, Kavestki 2003, eps = calib, Baseflow_m3, Alpha = calibrated, 1-KGE, 50k iterations, 27/July/2021, 20:36
+              % baseflow_v1,    %SMSC_deep, SMSC,   k_sat,    alpha,       % beta,       eps ,       A,          b,           n,     alpha,    head_max  head_to_baseflow
+%         Params_ParetoPoints = [2.2241,	2.6955,	2.5185,	     5,	    0.59543,	  0.16132,	-1.0933,	-2.1056,	-0.27092,	-2.0866,	983.77,	      353.14]'      % Brucknell, WRK..24, Kavestki 2003, eps = calib, Baseflow_v1, Alpha = calibrated, 1-KGE, 10k iterations, 26/July/2021, 21:01
+              % baseflow_m6,    %SMSC_deep, SMSC, k_sat,    alpha,   beta,        eps ,         A,          b,         n,        alpha,    linear_scaler  head_threshold
+%         Params_ParetoPoints = [1.699,	  2.5739, 1.3634,  3.1768,	0.46562,	0.22239,	-0.41252,	-1.2599,	-0.31779,	-2.2196,	0.87526,	187.77]';      % Brucknell, WRK..24, Kavestki 2003, eps = calib, Baseflow_m6, Alpha = calibrated, 1-KGE, 50k iterations, 28/July/2021, 11:35
+%         Params_ParetoPoints = [1.699,	1.699,	3.1662,	0.0054334,	0.99997,	-1.3887,	-2.9017,	-0.31529,	-1.5605,	0.02553,	41.462]';      % Brucknell, WRK..24, Kavestki 2006, eps = 0, Baseflow_m6, Alpha = calibrated, 1-KGE, 1MM iterations, 19/July/2021, 17:55
+              % baseflow_m3     %SMSC_deep,   SMSC,  k_sat,  alpha,   beta,         eps ,       A,       b,        n,     alpha,   head_max
+%         Params_ParetoPoints = [1.699,   	2.3975,	1.4849,	4.3364,	0.44775,	0.20551,	-0.709,	-2.3716,	-0.27126,	-1.8,	134.01]'      % Brucknell, WRK..24, Kavestki 2003, eps = calib, Baseflow_m3, Alpha = calibrated, 1-KGE, 50k iterations, 27/July/2021, 20:36
 
 
 
