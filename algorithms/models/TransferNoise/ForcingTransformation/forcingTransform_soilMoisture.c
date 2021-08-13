@@ -217,7 +217,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
                     fb = soilMoisture_iDay_upper - soilMoisture[iDay-1] - dt*dSdt;
                 }
                 else {
-					if (eps==0.0)
+					if (eps==0.0) {
 						soilMoisture[iDay] = 0.5*S_cap;                                                                                                
 						dSdt = 0.5*(precip[iDay] * pow(0.5,alpha)- Ksat * pow(0.5, beta) - et[iDay] * pow(0.5, gamma) +
 									dSdt_iprevDay);
@@ -233,8 +233,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 						if (dSdt > 0.0)
 							dSdt = 0.0;  */                  
 						dSdt =  0.5*(dSdt + dSdt_iprevDay);                    
-						fb = soilMoisture_iDay_upper - soilMoisture[iDay-1] - dt*dSdt;                            
-                    else
+						fb = soilMoisture_iDay_upper - soilMoisture[iDay-1] - dt*dSdt;   
+					}
+                    else {
 						soilMoisture[iDay] = 0.5*S_cap;                                                                                                
 						dSdt = 0.5*(precip[iDay] * MIN(1.0, pow((0.5/(S_cap*(1-eps))),alpha)) - Ksat * pow(0.5, beta) - et[iDay] * pow(0.5, gamma) +
 									dSdt_iprevDay);
@@ -251,6 +252,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 							dSdt = 0.0;  */                  
 						dSdt =  0.5*(dSdt + dSdt_iprevDay);                    
 						fb = soilMoisture_iDay_upper - soilMoisture[iDay-1] - dt*dSdt; 
+					}	
                 }
                
                 /* Reset error ests.*/

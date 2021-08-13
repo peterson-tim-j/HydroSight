@@ -305,7 +305,7 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
         objFn_flow = 1 - objFn_flow_KGE;      %1-KGE
         
         % Merging objFunctions for head and flow
-        objFn_joint = [objFn_head, objFn_flow];
+        objFn_joint = [objFn_head, objFn_flow]
         
          % Calibrating only to FLOW using 2 flow obj-fun
 %         objFn_joint = [objFn_flow, objFn_flow];
