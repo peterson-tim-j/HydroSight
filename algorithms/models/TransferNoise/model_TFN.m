@@ -1475,7 +1475,8 @@ classdef model_TFN < model_abstract
                               
                 % Add drainage elevation to the varargin variable sent to
                 % objectiveFunction.                
-                calibData(ii,1).drainage_elevation = obj.variables.d(ii);
+                ii
+                calibData(ii,1).drainage_elevation = obj.variables.d(ii)
                 
                 % Add noise std dev
                 if isfield(obj.variables,'sigma_n');
