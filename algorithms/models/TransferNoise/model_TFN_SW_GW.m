@@ -235,6 +235,10 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
         [objFn_head, h_star, colnames, drainage_elevation] = objectiveFunction(params, time_points_head, obj, false);  % "false" to pass the condition in "islogical(varargin{1})" in line 1826 in model_TFN of "objectiveFunction@model_TFN"
 %         [objFn_head, h_star, colnames, drainage_elevation] = objectiveFunction(params, time_points_streamflow, obj, false);  % "false" to pass the condition in "islogical(varargin{1})" in line 1826 in model_TFN of "objectiveFunction@model_TFN"
 
+        % get soilMoisture from here... 
+%       getTransformedForcing(obj.parameters.climateTransform_soilMoistureModels, time_points_streamflow);
+%       baseFlow = getTransformedForcing(obj.parameters.baseflow, time_points_streamflow);
+
         objFn_head; % print to show progress
         
         % Add the drainage elevation to the object. This
@@ -423,8 +427,7 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
      
      % get calculated baseflow in baseflow
      baseFlow = getTransformedForcing(obj.parameters.baseflow, time_points_streamflow);
-     
-     
+         
      % calc. runoff using setTransformedForcing in model_TFN - this is
      % needed to get the derived runoff from the
      % "climateTransform_soilMoistureModels" or "climateTransform_soilMoistureModels_2layer_v2" only for the dates with
