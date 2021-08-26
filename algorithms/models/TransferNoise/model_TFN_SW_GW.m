@@ -141,7 +141,7 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
            
             % Choose "baseflow" object from the following options:
             %-----------------------------------------------------
-            % baseflow, baseflow_v2, baseflow_m1, baseflow_m2, baseflow_m3,
+            % baseflow_v1, baseflow_v2, baseflow_m1, baseflow_m2, baseflow_m3,
             % baseflow_m4, baseflow_m5, baseflow_m6, baseflow_m7,
             % baseflow_m8, baseflow_m9
             %----------------------------------------------------
@@ -241,6 +241,7 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
         % is just done because the model needs to be solved for the
         % streamflow time steps, and to do so model_TFN assumes the
         % calibration has assigned obj.variables.d.
+%         drainage_elevation
         obj.variables.d = drainage_elevation;
         obj.variables.doingCalibration = false; % false as used in Hydromod, but should it be "true"?
         
@@ -305,7 +306,7 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
         objFn_flow = 1 - objFn_flow_KGE;      %1-KGE
         
         % Merging objFunctions for head and flow
-        objFn_joint = [objFn_head, objFn_flow];
+        objFn_joint = [objFn_head, objFn_flow]
         
          % Calibrating only to FLOW using 2 flow obj-fun
 %         objFn_joint = [objFn_flow, objFn_flow];
@@ -430,9 +431,9 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
      % streamflow observations 
      
      % USING 1-layer soil model
-%      setTransformedForcing(obj.parameters.climateTransform_soilMoistureModels, time_points_streamflow, true) 
+     setTransformedForcing(obj.parameters.climateTransform_soilMoistureModels, time_points_streamflow, true) 
      % USING 2-layer soil model
-     setTransformedForcing(obj.parameters.climateTransform_soilMoistureModels_2layer_v2, time_points_streamflow, true);
+%      setTransformedForcing(obj.parameters.climateTransform_soilMoistureModels_2layer_v2, time_points_streamflow, true);
      % USING 2-layer soil model with threshold behaviour of runoff
 %      setTransformedForcing(obj.parameters.climateTransform_soilMoistureModels_2layer_v3, time_points_streamflow, true);
 
@@ -458,9 +459,9 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
      
      % Get the runoff from the derived forcing output
      % USING 2-layer soil model
-     [tf, column_number] = ismember('runoff_total', derivedForcingData_colnames); % shall we now use runoff_total??
+%      [tf, column_number] = ismember('runoff_total', derivedForcingData_colnames); % shall we now use runoff_total??
      % USING 1-layer soil model
-%      [tf, column_number] = ismember('runoff', derivedForcingData_colnames); % shall we now use runoff_total??
+     [tf, column_number] = ismember('runoff', derivedForcingData_colnames); % shall we now use runoff_total??
      
      if ~tf
          error('runoff_total is not one of the derivedForcingData variables. Check if using 2-layer v2 soil model')

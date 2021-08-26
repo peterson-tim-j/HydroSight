@@ -29,7 +29,7 @@ function Build_C_code()
 
     % invoke MEX compilation tool
     if ispc
-        mex(mexopts{:},'algorithms\models\TransferNoise\ForcingTransformation\forcingTransform_soilMoisture.c');
+        mex(mexopts{:},'algorithms\models\TransferNoise\ForcingTransformation\c');
         mex(mexopts{:},'algorithms\models\TransferNoise\doIRFconvolution.c');
         
         movefile('doIRFconvolution.mexw64', 'algorithms\models\TransferNoise\doIRFconvolution.mexw64')

@@ -135,7 +135,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 					else if (alpha == 0.0) 
 						dSdt_precip = precip[iDay];
 					else
-						dSdt_precip = precip[iDay] * MIN(1.0, pow(((S_cap - soilMoisture[iDay-1])/(S_cap*(1-eps))),alpha));                 
+						dSdt_precip = precip[iDay] * MIN(1.0, pow(((S_cap - soilMoisture[iDay])/(S_cap*(1-eps))),alpha));                 
 
 		
             if (beta == 0.0  || Ksat==0.0 )

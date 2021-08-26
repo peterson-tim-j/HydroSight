@@ -137,18 +137,30 @@ siteCoordinates = {bore_ID, 100, 100;...
 
 
 % using 1-layer soil model "climateTransform_soilMoistureModels" allowing beta,
-% ksat, beta_deep,ksat_deep be calibrated  
+% ksat, alpha to be calibrated. EPS=0 by default.
 % forcingTransform_Precip = {'transformfunction', 'climateTransform_soilMoistureModels'; ...
 %                'forcingdata', {'precip','PRECIP';'et','APET'}; ...
 %                'outputdata', 'drainage'; ...
 %                'options', {'SMSC',2,[];'beta',0,'';'k_sat',1,'';'alpha',0,'fixed'}};
+
+
+% using 1-layer soil model "climateTransform_soilMoistureModels" allowing beta,
+% ksat, alpha, and EPS to be calibrated.
+forcingTransform_Precip = {'transformfunction', 'climateTransform_soilMoistureModels'; ...
+               'forcingdata', {'precip','PRECIP';'et','APET'}; ...
+               'outputdata', 'drainage'; ...
+               'options', {'SMSC',2,[];'beta',0,'';'k_sat',1,'';'alpha',0,'fixed';'eps',0.5,''}};
+
+
+
+
            
 % using 2-layer soil model "climateTransform_soilMoistureModels_2layer_v2" allowing beta,
 % ksat, beta_deep,ksat_deep be calibrated 
-forcingTransform_Precip = {'transformfunction', 'climateTransform_soilMoistureModels_2layer_v2'; ...
-               'forcingdata', {'precip','PRECIP';'et','APET'}; ...
-               'outputdata', 'drainage_deep'; ...
-               'options', {'SMSC',2,[];'SMSC_deep',2,[];'beta',0,'';'k_sat',1,'';'alpha',0,'';'beta_deep',NaN,'fixed';'k_sat_deep',NaN,'fixed';'eps',0.5,'' }}; % had to set k_sat_deep and beta_deep as "fixed" to allow it to pass line 480 of climateTransform_soilMoistureModels_2layer_v2
+% forcingTransform_Precip = {'transformfunction', 'climateTransform_soilMoistureModels_2layer_v2'; ...
+%                'forcingdata', {'precip','PRECIP';'et','APET'}; ...
+%                'outputdata', 'drainage_deep'; ...
+%                'options', {'SMSC',2,[];'SMSC_deep',2,[];'beta',0,'';'k_sat',1,'';'alpha',0,'';'beta_deep',NaN,'fixed';'k_sat_deep',NaN,'fixed';'eps',0.5,''}}; % had to set k_sat_deep and beta_deep as "fixed" to allow it to pass line 480 of climateTransform_soilMoistureModels_2layer_v2
         
 % forcingTransform_Precip = {'transformfunction', 'climateTransform_soilMoistureModels_2layer_v2'; ...
 %                'forcingdata', {'precip','PRECIP';'et','APET'}; ...
@@ -157,15 +169,7 @@ forcingTransform_Precip = {'transformfunction', 'climateTransform_soilMoistureMo
 %         
            
            
-% using 2-layer soil model "climateTransform_soilMoistureModels_2layer_v3" allowing beta,
-% ksat, beta_deep,ksat_deep, SMSC_threshold be calibrated. This object has
-% a mininum soil moisture threshold for generating runoff-quickflow, this
-% parameter is by default calibrated. (I GUESS)
-% forcingTransform_Precip = {'transformfunction', 'climateTransform_soilMoistureModels_2layer_v3'; ...
-%                'forcingdata', {'precip','PRECIP';'et','APET'}; ...
-%                'outputdata', 'drainage_deep'; ...
-%                'options', {'SMSC',2,[];'SMSC_threshold',1,[];'SMSC_deep',2,[];'beta',0,'';'k_sat',1,'';'alpha',1,'';'beta_deep',NaN,'fixed';'k_sat_deep',NaN,'fixed'}}; % had to set k_sat_deep and beta_deep as "fixed" to allow it to pass line 480 of climateTransform_soilMoistureModels_2layer_v2
-           
+          
            
            
            
@@ -271,7 +275,7 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7)
     AMALGAMPar.n = length(params_initial);  % Dimension of the problem    ----  run7paramModel now has 9 parameters? are we allowing head-threshoold and head_to_baseflow to be calibrated? 
     AMALGAMPar.N = 100;                     % Size of the population   - LENTGH OF OBS. TIMESERIES or just a calibration parameter?
     AMALGAMPar.nobj = 2;                    % Number of objectives
-    AMALGAMPar.ndraw = 50000;               % Maximum number of function evaluations
+    AMALGAMPar.ndraw = 10000;               % Maximum number of function evaluations
     
     % Define the parameter ranges (minimum and maximum values)
     [params_upperLimit, params_lowerLimit] = getParameters_plausibleLimit(model_7params.model);
