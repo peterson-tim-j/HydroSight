@@ -1288,22 +1288,22 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                             % Calculate infiltration fractional capacity, representing the fraction of rainfall that is infiltrated 
                             
                             infiltration_fractional_capacity = min(1, ((SMSC - SMS)/(SMSC*(1-eps))).^alpha);
-                            forcingData(:,i) = infiltration_fractional_capacity;
-                            isDailyIntegralFlux(i) = false;
+%                             forcingData(:,i) = infiltration_fractional_capacity;
+%                             isDailyIntegralFlux(i) = false;
 
 %                             
-%                             if doSubstepIntegration
-%                                 forcingData(:,i) = dailyIntegration(obj, infiltration_fractional_capacity);
-%                             else
-%                                 forcingData(:,i) = infiltration_fractional_capacity;
-%                             end
-%                             
-%                             
-%                             if doSubstepIntegration
-%                                 isDailyIntegralFlux(i) = true;
-%                             else
-%                                 isDailyIntegralFlux(i) = false;
-%                             end
+                            if doSubstepIntegration
+                                forcingData(:,i) = dailyIntegration(obj, infiltration_fractional_capacity);
+                            else
+                                forcingData(:,i) = infiltration_fractional_capacity;
+                            end
+                            
+                            
+                            if doSubstepIntegration
+                                isDailyIntegralFlux(i) = true;
+                            else
+                                isDailyIntegralFlux(i) = false;
+                            end
                                                     
                             
                         case 'infiltration'                       

@@ -235,6 +235,7 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
         [objFn_head, h_star, colnames, drainage_elevation] = objectiveFunction(params, time_points_head, obj, false);  % "false" to pass the condition in "islogical(varargin{1})" in line 1826 in model_TFN of "objectiveFunction@model_TFN"
 %         [objFn_head, h_star, colnames, drainage_elevation] = objectiveFunction(params, time_points_streamflow, obj, false);  % "false" to pass the condition in "islogical(varargin{1})" in line 1826 in model_TFN of "objectiveFunction@model_TFN"
 
+
         % get soilMoisture from here... 
 %       getTransformedForcing(obj.parameters.climateTransform_soilMoistureModels, time_points_streamflow);
 %       baseFlow = getTransformedForcing(obj.parameters.baseflow, time_points_streamflow);
@@ -315,7 +316,26 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
          % Calibrating only to FLOW using 2 flow obj-fun
 %         objFn_joint = [objFn_flow, objFn_flow];
         
+        figure(15);
+        plot(obj.parameters.climateTransform_soilMoistureModels_2layer_v2.variables.SMS)
+        y = obj.parameters.climateTransform_soilMoistureModels_2layer_v2.SMSC;
+%         plot(obj.parameters.climateTransform_soilMoistureModels.variables.SMS)
+%         y = obj.parameters.climateTransform_soilMoistureModels.SMSC;
+%         plot(obj.parameters.climateTransform_soilMoistureModels_v2.variables.SMS)
+%         y = obj.parameters.climateTransform_soilMoistureModels_v2.SMSC;
+        line([0,14000],[10.^(y),10.^(y)])
+        
+        figure(16);
+        xx = obj.parameters.climateTransform_soilMoistureModels_2layer_v2.variables.SMS ./ (10 .^ obj.parameters.climateTransform_soilMoistureModels_2layer_v2.SMSC);
+%         xx = obj.parameters.climateTransform_soilMoistureModels.variables.SMS ./ (10 .^ obj.parameters.climateTransform_soilMoistureModels.SMSC);
+%         xx = obj.parameters.climateTransform_soilMoistureModels_v2.variables.SMS ./ (10 .^ obj.parameters.climateTransform_soilMoistureModels_v2.SMSC);
+        plot(xx)
+        title('SMS / SMSC')
+        xlabel('Sub-daily time-steps')
+        ylabel('ratio')
+        ylim([0 1])
 
+        
         
 % %         Getting the Observed head/flow vs. Simulated head/flow plots 
 %         figure(i+1)
@@ -340,6 +360,7 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
 %         legend('Obs. Head','Sim. Head')
 %         datetick('x', 'dd/mm/yy', 'keepticks')
 %         hold off
+
 %         
 %         figure(i+3)
 %         scatter (obsFlow(:,2), totalFlow_sim)
@@ -352,9 +373,7 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
 %         myRefLine.Color = 'r';
 %         myRefLine.LineStyle = '--';
 % 
-% 
-% 
-%         
+
 %         figure(i+4)
 %         plot (obsFlow(:,1), obsFlow(:,2))
 %         title(' Observed and Simulated Flow')
@@ -367,25 +386,25 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
 %         hold off
 %         
 %        
-% %         plotting simulated total streamflow
-%         figure(i+5)
-%         plot(obsFlow(:,1),totalFlow_sim)
-%         title('observed and simulated streamflow')
-%         xlabel('Date')
-%         ylabel('mm/day')
-%         ylim([0 (max(totalFlow_sim)+10)])
-%         grid on
-%         ax = gca;
-%         ax.FontSize = 11;
-%         hold on
-%         plot(obsFlow(:,1),baseFlow)
-%         hold on
-%         plot(obsFlow(:,1),quickFlow)
-%         hold on
-%         plot (obsFlow(:,1), obsFlow(:,2))
-%         datetick('x', 'dd/mm/yy', 'keepticks')
-%         hold off
-%         legend('totalFlow_sim','baseFlow','quickFlow','totalFlow_obs')  
+%         plotting simulated total streamflow
+        figure(i+5)
+        plot(obsFlow(:,1),totalFlow_sim)
+        title('observed and simulated streamflow')
+        xlabel('Date')
+        ylabel('mm/day')
+        ylim([0 (max(obsFlow(:,2))+10)])
+        grid on
+        ax = gca;
+        ax.FontSize = 11;
+        hold on
+        plot(obsFlow(:,1),baseFlow)
+        hold on
+        plot(obsFlow(:,1),quickFlow)
+        hold on
+        plot (obsFlow(:,1), obsFlow(:,2))
+        datetick('x', 'dd/mm/yy', 'keepticks')
+        hold off
+        legend('totalFlow_sim','baseFlow','quickFlow','totalFlow_obs')  
 
         % ploting obs total streamflow
 %         figure(i+6)
@@ -396,7 +415,7 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
 %         grid on
 %         ax = gca;
 %         ax.FontSize = 13;
-
+               
          obj.variables.doingCalibration = true; % true to allow the parfor loop in AMALGAM - TURN THIS OFF when not using AMALGAM 
     end
     
@@ -428,15 +447,30 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
      % get calculated baseflow in baseflow
      baseFlow = getTransformedForcing(obj.parameters.baseflow, time_points_streamflow);
          
+     
+     % ploting Baseflow vs. Sim. Head - daily time-step
+     figure(i+6)
+     plot (head(:,2), baseFlow)
+     title(' Baseflow vs. Simulated Head')
+     xlabel('Head (mAHD)')
+     ylabel('Baseflow (mm/day)')
+     
+     
+     
+     
      % calc. runoff using setTransformedForcing in model_TFN - this is
      % needed to get the derived runoff from the
      % "climateTransform_soilMoistureModels" or "climateTransform_soilMoistureModels_2layer_v2" only for the dates with
      % streamflow observations 
      
      % USING 1-layer soil model
-     setTransformedForcing(obj.parameters.climateTransform_soilMoistureModels, time_points_streamflow, true) 
+%      setTransformedForcing(obj.parameters.climateTransform_soilMoistureModels, time_points_streamflow, true) 
+      % USING 1-layer soil model_v2
+%      setTransformedForcing(obj.parameters.climateTransform_soilMoistureModels_v2, time_points_streamflow, true)
      % USING 2-layer soil model
-%      setTransformedForcing(obj.parameters.climateTransform_soilMoistureModels_2layer_v2, time_points_streamflow, true);
+%      setTransformedForcing(obj.parameters.climateTransform_soilMoistureModels_2layer_v2, time_points_streamflow, false);
+     setTransformedForcing(obj.parameters.climateTransform_soilMoistureModels_2layer_v2, time_points_streamflow, true);
+
      % USING 2-layer soil model with threshold behaviour of runoff
 %      setTransformedForcing(obj.parameters.climateTransform_soilMoistureModels_2layer_v3, time_points_streamflow, true);
 
@@ -451,12 +485,143 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
      
      % getting the derived forcing data, which includes the quick flow
      % (runoff and interflow)
-     [allDerivedForcingData, derivedForcingData_colnames] = getDerivedForcingData(obj, time_points_streamflow);  % maybe should be getTransformedForcingData?
+     [allDerivedForcingData, derivedForcingData_colnames] = getDerivedForcingData(obj, time_points_streamflow);  % maybe should be getTransformedForcing?
      
      % getting the forcing data (precip, ET) with the date column
      [allForcingData, forcingData_colnames] = getForcingData(obj);
      
-        
+     % get 'infiltration_fractional_capacity', both daily and sub-daily time-steps to quality check
+     % daily data
+     [tf, column_number] = ismember('infiltration_fractional_capacity', derivedForcingData_colnames); 
+     if ~tf
+         error('infiltration_fractional_capacity is not one of the derived forcings variables. Check if using 2-layer v2 soil model or model_TFN_SW_GW')
+     end
+     infiltration_fractional_capacity = allDerivedForcingData(:,column_number);
+     % sub-daily data
+     SMSnumber=1;
+     [infiltration_fractional_capacity_2, isDailyIntegralFlux] = getTransformedForcing(obj.parameters.climateTransform_soilMoistureModels_2layer_v2, 'infiltration_fractional_capacity', SMSnumber, false); % set "true" if need daily data
+%     [infiltration_fractional_capacity_2, isDailyIntegralFlux] = getTransformedForcing(obj.parameters.climateTransform_soilMoistureModels, 'infiltration_fractional_capacity', SMSnumber, false); % set "true" if need daily data
+%     [infiltration_fractional_capacity_2, isDailyIntegralFlux] = getTransformedForcing(obj.parameters.climateTransform_soilMoistureModels_v2, 'infiltration_fractional_capacity', SMSnumber, false); % set "true" if need daily data
+
+     % ploting infiltration_fractional_capacity - sub-daily time-steps
+     figure(i+7)
+     plot(infiltration_fractional_capacity_2)
+     title('infiltration fractional capacity')
+     xlabel('Sub-daily time-steps')
+     ylabel('ratio')
+     ylim([0 1.20])
+     grid on
+     ax = gca;
+     ax.FontSize = 13;
+     
+     % ploting infiltration_fractional_capacity - daily time-steps
+     figure(i+8)
+     plot( time_points_streamflow, infiltration_fractional_capacity)
+     datetick('x', 'dd/mm/yy', 'keepticks');
+     title('infiltration fractional capacity')
+     xlabel('Date')
+     ylabel('ratio')
+     ylim([0 3.2])
+     grid on
+     ax = gca;
+     ax.FontSize = 13;
+     
+     
+     
+     % get 'mass_balance_error', both daily and sub-daily time-steps to quality check
+     % daily data
+     [tf, column_number] = ismember('mass_balance_error', derivedForcingData_colnames); 
+     if ~tf
+         error('mass_balance_error is not one of the derived forcings variables. Check if using 2-layer v2 soil model or model_TFN_SW_GW')
+     end
+     mass_balance_error_plot = allDerivedForcingData(:,column_number);
+     
+     % sub-daily data
+     SMSnumber=1;
+     [mass_balance_error_plot_2, isDailyIntegralFlux] = getTransformedForcing(obj.parameters.climateTransform_soilMoistureModels_2layer_v2, 'mass_balance_error', SMSnumber, false); % set "true" if need daily data
+%      [mass_balance_error_plot_2, isDailyIntegralFlux] = getTransformedForcing(obj.parameters.climateTransform_soilMoistureModels_v2, 'mass_balance_error', SMSnumber, false); % set "true" if need daily data
+%      [mass_balance_error_plot_2, isDailyIntegralFlux] = getTransformedForcing(obj.parameters.climateTransform_soilMoistureModels, 'mass_balance_error', SMSnumber, false); % set "true" if need daily data
+
+     
+     
+     % ploting mass_balance error - daily time-steps
+     figure(i+9)
+     plot( time_points_streamflow, mass_balance_error_plot)
+     datetick('x', 'dd/mm/yy', 'keepticks');
+     title('mass balance error')
+     xlabel('Date')
+     ylabel('mm/day')
+     %      ylim([0 3.2])
+     grid on
+     ax = gca;
+     ax.FontSize = 13;
+     
+     % ploting mass_balance_error - sub-daily time-steps
+     figure(i+10)
+     plot(mass_balance_error_plot_2)
+     title('mass balance error')
+     xlabel('Sub-daily time-steps')
+     ylabel('mm/sub-day')
+     %      ylim([0 1.20])
+     grid on
+     ax = gca;
+     ax.FontSize = 13;
+     
+     
+     
+     % get 'infiltration', both daily and sub-daily time-steps to quality check
+     % daily data
+     [tf, column_number] = ismember('infiltration', derivedForcingData_colnames); 
+     if ~tf
+         error('infiltration is not one of the derived forcings variables. Check if using 2-layer v2 soil model or model_TFN_SW_GW')
+     end
+     infiltration = allDerivedForcingData(:,column_number);
+     % sub-daily data
+     SMSnumber=1;
+     [infiltration_2, isDailyIntegralFlux] = getTransformedForcing(obj.parameters.climateTransform_soilMoistureModels_2layer_v2, 'infiltration', SMSnumber, false); % set "true" if need daily data
+%      [infiltration_2, isDailyIntegralFlux] = getTransformedForcing(obj.parameters.climateTransform_soilMoistureModels_v2, 'infiltration', SMSnumber, false); % set "true" if need daily data
+%      [infiltration_2, isDailyIntegralFlux] = getTransformedForcing(obj.parameters.climateTransform_soilMoistureModels, 'infiltration', SMSnumber, false); % set "true" if need daily data
+
+     
+      % get 'SMS' (soil moisture), both daily and sub-daily time-steps to quality check
+     % daily data
+     [tf, column_number] = ismember('SMS', derivedForcingData_colnames); 
+     if ~tf
+         error('SMS is not one of the derived forcings variables. Check if using 2-layer v2 soil model or model_TFN_SW_GW')
+     end
+     soil_moisture = allDerivedForcingData(:,column_number);
+     % sub-daily data
+     %      SMSnumber=1;
+     %      [soil_moisture_2, isDailyIntegralFlux] = getTransformedForcing(obj.parameters.climateTransform_soilMoistureModels_2layer_v2, 'SMS', SMSnumber, false); % it doesnt work for SMS cause of the original MATLAB soilMoisture code.
+     soil_moisture_2 = obj.parameters.climateTransform_soilMoistureModels_2layer_v2.variables.SMS ;   
+%      soil_moisture_2 = obj.parameters.climateTransform_soilMoistureModels_v2.variables.SMS ;
+%      soil_moisture_2 = obj.parameters.climateTransform_soilMoistureModels.variables.SMS ;
+
+
+          
+     %      ploting infiltration vs. soil moisture - daily time-steps
+     figure(i+11)
+     scatter(soil_moisture,infiltration )
+     title('infiltration vs. soil moisture')
+     xlabel('Soil moisture (mm)')
+     ylabel('infiltration (mm/day)')
+     %      ylim([0 1.20])
+     grid on
+     ax = gca;
+     ax.FontSize = 13;
+     
+     %      ploting infiltration vs. soil moisture - sub-daily time-steps
+     figure(i+12)
+     scatter(soil_moisture_2,infiltration_2 )
+     title('infiltration vs. soil moisture')
+     xlabel('Soil moisture (mm)')
+     ylabel('infiltration (mm/sub-day)')
+     %      ylim([0 1.20])
+     grid on
+     ax = gca;
+     ax.FontSize = 13;
+             
+          
      % Initialise total flow 
      obj.variables.totalFlow = [];
      
@@ -472,6 +637,12 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
 
      quickFlow = allDerivedForcingData(:,column_number); % runoff in [mm/day], to get ML/day, mutiply by the catchmentArea - (quickflow from the runoff of the lumped 1-d soil moisture model)
      
+     % sub-daily data
+     SMSnumber=1;
+     [quickFlow_2, isDailyIntegralFlux] = getTransformedForcing(obj.parameters.climateTransform_soilMoistureModels_2layer_v2, 'runoff_total', SMSnumber, false); % set "true" if need daily data
+%      [quickFlow_2, isDailyIntegralFlux] = getTransformedForcing(obj.parameters.climateTransform_soilMoistureModels_v2, 'runoff', SMSnumber, false); % set "true" if need daily data
+%      [quickFlow_2, isDailyIntegralFlux] = getTransformedForcing(obj.parameters.climateTransform_soilMoistureModels, 'runoff', SMSnumber, false); % set "true" if need daily data
+     
      % TO DO:
      % CHECK IF GW HEAD OBS TIME-SERIES LENGTH IS LONGER OR EQUAL TO STREAMFLOW TIME-SERIES.. IT MAY BE CAUSING THE ERROR FOR FORD AND SUNDAY... 
     
@@ -482,11 +653,85 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
             
      % calculate total flow 
      totalFlow = max(0, quickFlow + baseFlow); % limit the total flow to be equal or above zero
-      
-     
+           
      
      % Storing total flow
      obj.variables.totalFlow = totalFlow;
+     
+     
+     % ploting quickflow vs. soil moisture - daily time-steps
+     figure(i+13)
+     scatter(soil_moisture,quickFlow )
+     title('quick-flow vs. soil moisture')
+     xlabel('Soil moisture (mm)')
+     ylabel('quick-flow (mm/day)')
+     %      ylim([0 1.20])
+     grid on
+     ax = gca;
+     ax.FontSize = 13;
+     
+     % ploting baseflow vs. soil moisture - sub-daily time-steps
+     figure(i+14)
+     scatter(soil_moisture_2,quickFlow_2 )
+     title('quick-flow vs. soil moisture')
+     xlabel('Soil moisture (mm)')
+     ylabel('quick-flow (mm/sub-day)')
+     %      ylim([0 1.20])
+     grid on
+     ax = gca;
+     ax.FontSize = 13;
+     
+     
+     figure(i+40)
+     x = time_points_streamflow;
+     y1 = soil_moisture;
+     y2 = quickFlow;
+     y3 = infiltration;
+     y4 = infiltration_fractional_capacity;
+     y5 = mass_balance_error_plot;
+     tiledlayout(5,1) % Requires R2019b or later
+        
+     % Top plot
+     nexttile
+     plot(x,y1)
+     title('Soil moisture time-series')
+     datetick('x', 'dd/mm/yy', 'keepticks');
+     xlabel('date')
+     ylabel('soil moisture - upper layer (mm)')
+     % Bottom plot
+     nexttile
+     plot(x,y2)
+     title('quick-flow time-series')
+     datetick('x', 'dd/mm/yy', 'keepticks');
+     xlabel('date')
+     ylabel('quick-flow (mm/day)')
+     % Bottom plot
+     nexttile
+     plot(x,y3)
+     title('infiltration time-series')
+     datetick('x', 'dd/mm/yy', 'keepticks');
+     xlabel('date')
+     ylabel('infiltration (mm/day)')
+     % Bottom plot
+     nexttile
+     plot(x,y4)
+     title('infiltration fractional capacity time-series')
+     datetick('x', 'dd/mm/yy', 'keepticks');
+     xlabel('date')
+     ylabel('infiltration_fractional_capacity (ratio)')
+     % Bottom plot
+     nexttile
+     plot(x,y5)
+     title('mass balance error time-series')
+     datetick('x', 'dd/mm/yy', 'keepticks');
+     xlabel('date')
+     ylabel('mass balance error (mm/day)')
+     
+
+     
+    % checking parameters used in the model            
+     [params, param_names] = getParameters(obj);
+     params(2:end), param_names(2:end,2)
      
     end
      
