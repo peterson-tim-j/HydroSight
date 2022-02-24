@@ -1293,7 +1293,8 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
 
 %                             
                             if doSubstepIntegration
-                                forcingData(:,i) = dailyIntegration(obj, infiltration_fractional_capacity);
+                                % TIM div by ttimestep added
+                                forcingData(:,i) = dailyIntegration(obj, infiltration_fractional_capacity./obj.variables.nDailySubSteps);
                             else
                                 forcingData(:,i) = infiltration_fractional_capacity;
                             end
@@ -1312,13 +1313,15 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                             effectivePrecip_daily = getTransformedForcing(obj, 'effectivePrecip',SMSnumber); 
                             effectivePrecip = getSubDailyForcing(obj,effectivePrecip_daily);
                             
-                            infiltration_fractional_capacity = getTransformedForcing(obj, 'infiltration_fractional_capacity', SMSnumber, false); 
+% TIM
 %                             infiltration_fractional_capacity_daily = getTransformedForcing(obj, 'infiltration_fractional_capacity',SMSnumber); 
                             
                             if alpha==0
                                 infiltration_daily =  effectivePrecip_daily;
                                 infiltration =  effectivePrecip;                                
                             else
+                                % TIM
+                                infiltration_fractional_capacity = getTransformedForcing(obj, 'infiltration_fractional_capacity', SMSnumber, false);
                                 % infiltration =  effectivePrecip .* (1-SMS/SMSC).^alpha;
                                 infiltration =  effectivePrecip .* infiltration_fractional_capacity;
                                 

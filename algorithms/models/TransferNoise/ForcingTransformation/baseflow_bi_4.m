@@ -92,7 +92,7 @@ classdef baseflow_bi_4 < forcingTransform_abstract
             % initializing the parameters of the object
             obj.linear_storage_constant = 0; % initial guess for - time coefficient [d-1]
             obj.linear_scaler = 0; % initial guess for - time coefficient [d-1]
-            obj.exponential_scaler = 0;  initial guess for - time coefficient [d-1]
+            obj.exponential_scaler = 0; % initial guess for - time coefficient [d-1]
             obj.head_threshold = 1; % initial guess for - storage threshold for flow generation [mm]
             
             obj.variables.baseFlow = [];
@@ -125,7 +125,7 @@ classdef baseflow_bi_4 < forcingTransform_abstract
         % as per range of parameters for model_20 in MaRRMOT (GSFB, Nathan&McMahon 1990)
         function [params_upperLimit, params_lowerLimit] = getParameters_physicalLimit(obj)
             params_lowerLimit = [0 ; 0 ; 0 ; 1]; 
-            params_upperLimit = [1000; 1000; 1000; 1000];
+            params_upperLimit = [100; 100; 1000; 1000];
         end
         % 0, 1;           % b, Fraction of subsurface flow that is baseflow [-]
         %   0, 1;         % dpf, Baseflow time coefficient [d-1]
@@ -134,7 +134,7 @@ classdef baseflow_bi_4 < forcingTransform_abstract
         
         function [params_upperLimit, params_lowerLimit] = getParameters_plausibleLimit(obj)
             params_lowerLimit = [0 ; 0 ; 0 ;  1];
-            params_upperLimit = [100; 100; 100; 1000];
+            params_upperLimit = [10; 10; 10; 1000];
         end
         
         function isValidParameter = getParameterValidity(obj, params, param_names)
@@ -209,7 +209,7 @@ classdef baseflow_bi_4 < forcingTransform_abstract
                       
         
             % calculate the baseflow 
-            for i=1:size(obj.variables.head)
+            for i=1:length(obj.variables.head)
                 % gaining river
                 if (obj.variables.head(i) - obj.head_threshold) > 0
                 obj.variables.baseFlow(i) = (obj.linear_storage_constant .* (obj.variables.head(i) - obj.head_threshold)) + (obj.linear_scaler .* (1 - exp( - obj.exponential_scaler .* (obj.variables.head(i) - obj.head_threshold))));
@@ -219,7 +219,7 @@ classdef baseflow_bi_4 < forcingTransform_abstract
                 obj.variables.baseFlow(i) = obj.linear_scaler .* (1 - exp( - obj.exponential_scaler .* (obj.variables.head(i) - obj.head_threshold))) ;
                 end             
             end
-            
+            plot(obj.variables.baseFlow)
             
             % Description:  nonlinear outflow and inflow from a reservoir according to a GW head threshold, which represents the catchment average 
             % GW head controlling whether the stream is mostly loosing or gaining at the catchment scale

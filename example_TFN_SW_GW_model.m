@@ -58,15 +58,17 @@ list_bores = {'bore_WRK961324', 'bore_141234','bore_141243' ,'bore_WRK961325' , 
 % baseflow options 
 baseflow_options = {'baseflow_v1'; 'baseflow_v2'; 'baseflow_m1';'baseflow_m2';
                     'baseflow_m3'; 'baseflow_m4'; 'baseflow_m5'; 'baseflow_m6';
-                    'baseflow_m7'; 'baseflow_m8'; 'baseflow_m9'};
+                    'baseflow_m7'; 'baseflow_m8'; 'baseflow_m9'; 'baseflow_bi_1';
+                    'baseflow_bi_2'; 'baseflow_bi_3'; 'baseflow_bi_4'};
 
 
-for i = 1:1
-% for i = 1:length(list_bores)
+% for i = 1:1
+for i = 1:length(list_bores)
 
 % for bb = 1:length(baseflow_options)
-for bb = 8:8
+for bb = 15:15
 
+testing_only =1; % a flag so we run model in diagnosis mode
     
 tic % start timer
 
@@ -165,7 +167,7 @@ siteCoordinates = {bore_ID, 100, 100;...
 forcingTransform_Precip = {'transformfunction', 'climateTransform_soilMoistureModels_2layer_v2'; ...
                'forcingdata', {'precip','PRECIP';'et','APET'}; ...
                'outputdata', 'drainage_deep'; ...
-               'options', {'SMSC',2,[];'SMSC_deep',2,[];'beta',0,'';'k_sat',1,'';'alpha',0,'';'beta_deep',NaN,'fixed';'k_sat_deep',NaN,'fixed';'eps',0.0,'fixed'}}; % had to set k_sat_deep and beta_deep as "fixed" to allow it to pass line 480 of climateTransform_soilMoistureModels_2layer_v2
+               'options', {'SMSC',2,[];'SMSC_deep',2,[];'beta',0,'';'k_sat',1,'';'alpha',1,'fixed';'beta_deep',NaN,'fixed';'k_sat_deep',NaN,'fixed';'eps',0.0,''}}; % had to set k_sat_deep and beta_deep as "fixed" to allow it to pass line 480 of climateTransform_soilMoistureModels_2layer_v2
        
 
 % using 2-layer soil model "climateTransform_soilMoistureModels_2layer_v2" allowing beta,
@@ -248,9 +250,7 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7)
 % directory = 'C:\Users\gbonotto\OneDrive - The University of Melbourne\1 - UNIMELB\5 - HydroSight\7 - HydroSight_SW_GW';
 % viewClassTree(directory)
 
-    % Build the 7 parameter model.
-    model_7params_gw = HydroSightModel(modelLabel, bore_ID, 'model_TFN', boreDataWL, maxObsFreq, forcingDataStruct, siteCoordinates, modelOptions_7params);
-
+    % Build the 7 parameter model for model_TFN_SW_GW.
     model_7params = HydroSightModel(modelLabel, bore_ID, 'model_TFN_SW_GW', boreDataWL, maxObsFreq, forcingDataStruct, siteCoordinates, modelOptions_7params);
 
     % getting the parameters necessary for running the transfer functions 
@@ -283,7 +283,7 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7)
     AMALGAMPar.n = length(params_initial);  % Dimension of the problem    ----  run7paramModel now has 9 parameters? are we allowing head-threshoold and head_to_baseflow to be calibrated? 
     AMALGAMPar.N = 100;                     % Size of the population   - LENTGH OF OBS. TIMESERIES or just a calibration parameter?
     AMALGAMPar.nobj = 2;                    % Number of objectives
-    AMALGAMPar.ndraw = 10000;               % Maximum number of function evaluations
+    AMALGAMPar.ndraw = 5000;               % Maximum number of function evaluations
     
     % Define the parameter ranges (minimum and maximum values)
     [params_upperLimit, params_lowerLimit] = getParameters_plausibleLimit(model_7params.model);
@@ -318,7 +318,10 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7)
     [output,ParGen,ObjVals,ParSet,allOriginalObjVals_Flow] = AMALGAM(AMALGAMPar,ModelName,ParRange,Measurement,Extra,Fpareto,model_object);
 
     
+    if testing_only ==1
+        continue 
     
+    else 
     % Store the figure showing Pareton Front of all generations of params
 %     f = figure(1);
 %     set(f, 'Color', 'w');
@@ -417,8 +420,8 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7)
                         [bore_ID ' - ' catchment ]});
     xlabel('SWSI (GW head)')
     % SWSI = sum of weighted squared innovations
-%     xlabel('(1-NSE) (Flow)')
-    ylabel('(1-KGE) (Flow)')
+    ylabel('(1-NSE) (Flow)')
+%     ylabel('(1-KGE) (Flow)')
     grid on
     ax = gca;
     ax.FontSize = 13;
@@ -464,8 +467,8 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7)
                         [bore_ID ' - ' catchment ]});
     xlabel('SWSI (GW head)')
     % SWSI = sum of weighted squared innovations
-%     xlabel('(1-NSE) (Flow)')
-    ylabel('(1-KGE) (Flow)')
+    ylabel('(1-NSE) (Flow)')
+%     ylabel('(1-KGE) (Flow)')
     ylim([.3 1])
     xlim([0 10])
     grid on
@@ -581,7 +584,9 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7)
 %     All_Pareto_Fronts_scatter = plotyyy_GB(ObjVals(:,1), Final_ParSet_FlowObjFunctionVals(:,6) , ObjVals(:,1), 1-Final_ParSet_FlowObjFunctionVals(:,1), ObjVals(:,1), abs(Final_ParSet_FlowObjFunctionVals(:,5)), {'(1-KGE)', '1-NSE', '|Bias|'}, 'scatter');
     % Checking if the values in ObjVals and Final_ParSet_FlowObjFunctionVals match 
     % values were previously not matching cause of the ranking/mixing that occurs in AMALGAM after calculating the ObjFun with "objectiveFunction_joint"
-    check_diff = ObjVals(:,2) - (1-Final_ParSet_FlowObjFunctionVals(:,6))
+    
+    check_diff = ObjVals(:,2) - (1-Final_ParSet_FlowObjFunctionVals(:,1)) % change it accordingly to match the flow Obj-Fun used by AMALGAM
+
 %     if cumsum(check_diff)~= 0 
 %         error('Flow Obj-Function that was used in AMALGAM is different than the one you are plotting as optimized, or there is a NaN')
 %     end
@@ -738,9 +743,19 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7)
     close all % close all open figures to avoid data overlapping
 
     
+    end
+    
+   
 end
 
+    % Build the 7 parameter model for model_TFN
+    model_7params_gw = HydroSightModel(modelLabel, bore_ID, 'model_TFN', boreDataWL, maxObsFreq, forcingDataStruct, siteCoordinates, modelOptions_7params);
+
+
+    if testing_only ==1
+        continue 
     
+    else 
     
 % ---------------------------------------------------------------------------------------------------%
 % HydroSight built-in calibration scheme only for GW head 
@@ -790,10 +805,13 @@ end
 %     doKrigingOnResiduals = false;    
 %     solveModel(model_7params, time_points, newForcingData, simulationLabel, doKrigingOnResiduals);    
 %     solveModelPlotResults(model_7params, simulationLabel, []);    
-
     
 
-    clear all % clear all variables to avoid inheriting parameters from the previous run 
+    end
+
+    
+    clear all % clear all variables to avoid inheriting parameters from the previous run
+    close all % close all open figures to avoid data overlapping
 
     % Restating the List of bores in the study area to keep the loop going
     list_bores = {'bore_WRK961324', 'bore_141234','bore_141243' ,'bore_WRK961325' , 'bore_WRK961326'} ; %  ----- Brucknell
@@ -808,7 +826,6 @@ end
     
     toc % stop timer
 
-    close all % close all open figures to avoid data overlapping
 end
 clear all; % to avoid errors in the new loop
 

@@ -121,7 +121,7 @@ classdef baseflow_bi_2 < forcingTransform_abstract
         % as per range of parameters for model_20 in MaRRMOT (GSFB, Nathan&McMahon 1990)
         function [params_upperLimit, params_lowerLimit] = getParameters_physicalLimit(obj)
             params_lowerLimit = [0 ; 0 ; 1]; 
-            params_upperLimit = [1000; 1000; 1000];
+            params_upperLimit = [100; 1000; 1000];
         end
         % 0, 1;           % b, Fraction of subsurface flow that is baseflow [-]
         %   0, 1;         % dpf, Baseflow time coefficient [d-1]
@@ -130,7 +130,7 @@ classdef baseflow_bi_2 < forcingTransform_abstract
         
         function [params_upperLimit, params_lowerLimit] = getParameters_plausibleLimit(obj)
             params_lowerLimit = [0 ; 0 ; 1];
-            params_upperLimit = [100; 100; 1000];
+            params_upperLimit = [10; 100; 1000];
         end
         
         function isValidParameter = getParameterValidity(obj, params, param_names)
@@ -204,7 +204,7 @@ classdef baseflow_bi_2 < forcingTransform_abstract
 
                       
             % calculate the baseflow 
-            for i=1:size(obj.variables.head)
+            for i=1:length(obj.variables.head)
                 % gaining river
                 if (obj.variables.head(i) - obj.head_threshold) > 0
                 obj.variables.baseFlow(i) = obj.linear_gaining_scaler .* (obj.variables.head(i) - obj.head_threshold);
@@ -214,6 +214,7 @@ classdef baseflow_bi_2 < forcingTransform_abstract
                 obj.variables.baseFlow(i) = obj.linear_losing_scaler .* (obj.variables.head(i) - obj.head_threshold);
                 end                
             end
+            plot(obj.variables.baseFlow)
             
 
             % Description:  Linear outflow and inflow from a reservoir according to a GW head threshold, which represents the catchment average 

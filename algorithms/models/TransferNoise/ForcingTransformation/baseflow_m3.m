@@ -198,7 +198,7 @@ classdef baseflow_m3 < forcingTransform_abstract
             
                    
            % calculate the baseflow 
-            obj.variables.baseFlow = obj.head_max .^(-4)./4 .* (obj.variables.head.^5);
+            obj.variables.baseFlow = ((obj.head_max ^ (-4)) / 4) .* (obj.variables.head .^ 5);
             % Description:  Empirical non-linear outflow from a reservoir
             % Constraints:  None specified
             % @(Inputs):    S    - current storage [mm]
