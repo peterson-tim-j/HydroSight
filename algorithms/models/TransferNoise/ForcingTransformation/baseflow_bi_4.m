@@ -125,7 +125,7 @@ classdef baseflow_bi_4 < forcingTransform_abstract
         % as per range of parameters for model_20 in MaRRMOT (GSFB, Nathan&McMahon 1990)
         function [params_upperLimit, params_lowerLimit] = getParameters_physicalLimit(obj)
             params_lowerLimit = [0 ; 0 ; 0 ; 1]; 
-            params_upperLimit = [100; 100; 1000; 1000];
+            params_upperLimit = [10; 10; 10; 1000];
         end
         % 0, 1;           % b, Fraction of subsurface flow that is baseflow [-]
         %   0, 1;         % dpf, Baseflow time coefficient [d-1]
@@ -134,7 +134,7 @@ classdef baseflow_bi_4 < forcingTransform_abstract
         
         function [params_upperLimit, params_lowerLimit] = getParameters_plausibleLimit(obj)
             params_lowerLimit = [0 ; 0 ; 0 ;  1];
-            params_upperLimit = [10; 10; 10; 1000];
+            params_upperLimit = [1; 1; 5; 1000];
         end
         
         function isValidParameter = getParameterValidity(obj, params, param_names)

@@ -72,7 +72,7 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
             % com observed_flow from the BOM database.. 
             
             
-            % Use sub-class constructor.
+            % Use sub-class constructor to inherit properties from model_TFN.
             obj = obj@model_TFN(bore_ID, obsData, forcingData_data,  forcingData_colnames, siteCoordinates, varargin{1});
 
             %% Read in file with obs flow.
@@ -82,7 +82,7 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
 
             %   -------- CHANGE THE CACTHMENT ACCORDINGLY  -----------
      
-            obsDataFlow = readtable('obsFlow_Brucknell.csv'); % read in the obs flow data
+            obsDataFlow = readtable('obsFlow_Brucknell.csv'); % read in the obs flow data. Choose from obsFlow_"Catchment".csv
             obsDataFlow = obsDataFlow(:,[2:4 6]); % FLOW UNIT -> columns -> [5] = daily average [m3/s], [6] = [mm/day], [7] = [ML/day], [8] = [mm/day]^(1/5),
             obsDataFlow = table2array(obsDataFlow);
 
@@ -143,7 +143,7 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
             %-----------------------------------------------------
             % baseflow_v1, baseflow_v2, baseflow_m1, baseflow_m2, baseflow_m3,
             % baseflow_m4, baseflow_m5, baseflow_m6, baseflow_m7,
-            % baseflow_m8, baseflow_m9
+            % baseflow_m8, baseflow_m9, baseflow_bi_1, baseflow_bi_2, baseflow_bi_3, baseflow_bi_4
             %----------------------------------------------------
             
             if contains(model_label,'baseflow_v1')
@@ -180,12 +180,14 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
                error('Please, include a valid baseflow object option in the model_label. Options are: baseflow_v1, baseflow_v2, baseflow_m1, baseflow_m2, baseflow_m3, baseflow_m4, baseflow_m5, baseflow_m6, baseflow_m7, baseflow_m8, baseflow_m9, baseflow_bi_1, baseflow_bi_2, baseflow_bi_3, baseflow_bi_4');
             end
                         
-        obj.parameters.baseflow % print the baseflow object to see if indeedusing the one assigned
+        obj.parameters.baseflow % print the baseflow object to see if indeed using the one assigned
         end
     
         
-        function  [params_initial, time_points_head, time_points_streamflow ] = calibration_initialise(obj, t_start, t_end);
-            
+%         function  [params_initial, time_points_head, time_points_streamflow ] = calibration_initialise(obj, t_start, t_end);
+        function  [params_initial, time_points_head, time_points_streamflow ] = calibration_initialise_joint(obj, t_start, t_end);
+
+    
             
             % Set a flag to indicate that calibration is being undertaken.
             obj.variables.doingCalibration = true;
@@ -193,7 +195,10 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
             % Get parameter names and initial values
             [params_initial, obj.variables.param_names] = getParameters(obj);
             
-            calibration_initialise@model_TFN(obj, t_start, t_end);
+			% Using calibration_initialize function from model_TFN object. 
+%             calibration_initialise@model_TFN(obj, t_start, t_end); 
+            calibration_initialise(obj, t_start, t_end); 
+
             
             
             % Derive time points for groundwater head objective
@@ -239,7 +244,7 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
 %         [head, colnames, noise] = solve(obj, time_points_streamflow); % just the deterministic . is it at the same time step (daily)?
 
         
-        % Call objectiveFunction in model_TFN to get head objFn
+        % Call objectiveFunction in model_TFN to get GW head objFn
         [objFn_head, h_star, colnames, drainage_elevation] = objectiveFunction(params, time_points_head, obj, false);  % "false" to pass the condition in "islogical(varargin{1})" in line 1826 in model_TFN of "objectiveFunction@model_TFN"
 %         [objFn_head, h_star, colnames, drainage_elevation] = objectiveFunction(params, time_points_streamflow, obj, false);  % "false" to pass the condition in "islogical(varargin{1})" in line 1826 in model_TFN of "objectiveFunction@model_TFN"
 
@@ -457,7 +462,7 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
       obj.parameters.variables.doingCalibration = true;
            
       % Add model_TFN variables back that are cleared when the model_TFN
-      % solve() is called
+      % solve() is called. This is necessary for the next AMALGAM iteration
       obj.variables.theta_est_indexes_min = theta_est_indexes_min;
       obj.variables.theta_est_indexes_max = theta_est_indexes_max;
       obj.variables.delta_time = delta_time;
@@ -473,6 +478,15 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
      baseFlow = getTransformedForcing(obj.parameters.baseflow, time_points_streamflow);
          
      
+     % TODO: insert the convolution function here for the baseflow following
+     % the steps from get_h_star? Add parameters A, b, n into baseflow
+     % object so i can use doIRFconvolution of baseflow using
+     % responseFunctionPearsons?
+     
+     
+     
+     
+     
      % ploting Baseflow vs. Sim. Head - daily time-step
      figure(i+6)
      plot (head(:,2), baseFlow)
@@ -487,6 +501,117 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
      
      % Get the runoff from the forcing tranform function.
      quickFlow_all = getTransformedForcing(obj.parameters.climateTransform_soilMoistureModels_2layer_v2, 'runoff_total', 1, true); % set "true" if need daily data
+     
+
+     %--------------------------------------------------------------------------------------------------------------------------
+     % TODO: insert the convolution function here for the runoff following
+     % the steps from get_h_star? 
+     
+     % Initialise ouput vector.
+     [forcingData, forcingData_colnames] = getForcingData(obj); % get forcing time points
+     time_points_forcing = forcingData(:,1);
+     filt =  time_points_forcing <= obj.variables.time_points_streamflow(end);
+     time_points_forcing = time_points_forcing(filt);
+     
+     nOutputColumns=0;
+     quickFlow_convoluted = zeros( size(time_points_forcing,1),  nOutputColumns);       
+     iOutputColumns = 0;
+    
+        
+     % Calc theta_t for max time to initial time (NOTE: min tor = 0).                        
+        filt = obj.inputData.forcingData ( : ,1) <= ceil(time_points_forcing(end));
+        tor = flipud([0:time_points_forcing(end)  - obj.inputData.forcingData(1,1)+1]');
+        tor_end = tor( obj.variables.theta_est_indexes_min(1,:) )'; % this must be amended to translate the time points of streamflow and not GW head.            
+        t = obj.inputData.forcingData( filt ,1);
+
+     % Calculate each transfer function.
+
+     
+     % Calcule theta for each time point of forcing data.
+%                 theta_est_temp = theta(obj.parameters.(char(companants(i))), tor);                
+                theta_est_temp = theta(obj.parameters.precip, tor);                
+
+                % Get analytical esitmates of lower and upper theta tails
+                integralTheta_upperTail = intTheta_upperTail2Inf(obj.parameters.( char(companants(i))), tor_end);                           
+                integralTheta_lowerTail = intTheta_lowerTail(obj.parameters.( char(companants(i))), 1);
+
+                % Get the mean forcing.
+                if ~isempty(varargin) && isfield(varargin{1},companants{i})
+                    %forcingMean = obj.variables.(companants{i}).forcingMean                    
+                    forcingMean = varargin{1}.(companants{i});
+                else
+                    forcingMean = mean(obj.variables.(companants{i}).forcingData);
+                end                
+                
+                % Integrate transfer function over tor.
+                for j=1: size(theta_est_temp,2)
+                    % Increment the output volumn index.
+                    iOutputColumns = iOutputColumns + 1;
+
+                    % Try to call doIRFconvolution using Xeon Phi
+                    % Offload coprocessors. This will only work if the
+                    % computer has (1) the intel compiler >2013.1 and (2)
+                    % xeon phi cards. The code first tried to call the
+                    % mex function. 
+                    if ~isfield(obj.variables,'useXeonPhiCard')
+                        obj.variables.useXeonPhiCard = true;
+                    end
+                    
+                    try
+                        if obj.variables.useXeonPhiCard
+                            %display('Offloading convolution algorithm to Xeon Phi coprocessor!');
+                            h_star(:,iOutputColumns) = doIRFconvolutionPhi(theta_est_temp(:,j), obj.variables.theta_est_indexes_min, obj.variables.theta_est_indexes_max(1), ...
+                                obj.variables.(companants{i}).forcingData(:,j), isForcingADailyIntegral(i), integralTheta_lowerTail(j))' ...
+                                + integralTheta_upperTail(j,:)' .* forcingMean(j);
+                        else                            
+                            h_star(:,iOutputColumns) = doIRFconvolution(theta_est_temp(:,j), obj.variables.theta_est_indexes_min, obj.variables.theta_est_indexes_max(1), ...
+                                obj.variables.(companants{i}).forcingData(:,j), isForcingADailyIntegral(i), integralTheta_lowerTail(j))' ...
+                                + integralTheta_upperTail(j,:)' .* forcingMean(j);
+                        end
+                            
+                    catch
+                        %display('Offloading convolution algorithm to Xeon Phi coprocessor failed - falling back to CPU!');
+                        obj.variables.useXeonPhiCard = false;
+                        h_star(:,iOutputColumns) = doIRFconvolution(theta_est_temp(:,j), obj.variables.theta_est_indexes_min, obj.variables.theta_est_indexes_max(1), ...
+                                obj.variables.(companants{i}).forcingData(:,j), isForcingADailyIntegral(i), integralTheta_lowerTail(j))' ...
+                                + integralTheta_upperTail(j,:)' .* forcingMean(j);
+                    end                    
+                    % Transform the h_star estimate for the current
+                    % componant. This feature was included so that h_star
+                    % estimate fro groundwater pumping could be corrected 
+                    % for an unconfined aquifer using Jacobs correction.
+                    % Peterson Feb 2013.
+                    h_star(:,iOutputColumns) = transform_h_star(obj.parameters.( char(companants(i))), [time_points, h_star(:,iOutputColumns)]);
+                        
+                    % Add output name to the cell array
+                    if ischar(obj.variables.(companants{i}).forcingData_colnames)
+                        colnames{iOutputColumns} = companants{i};
+                    else
+                        colnames{iOutputColumns} = [companants{i}, ' - ',obj.variables.(companants{i}).forcingData_colnames{j}];
+                    end
+                end
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
      
      % Create filter for the days with streamflow obs.
      [forcingData, forcingData_colnames] = getForcingData(obj);

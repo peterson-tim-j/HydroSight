@@ -261,8 +261,10 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7)
     t_end  = inf;
     
     %%%% Creating the model structure required to calculate ObjFun for head in model_TFN 
-    [params_initial, time_points_head, time_points_streamflow] = calibration_initialise(model_7params.model, t_start, t_end); % put it outside of objectiveFunction to avoid initializing it again during the callinf of "solve" inside of "objectiveFunction"
- 
+    % [params_initial, time_points_head, time_points_streamflow] = calibration_initialise(model_7params.model, t_start, t_end); % put it outside of objectiveFunction to avoid initializing it again during the callinf of "solve" inside of "objectiveFunction"
+    % a new calibration_initialise function that builds the properties to do the convolution of both "drainage for head", "baseflow for streamflow", and "runoff for streamflow"  
+	[params_initial, time_points_head, time_points_streamflow] = calibration_initialise_joint(model_7params.model, t_start, t_end); % put it outside of objectiveFunction to avoid initializing it again during the callinf of "solve" inside of "objectiveFunction"
+
     
     
     % ----------------------------------------------------------------------------------------- %
