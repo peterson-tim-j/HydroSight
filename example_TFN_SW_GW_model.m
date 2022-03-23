@@ -66,7 +66,7 @@ baseflow_options = {'baseflow_v1'; 'baseflow_v2'; 'baseflow_m1';'baseflow_m2';
 for i = 1:length(list_bores)
 
 % for bb = 1:length(baseflow_options)
-for bb = 15:15
+for bb = 1:1
 
 testing_only =1; % a flag so we run model in diagnosis mode
     

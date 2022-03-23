@@ -183,10 +183,10 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
         
         function [variable_names] = outputForcingdata_options(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates)
             variable_names = {'effectivePrecip'; 
-                              'drainage';       'infiltration';             'evap_soil';        'evap_gw_potential';        'runoff';       'SMS'; ...
+                              'drainage';       'infiltration';            'evap_soil';        'evap_gw_potential';        'runoff';       'SMS'; ...
                               'drainage_tree';  'infiltration_tree';        'evap_soil_tree';   'evap_gw_potential_tree';   'runoff_tree';  'SMS_tree'; ...
                               'drainage_nontree';'infiltration_nontree';    'evap_soil_nontree';'evap_gw_potential_nontree';'runoff_nontree';'SMS_nontree'; ...
-                              'infiltration_fractional_capacity';     'mass_balance_error'};
+                              'infiltration_fractional_capacity'; 'interflow';  'mass_balance_error'};
         end
         
         function [options, colNames, colFormats, colEdits, toolTip] = modelOptions()
@@ -764,8 +764,8 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                 params_upperLimit(ind,1) = 1;                                    
             end    
                    
-            if obj.settings.activeParameters.beta
-                ind = cellfun(@(x)(strcmp(x,'gamma')),param_names);
+            if obj.settings.activeParameters.beta % TODO: is it a bug?
+                ind = cellfun(@(x)(strcmp(x,'gamma')),param_names); 
                 params_lowerLimit(ind,1) = log10(0.01);
                 params_upperLimit(ind,1) = log10(100);
             end                  
@@ -904,7 +904,7 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                 params_upperLimit(ind,1) = log10(10);
             end      
             
-            if obj.settings.activeParameters.beta
+            if obj.settings.activeParameters.beta   % TODO: is it a bug?
                 ind = cellfun(@(x)(strcmp(x,'gamma')),param_names);
                 params_lowerLimit(ind,1) = log10(0.1);
                 params_upperLimit(ind,1) = log10(10);
@@ -1313,14 +1313,14 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                             effectivePrecip_daily = getTransformedForcing(obj, 'effectivePrecip',SMSnumber); 
                             effectivePrecip = getSubDailyForcing(obj,effectivePrecip_daily);
                             
-% TIM
-%                             infiltration_fractional_capacity_daily = getTransformedForcing(obj, 'infiltration_fractional_capacity',SMSnumber); 
+							% Tim's implemetation
+							% infiltration_fractional_capacity_daily = getTransformedForcing(obj, 'infiltration_fractional_capacity',SMSnumber); 
                             
                             if alpha==0
                                 infiltration_daily =  effectivePrecip_daily;
                                 infiltration =  effectivePrecip;                                
                             else
-                                % TIM
+                                % Tim's implemetation
                                 infiltration_fractional_capacity = getTransformedForcing(obj, 'infiltration_fractional_capacity', SMSnumber, false);
                                 % infiltration =  effectivePrecip .* (1-SMS/SMSC).^alpha;
                                 infiltration =  effectivePrecip .* infiltration_fractional_capacity;
@@ -1336,7 +1336,7 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                             end
                                                                              
                                                         
-                            % Calculatre when the soil is probably
+                            % Calculate when the soil is probably
                             % saturated. 
                             drainage = getTransformedForcing(obj, 'drainage',SMSnumber, false);
                             evap = getTransformedForcing(obj, 'evap_soil',SMSnumber, false);
@@ -1380,17 +1380,32 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                                 isDailyIntegralFlux(i) = false;
                             end                            
                           
+						case 'interflow'
+                            
+                            % Calculate subdaily interflow.                        							
+							interflow = (interflow_frac) .* k_sat/obj.variables.nDailySubSteps .*(SMS/SMSC).^beta;
+                            
+                            if doSubstepIntegration
+                                forcingData(:,i) = dailyIntegration(obj, interflow);
+                                isDailyIntegralFlux(i) = true;
+                            else
+                               forcingData(:,i) = interflow;  
+                               isDailyIntegralFlux(i) = false;
+                            end           
+                            
+						
                         case 'runoff'
                             
                             % Calculate infiltration.
                             infiltration = getTransformedForcing(obj, 'infiltration',SMSnumber, false);
                             
                             % Calc sub daily interflow
-                            %interflow = getTransformedForcing(obj, 'interflow',SMSnumber, false);
+                            interflow = getTransformedForcing(obj, 'interflow',SMSnumber, false);
                                 
                             % Calc sub daily runoff
                             runoff = max(0,getSubDailyForcing(obj,obj.variables.precip) - infiltration);
-                            runoff = runoff * (1-bypass_frac);
+                            % runoff = runoff * (1-bypass_frac);
+							runoff = interflow + (runoff * (1-bypass_frac)); % only the runoff can be redirected to free drainage of shallow soil moisture
                             
                             % Integreate to daily.
                             if doSubstepIntegration

@@ -196,7 +196,9 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
             [params_initial, obj.variables.param_names] = getParameters(obj);
             
 			% Using calibration_initialize function from model_TFN object. 
-%             calibration_initialise@model_TFN(obj, t_start, t_end); 
+            % calibration_initialise@model_TFN(obj, t_start, t_end); This
+            % step includes the properties needed for the drainage convolution and 
+            % and GW head Obj-Function and calibration 
             calibration_initialise(obj, t_start, t_end); 
 
             
@@ -223,6 +225,26 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
                 & obj.inputData.flow(:,1) <= time_points_head(end) );   
             time_points_streamflow = obj.inputData.flow(t_filt,1);
             obj.variables.time_points_streamflow = time_points_streamflow;
+            
+            % Create properties necessary for the convolution of runoff and include them
+            % into the object
+            
+            % Setup matrix of indexes for tor at each runoff time_points
+            % that match GW head observation period
+            % Setup matrix of indexes for tor at each time_points
+            filt = obj.inputData.forcingData ( : ,1) <= ceil(time_points_streamflow(end));
+            tor = flipud([0:time_points_streamflow(end)  - obj.inputData.forcingData(filt,1)+1]');
+            ntor =  size(tor, 1);                                                     
+            clear tor;
+            
+            obj.variables.theta_est_indexes_min_flow = zeros(1,length(time_points_streamflow) );
+            obj.variables.theta_est_indexes_max_flow = zeros(1,length(time_points_streamflow) );
+                        
+            for ii= 1:length(time_points_streamflow)              
+                ntheta = sum( obj.inputData.forcingData ( : ,1) <= time_points_streamflow(ii) );                                
+                obj.variables.theta_est_indexes_min_flow(ii) = ntor-ntheta;
+                obj.variables.theta_est_indexes_max_flow(ii) = max(1,ntor);
+            end  
             
             
             
@@ -349,24 +371,24 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
          % Calibrating only to FLOW using 2 flow obj-fun
 %         objFn_joint = [objFn_flow, objFn_flow];
         
-        figure(15);
-        plot(obj.parameters.climateTransform_soilMoistureModels_2layer_v2.variables.SMS)
-        y = obj.parameters.climateTransform_soilMoistureModels_2layer_v2.SMSC;
-%         plot(obj.parameters.climateTransform_soilMoistureModels.variables.SMS)
-%         y = obj.parameters.climateTransform_soilMoistureModels.SMSC;
-%         plot(obj.parameters.climateTransform_soilMoistureModels_v2.variables.SMS)
-%         y = obj.parameters.climateTransform_soilMoistureModels_v2.SMSC;
-        line([0,68000],[10.^(y),10.^(y)])
+        % figure(15);
+        % plot(obj.parameters.climateTransform_soilMoistureModels_2layer_v2.variables.SMS)
+        % y = obj.parameters.climateTransform_soilMoistureModels_2layer_v2.SMSC;
+% %         plot(obj.parameters.climateTransform_soilMoistureModels.variables.SMS)
+% %         y = obj.parameters.climateTransform_soilMoistureModels.SMSC;
+% %         plot(obj.parameters.climateTransform_soilMoistureModels_v2.variables.SMS)
+% %         y = obj.parameters.climateTransform_soilMoistureModels_v2.SMSC;
+        % line([0,68000],[10.^(y),10.^(y)])
         
-        figure(16);
-        xx = obj.parameters.climateTransform_soilMoistureModels_2layer_v2.variables.SMS ./ (10 .^ obj.parameters.climateTransform_soilMoistureModels_2layer_v2.SMSC);
-%         xx = obj.parameters.climateTransform_soilMoistureModels.variables.SMS ./ (10 .^ obj.parameters.climateTransform_soilMoistureModels.SMSC);
-%         xx = obj.parameters.climateTransform_soilMoistureModels_v2.variables.SMS ./ (10 .^ obj.parameters.climateTransform_soilMoistureModels_v2.SMSC);
-        plot(xx)
-        title('SMS / SMSC')
-        xlabel('Sub-daily time-steps')
-        ylabel('ratio')
-        ylim([0 1])
+        % figure(16);
+        % xx = obj.parameters.climateTransform_soilMoistureModels_2layer_v2.variables.SMS ./ (10 .^ obj.parameters.climateTransform_soilMoistureModels_2layer_v2.SMSC);
+% %         xx = obj.parameters.climateTransform_soilMoistureModels.variables.SMS ./ (10 .^ obj.parameters.climateTransform_soilMoistureModels.SMSC);
+% %         xx = obj.parameters.climateTransform_soilMoistureModels_v2.variables.SMS ./ (10 .^ obj.parameters.climateTransform_soilMoistureModels_v2.SMSC);
+        % plot(xx)
+        % title('SMS / SMSC')
+        % xlabel('Sub-daily time-steps')
+        % ylabel('ratio')
+        % ylim([0 1])
 
         
         
@@ -420,24 +442,24 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
 %         
 %        
 %         plotting simulated total streamflow
-        figure(i+5)
-        plot(totalFlow_sim(:,1),totalFlow_sim(:,2))
-        title('observed and simulated streamflow')
-        xlabel('Date')
-        ylabel('mm/day')
-        ylim([0 (max(obsFlow(:,2))+10)])
-        grid on
-        ax = gca;
-        ax.FontSize = 11;
-        hold on
-        plot(totalFlow_sim(:,1),baseFlow)
-        hold on
-        plot(quickFlow(:,1),quickFlow(:,2))
-        hold on
-        plot (obsFlow(:,1), obsFlow(:,2))
-        datetick('x', 'dd/mm/yy', 'keepticks')
-        hold off
-        legend('totalFlow_sim','baseFlow','quickFlow','Observed_Flow')  
+        % figure(i+5)
+        % plot(totalFlow_sim(:,1),totalFlow_sim(:,2))
+        % title('observed and simulated streamflow')
+        % xlabel('Date')
+        % ylabel('mm/day')
+        % ylim([0 (max(obsFlow(:,2))+10)])
+        % grid on
+        % ax = gca;
+        % ax.FontSize = 11;
+        % hold on
+        % plot(totalFlow_sim(:,1),baseFlow)
+        % hold on
+        % plot(quickFlow(:,1),quickFlow(:,2))
+        % hold on
+        % plot (obsFlow(:,1), obsFlow(:,2))
+        % datetick('x', 'dd/mm/yy', 'keepticks')
+        % hold off
+        % legend('totalFlow_sim','baseFlow','quickFlow','Observed_Flow')  
 
         % ploting obs total streamflow
 %         figure(i+6)
@@ -487,12 +509,12 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
      
      
      
-     % ploting Baseflow vs. Sim. Head - daily time-step
-     figure(i+6)
-     plot (head(:,2), baseFlow)
-     title(' Baseflow vs. Simulated Head')
-     xlabel('Head (mAHD)')
-     ylabel('Baseflow (mm/day)')
+     % % ploting Baseflow vs. Sim. Head - daily time-step
+     % figure(i+6)
+     % plot (head(:,2), baseFlow)
+     % title(' Baseflow vs. Simulated Head')
+     % xlabel('Head (mAHD)')
+     % ylabel('Baseflow (mm/day)')
      
      
      %--------------------------------------------------------------------------------------------------------------------------
@@ -507,107 +529,7 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
      % TODO: insert the convolution function here for the runoff following
      % the steps from get_h_star? 
      
-     % Initialise ouput vector.
-     [forcingData, forcingData_colnames] = getForcingData(obj); % get forcing time points
-     time_points_forcing = forcingData(:,1);
-     filt =  time_points_forcing <= obj.variables.time_points_streamflow(end);
-     time_points_forcing = time_points_forcing(filt);
-     
-     nOutputColumns=0;
-     quickFlow_convoluted = zeros( size(time_points_forcing,1),  nOutputColumns);       
-     iOutputColumns = 0;
-    
         
-     % Calc theta_t for max time to initial time (NOTE: min tor = 0).                        
-        filt = obj.inputData.forcingData ( : ,1) <= ceil(time_points_forcing(end));
-        tor = flipud([0:time_points_forcing(end)  - obj.inputData.forcingData(1,1)+1]');
-        tor_end = tor( obj.variables.theta_est_indexes_min(1,:) )'; % this must be amended to translate the time points of streamflow and not GW head.            
-        t = obj.inputData.forcingData( filt ,1);
-
-     % Calculate each transfer function.
-
-     
-     % Calcule theta for each time point of forcing data.
-%                 theta_est_temp = theta(obj.parameters.(char(companants(i))), tor);                
-                theta_est_temp = theta(obj.parameters.precip, tor);                
-
-                % Get analytical esitmates of lower and upper theta tails
-                integralTheta_upperTail = intTheta_upperTail2Inf(obj.parameters.( char(companants(i))), tor_end);                           
-                integralTheta_lowerTail = intTheta_lowerTail(obj.parameters.( char(companants(i))), 1);
-
-                % Get the mean forcing.
-                if ~isempty(varargin) && isfield(varargin{1},companants{i})
-                    %forcingMean = obj.variables.(companants{i}).forcingMean                    
-                    forcingMean = varargin{1}.(companants{i});
-                else
-                    forcingMean = mean(obj.variables.(companants{i}).forcingData);
-                end                
-                
-                % Integrate transfer function over tor.
-                for j=1: size(theta_est_temp,2)
-                    % Increment the output volumn index.
-                    iOutputColumns = iOutputColumns + 1;
-
-                    % Try to call doIRFconvolution using Xeon Phi
-                    % Offload coprocessors. This will only work if the
-                    % computer has (1) the intel compiler >2013.1 and (2)
-                    % xeon phi cards. The code first tried to call the
-                    % mex function. 
-                    if ~isfield(obj.variables,'useXeonPhiCard')
-                        obj.variables.useXeonPhiCard = true;
-                    end
-                    
-                    try
-                        if obj.variables.useXeonPhiCard
-                            %display('Offloading convolution algorithm to Xeon Phi coprocessor!');
-                            h_star(:,iOutputColumns) = doIRFconvolutionPhi(theta_est_temp(:,j), obj.variables.theta_est_indexes_min, obj.variables.theta_est_indexes_max(1), ...
-                                obj.variables.(companants{i}).forcingData(:,j), isForcingADailyIntegral(i), integralTheta_lowerTail(j))' ...
-                                + integralTheta_upperTail(j,:)' .* forcingMean(j);
-                        else                            
-                            h_star(:,iOutputColumns) = doIRFconvolution(theta_est_temp(:,j), obj.variables.theta_est_indexes_min, obj.variables.theta_est_indexes_max(1), ...
-                                obj.variables.(companants{i}).forcingData(:,j), isForcingADailyIntegral(i), integralTheta_lowerTail(j))' ...
-                                + integralTheta_upperTail(j,:)' .* forcingMean(j);
-                        end
-                            
-                    catch
-                        %display('Offloading convolution algorithm to Xeon Phi coprocessor failed - falling back to CPU!');
-                        obj.variables.useXeonPhiCard = false;
-                        h_star(:,iOutputColumns) = doIRFconvolution(theta_est_temp(:,j), obj.variables.theta_est_indexes_min, obj.variables.theta_est_indexes_max(1), ...
-                                obj.variables.(companants{i}).forcingData(:,j), isForcingADailyIntegral(i), integralTheta_lowerTail(j))' ...
-                                + integralTheta_upperTail(j,:)' .* forcingMean(j);
-                    end                    
-                    % Transform the h_star estimate for the current
-                    % componant. This feature was included so that h_star
-                    % estimate fro groundwater pumping could be corrected 
-                    % for an unconfined aquifer using Jacobs correction.
-                    % Peterson Feb 2013.
-                    h_star(:,iOutputColumns) = transform_h_star(obj.parameters.( char(companants(i))), [time_points, h_star(:,iOutputColumns)]);
-                        
-                    % Add output name to the cell array
-                    if ischar(obj.variables.(companants{i}).forcingData_colnames)
-                        colnames{iOutputColumns} = companants{i};
-                    else
-                        colnames{iOutputColumns} = [companants{i}, ' - ',obj.variables.(companants{i}).forcingData_colnames{j}];
-                    end
-                end
-     
-     
-     
-     
-     
-     
-     
-     
-     
-     
-     
-     
-     
-     
-     
-     
-     
-     
      
      
      
@@ -688,28 +610,28 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
 %     [infiltration_fractional_capacity_2, isDailyIntegralFlux] = getTransformedForcing(obj.parameters.climateTransform_soilMoistureModels_v2, 'infiltration_fractional_capacity', SMSnumber, false); % set "true" if need daily data
 
      % ploting infiltration_fractional_capacity - sub-daily time-steps
-     figure(i+7)
-     plot(infiltration_fractional_capacity_2)
-     title('infiltration fractional capacity')
-     xlabel('Sub-daily time-steps')
-     ylabel('ratio')
-     ylim([0 1.20])
-     grid on
-     ax = gca;
-     ax.FontSize = 13;
+     % figure(i+7)
+     % plot(infiltration_fractional_capacity_2)
+     % title('infiltration fractional capacity')
+     % xlabel('Sub-daily time-steps')
+     % ylabel('ratio')
+     % ylim([0 1.20])
+     % grid on
+     % ax = gca;
+     % ax.FontSize = 13;
      
      % ploting infiltration_fractional_capacity - daily time-steps
-     figure(i+8)
-%      plot( time_points_streamflow, infiltration_fractional_capacity)
-     plot( time_points_forcing, infiltration_fractional_capacity)
-     datetick('x', 'dd/mm/yy', 'keepticks');
-     title('infiltration fractional capacity')
-     xlabel('Date')
-     ylabel('ratio')
-     ylim([0 3.2])
-     grid on
-     ax = gca;
-     ax.FontSize = 13;
+     % figure(i+8)
+% %      plot( time_points_streamflow, infiltration_fractional_capacity)
+     % plot( time_points_forcing, infiltration_fractional_capacity)
+     % datetick('x', 'dd/mm/yy', 'keepticks');
+     % title('infiltration fractional capacity')
+     % xlabel('Date')
+     % ylabel('ratio')
+     % ylim([0 3.2])
+     % grid on
+     % ax = gca;
+     % ax.FontSize = 13;
      
      
      
@@ -730,28 +652,28 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
      
      
      % ploting mass_balance error - daily time-steps
-     figure(i+9)
-%      plot( time_points_streamflow, mass_balance_error_plot)
-     plot( time_points_forcing, mass_balance_error_plot)
-     datetick('x', 'dd/mm/yy', 'keepticks');
-     title('mass balance error')
-     xlabel('Date')
-     ylabel('mm/day')
-     %      ylim([0 3.2])
-     grid on
-     ax = gca;
-     ax.FontSize = 13;
+     % figure(i+9)
+% %      plot( time_points_streamflow, mass_balance_error_plot)
+     % plot( time_points_forcing, mass_balance_error_plot)
+     % datetick('x', 'dd/mm/yy', 'keepticks');
+     % title('mass balance error')
+     % xlabel('Date')
+     % ylabel('mm/day')
+     % %      ylim([0 3.2])
+     % grid on
+     % ax = gca;
+     % ax.FontSize = 13;
      
      % ploting mass_balance_error - sub-daily time-steps
-     figure(i+10)
-     plot(mass_balance_error_plot_2)
-     title('mass balance error')
-     xlabel('Sub-daily time-steps')
-     ylabel('mm/sub-day')
-     %      ylim([0 1.20])
-     grid on
-     ax = gca;
-     ax.FontSize = 13;
+     % figure(i+10)
+     % plot(mass_balance_error_plot_2)
+     % title('mass balance error')
+     % xlabel('Sub-daily time-steps')
+     % ylabel('mm/sub-day')
+     % %      ylim([0 1.20])
+     % grid on
+     % ax = gca;
+     % ax.FontSize = 13;
      
      
      
@@ -786,26 +708,26 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
 
           
      %      ploting infiltration vs. soil moisture - daily time-steps
-     figure(i+11)
-     scatter(soil_moisture,infiltration )
-     title('infiltration vs. soil moisture')
-     xlabel('Soil moisture (mm)')
-     ylabel('infiltration (mm/day)')
-     %      ylim([0 1.20])
-     grid on
-     ax = gca;
-     ax.FontSize = 13;
+     % figure(i+11)
+     % scatter(soil_moisture,infiltration )
+     % title('infiltration vs. soil moisture')
+     % xlabel('Soil moisture (mm)')
+     % ylabel('infiltration (mm/day)')
+     % %      ylim([0 1.20])
+     % grid on
+     % ax = gca;
+     % ax.FontSize = 13;
      
      %      ploting infiltration vs. soil moisture - sub-daily time-steps
-     figure(i+12)
-     scatter(soil_moisture_2,infiltration_2 )
-     title('infiltration vs. soil moisture')
-     xlabel('Soil moisture (mm)')
-     ylabel('infiltration (mm/sub-day)')
-     %      ylim([0 1.20])
-     grid on
-     ax = gca;
-     ax.FontSize = 13;
+     % figure(i+12)
+     % scatter(soil_moisture_2,infiltration_2 )
+     % title('infiltration vs. soil moisture')
+     % xlabel('Soil moisture (mm)')
+     % ylabel('infiltration (mm/sub-day)')
+     % %      ylim([0 1.20])
+     % grid on
+     % ax = gca;
+     % ax.FontSize = 13;
              
           
      % Initialise total flow 
@@ -846,37 +768,37 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
      
      
      % ploting quickflow vs. soil moisture - daily time-steps
-     figure(i+13)
-     scatter(soil_moisture, quickFlow2 )
-     title('quick-flow vs. soil moisture')
-     xlabel('Soil moisture (mm)')
-     ylabel('quick-flow (mm/day)')
-     %      ylim([0 1.20])
-     grid on
-     ax = gca;
-     ax.FontSize = 13;
+     % figure(i+13)
+     % scatter(soil_moisture, quickFlow2 )
+     % title('quick-flow vs. soil moisture')
+     % xlabel('Soil moisture (mm)')
+     % ylabel('quick-flow (mm/day)')
+     % %      ylim([0 1.20])
+     % grid on
+     % ax = gca;
+     % ax.FontSize = 13;
      
      % ploting baseflow vs. soil moisture - sub-daily time-steps
-     figure(i+14)
-     scatter(soil_moisture_2, quickFlow_22 )
-     title('quick-flow vs. soil moisture')
-     xlabel('Soil moisture (mm)')
-     ylabel('quick-flow (mm/sub-day)')
-     %      ylim([0 1.20])
-     grid on
-     ax = gca;
-     ax.FontSize = 13;
+     % figure(i+14)
+     % scatter(soil_moisture_2, quickFlow_22 )
+     % title('quick-flow vs. soil moisture')
+     % xlabel('Soil moisture (mm)')
+     % ylabel('quick-flow (mm/sub-day)')
+     % %      ylim([0 1.20])
+     % grid on
+     % ax = gca;
+     % ax.FontSize = 13;
      
      % ploting baseflow vs. soil moisture - sub-daily time-steps
-     figure(i+41)
-     ratio_test= quickFlow_all - quickFlow2;
-     plot(ratio_test)
-     title('test - quick-flow call workflow')
-     ylabel('difference')
-     %      ylim([0 1.20])
-     grid on
-     ax = gca;
-     ax.FontSize = 13;
+     % figure(i+41)
+     % ratio_test= quickFlow_all - quickFlow2;
+     % plot(ratio_test)
+     % title('test - quick-flow call workflow')
+     % ylabel('difference')
+     % %      ylim([0 1.20])
+     % grid on
+     % ax = gca;
+     % ax.FontSize = 13;
      
      
 %      figure(i+40)
@@ -926,16 +848,16 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
      
      
      
-     figure(41);
-     xx = soil_moisture ./ (10 .^ obj.parameters.climateTransform_soilMoistureModels_2layer_v2.SMSC);
-     %         xx = obj.parameters.climateTransform_soilMoistureModels.variables.SMS ./ (10 .^ obj.parameters.climateTransform_soilMoistureModels.SMSC);
-     %         xx = obj.parameters.climateTransform_soilMoistureModels_v2.variables.SMS ./ (10 .^ obj.parameters.climateTransform_soilMoistureModels_v2.SMSC);
-     scatter(xx,infiltration_fractional_capacity)
-     title('infiltration capacity VS.(SMS/SMSC)')
-     xlabel('SMS/SMSC');
-     ylabel('Infilt cap.');
-     ylim([0 1])
-     xlim([0 1])
+     % figure(41);
+     % xx = soil_moisture ./ (10 .^ obj.parameters.climateTransform_soilMoistureModels_2layer_v2.SMSC);
+     % %         xx = obj.parameters.climateTransform_soilMoistureModels.variables.SMS ./ (10 .^ obj.parameters.climateTransform_soilMoistureModels.SMSC);
+     % %         xx = obj.parameters.climateTransform_soilMoistureModels_v2.variables.SMS ./ (10 .^ obj.parameters.climateTransform_soilMoistureModels_v2.SMSC);
+     % scatter(xx,infiltration_fractional_capacity)
+     % title('infiltration capacity VS.(SMS/SMSC)')
+     % xlabel('SMS/SMSC');
+     % ylabel('Infilt cap.');
+     % ylim([0 1])
+     % xlim([0 1])
 
      
 
