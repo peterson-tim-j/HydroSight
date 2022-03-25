@@ -148,7 +148,7 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
         %----------------------------------------------------------------
         SMSC_interflow       % Interflow Layer 2 soil moisture capacity parameter
         S_initialfrac_interflow % Interflow Layer 2 Fractional initial  soil moisture
-        k_interflow      % Interflow Layer 2 maximum vertical conductivity.
+        k_sat_interflow      % Interflow Layer 2 maximum vertical conductivity.
         alpha_interflow       % Interflow Layer 2 power term for infiltration 
         beta_interflow       % Layer 2 power term for dainage rate (eg Brook-Corey pore index power term)  
         % gamma           % Power term for soil evaporation rate. Assumed as equal to the shallow soil moisture store.  
@@ -188,11 +188,11 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
                         'beta'          ,  0.5,'Calib.' ; ...
                         'gamma'         ,  0,  'Fixed'  ; ...
                         'eps'           ,   0,  'Fixed'; ...
-                        'SMSC_deep'     ,  2, 'Calib.'   ;...
-                        'SMSC_deep_trees',   2, 'Fixed';...
-                        'S_initialfrac_deep', 0.5,'Fixed'; ...
-                        'k_sat_deep'     , 1, 'Calib.'   ;...
-                        'beta_deep'     ,  0.5, 'Calib.'};
+                        'SMSC_interflow'     ,  2, 'Calib.'   ;...
+                        'S_initialfrac_interflow', 0.5,'Fixed'; ...
+                        'k_sat_interflow'     , 1, 'Calib.'   ;...
+						'alpha_interflow'     , 0, 'Fixed'   ;...
+                        'beta_interflow'     ,  0.5, 'Calib.'};
 
         
             colNames = {'Parameter', 'Initial Value','Fixed or Calibrated?'};
@@ -213,20 +213,20 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
                                 '   beta         : log10(Power term for dainage rate).\n', ...
                                 '   gamma        : log10(Power term for soil evap. rate).\n', ...
                                 '   eps          : S_min/SMSC ratio. S_min is the minimum soil moisture threshold.',...
-                                '   SMSC_deep    : log10(Deep layer soil moisture capacity as water depth).\n', ...
-                                '   SMSC_deep_trees: log10(Deep layer tree soil moisture capacity as water depth).\n', ...
-                                '   S_initialfrac_deep: Initial deep soil moisture fraction (0-1).\n', ...
-                                '   k_sat_deep   : log10(Deep layer maximum vertical infiltration rate).\n', ...
-                                '   beta_deep    : log10(Deep layer power term for dainage rate).']);
+                                '   SMSC_interflow    : log10(Interflow layer soil moisture capacity as water depth).\n', ...
+                                '   S_initialfrac_interflow: Initial interflow soil moisture fraction (0-1).\n', ...
+                                '   k_sat_interflow   : log10(Interflow layer maximum vertical infiltration rate).\n', ...
+								'   alpha_interflow   : log10(Power term for interflow layer infiltration rate).\n', ...
+                                '   beta_interflow    : log10(Interflow layer power term for drainage rate).']);
             
         end
         
         function modelDescription = modelDescription()
-           modelDescription = {'Name: climateTransform_soilMoistureModels_2layer', ...
+           modelDescription = {'Name: climateTransform_soilMoistureModels_interflow', ...
                                '', ...
-                               'Purpose: nonlinear transformation of rainfall and areal potential evaporation to a range of forcing data (eg free-drainage) ', ...
-                               'using a highly flexible two layer soil moisture model. Note, the top layer free-drains into to deeper layer.', ...
-                               'Also, two types of land cover can be simulated using two parrallel soil models.', ...
+                               'Purpose: nonlinear transformation of rainfall and areal potential evaporation to a range of forcing data (eg free-drainage, runoff, interflow, baseflow) ', ...
+                               'using a highly flexible two layer soil moisture model. Note, the top layer free-drains into to deeper layer or interflow layer.', ...
+                               'Also, two types of land cover can be simulated using two parallel soil models (not when using interflow layer).', ...
                                '', ...                               
                                'Number of parameters: 2 to 10', ...
                                '', ...                               
@@ -245,19 +245,20 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
                                 'beta         : log10(Power term for dainage rate).', ...
                                 'gamma        : log10(Power term for soil evap. rate).', ...
                                 'eps           : S_min/SMSC ratio. S_min is the minimum soil moisture threshold.',...
-                                'SMSC_deep    : log10(Deep layer soil moisture capacity as water depth). ', ...
+                                'SMSC_interflow    : log10(Deep layer soil moisture capacity as water depth). ', ...
                                 '               Input an empty value and "fixed" to for it to equal SMSC.', ...
-                                'SMSC_deep_tree : log10(Tree deep layer soil moisture capacity as water depth).', ... 
-                                '               Input an empty value and "fixed" to for it to SMSC_tree', ...
-                                'S_initialfrac_deep: Initial deep soil moisture fraction (0-1).\n', ...      
+                                'S_initialfrac_interflow: Initial interflow soil moisture fraction (0-1).\n', ...      
                                 '               Input an empty value and "fixed" to for it to S_initialfrac', ...                                
-                                'k_sat_deep   : log10(Deep layer maximum vertical infiltration rate).', ...
+                                'k_sat_interflow   : log10(interflow layer maximum vertical infiltration rate).', ...
                                 '               Input an empty value and "fixed" to for it to equal k_sat.', ...
-                                'beta_deep    : log10(Deep layer power term for dainage rate).', ...
+								'alpha_interflow       : Power term for interflow layer infiltration rate.', ...
+                                'beta_interflow    : log10(interflow layer power term for dainage rate).', ...
                                 '               Input an empty value and "fixed" to for it to beta.', ...                                
                                '', ...               
                                'References: ', ...
-                               '1. Peterson & Western (2014), Nonlinear time-series modeling of unconfined groundwater head, Water Resour. Res., 50, 8330–8355'};
+                               '1. Peterson & Western (2014), Nonlinear time-series modeling of unconfined groundwater head, Water Resour. Res., 50, 8330–8355', ...
+							   '2. Bonotto, Peterson, Fowler, & Western (2022), HydroSight SW-GW: lumped rainfall-runoff model for the joint simulation of streamflow and groundwater in a drying climate, Geoscientific Model Development , , –', ...
+							   '3. Bonotto, Peterson, Fowler, & Western (2022), Can the joint simulation of daily streamflow and groundwater head help to explain the Millennium Drought hydrology?, Water Resour. Res., , –\'};
         end        
            
     end
@@ -299,7 +300,7 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
 %   calibration. This third column can contain the term 'fixed'. 
 %
 %   The required user options, and option choices, are as follows:
-%       'SMSC_deep'
+%       'SMSC_interflow'
 %       This is for setting the bottom layer soil moisture storage capacity parameter.
 %       The value for the second column is the initial value for this
 %       parameter. This model option is required because all model variants
@@ -319,8 +320,8 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
 %       'k_sat'           - layer 1 parameter for the maximum vertical saturated
 %                             conductivity.
 %       'gamma'             - layer 1 parameter for the evaporation rate power term.
-%       'beta_deep'            - layer 2 parameter for the drainage rate power term.
-%       'k_sat_deep'           - layer 2 parameter for the maximum vertical saturated
+%       'beta_interflow'            - layer 2 parameter for the drainage rate power term.
+%       'k_sat_interflow'           - layer 2 parameter for the maximum vertical saturated
 %                             conductivity.
 %       'numDailySubsteps'  - a user option to define the number of
 %                             sub-daily time steps when solving the
@@ -429,17 +430,20 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
                 if isempty(ind)
                     obj.settings.fixedParameters.(all_parameter_names{i})=false;
                     obj.settings.activeParameters.(all_parameter_names{i})=false;                    
-                    if strcmp(all_parameter_names{i}, 'beta_deep')
+                    if strcmp(all_parameter_names{i}, 'beta_interflow')
                         % Note, beta is transformed in the soil model to 10^beta.
                         obj.(all_parameter_names{i}) = 0;
                         
-                    elseif strcmp(all_parameter_names{i}, 'k_sat_deep')
+                    elseif strcmp(all_parameter_names{i}, 'k_sat_interflow')
                         % Note, k_sat is transformed in the soil model to
                         % 10^k_sat = 0 m/d.
                         obj.(all_parameter_names{i}) = -inf;                        
                         
-                    elseif strcmp(all_parameter_names{i}, 'S_initialfrac_deep')
-                        obj.(all_parameter_names{i}) = 0.5;  
+                    elseif strcmp(all_parameter_names{i}, 'alpha_interflow')
+                        obj.(all_parameter_names{i}) = 0;  
+						
+					elseif strcmp(all_parameter_names{i}, 'S_initialfrac_interflow')
+                        obj.(all_parameter_names{i}) = 0.5; 
                         
                     else
                         obj.(all_parameter_names{i}) = 0;
@@ -449,35 +453,39 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
                         
             % Check the SMSM_trees parameter is active if and only if there
             % is land cover input data.
-            if  isfield(obj.settings,'simulateLandCover') && obj.settings.simulateLandCover
-               if ~obj.settings.activeParameters.SMSC_deep_trees 
-                   error('The trees deep soil moisture model options must include the soil moisture capacity parameter when land cover data is input.');
-               end
-            else
-                obj.settings.activeParameters.SMSC_deep_trees = false; 
-                obj.settings.fixedParameters.SMSC_deep_trees = true;
-            end
+            % if  isfield(obj.settings,'simulateLandCover') && obj.settings.simulateLandCover
+               % if ~obj.settings.activeParameters.SMSC_interflow_trees 
+                   % error('The trees deep soil moisture model options must include the soil moisture capacity parameter when land cover data is input.');
+               % end
+            % else
+                % obj.settings.activeParameters.SMSC_interflow_trees = false; 
+                % obj.settings.fixedParameters.SMSC_interflow_trees = true;
+            % end
             
             % Check that deep parameters set to NaN are not active.
-            if isnan(obj.beta_deep) && obj.settings.activeParameters.beta_deep
-                error('"beta_deep" can only be initialsied to Nan if it is "Fixed".');
+            if isnan(obj.beta_interflow) && obj.settings.activeParameters.beta_interflow
+                error('"beta_interflow" can only be initialsied to Nan if it is "Fixed".');
             end                        
-            if isnan(obj.k_sat_deep) && obj.settings.activeParameters.k_sat_deep
-                error('"k_sat_deep" can only be initialsied to Nan if it is "Fixed".');
+            if isnan(obj.k_sat_interflow) && obj.settings.activeParameters.k_sat_interflow
+                error('"k_sat_interflow" can only be initialsied to Nan if it is "Fixed".');
             end                                    
-            if isnan(obj.S_initialfrac_deep) && obj.settings.activeParameters.S_initialfrac_deep
-                error('"S_initialfrac_deep" can only be initialsied to Nan if it is "Fixed".');
+			if isnan(obj.alpha_interflow) && obj.settings.activeParameters.alpha_interflow
+                error('"alpha_interflow" can only be initialsied to Nan if it is "Fixed".');
+            end  
+            if isnan(obj.S_initialfrac_interflow) && obj.settings.activeParameters.S_initialfrac_interflow
+                error('"S_initialfrac_interflow" can only be initialsied to Nan if it is "Fixed".');
             end                
-            if isnan(obj.SMSC_deep_trees) && obj.settings.activeParameters.SMSC_deep_trees
-                error('"SMSC_deep_trees" can only be initialsied to Nan if it is "Fixed".');
-            end                
-            if isnan(obj.SMSC_deep) && obj.settings.activeParameters.SMSC_deep_trees
-                error('"SMSC_deep" can only be initialsied to Nan if it is "Fixed".');
-            end                
-            
-            % Initialise soil moisture variables
-            obj.variables.SMS_deep = [];           
-            obj.variables.SMS_deep_subdaily = [];
+            % if isnan(obj.SMSC_interflow_trees) && obj.settings.activeParameters.SMSC_interflow_trees
+                % error('"SMSC_interflow_trees" can only be initialsied to Nan if it is "Fixed".');
+            % end                
+            if isnan(obj.SMSC_interflow) && obj.settings.activeParameters.SMSC_interflow
+                error('"SMSC_interflow" can only be initialsied to Nan if it is "Fixed".');
+            end     
+		
+		
+            % Initialise interflow soil moisture variables
+            obj.variables.SMS_interflow = [];           
+            obj.variables.SMS_interflow_subdaily = [];
         end
 
 %% Return fixed upper and lower bounds to the parameters.
@@ -490,24 +498,24 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
             [params_upperLimit, params_lowerLimit] = getParameters_physicalLimit@climateTransform_soilMoistureModels(obj);
                         
             % Upper and lower bounds of SMSC.
-            if obj.settings.activeParameters.SMSC_deep
-                ind = cellfun(@(x)(strcmp(x,'SMSC_deep')),param_names);
+            if obj.settings.activeParameters.SMSC_interflow
+                ind = cellfun(@(x)(strcmp(x,'SMSC_interflow')),param_names);
                 params_lowerLimit(ind,1) = log10(10);                    
                 %params_upperLimit(ind,1) = Inf; 
                 params_upperLimit(ind,1) = log10(1000);
             end           
             
-            % Upper and lower bounds of SMSC_deep_trees.
-            if obj.settings.activeParameters.SMSC_deep_trees
-                ind = cellfun(@(x)(strcmp(x,'SMSC_deep_trees')),param_names);
-                params_lowerLimit(ind,1) = log10(10);                    
-                %params_upperLimit(ind,1) = Inf; 
-                params_upperLimit(ind,1) = log10(2000);
-            end           
+            % Upper and lower bounds of SMSC_interflow_trees.
+            % if obj.settings.activeParameters.SMSC_interflow_trees
+                % ind = cellfun(@(x)(strcmp(x,'SMSC_interflow_trees')),param_names);
+                % params_lowerLimit(ind,1) = log10(10);                    
+                % %params_upperLimit(ind,1) = Inf; 
+                % params_upperLimit(ind,1) = log10(2000);
+            % end           
             
-            % Upper and lower bounds of k_sat_deep.
-            if obj.settings.activeParameters.k_sat_deep
-                ind = cellfun(@(x)(strcmp(x,'k_sat_deep')),param_names);
+            % Upper and lower bounds of k_sat_interflow.
+            if obj.settings.activeParameters.k_sat_interflow
+                ind = cellfun(@(x)(strcmp(x,'k_sat_interflow')),param_names);
                 % Upper and lower bounds taken from Rawls et al 1982 Estimation
                 % of Soil Properties. The values are for sand loam and silty clay
                 % respectively and transformed from units of cm/h to the assumed
@@ -516,9 +524,9 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
                 params_upperLimit(ind,1) = ceil(log10(21*24*10));
             end                  
         
-            % Upper and lower bounds of beta_deep.
-            if obj.settings.activeParameters.beta_deep
-                ind = cellfun(@(x)(strcmp(x,'beta_deep')),param_names);
+            % Upper and lower bounds of beta_interflow.
+            if obj.settings.activeParameters.beta_interflow
+                ind = cellfun(@(x)(strcmp(x,'beta_interflow')),param_names);
                 % Note, To make the parameter range that is explored
                 % more compact, the beta parameter was converted to the
                 % log10 space. Prior to this transformation, the lower
@@ -528,7 +536,22 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
                 % would be >100.
                 params_lowerLimit(ind,1) = 0;                    
                 params_upperLimit(ind,1) = Inf; 
-            end                          
+            end       
+
+			% Upper and lower bounds of alpha_interflow.
+            if obj.settings.activeParameters.alpha_interflow
+                ind = cellfun(@(x)(strcmp(x,'alpha_interflow')),param_names);
+                % Note, To make the parameter range that is explored
+                % more compact, the alpha parameter was converted to the
+                % log10 space. Prior to this transformation, the lower
+                % and upper boundaries were 1 and 5. Calibration trials
+                % for the Great Western Catchments, Victoria, Australia
+                % found that very often this non-transformed value
+                % would be >100.
+                params_lowerLimit(ind,1) = 0; % TODO: reasonable??                    
+                params_upperLimit(ind,1) = Inf; % TODO: reasonable??
+            end     
+			
         end  
  
         
@@ -545,23 +568,23 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
             % Get the bounds from the original soil model
             [params_upperLimit, params_lowerLimit] = getParameters_plausibleLimit@climateTransform_soilMoistureModels(obj);
                         
-            % Upper and lower bounds of SMSC.
-            if obj.settings.activeParameters.SMSC_deep
-                ind = cellfun(@(x)(strcmp(x,'SMSC_deep')),param_names);
+            % Upper and lower bounds of SMSC_interflow.
+            if obj.settings.activeParameters.SMSC_interflow
+                ind = cellfun(@(x)(strcmp(x,'SMSC_interflow')),param_names);
                 params_lowerLimit(ind,1) = log10(50);
                 params_upperLimit(ind,1) = log10(500);
             end           
             
-            % Upper and lower bounds of SMSC_deep_trees.
-            if obj.settings.activeParameters.SMSC_deep_trees
-                ind = cellfun(@(x)(strcmp(x,'SMSC_deep_trees')),param_names);
-                params_lowerLimit(ind,1) = log10(50);
-                params_upperLimit(ind,1) = log10(1000);
-            end           
+            % Upper and lower bounds of SMSC_interflow_trees.
+            % if obj.settings.activeParameters.SMSC_interflow_trees
+                % ind = cellfun(@(x)(strcmp(x,'SMSC_interflow_trees')),param_names);
+                % params_lowerLimit(ind,1) = log10(50);
+                % params_upperLimit(ind,1) = log10(1000);
+            % end           
             
-            % Upper and lower bounds of k_sat_deep.
-            if obj.settings.activeParameters.k_sat_deep
-                ind = cellfun(@(x)(strcmp(x,'k_sat_deep')),param_names);
+            % Upper and lower bounds of k_sat_interflow.
+            if obj.settings.activeParameters.k_sat_interflow
+                ind = cellfun(@(x)(strcmp(x,'k_sat_interflow')),param_names);
                 % Upper and lower bounds taken from Rawls et al 1982 Estimation
                 % of Soil Properties. The values are for sand loam and silty clay
                 % respectively and transformed from units of cm/h to the assumed
@@ -570,9 +593,9 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
                 params_upperLimit(ind,1) = log10(6.11*24*10);
             end                  
         
-            % Upper and lower bounds of beta_deep.
-            if obj.settings.activeParameters.beta_deep
-                ind = cellfun(@(x)(strcmp(x,'beta_deep')),param_names);
+            % Upper and lower bounds of beta_interflow.
+            if obj.settings.activeParameters.beta_interflow
+                ind = cellfun(@(x)(strcmp(x,'beta_interflow')),param_names);
                 % Note, To make the parameter range that is explored
                 % more compact, the beta parameter was converted to the
                 % log10 space. Prior to this transformation, the lower
@@ -582,7 +605,22 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
                 % would be >100.
                 params_lowerLimit(ind,1) = log10(1);
                 params_upperLimit(ind,1) = log10(5);
-            end                            
+            end    
+			
+			% Upper and lower bounds of alpha_interflow.
+            if obj.settings.activeParameters.alpha_interflow
+                ind = cellfun(@(x)(strcmp(x,'alpha_interflow')),param_names);
+                % Note, To make the parameter range that is explored
+                % more compact, the beta parameter was converted to the
+                % log10 space. Prior to this transformation, the lower
+                % and upper boundaries were 1 and 5. Calibration trials
+                % for the Great Western Catchments, Victoria, Australia
+                % found that very often this non-transformed value
+                % would be >100.
+                params_lowerLimit(ind,1) = log10(0); % TODO: reasonable??
+                params_upperLimit(ind,1) = log10(5); % TODO: reasonable??
+            end   
+			
         end
         
 %% Solve the soil moisture differential equation
@@ -654,27 +692,32 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
 
                 % Handle deep soil layer parameters taken from the shallow
                 % layer.
-                if isnan(obj.SMSC_deep)
-                    SMSC_deep = 10^(obj.SMSC);
+                if isnan(obj.SMSC_interflow)
+                    SMSC_interflow = 10^(obj.SMSC);
                 else
-                    SMSC_deep = 10^obj.SMSC_deep;
+                    SMSC_interflow = 10^obj.SMSC_interflow;
                 end
-                if isnan(obj.k_sat_deep)
-                    k_sat_deep = 10^(obj.k_sat);
+                if isnan(obj.k_sat_interflow)
+                    k_sat_interflow = 10^(obj.k_sat);
                 else
-                    k_sat_deep = 10^(obj.k_sat_deep);
+                    k_sat_interflow = 10^(obj.k_sat_interflow);
                 end
-                if isnan(obj.beta_deep)
-                    beta_deep = 10^(obj.beta);
+                if isnan(obj.beta_interflow)
+                    beta_interflow = 10^(obj.beta);
                 else
-                    beta_deep = 10^(obj.beta_deep);
-                end                
+                    beta_interflow = 10^(obj.beta_interflow);
+                end       
+				if isnan(obj.alpha_interflow)
+                    alpha_interflow = 10^(obj.alpha);
+                else
+                    alpha_interflow = 10^(obj.alpha_interflow);
+                end    				
                
-                % Set deep initial soil moisture.
-                if isnan(obj.S_initialfrac_deep)
-                    S_deep_initial = obj.S_initialfrac.*SMSC_deep;
+                % Set interflow initial soil moisture.
+                if isnan(obj.S_initialfrac_interflow)
+                    S_interflow_initial = obj.S_initialfrac.*SMSC_interflow;
                 else
-                    S_deep_initial = obj.S_initialfrac_deep.*SMSC_deep;
+                    S_interflow_initial = obj.S_initialfrac_interflow.*SMSC_interflow;
                 end                             
                 
                 % Call MEX function for DEEP soil moisture model.  
@@ -685,52 +728,52 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
                     % Calculate remaining PET after shallow ET
                     %PET = max(0,obj.variables.evap - getTransformedForcing(obj, 'evap_soil',1));
                     
-                    % Calculate the drainage from the shallow layer to the deep layer.
+                    % Calculate the interflow from the shallow layer to the interflow layer.
                     nDays = length(obj.variables.evap);
                     nDailySubSteps = getNumDailySubsteps(obj);
                     SMSC = 10^(obj.SMSC);
                     beta = 10.^(obj.beta);
                     gamma = 10.^(obj.gamma);
                     k_sat = 10.^obj.k_sat;
-                    % eps_deep=0;
+					% eps_interflow=0;
                     interflow_frac = obj.interflow_frac;
-                    drainage = (1-interflow_frac) .* k_sat/obj.variables.nDailySubSteps .*(obj.variables.SMS/SMSC).^beta;                  
+                    interflow = (interflow_frac) .* k_sat/obj.variables.nDailySubSteps .*(obj.variables.SMS/SMSC).^beta;                  
                     
                     % Expand input forcing data to have the required number of substeps.
                     evap = getSubDailyForcing(obj,obj.variables.evap);
                     
-                    % Calc potential ET for deep layer
+                    % Calc potential ET for interflow layer
                     PET = evap - getTransformedForcing(obj, 'evap_soil',1, false); 
                     
                     % Call MEX soil model
-                    obj.variables.SMS_deep = forcingTransform_soilMoisture(S_deep_initial, drainage, PET, SMSC_deep, k_sat_deep/nDailySubSteps, ...
-                        0, beta_deep, 10.^obj.gamma, 0);
+                    obj.variables.SMS_interflow = forcingTransform_soilMoisture(S_interflow_initial, interflow, PET, SMSC_interflow, k_sat_interflow/nDailySubSteps, ...
+                        alpha_interflow, beta_interflow, 10.^obj.gamma, 0); % eps_interflow=0;
                     
                     % Run soil model again if tree cover is to be simulated
-                    if  isfield(obj.settings,'simulateLandCover') && obj.settings.simulateLandCover
+                    % if  isfield(obj.settings,'simulateLandCover') && obj.settings.simulateLandCover
                         
-                        if isempty(obj.SMSC_deep_trees)
-                            SMSC_deep_trees = 10^(obj.SMSC_trees);
-                        else
-                            SMSC_deep_trees = obj.SMSC_deep_trees;
-                        end
+                        % if isempty(obj.SMSC_interflow_trees)
+                            % SMSC_interflow_trees = 10^(obj.SMSC_trees);
+                        % else
+                            % SMSC_interflow_trees = obj.SMSC_interflow_trees;
+                        % end
                         
-                        if isempty(obj.S_initialfrac)
-                            S_deep_initial = obj.S_initialfrac.*SMSC_deep_trees;
-                        else
-                            S_deep_initial = obj.S_initialfrac_deep * SMSC_deep_trees;
-                        end
+                        % if isempty(obj.S_initialfrac)
+                            % S_interflow_initial = obj.S_initialfrac.*SMSC_interflow_trees;
+                        % else
+                            % S_interflow_initial = obj.S_initialfrac_interflow * SMSC_interflow_trees;
+                        % end
                         
-                        % Get free drainage from the shallow layer
-                        drainage = (1-interflow_frac) .* k_sat/obj.variables.nDailySubSteps .*(obj.variables.SMS_trees/SMSC_trees).^beta;                  
+                        % % Get free drainage from the shallow layer
+                        % drainage = (1-interflow_frac) .* k_sat/obj.variables.nDailySubSteps .*(obj.variables.SMS_trees/SMSC_trees).^beta;                  
                         
-                        % Calculate remaining PET after shallow ET
-                        PET =  evap .*( 1 - (obj.variables.SMS_trees/SMSC_trees).^gamma);
+                        % % Calculate remaining PET after shallow ET
+                        % PET =  evap .*( 1 - (obj.variables.SMS_trees/SMSC_trees).^gamma);
                         
-                        % Call MEX function for DEEP soil moisture model.
-                        obj.variables.SMS_deep_trees = forcingTransform_soilMoisture(S_deep_initial, drainage, PET, SMSC_deep_trees, ...
-                            k_sat_deep, 0, beta_deep, 10.^obj.gamma, 0);
-                    end
+                        % % Call MEX function for DEEP soil moisture model.
+                        % obj.variables.SMS_interflow_trees = forcingTransform_soilMoisture(S_interflow_initial, drainage, PET, SMSC_interflow_trees, ...
+                            % k_sat_interflow, 0, beta_interflow, 10.^obj.gamma, 0);
+                    % end
 %                 else
 %                     % Define the number of daily sub-steps.
 %                     nSubSteps = obj.variables.nDailySubSteps;
@@ -824,16 +867,16 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
             interflow_frac = params(8,:);
             beta = params(10,:);
             gamma = params(11,:);             
-%             SMSC_deep = params(end-4,:);
-            SMSC_deep = params(13,:);
-%             SMSC_deep_trees = params(end-3,:);
-            SMSC_deep_trees = params(14,:);
-%             S_deep_initial = params(end-2,:);
-            S_deep_initial = params(15,:);
-%             k_sat_deep = params(end-1,:);
-            k_sat_deep = params(16,:);
-%             beta_deep = params(end,:);
-            beta_deep = params(17,:);
+%             SMSC_interflow = params(end-4,:);
+            SMSC_interflow = params(13,:);
+%             SMSC_interflow_trees = params(end-3,:);
+            SMSC_interflow_trees = params(14,:);
+%             S_interflow_initial = params(end-2,:);
+            S_interflow_initial = params(15,:);
+%             k_sat_interflow = params(end-1,:);
+            k_sat_interflow = params(16,:);
+%             beta_interflow = params(end,:);
+            beta_interflow = params(17,:);
             
             % Set if the subdaily steps should be integrated.
             if nargin < 4
@@ -849,8 +892,8 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
                 forcingData = zeros(nrows , length(variableName));
                 for i=1:length(variableName)
                     % Test if the flux can be derived from the parent class.
-                    if ~any(strcmp({'evap_soil_deep','evap_soil_total', 'evap_gw_potential', ...
-                    'drainage_deep','runoff_total','SMS_deep','mass_balance_error'}, ...
+                    if ~any(strcmp({'evap_soil_interflow','evap_soil_total', 'evap_gw_potential', ...
+                    'interflow_slow','runoff_total','SMS_interflow','mass_balance_error'}, ...
                     variableName{i}))
                 
                         if nargin==2
@@ -864,38 +907,38 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
                     % Get the soil moisture store for the required soil unit
                     if nargin==2 || SMSnumber==1                               
                         SMS = obj.variables.SMS;
-                        SMS_deep = obj.variables.SMS_deep;
+                        SMS_interflow = obj.variables.SMS_interflow;
                         SMSnumber = 1;
                     elseif SMSnumber==2
                         SMS = obj.variables.SMS_trees;
-                        SMSC_deep = SMSC_deep_trees; 
-                        SMS_deep = obj.variables.SMS_deep_trees;                    
+                        SMSC_interflow = SMSC_interflow_trees; 
+                        SMS_interflow = obj.variables.SMS_interflow_trees;                    
                     else
                         error('The soil moisture unit number is unknown')
                     end                     
 
                     switch variableName{i}
-                        case 'drainage_deep'
-                            runoff = 0;
-                            if bypass_frac~=0
-                                % Get runoff
-                                runoff = getTransformedForcing(obj, 'runoff',SMSnumber, false);
+                        case 'interflow_slow'
+                            % runoff = 0;
+                            % if bypass_frac~=0
+                                % % Get runoff
+                                % runoff = getTransformedForcing(obj, 'runoff',SMSnumber, false);
                                 
-                                % Re-scale runoff from that going to the stream to that going to recharge plus the stream.
-                                runoff  = runoff ./ (1-bypass_frac);
-                            end                              
+                                % % Re-scale runoff from that going to the stream to that going to recharge plus the stream.
+                                % runoff  = runoff ./ (1-bypass_frac);
+                            % end                              
                             
-                            drainage = (1-interflow_frac) .* k_sat_deep/obj.variables.nDailySubSteps .*(SMS_deep/SMSC_deep).^beta_deep;
-                            drainage = drainage + bypass_frac.*runoff;
+                            interflow_slow =  k_sat_interflow/obj.variables.nDailySubSteps .*(SMS_interflow/SMSC_interflow).^beta_interflow;
+                            % drainage = drainage + bypass_frac.*runoff;
                             if doSubstepIntegration
-                                forcingData(:,i) = dailyIntegration(obj, drainage);
+                                forcingData(:,i) = dailyIntegration(obj, interflow_slow);
                                 isDailyIntegralFlux(i) = true;
                             else
-                               forcingData(:,i) = drainage;  
+                               forcingData(:,i) = interflow_slow;  
                                isDailyIntegralFlux(i) = false;
                             end                                                                                          
                             
-                        case 'evap_soil_deep'    
+                        case 'evap_soil_interflow'    
                             % Expand input forcing data to have the required number of substeps.
                             evap = getSubDailyForcing(obj,obj.variables.evap);
                             
@@ -903,7 +946,7 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
                             evap = evap - getTransformedForcing(obj, 'evap_soil',SMSnumber, false);
                                                         
                             % Est ET
-                            evap = evap .* (SMS_deep/SMSC_deep).^gamma;                            
+                            evap = evap .* (SMS_interflow/SMSC_interflow).^gamma;                            
                                                         
                             if doSubstepIntegration
                                 forcingData(:,i) = dailyIntegration(obj, evap);
@@ -914,7 +957,7 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
                             end                           
                         case 'evap_soil_total'
                             evap = getTransformedForcing(obj, 'evap_soil',SMSnumber, false) + ...
-                                   getTransformedForcing(obj, 'evap_soil_deep',SMSnumber, false);
+                                   getTransformedForcing(obj, 'evap_soil_interflow',SMSnumber, false);
                             
                             if doSubstepIntegration
                                 forcingData(:,i) = dailyIntegration(obj, evap);
@@ -937,26 +980,38 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
                              
                         case 'runoff_total'
                             %Calculate the runoff from the shallow layer
-                            runoff = getTransformedForcing@climateTransform_soilMoistureModels(obj, 'runoff',SMSnumber, false);                            
-                            
+                            runoff = getTransformedForcing@climateTransform_soilMoistureModels(obj, 'runoff',SMSnumber, false);     
+							% interflow = (interflow_frac) .* k_sat/obj.variables.nDailySubSteps .*(obj.variables.SMS/SMSC).^beta; 
+							interflow = getTransformedForcing@climateTransform_soilMoistureModels(obj, 'interflow',SMSnumber, false);  							
+                            runoff = runoff - interflow ;% TODO: Is it correct? subtract interflow from shallow runoff to avoid double-counting... 
+							
                             % Calculate the runoff from the deep layer.
                             % Note, runoff can only occur via interflow or
-                            % saturation of the deep layer.
+                            % saturation of the interflow layer.
                             %---------------------
                             % Calculate max. infiltration assuming none
                             % goes to SATURATED runoff.
-                            infiltration_deep = (1-interflow_frac) .* k_sat/obj.variables.nDailySubSteps .*(obj.variables.SMS/SMSC).^beta;                  
-                            
+							
+							if alpha_interflow==0
+                                infiltration_interflow =  interflow;                                                             
+                            else                                
+								infiltration_interflow = interflow .* (1- SMS_interflow/SMSC_interflow).^alpha_interflow;
+							end						
+						
+							
                             % Calc other losses.
-                            evap_deep = getTransformedForcing(obj, 'evap_soil_deep',SMSnumber, false);       
-                            drainage_deep = k_sat_deep/obj.variables.nDailySubSteps .*(SMS_deep/SMSC_deep).^beta_deep;
+                            evap_interflow = getTransformedForcing(obj, 'evap_soil_interflow',SMSnumber, false);       
+                            % interflow_slow = k_sat_interflow/obj.variables.nDailySubSteps .*(SMS_interflow/SMSC_interflow).^beta_interflow;
+							interflow_slow = getTransformedForcing(obj, 'interflow_slow',SMSnumber, false) + ...
+
                             
-                            runoff_deep = [0;(SMS_deep(1:end-1) + infiltration_deep(2:end) - evap_deep(2:end) - drainage_deep(2:end)) - SMSC_deep];
-                            runoff_deep(runoff_deep<0) = 0;                            
+                            runoff_interflow = [0;(SMS_interflow(1:end-1) + infiltration_interflow(2:end) - evap_interflow(2:end) - interflow_slow(2:end)) - SMSC_interflow];
+                            runoff_interflow(runoff_interflow<0) = 0;                            
                             %---------------------
                             
                             % Sum runoff from the top and deep layer (minus bypass runoiff to deep drainage).
-                            runoff  = runoff  + runoff_deep * (1-bypass_frac);
+                            % runoff  = runoff  + runoff_interflow * (1-bypass_frac);
+                            runoff  = runoff  + runoff_interflow + (interflow - infiltration_interflow) ; % TODO: is it correct? Last term represent interflow that didn't infiltrate into interflow store
                             
                             % Integreate to daily.
                             if doSubstepIntegration
@@ -967,17 +1022,17 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
                                 isDailyIntegralFlux(i) = false;
                             end
                             
-                        case'SMS_deep'
-                            forcingData(:,i) = SMS_deep((1+obj.variables.nDailySubSteps):obj.variables.nDailySubSteps:end);
+                        case'SMS_interflow'
+                            forcingData(:,i) = SMS_interflow((1+obj.variables.nDailySubSteps):obj.variables.nDailySubSteps:end);
                             isDailyIntegralFlux(i) = true;
 
                         case 'mass_balance_error'
                             precip = getSubDailyForcing(obj,obj.variables.precip);
                             runoff = getTransformedForcing(obj, 'runoff_total',SMSnumber, false);
                             AET = getTransformedForcing(obj, 'evap_soil_total',SMSnumber, false);
-                            drainage = getTransformedForcing(obj, 'drainage_deep',SMSnumber, false);
+                            interflow_slow = getTransformedForcing(obj, 'interflow_slow',SMSnumber, false);
                             
-                            fluxEstError = [0;precip(2:end) - diff(SMS + SMS_deep) -  runoff(2:end) - AET(2:end) - drainage(2:end)];
+                            fluxEstError = [0;precip(2:end) - diff(SMS + SMS_interflow) -  runoff(2:end) - AET(2:end) - interflow_slow(2:end)];
                             
                             % Integreate to daily.
                             if doSubstepIntegration
@@ -994,14 +1049,14 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
 
                     % Get flixes for tree soil unit (if required) and weight the
                     % flux from the two units
-                    if  isfield(obj.settings,'simulateLandCover') && obj.settings.simulateLandCover && nargin==2
-                        % Get flux for tree SMS
-                        forcingData_trees = getTransformedForcing(obj, variableName{i}, 2) ;
+                    % if  isfield(obj.settings,'simulateLandCover') && obj.settings.simulateLandCover && nargin==2
+                        % % Get flux for tree SMS
+                        % forcingData_trees = getTransformedForcing(obj, variableName{i}, 2) ;
 
-                        % Do weighting
-                        forcingData(:,i) = (1-treeArea_frac .* obj.variables.treeFrac) .* forcingData(:,i) + ...
-                                      treeArea_frac .* obj.variables.treeFrac .* forcingData_trees;
-                    end            
+                        % % Do weighting
+                        % forcingData(:,i) = (1-treeArea_frac .* obj.variables.treeFrac) .* forcingData(:,i) + ...
+                                      % treeArea_frac .* obj.variables.treeFrac .* forcingData_trees;
+                    % end            
                 end
             catch ME
                 error(ME.message)
@@ -1017,46 +1072,53 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
             [params, param_names] = getDerivedParameters@climateTransform_soilMoistureModels(obj);   
             
             param_names(size(param_names,1)+1:size(param_names,1)+5) = {
-                           'SMSC_deep: back transformed soil moisture deep layer storage capacity (in rainfall units)'; ...                  
-                           'SMSC_deep_trees: back transformed soil moisture deep layer storage capacity in trees unit (in rainfall units)'; ...
-                           'S_initialfrac_deep: fractional initial deep layer soil moisture (-)'; ... 
-                           'k_sat_deep : back transformed deep layer maximum vertical conductivity (in rainfall units/day)'; ...
-                           'beta_deep : back transformed power term for dainage rate of deep layer (eg approx. Brook-Corey pore index power term)'};    
+                           'SMSC_interflow: back transformed soil moisture interflow layer storage capacity (in rainfall units)'; ...                  
+                           % 'SMSC_interflow_trees: back transformed soil moisture interflow layer storage capacity in trees unit (in rainfall units)'; ...
+                           'S_initialfrac_interflow: fractional initial interflow layer soil moisture (-)'; ... 
+                           'k_sat_interflow : back transformed interflow layer maximum vertical conductivity (in rainfall units/day)'; ...
+                           'beta_interflow : back transformed power term for drainage rate of interflow layer (eg approx. Brook-Corey pore index power term)'; ...
+						   'alpha_interflow : back transformed power term for infiltration rate of interflow layer'};    
         
-            % Handle deep soil layer parameters taken from the shallow
+            % Handle interflow soil layer parameters taken from the shallow
             % layer.
-            if isnan(obj.SMSC_deep)
-                SMSC_deep = 10^(obj.SMSC);
+            if isnan(obj.SMSC_interflow)
+                SMSC_interflow = 10^(obj.SMSC);
             else
-                SMSC_deep = 10^obj.SMSC_deep;
+                SMSC_interflow = 10^obj.SMSC_interflow;
             end
-            if isnan(obj.SMSC_deep_trees)
-                SMSC_deep_trees = 10^(obj.SMSC_trees);
+            % if isnan(obj.SMSC_interflow_trees)
+                % SMSC_interflow_trees = 10^(obj.SMSC_trees);
+            % else
+                % SMSC_interflow_trees = 10^obj.SMSC_interflow_trees;
+            % end            
+            if isnan(obj.k_sat_interflow)
+                k_sat_interflow = 10^(obj.k_sat);
             else
-                SMSC_deep_trees = 10^obj.SMSC_deep_trees;
-            end            
-            if isnan(obj.k_sat_deep)
-                k_sat_deep = 10^(obj.k_sat);
-            else
-                k_sat_deep = 10^(obj.k_sat_deep);
+                k_sat_interflow = 10^(obj.k_sat_interflow);
             end
-            if isnan(obj.beta_deep)
-                beta_deep = 10^(obj.beta);
+            if isnan(obj.beta_interflow)
+                beta_interflow = 10^(obj.beta);
             else
-                beta_deep = 10^(obj.beta_deep);
-            end                
-            if isnan(obj.S_initialfrac_deep)
-                S_deep_initial = obj.S_initialfrac.*SMSC_deep;
+                beta_interflow = 10^(obj.beta_interflow);
+            end    
+			if isnan(obj.alpha_interflow)
+                alpha_interflow = 10^(obj.alpha);
             else
-                S_deep_initial = obj.S_initialfrac_deep.*SMSC_deep;
+                alpha_interflow = 10^(obj.alpha_interflow);
+            end                  
+            if isnan(obj.S_initialfrac_interflow)
+                S_interflow_initial = obj.S_initialfrac.*SMSC_interflow;
+            else
+                S_interflow_initial = obj.S_initialfrac_interflow.*SMSC_interflow;
             end                         
                        
             params = [  params;  ...
-                        SMSC_deep; ...
-                        SMSC_deep_trees; ...
-                        S_deep_initial; ...
-                        k_sat_deep; ...
-                        beta_deep];
+                        SMSC_interflow; ...
+                        % SMSC_interflow_trees; ...
+                        S_interflow_initial; ...
+                        k_sat_interflow; ...
+                        beta_interflow; ...
+						alpha_interflow];
         end        
     end
 
