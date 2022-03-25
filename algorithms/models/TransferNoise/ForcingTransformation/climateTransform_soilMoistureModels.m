@@ -1405,9 +1405,9 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                             % Calc sub daily runoff
                             runoff = max(0,getSubDailyForcing(obj,obj.variables.precip) - infiltration);
                             % runoff = runoff * (1-bypass_frac);
-							runoff = interflow + (runoff * (1-bypass_frac)); % only the runoff can be redirected to free drainage of shallow soil moisture
+							runoff = interflow + (runoff * (1-bypass_frac)); % only the runoff can be redirected to free drainage from shallow soil moisture
                             
-                            % Integreate to daily.
+                            % Integrate to daily.
                             if doSubstepIntegration
                                 forcingData(:,i) = dailyIntegration(obj, runoff);
                                 isDailyIntegralFlux(i) = true;
