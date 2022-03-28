@@ -396,7 +396,7 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
 %   11 April 2012   
 
             % Use sub-class constructor.
-            obj = obj@climateTransform_soilMoistureModels(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates, forcingData_reqCols, modelOptions);
+            obj = obj@climateTransform_soilMoistureModels_v2(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates, forcingData_reqCols, modelOptions);
             
             % Get list of model parameters and exclude settings, variables
             % and the model 'type';
@@ -866,17 +866,22 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
             bypass_frac = params(7,:);
             interflow_frac = params(8,:);
             beta = params(10,:);
-            gamma = params(11,:);             
-%             SMSC_interflow = params(end-4,:);
+            gamma = params(11,:);
+            % eps_interflow = 0;
             SMSC_interflow = params(13,:);
-%             SMSC_interflow_trees = params(end-3,:);
-            SMSC_interflow_trees = params(14,:);
-%             S_interflow_initial = params(end-2,:);
-            S_interflow_initial = params(15,:);
-%             k_sat_interflow = params(end-1,:);
-            k_sat_interflow = params(16,:);
-%             beta_interflow = params(end,:);
-            beta_interflow = params(17,:);
+            % SMSC_interflow_trees = params(14,:);
+            S_interflow_initial = params(14,:);
+            k_sat_interflow = params(15,:);
+            beta_interflow = params(16,:);
+            alpha_interflow = params(17,:);
+
+%                params = [  params;  ...
+%                         SMSC_interflow; ...
+%                       % SMSC_interflow_trees; ...
+%                         S_interflow_initial; ...
+%                         k_sat_interflow; ...
+%                         beta_interflow; ...
+% 						alpha_interflow];
             
             % Set if the subdaily steps should be integrated.
             if nargin < 4
@@ -1002,7 +1007,7 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
                             % Calc other losses.
                             evap_interflow = getTransformedForcing(obj, 'evap_soil_interflow',SMSnumber, false);       
                             % interflow_slow = k_sat_interflow/obj.variables.nDailySubSteps .*(SMS_interflow/SMSC_interflow).^beta_interflow;
-							interflow_slow = getTransformedForcing(obj, 'interflow_slow',SMSnumber, false) + ...
+							interflow_slow = getTransformedForcing(obj, 'interflow_slow',SMSnumber, false) ;
 
                             
                             runoff_interflow = [0;(SMS_interflow(1:end-1) + infiltration_interflow(2:end) - evap_interflow(2:end) - interflow_slow(2:end)) - SMSC_interflow];
@@ -1013,7 +1018,7 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
                             % runoff  = runoff  + runoff_interflow * (1-bypass_frac);
                             runoff  = runoff  + runoff_interflow + (interflow - infiltration_interflow) ; % TODO: is it correct? Last term represent interflow that didn't infiltrate into interflow store
                             
-                            % Integreate to daily.
+                            % Integrate to daily.
                             if doSubstepIntegration
                                 forcingData(:,i) = dailyIntegration(obj, runoff);
                                 isDailyIntegralFlux(i) = true;
@@ -1030,9 +1035,9 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
                             precip = getSubDailyForcing(obj,obj.variables.precip);
                             runoff = getTransformedForcing(obj, 'runoff_total',SMSnumber, false);
                             AET = getTransformedForcing(obj, 'evap_soil_total',SMSnumber, false);
-                            interflow_slow = getTransformedForcing(obj, 'interflow_slow',SMSnumber, false);
+                            drainage = getTransformedForcing(obj, 'drainage',SMSnumber, false);
                             
-                            fluxEstError = [0;precip(2:end) - diff(SMS + SMS_interflow) -  runoff(2:end) - AET(2:end) - interflow_slow(2:end)];
+                            fluxEstError = [0;precip(2:end) - diff(SMS + SMS_interflow) -  runoff(2:end) - AET(2:end) - drainage(2:end)];
                             
                             % Integreate to daily.
                             if doSubstepIntegration
@@ -1074,7 +1079,7 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
             param_names(size(param_names,1)+1:size(param_names,1)+5) = {
                            'SMSC_interflow: back transformed soil moisture interflow layer storage capacity (in rainfall units)'; ...                  
                            % 'SMSC_interflow_trees: back transformed soil moisture interflow layer storage capacity in trees unit (in rainfall units)'; ...
-                           'S_initialfrac_interflow: fractional initial interflow layer soil moisture (-)'; ... 
+                           'S_interflow_initial: fractional initial interflow layer soil moisture (-)'; ... 
                            'k_sat_interflow : back transformed interflow layer maximum vertical conductivity (in rainfall units/day)'; ...
                            'beta_interflow : back transformed power term for drainage rate of interflow layer (eg approx. Brook-Corey pore index power term)'; ...
 						   'alpha_interflow : back transformed power term for infiltration rate of interflow layer'};    
@@ -1086,11 +1091,11 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
             else
                 SMSC_interflow = 10^obj.SMSC_interflow;
             end
-            % if isnan(obj.SMSC_interflow_trees)
-                % SMSC_interflow_trees = 10^(obj.SMSC_trees);
-            % else
-                % SMSC_interflow_trees = 10^obj.SMSC_interflow_trees;
-            % end            
+            %   if isnan(obj.SMSC_interflow_trees)
+            %       SMSC_interflow_trees = 10^(obj.SMSC_trees);
+            %   else
+            %       SMSC_interflow_trees = 10^obj.SMSC_interflow_trees;
+            %   end            
             if isnan(obj.k_sat_interflow)
                 k_sat_interflow = 10^(obj.k_sat);
             else
@@ -1100,12 +1105,14 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
                 beta_interflow = 10^(obj.beta);
             else
                 beta_interflow = 10^(obj.beta_interflow);
-            end    
-			if isnan(obj.alpha_interflow)
+            end   
+
+            if isnan(obj.alpha_interflow)
                 alpha_interflow = 10^(obj.alpha);
             else
                 alpha_interflow = 10^(obj.alpha_interflow);
-            end                  
+            end  
+               
             if isnan(obj.S_initialfrac_interflow)
                 S_interflow_initial = obj.S_initialfrac.*SMSC_interflow;
             else
@@ -1114,7 +1121,7 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
                        
             params = [  params;  ...
                         SMSC_interflow; ...
-                        % SMSC_interflow_trees; ...
+                      % SMSC_interflow_trees; ...
                         S_interflow_initial; ...
                         k_sat_interflow; ...
                         beta_interflow; ...

@@ -521,9 +521,18 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
      % EXAMPLE OF HOW TO EXTRACT FROM THE SOIL-MOISTURE MODEL THE RUNOFF ONLY FOR THE DAYS WITH OBSERVED FLOW, AS THE SOIL MOISTURE
      % WAS CALCULATED AS PER THE METHOD FOR HEAD THAT USES ALL FORCING DATA PRIOR TO OBS. HEAD.
      
+%      %---- 1-layer ----%
+%      % Get the runoff from the forcing tranform function.
+%      quickFlow_all = getTransformedForcing(obj.parameters.climateTransform_soilMoistureModels_v2, 'runoff_total', 1, true); % set "true" if need daily data
+%      
+%      %---- 2-layer ----%
+%      % Get the runoff from the forcing tranform function.
+%      quickFlow_all = getTransformedForcing(obj.parameters.climateTransform_soilMoistureModels_2layer_v2, 'runoff_total', 1, true); % set "true" if need daily data
+
+     %---- interflow store ----%
      % Get the runoff from the forcing tranform function.
-     quickFlow_all = getTransformedForcing(obj.parameters.climateTransform_soilMoistureModels_2layer_v2, 'runoff_total', 1, true); % set "true" if need daily data
-     
+     quickFlow_all = getTransformedForcing(obj.parameters.climateTransform_soilMoistureModels_interflow, 'runoff_total', 1, true); % set "true" if need daily data
+
 
      %--------------------------------------------------------------------------------------------------------------------------
      % TODO: insert the convolution function here for the runoff following
@@ -600,14 +609,15 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
      % daily data
      [tf, column_number] = ismember('infiltration_fractional_capacity', derivedForcingData_colnames); 
      if ~tf
-         error('infiltration_fractional_capacity is not one of the derived forcings variables. Check if using 2-layer v2 soil model or model_TFN_SW_GW')
+         error('infiltration_fractional_capacity is not one of the derived forcings variables. Check if using new soil models or model_TFN_SW_GW')
      end
      infiltration_fractional_capacity = allDerivedForcingData(:,column_number);
      % sub-daily data
      SMSnumber=1;
-     [infiltration_fractional_capacity_2, isDailyIntegralFlux] = getTransformedForcing(obj.parameters.climateTransform_soilMoistureModels_2layer_v2, 'infiltration_fractional_capacity', SMSnumber, false); % set "true" if need daily data
+%      [infiltration_fractional_capacity_2, isDailyIntegralFlux] = getTransformedForcing(obj.parameters.climateTransform_soilMoistureModels_2layer_v2, 'infiltration_fractional_capacity', SMSnumber, false); % set "true" if need daily data
 %     [infiltration_fractional_capacity_2, isDailyIntegralFlux] = getTransformedForcing(obj.parameters.climateTransform_soilMoistureModels, 'infiltration_fractional_capacity', SMSnumber, false); % set "true" if need daily data
 %     [infiltration_fractional_capacity_2, isDailyIntegralFlux] = getTransformedForcing(obj.parameters.climateTransform_soilMoistureModels_v2, 'infiltration_fractional_capacity', SMSnumber, false); % set "true" if need daily data
+    [infiltration_fractional_capacity_2, isDailyIntegralFlux] = getTransformedForcing(obj.parameters.climateTransform_soilMoistureModels_interflow, 'infiltration_fractional_capacity', SMSnumber, false); % set "true" if need daily data
 
      % ploting infiltration_fractional_capacity - sub-daily time-steps
      % figure(i+7)
@@ -639,15 +649,16 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
      % daily data
      [tf, column_number] = ismember('mass_balance_error', derivedForcingData_colnames); 
      if ~tf
-         error('mass_balance_error is not one of the derived forcings variables. Check if using 2-layer v2 soil model or model_TFN_SW_GW')
+         error('mass_balance_error is not one of the derived forcings variables. Check if using new soil models or model_TFN_SW_GW')
      end
      mass_balance_error_plot = allDerivedForcingData(:,column_number);
      
      % sub-daily data
      SMSnumber=1;
-     [mass_balance_error_plot_2, isDailyIntegralFlux] = getTransformedForcing(obj.parameters.climateTransform_soilMoistureModels_2layer_v2, 'mass_balance_error', SMSnumber, false); % set "true" if need daily data
+%      [mass_balance_error_plot_2, isDailyIntegralFlux] = getTransformedForcing(obj.parameters.climateTransform_soilMoistureModels_2layer_v2, 'mass_balance_error', SMSnumber, false); % set "true" if need daily data
 %      [mass_balance_error_plot_2, isDailyIntegralFlux] = getTransformedForcing(obj.parameters.climateTransform_soilMoistureModels_v2, 'mass_balance_error', SMSnumber, false); % set "true" if need daily data
 %      [mass_balance_error_plot_2, isDailyIntegralFlux] = getTransformedForcing(obj.parameters.climateTransform_soilMoistureModels, 'mass_balance_error', SMSnumber, false); % set "true" if need daily data
+     [mass_balance_error_plot_2, isDailyIntegralFlux] = getTransformedForcing(obj.parameters.climateTransform_soilMoistureModels_interflow, 'mass_balance_error', SMSnumber, false); % set "true" if need daily data
 
      
      
@@ -686,9 +697,10 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
      infiltration = allDerivedForcingData(:,column_number);
      % sub-daily data
      SMSnumber=1;
-     [infiltration_2, isDailyIntegralFlux] = getTransformedForcing(obj.parameters.climateTransform_soilMoistureModels_2layer_v2, 'infiltration', SMSnumber, false); % set "true" if need daily data
+%      [infiltration_2, isDailyIntegralFlux] = getTransformedForcing(obj.parameters.climateTransform_soilMoistureModels_2layer_v2, 'infiltration', SMSnumber, false); % set "true" if need daily data
 %      [infiltration_2, isDailyIntegralFlux] = getTransformedForcing(obj.parameters.climateTransform_soilMoistureModels_v2, 'infiltration', SMSnumber, false); % set "true" if need daily data
 %      [infiltration_2, isDailyIntegralFlux] = getTransformedForcing(obj.parameters.climateTransform_soilMoistureModels, 'infiltration', SMSnumber, false); % set "true" if need daily data
+     [infiltration_2, isDailyIntegralFlux] = getTransformedForcing(obj.parameters.climateTransform_soilMoistureModels_interflow, 'infiltration', SMSnumber, false); % set "true" if need daily data
 
      
       % get 'SMS' (soil moisture), both daily and sub-daily time-steps to quality check
@@ -701,9 +713,10 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
      % sub-daily data
      %      SMSnumber=1;
      %      [soil_moisture_2, isDailyIntegralFlux] = getTransformedForcing(obj.parameters.climateTransform_soilMoistureModels_2layer_v2, 'SMS', SMSnumber, false); % it doesnt work for SMS cause of the original MATLAB soilMoisture code.
-     soil_moisture_2 = obj.parameters.climateTransform_soilMoistureModels_2layer_v2.variables.SMS ;   
+%      soil_moisture_2 = obj.parameters.climateTransform_soilMoistureModels_2layer_v2.variables.SMS ;   
 %      soil_moisture_2 = obj.parameters.climateTransform_soilMoistureModels_v2.variables.SMS ;
 %      soil_moisture_2 = obj.parameters.climateTransform_soilMoistureModels.variables.SMS ;
+     soil_moisture_2 = obj.parameters.climateTransform_soilMoistureModels_interflow.variables.SMS ;
 
 
           
@@ -747,10 +760,11 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
      
      % sub-daily data
      SMSnumber=1;
-     [quickFlow_22, isDailyIntegralFlux] = getTransformedForcing(obj.parameters.climateTransform_soilMoistureModels_2layer_v2, 'runoff_total', SMSnumber, false); % set "true" if need daily data
+%      [quickFlow_22, isDailyIntegralFlux] = getTransformedForcing(obj.parameters.climateTransform_soilMoistureModels_2layer_v2, 'runoff_total', SMSnumber, false); % set "true" if need daily data
 %      [quickFlow_2, isDailyIntegralFlux] = getTransformedForcing(obj.parameters.climateTransform_soilMoistureModels_v2, 'runoff', SMSnumber, false); % set "true" if need daily data
 %      [quickFlow_2, isDailyIntegralFlux] = getTransformedForcing(obj.parameters.climateTransform_soilMoistureModels, 'runoff', SMSnumber, false); % set "true" if need daily data
-     
+      [quickFlow_22, isDailyIntegralFlux] = getTransformedForcing(obj.parameters.climateTransform_soilMoistureModels_interflow, 'runoff_total', SMSnumber, false); % set "true" if need daily data
+
      % TO DO:
      % CHECK IF GW HEAD OBS TIME-SERIES LENGTH IS LONGER OR EQUAL TO STREAMFLOW TIME-SERIES.. IT MAY BE CAUSING THE ERROR FOR FORD AND SUNDAY... 
     
@@ -864,7 +878,7 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
      
     % checking parameters used in the model            
      [params, param_names] = getParameters(obj);
-     params(2:end), param_names(2:end,2)
+     params(1:end), param_names(1:end,2)
      
     end
      

@@ -137,7 +137,7 @@ siteCoordinates = {bore_ID, 100, 100;...
 % fixing alpha to zero.
 
 
-
+%---- 1-layer ----%
 % using 1-layer soil model "climateTransform_soilMoistureModels" allowing beta,
 % ksat, alpha to be calibrated. EPS=0 by default.
 % forcingTransform_Precip = {'transformfunction', 'climateTransform_soilMoistureModels'; ...
@@ -161,13 +161,13 @@ siteCoordinates = {bore_ID, 100, 100;...
 %                'options', {'SMSC',2,[];'beta',0,'';'k_sat',1,'';'alpha',0,'';'eps',0.0,'fixed'}};
 
 
-           
+%---- 2-layers ----%
 % using 2-layer soil model "climateTransform_soilMoistureModels_2layer_v2" allowing beta,
 % ksat, beta_deep,ksat_deep be calibrated. EPS=0 by default.
-forcingTransform_Precip = {'transformfunction', 'climateTransform_soilMoistureModels_2layer_v2'; ...
-               'forcingdata', {'precip','PRECIP';'et','APET'}; ...
-               'outputdata', 'drainage_deep'; ...
-               'options', {'SMSC',2,[];'SMSC_deep',2,[];'beta',0,'';'k_sat',1,'';'alpha',1,'fixed';'beta_deep',NaN,'fixed';'k_sat_deep',NaN,'fixed';'eps',0.0,''}}; % had to set k_sat_deep and beta_deep as "fixed" to allow it to pass line 480 of climateTransform_soilMoistureModels_2layer_v2
+% forcingTransform_Precip = {'transformfunction', 'climateTransform_soilMoistureModels_2layer_v2'; ...
+%                'forcingdata', {'precip','PRECIP';'et','APET'}; ...
+%                'outputdata', 'drainage_deep'; ...
+%                'options', {'SMSC',2,[];'SMSC_deep',2,[];'beta',0,'';'k_sat',1,'';'alpha',1,'fixed';'beta_deep',NaN,'fixed';'k_sat_deep',NaN,'fixed';'eps',0.0,'fixed'}}; % had to set k_sat_deep and beta_deep as "fixed" to allow it to pass line 480 of climateTransform_soilMoistureModels_2layer_v2
        
 
 % using 2-layer soil model "climateTransform_soilMoistureModels_2layer_v2" allowing beta,
@@ -178,7 +178,14 @@ forcingTransform_Precip = {'transformfunction', 'climateTransform_soilMoistureMo
 %                'options', {'SMSC',2,[];'SMSC_deep',2,[];'beta',0,'';'k_sat',1,'';'alpha',0,'';'beta_deep',NaN,'fixed';'k_sat_deep',NaN,'fixed';'eps',0.0,''}}; % had to set k_sat_deep and beta_deep as "fixed" to allow it to pass line 480 of climateTransform_soilMoistureModels_2layer_v2
         
            
-           
+
+%---- INTERFLOW ----%
+% using 2-layer soil model "climateTransform_soilMoistureModels_interflow" allowing beta,
+% ksat, beta_deep,ksat_deep, and EPS to be calibrated.
+forcingTransform_Precip = {'transformfunction', 'climateTransform_soilMoistureModels_interflow'; ...
+               'forcingdata', {'precip','PRECIP';'et','APET'}; ...
+               'outputdata', 'drainage'; ...
+               'options', {'SMSC',2,[];'SMSC_interflow',2,[];'beta',0,'';'k_sat',1,'';'alpha',0,'';'eps',0.0,''; 'interflow_frac',0.5,'';'beta_interflow',NaN,'fixed';'k_sat_interflow',NaN,'fixed';'alpha_interflow',NaN,'fixed'}}; 
           
            
            
