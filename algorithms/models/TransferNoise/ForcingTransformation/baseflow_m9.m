@@ -127,7 +127,7 @@ classdef baseflow_m9 < forcingTransform_abstract
         
         function [params_upperLimit, params_lowerLimit] = getParameters_plausibleLimit(obj)
             params_lowerLimit = [0 ; 1];
-            params_upperLimit = [1; 1000];
+            params_upperLimit = [1; 400];
         end
         
         function isValidParameter = getParameterValidity(obj, params, param_names)

@@ -1472,10 +1472,20 @@ classdef model_TFN < model_abstract
                 for j=1:nCompanants                    
                     calibData(ii,1).mean_forcing.(companants{j}) = obj.variables.(companants{j}).forcingMean(:,ii);
                 end                
-                              
-                % Add drainage elevation to the varargin variable sent to
-                % objectiveFunction.                
-                calibData(ii,1).drainage_elevation = obj.variables.d(ii);
+                    
+                
+                if ~isempty(obj.variables.d(ii))
+                    % Add drainage elevation to the varargin variable sent to
+                    % objectiveFunction.                
+                    calibData(ii,1).drainage_elevation = obj.variables.d(ii);
+                else
+                    fprintf('obj.variables.d(ii) must exist and have a value. How did it disappear?');
+                    break;
+                end
+
+                % % Add drainage elevation to the varargin variable sent to
+                % % objectiveFunction.                
+                % calibData(ii,1).drainage_elevation = obj.variables.d(ii);
                 
                 % Add noise std dev
                 if isfield(obj.variables,'sigma_n');

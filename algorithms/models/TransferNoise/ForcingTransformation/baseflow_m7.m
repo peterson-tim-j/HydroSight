@@ -10,6 +10,7 @@ classdef baseflow_m7 < forcingTransform_abstract
         %----------------------------------------------------------------
         linear_scaler   % - linear time coefficient [d-1]
         exponential_scaler % - exponential scaling parameter [-]
+		head_threshold  % - storage threshold for flow generation [mm]
         % log these parameters? 
         
         
@@ -89,6 +90,8 @@ classdef baseflow_m7 < forcingTransform_abstract
             % initializing the parameters of the object
             obj.linear_scaler = 0; % initial guess for - linear time coefficient [d-1]
             obj.exponential_scaler = 1; % initial guess for - exponential scaling parameter [-]
+			obj.head_threshold = 1; % initial guess for - storage threshold for flow generation [mm]
+
            
             obj.variables.baseFlow = [];
             obj.variables.head = [];
@@ -103,13 +106,13 @@ classdef baseflow_m7 < forcingTransform_abstract
         end
  
         function [params, param_names] = getParameters(obj)            
-           params = [ obj.linear_scaler; obj.exponential_scaler];
-           param_names = {'linear_scaler'; 'exponential_scaler'};
+           params = [ obj.linear_scaler; obj.exponential_scaler; obj.head_threshold];
+           param_names = {'linear_scaler'; 'exponential_scaler'; 'head_threshold'};
         end
         
           
         function setParameters(obj, params)
-            param_names = {'linear_scaler'; 'exponential_scaler'};
+            param_names = {'linear_scaler'; 'exponential_scaler'; 'head_threshold'};
             for i=1: length(param_names)
                 obj.(param_names{i}) = params(i,:);
             end
@@ -118,15 +121,15 @@ classdef baseflow_m7 < forcingTransform_abstract
          
         % as per range of parameters for model_42 in MaRRMOT (hycymodel)
         function [params_upperLimit, params_lowerLimit] = getParameters_physicalLimit(obj)
-            params_lowerLimit = [0 ; 1]; 
-            params_upperLimit = [1; 5];
+            params_lowerLimit = [0 ; 1; 1]; 
+            params_upperLimit = [1; 5; 1000];
         end
         %  0, 1;           % kb, Baseflow runoff coefficient [d-1]
         %  1, 5;           % pb, Baseflow non-linearity [-]
         
         function [params_upperLimit, params_lowerLimit] = getParameters_plausibleLimit(obj)
-            params_lowerLimit = [0 ; 1];
-            params_upperLimit = [1; 5];
+            params_lowerLimit = [0 ; 1; 1];
+            params_upperLimit = [1; 5; 400];
         end
         
         function isValidParameter = getParameterValidity(obj, params, param_names)
@@ -202,7 +205,7 @@ classdef baseflow_m7 < forcingTransform_abstract
                 delta_t(end+1,1) = delta_t(end,1); % duplicate last point to match head/delta_t matrixes
                 
            % calculate the baseflow 
-            obj.variables.baseFlow = min(obj.variables.head./delta_t, obj.linear_scaler.* max(0, obj.variables.head).^obj.exponential_scaler);
+            obj.variables.baseFlow = min( max(0, obj.variables.head - obj.head_threshold )./delta_t, obj.linear_scaler.* max(0, obj.variables.head - obj.head_threshold).^obj.exponential_scaler);
             % Description:  Non-linear outflow from a reservoir
             % Constraints:  f <= S/dt
             %               S >= 0
@@ -210,7 +213,8 @@ classdef baseflow_m7 < forcingTransform_abstract
             %               p2   - exponential scaling parameter [-]
             %               S    - current storage [mm]
             %               dt   - time step size [d]
-            %func = @(p1,p2,S,dt) min(S/dt,p1.*max(0,S).^p2);
+            %func = @(p1,p2,S,dt) min( max(0, S-p3)./dt , p1.*max(0, S-p3).^p2);
+			% modified to include:  p3 - storage threshold for baseflow generation [mm]
 
 
         end

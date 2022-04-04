@@ -151,7 +151,9 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
         k_sat_interflow      % Interflow Layer 2 maximum vertical conductivity.
         alpha_interflow       % Interflow Layer 2 power term for infiltration 
         beta_interflow       % Layer 2 power term for dainage rate (eg Brook-Corey pore index power term)  
-        % gamma           % Power term for soil evaporation rate. Assumed as equal to the shallow soil moisture store.  
+        gamma_interflow    % Power term for interflow soil evaporation rate.   
+        PET_scaler_interflow           % Scaling term for the ET from the interflow soil evaporation rate. 
+		eps_interflow   %  Scaler defining S_min/SMSC_interflow ratio. S_min is the minimum soil moisture threshold for having runoff produced from interflow store. If eps=0, runoff and infiltration terms are as Kavestki 2006. 
 		%----------------------------------------------------------------
     end
         
@@ -169,7 +171,7 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
             
             variable_names = climateTransform_soilMoistureModels.outputForcingdata_options(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates);
                 
-            variable_names_interflow = {'interflow_slow';'evap_soil_interflow'; 'evap_soil_total';'runoff_total';'SMS_interflow';'mass_balance_error'};
+            variable_names_interflow = {'infiltration_fractional_capacity_interflow';'infiltration_interflow';'interflow_slow';'evap_soil_interflow'; 'evap_soil_total';'runoff_interflow';'runoff_total';'SMS_interflow';'mass_balance_error'};
                 
             variable_names = {variable_names{:}, variable_names_interflow{:}};
             variable_names = unique(variable_names);
@@ -190,9 +192,12 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
                         'eps'           ,   0,  'Fixed'; ...
                         'SMSC_interflow'     ,  2, 'Calib.'   ;...
                         'S_initialfrac_interflow', 0.5,'Fixed'; ...
-                        'k_sat_interflow'     , 1, 'Calib.'   ;...
-						'alpha_interflow'     , 0, 'Fixed'   ;...
-                        'beta_interflow'     ,  0.5, 'Calib.'};
+                        'k_sat_interflow'     , NaN, 'Fixed.'   ;...
+						'alpha_interflow'     , NaN, 'Fixed'   ;...
+                        'beta_interflow'     ,  NaN, 'Fixed.';...
+                        'gamma_interflow'     ,  NaN, 'Fixed';...
+                        'PET_scaler_interflow' ,  1, 'Fixed';...
+						'eps_interflow' ,  0, 'Fixed'};
 
         
             colNames = {'Parameter', 'Initial Value','Fixed or Calibrated?'};
@@ -217,7 +222,10 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
                                 '   S_initialfrac_interflow: Initial interflow soil moisture fraction (0-1).\n', ...
                                 '   k_sat_interflow   : log10(Interflow layer maximum vertical infiltration rate).\n', ...
 								'   alpha_interflow   : log10(Power term for interflow layer infiltration rate).\n', ...
-                                '   beta_interflow    : log10(Interflow layer power term for drainage rate).']);
+                                '   beta_interflow    : log10(Interflow layer power term for drainage rate).',...
+								'   gamma_interflow    : log10(Power term for interflow soil evap. rate).\n',...
+								'   PET_scaler_interflow    :  % Scaling term for the ET from the interflow soil evaporation rate (0-1).',...
+								'   eps_interflow          : eps_interflow = (S_min/SMSC ratio). S_min is the minimum soil moisture threshold for interflow store.']);
             
         end
         
@@ -246,14 +254,18 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
                                 'gamma        : log10(Power term for soil evap. rate).', ...
                                 'eps           : S_min/SMSC ratio. S_min is the minimum soil moisture threshold.',...
                                 'SMSC_interflow    : log10(Deep layer soil moisture capacity as water depth). ', ...
-                                '               Input an empty value and "fixed" to for it to equal SMSC.', ...
+                                '               Input an NaN value and "fixed" to for it to equal SMSC.', ...
                                 'S_initialfrac_interflow: Initial interflow soil moisture fraction (0-1).\n', ...      
-                                '               Input an empty value and "fixed" to for it to S_initialfrac', ...                                
+                                '               Input an NaN value and "fixed" to for it to S_initialfrac', ...                                
                                 'k_sat_interflow   : log10(interflow layer maximum vertical infiltration rate).', ...
-                                '               Input an empty value and "fixed" to for it to equal k_sat.', ...
+                                '               Input an NaN value and "fixed" to for it to equal k_sat.', ...
 								'alpha_interflow       : Power term for interflow layer infiltration rate.', ...
                                 'beta_interflow    : log10(interflow layer power term for dainage rate).', ...
-                                '               Input an empty value and "fixed" to for it to beta.', ...                                
+                                '               Input an NaN value and "fixed" to for it to equal beta.', ...  
+								'gamma_interflow    : log10(Power term for interflow soil evap. rate)', ...
+                                '               Input an NaN value and "fixed" to for it to equal gamma.', ... 
+								'PET_scaler_interflow    :  Scaling term for the ET from the interflow soil evaporation rate (0-1).', ...
+                                '               Input an NaN value and "fixed" to for it to equal zero. Fixed to zero as default', ... 								
                                '', ...               
                                'References: ', ...
                                '1. Peterson & Western (2014), Nonlinear time-series modeling of unconfined groundwater head, Water Resour. Res., 50, 8330–8355', ...
@@ -321,8 +333,9 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
 %                             conductivity.
 %       'gamma'             - layer 1 parameter for the evaporation rate power term.
 %       'beta_interflow'            - layer 2 parameter for the drainage rate power term.
-%       'k_sat_interflow'           - layer 2 parameter for the maximum vertical saturated
-%                             conductivity.
+%       'k_sat_interflow'           - layer 2 parameter for the maximum vertical saturated conductivity.
+%       'gamma_interflow'           - layer 2 parameter for the soil evapotranspiration rate
+%                         
 %       'numDailySubsteps'  - a user option to define the number of
 %                             sub-daily time steps when solving the
 %                             differential equation. Having more than one
@@ -430,8 +443,8 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
                 if isempty(ind)
                     obj.settings.fixedParameters.(all_parameter_names{i})=false;
                     obj.settings.activeParameters.(all_parameter_names{i})=false;                    
-                    if strcmp(all_parameter_names{i}, 'beta_interflow')
-                        % Note, beta is transformed in the soil model to 10^beta.
+                    if strcmp(all_parameter_names{i}, 'beta_interflow') 
+					    % Note, beta is transformed in the soil model to 10^beta.
                         obj.(all_parameter_names{i}) = 0;
                         
                     elseif strcmp(all_parameter_names{i}, 'k_sat_interflow')
@@ -441,9 +454,18 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
                         
                     elseif strcmp(all_parameter_names{i}, 'alpha_interflow')
                         obj.(all_parameter_names{i}) = 0;  
+					
+					elseif strcmp(all_parameter_names{i}, 'gamma_interflow')
+                        obj.(all_parameter_names{i}) = 0;  
 						
 					elseif strcmp(all_parameter_names{i}, 'S_initialfrac_interflow')
                         obj.(all_parameter_names{i}) = 0.5; 
+						
+					elseif strcmp(all_parameter_names{i}, 'PET_scaler_interflow')
+                        obj.(all_parameter_names{i}) = 1; 
+						
+					elseif strcmp(all_parameter_names{i}, 'eps_interflow')
+                        obj.(all_parameter_names{i}) = 0; 
                         
                     else
                         obj.(all_parameter_names{i}) = 0;
@@ -472,6 +494,9 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
 			if isnan(obj.alpha_interflow) && obj.settings.activeParameters.alpha_interflow
                 error('"alpha_interflow" can only be initialsied to Nan if it is "Fixed".');
             end  
+			if isnan(obj.gamma_interflow) && obj.settings.activeParameters.gamma_interflow
+                error('"gamma_interflow" can only be initialsied to Nan if it is "Fixed".');
+            end
             if isnan(obj.S_initialfrac_interflow) && obj.settings.activeParameters.S_initialfrac_interflow
                 error('"S_initialfrac_interflow" can only be initialsied to Nan if it is "Fixed".');
             end                
@@ -480,7 +505,10 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
             % end                
             if isnan(obj.SMSC_interflow) && obj.settings.activeParameters.SMSC_interflow
                 error('"SMSC_interflow" can only be initialsied to Nan if it is "Fixed".');
-            end     
+            end    
+			if isnan(obj.eps_interflow) && obj.settings.activeParameters.eps_interflow
+                error('"eps_interflow" can only be initialsied to Nan if it is "Fixed".');
+            end  			
 		
 		
             % Initialise interflow soil moisture variables
@@ -552,6 +580,25 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
                 params_upperLimit(ind,1) = Inf; % TODO: reasonable??
             end     
 			
+						
+			if obj.settings.activeParameters.gamma_interflow
+                ind = cellfun(@(x)(strcmp(x,'gamma_interflow')),param_names); 
+                params_lowerLimit(ind,1) = log10(0.01);
+                params_upperLimit(ind,1) = log10(100);
+            end  
+			
+			if obj.settings.activeParameters.PET_scaler_interflow
+                ind = cellfun(@(x)(strcmp(x,'PET_scaler_interflow')),param_names); 
+                params_lowerLimit(ind,1) = 0;
+                params_upperLimit(ind,1) = 1;
+            end    			
+			
+			if obj.settings.activeParameters.eps_interflow
+                ind = cellfun(@(x)(strcmp(x,'eps_interflow')),param_names);
+                params_lowerLimit(ind,1) = 0;
+                params_upperLimit(ind,1) = 1;
+            end  
+			
         end  
  
         
@@ -620,6 +667,24 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
                 params_lowerLimit(ind,1) = log10(0); % TODO: reasonable??
                 params_upperLimit(ind,1) = log10(5); % TODO: reasonable??
             end   
+			
+			if obj.settings.activeParameters.gamma_interflow  
+                ind = cellfun(@(x)(strcmp(x,'gamma_interflow')),param_names);
+                params_lowerLimit(ind,1) = log10(0.1);
+                params_upperLimit(ind,1) = log10(10);
+            end 
+			
+			if obj.settings.activeParameters.PET_scaler_interflow  
+                ind = cellfun(@(x)(strcmp(x,'PET_scaler_interflow')),param_names);
+                params_lowerLimit(ind,1) = 0;
+                params_upperLimit(ind,1) = 1;
+            end 
+			
+			if obj.settings.activeParameters.eps_interflow
+                ind = cellfun(@(x)(strcmp(x,'eps_interflow')),param_names);
+                params_lowerLimit(ind,1) = 0;
+                params_upperLimit(ind,1) = 1;
+            end 
 			
         end
         
@@ -711,7 +776,17 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
                     alpha_interflow = 10^(obj.alpha);
                 else
                     alpha_interflow = 10^(obj.alpha_interflow);
-                end    				
+                end 
+				if isnan(obj.gamma_interflow)
+                    gamma_interflow = 10^(obj.gamma);
+                else
+                    gamma_interflow = 10^(obj.gamma_interflow);
+                end  
+				if isnan(obj.eps_interflow)
+                    eps_interflow = 10^(obj.eps);
+                else
+                    eps_interflow = 10^(obj.eps_interflow);
+                end 				
                
                 % Set interflow initial soil moisture.
                 if isnan(obj.S_initialfrac_interflow)
@@ -720,6 +795,8 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
                     S_interflow_initial = obj.S_initialfrac_interflow.*SMSC_interflow;
                 end                             
                 
+		                    							
+				
                 % Call MEX function for DEEP soil moisture model.  
 %                 if ~doSubDailyEst
                     % Get free drainage from the shallow layer
@@ -735,19 +812,28 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
                     beta = 10.^(obj.beta);
                     gamma = 10.^(obj.gamma);
                     k_sat = 10.^obj.k_sat;
-					% eps_interflow=0;
-                    interflow_frac = obj.interflow_frac;
+					interflow_frac = obj.interflow_frac;
                     interflow = (interflow_frac) .* k_sat/obj.variables.nDailySubSteps .*(obj.variables.SMS/SMSC).^beta;                  
                     
-                    % Expand input forcing data to have the required number of substeps.
-                    evap = getSubDailyForcing(obj,obj.variables.evap);
+                    % Calc potential ET for interflow store
+                    if obj.PET_scaler_interflow==0
+                        PET = zeros(size(interflow));
+                    else
+                        % Expand input forcing data to have the required number of substeps.
+                        evap = getSubDailyForcing(obj,obj.variables.evap);
                     
-                    % Calc potential ET for interflow layer
-                    PET = evap - getTransformedForcing(obj, 'evap_soil',1, false); 
-                    
+                        % Calc potential ET for interflow layer
+                        if obj.PET_scaler_interflow==1
+
+                            PET = evap - getTransformedForcing(obj, 'evap_soil',1, false); 
+                        else
+                            PET = obj.PET_scaler_interflow .* (evap - getTransformedForcing(obj, 'evap_soil',1, false));
+                        end
+                    end
+
                     % Call MEX soil model
                     obj.variables.SMS_interflow = forcingTransform_soilMoisture(S_interflow_initial, interflow, PET, SMSC_interflow, k_sat_interflow/nDailySubSteps, ...
-                        alpha_interflow, beta_interflow, 10.^obj.gamma, 0); % eps_interflow=0;
+                        alpha_interflow, beta_interflow, gamma_interflow, eps_interflow); % TODO: gamma_interflow checked?, eps_interflow=0 indeed by default?; 
                     
                     % Run soil model again if tree cover is to be simulated
                     % if  isfield(obj.settings,'simulateLandCover') && obj.settings.simulateLandCover
@@ -774,29 +860,29 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
                         % obj.variables.SMS_interflow_trees = forcingTransform_soilMoisture(S_interflow_initial, drainage, PET, SMSC_interflow_trees, ...
                             % k_sat_interflow, 0, beta_interflow, 10.^obj.gamma, 0);
                     % end
-%                 else
-%                     % Define the number of daily sub-steps.
-%                     nSubSteps = obj.variables.nDailySubSteps;
-%                     t_substeps = linspace(0,1,nSubSteps+1);
-%                     
-%                     % Get number of days
-%                     nDays = length(effectivePrecip);
-%                                         
-%                     % Scale the forcing data by the number of time steps.
-%                     effectivePrecip = effectivePrecip./nSubSteps;
-%                     evap = obj.variables.evap./nSubSteps;
-%                     
-%                     % Scale ksat from units of 'per day' to 'per sub daily
-%                     % time step'
-%                     k_sat = k_sat./nSubSteps;
-%                     
-%                     % Expand input forcing data to have the required number of days.
-%                     effectivePrecip = reshape(repmat(effectivePrecip,1,nSubSteps)',nDays * nSubSteps,1);
-%                     evap = reshape(repmat(evap,1,nSubSteps)',nDays * nSubSteps,1);
-%                     
-%                     % Run the soil models using the sub-steps.
-%                     obj.variables.SMS_subdaily = forcingTransform_soilMoisture(S_initial, effectivePrecip, evap, SMSC, k_sat, alpha, beta, gamma);
-%                 end
+                % else
+                    % % Define the number of daily sub-steps.
+                    % nSubSteps = obj.variables.nDailySubSteps;
+                    % t_substeps = linspace(0,1,nSubSteps+1);
+                    
+                    % % Get number of days
+                    % nDays = length(effectivePrecip);
+                                        
+                    % % Scale the forcing data by the number of time steps.
+                    % effectivePrecip = effectivePrecip./nSubSteps;
+                    % evap = obj.variables.evap./nSubSteps;
+                    
+                    % % Scale ksat from units of 'per day' to 'per sub daily
+                    % % time step'
+                    % k_sat = k_sat./nSubSteps;
+                    
+                    % % Expand input forcing data to have the required number of days.
+                    % effectivePrecip = reshape(repmat(effectivePrecip,1,nSubSteps)',nDays * nSubSteps,1);
+                    % evap = reshape(repmat(evap,1,nSubSteps)',nDays * nSubSteps,1);
+                    
+                    % % Run the soil models using the sub-steps.
+                    % obj.variables.SMS_subdaily = forcingTransform_soilMoisture(S_initial, effectivePrecip, evap, SMSC, k_sat, alpha, beta, gamma);
+                % end
                                 
             end
         end
@@ -867,21 +953,16 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
             interflow_frac = params(8,:);
             beta = params(10,:);
             gamma = params(11,:);
-            % eps_interflow = 0;
             SMSC_interflow = params(13,:);
             % SMSC_interflow_trees = params(14,:);
             S_interflow_initial = params(14,:);
             k_sat_interflow = params(15,:);
             beta_interflow = params(16,:);
             alpha_interflow = params(17,:);
+            gamma_interflow = params(18,:);
+            PET_scaler_interflow = params(19,:);
+			eps_interflow = params(20,:); % zero by default
 
-%                params = [  params;  ...
-%                         SMSC_interflow; ...
-%                       % SMSC_interflow_trees; ...
-%                         S_interflow_initial; ...
-%                         k_sat_interflow; ...
-%                         beta_interflow; ...
-% 						alpha_interflow];
             
             % Set if the subdaily steps should be integrated.
             if nargin < 4
@@ -923,35 +1004,70 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
                     end                     
 
                     switch variableName{i}
-                        case 'interflow_slow'
-                            % runoff = 0;
-                            % if bypass_frac~=0
-                                % % Get runoff
-                                % runoff = getTransformedForcing(obj, 'runoff',SMSnumber, false);
-                                
-                                % % Re-scale runoff from that going to the stream to that going to recharge plus the stream.
-                                % runoff  = runoff ./ (1-bypass_frac);
-                            % end                              
-                            
-                            interflow_slow =  k_sat_interflow/obj.variables.nDailySubSteps .*(SMS_interflow/SMSC_interflow).^beta_interflow;
-                            % drainage = drainage + bypass_frac.*runoff;
+                        case 'infiltration_fractional_capacity_interflow'
+						
+							% CalculateS infiltration fractional capacity, representing the fraction of rainfall that is infiltrated 
+                            infiltration_fractional_capacity_interflow = min(1, ((SMSC_interflow - SMS_interflow)/(SMSC_interflow*(1-eps_interflow))).^alpha_interflow);
+                             
                             if doSubstepIntegration
-                                forcingData(:,i) = dailyIntegration(obj, interflow_slow);
+                                forcingData(:,i) = dailyIntegration(obj, infiltration_fractional_capacity_interflow./obj.variables.nDailySubSteps);
+                            else
+                                forcingData(:,i) = infiltration_fractional_capacity_interflow;
+                            end
+                                                        
+                            if doSubstepIntegration
                                 isDailyIntegralFlux(i) = true;
                             else
-                               forcingData(:,i) = interflow_slow;  
-                               isDailyIntegralFlux(i) = false;
-                            end                                                                                          
+                                isDailyIntegralFlux(i) = false;
+                            end
+						
+						case 'infiltration_interflow'
+                            % input to interflow store is the interflow_fraction taken from the free drainage of the shallow soil store
+							interflow = getTransformedForcing(obj, 'interflow',SMSnumber, false); 
                             
+                            if alpha_interflow==0
+                                infiltration_interflow =  interflow;                                                       
+                            else
+                                infiltration_fractional_capacity_interflow = getTransformedForcing(obj, 'infiltration_fractional_capacity_interflow', SMSnumber, false);
+                                infiltration_interflow =  interflow .* infiltration_fractional_capacity_interflow;                                                                
+                            end
+							
+							% Calculate when the soil is probably
+                            % saturated. 
+                            interflow = getTransformedForcing(obj, 'interflow',SMSnumber, false);
+                            evap_soil_interflow = getTransformedForcing(obj, 'evap_soil_interflow',SMSnumber, false);
+                            Infilt2Runoff = [0;(SMS_interflow(1:end-1) + infiltration_interflow(2:end) - evap_soil_interflow(2:end) - interflow(2:end)) - SMSC_interflow];
+                            Infilt2Runoff(Infilt2Runoff<0) = 0;
+							
+							% Subtract estimated saturated excess runoff
+                            % from the infiltration and then integrate.
+							infiltration_interflow = infiltration_interflow - Infilt2Runoff;
+							
+							if doSubstepIntegration
+								forcingData(:,i) = dailyIntegration(obj, infiltration_interflow);
+							else
+								forcingData(:,i) = infiltration_interflow;
+							end 
+							
                         case 'evap_soil_interflow'    
-                            % Expand input forcing data to have the required number of substeps.
-                            evap = getSubDailyForcing(obj,obj.variables.evap);
-                            
-                            %Subtract evap from shallow layer
-                            evap = evap - getTransformedForcing(obj, 'evap_soil',SMSnumber, false);
-                                                        
-                            % Est ET
-                            evap = evap .* (SMS_interflow/SMSC_interflow).^gamma;                            
+                            							
+							% Calc potential ET for interflow store
+							if PET_scaler_interflow==0
+								interflow = getTransformedForcing(obj, 'interflow',SMSnumber, false); 
+								evap = zeros(size(interflow));
+							else
+								% Expand input forcing data to have the required number of substeps.
+								evap = getSubDailyForcing(obj,obj.variables.evap);
+							
+								%Subtract evap from shallow layer considering the EVAP_scaler for the input PET into interflow store
+								evap = PET_scaler_interflow .* (evap - getTransformedForcing(obj, 'evap_soil',SMSnumber, false));
+																
+								% Est ET for interflow store
+								evap = evap .* (SMS_interflow/SMSC_interflow).^gamma_interflow;
+								
+								end
+							end
+																					                         
                                                         
                             if doSubstepIntegration
                                 forcingData(:,i) = dailyIntegration(obj, evap);
@@ -959,7 +1075,8 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
                             else
                                forcingData(:,i) = evap;  
                                isDailyIntegralFlux(i) = false;
-                            end                           
+                            end          
+							
                         case 'evap_soil_total'
                             evap = getTransformedForcing(obj, 'evap_soil',SMSnumber, false) + ...
                                    getTransformedForcing(obj, 'evap_soil_interflow',SMSnumber, false);
@@ -982,41 +1099,44 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
                                 forcingData(:,i) = evap;
                                 isDailyIntegralFlux(i) = false;
                             end                            
-                             
-                        case 'runoff_total'
-                            %Calculate the runoff from the shallow layer
-                            runoff = getTransformedForcing@climateTransform_soilMoistureModels(obj, 'runoff',SMSnumber, false);     
-							% interflow = (interflow_frac) .* k_sat/obj.variables.nDailySubSteps .*(obj.variables.SMS/SMSC).^beta; 
-							interflow = getTransformedForcing@climateTransform_soilMoistureModels(obj, 'interflow',SMSnumber, false);  							
-                            runoff = runoff - interflow ;% TODO: Is it correct? subtract interflow from shallow runoff to avoid double-counting... 
-							
-                            % Calculate the runoff from the deep layer.
-                            % Note, runoff can only occur via interflow or
-                            % saturation of the interflow layer.
-                            %---------------------
-                            % Calculate max. infiltration assuming none
-                            % goes to SATURATED runoff.
-							
-							if alpha_interflow==0
-                                infiltration_interflow =  interflow;                                                             
-                            else                                
-								infiltration_interflow = interflow .* (1- SMS_interflow/SMSC_interflow).^alpha_interflow;
-							end						
 						
-							
-                            % Calc other losses.
-                            evap_interflow = getTransformedForcing(obj, 'evap_soil_interflow',SMSnumber, false);       
-                            % interflow_slow = k_sat_interflow/obj.variables.nDailySubSteps .*(SMS_interflow/SMSC_interflow).^beta_interflow;
-							interflow_slow = getTransformedForcing(obj, 'interflow_slow',SMSnumber, false) ;
+						case 'interflow_slow'
+                            
+                            interflow_slow =  k_sat_interflow/obj.variables.nDailySubSteps .*(SMS_interflow/SMSC_interflow).^beta_interflow;
+                            
+                            if doSubstepIntegration
+                                forcingData(:,i) = dailyIntegration(obj, interflow_slow);
+                                isDailyIntegralFlux(i) = true;
+                            else
+                               forcingData(:,i) = interflow_slow;  
+                               isDailyIntegralFlux(i) = false;
+                            end             
+											
+						
+						case 'runoff_interflow'
 
-                            
-                            runoff_interflow = [0;(SMS_interflow(1:end-1) + infiltration_interflow(2:end) - evap_interflow(2:end) - interflow_slow(2:end)) - SMSC_interflow];
-                            runoff_interflow(runoff_interflow<0) = 0;                            
-                            %---------------------
-                            
-                            % Sum runoff from the top and deep layer (minus bypass runoiff to deep drainage).
-                            % runoff  = runoff  + runoff_interflow * (1-bypass_frac);
-                            runoff  = runoff  + runoff_interflow + (interflow - infiltration_interflow) ; % TODO: is it correct? Last term represent interflow that didn't infiltrate into interflow store
+							% Calc sub daily runoff from interflow store
+							interflow = getTransformedForcing(obj, 'interflow',SMSnumber, false); 
+							infiltration_interflow = getTransformedForcing(obj, 'infiltration_interflow',SMSnumber, false); 
+                            runoff_interflow = max(0,interflow - infiltration_interflow);
+						
+                        case 'runoff_total'
+                            %Calculate the runoff from the shallow soil store
+                            runoff = getTransformedForcing(obj, 'runoff',SMSnumber, false);     
+							% subtract interflow (which is a simple fraction of the free drainage from shallow soil store) to avoid double-counting as interflow from shallow store is the input to interflow store
+							interflow = getTransformedForcing(obj, 'interflow',SMSnumber, false);  							
+                            runoff = runoff - interflow ;
+							
+                            % Calculate the saturation excess runoff out of the interflow store.
+							runoff_interflow = getTransformedForcing(obj, 'runoff_interflow',SMSnumber, false);     
+							
+							% Calculate the interflow_slow as free drainage out of interflow store
+							interflow_slow = getTransformedForcing(obj, 'interflow_slow',SMSnumber, false);  			
+						
+							                            
+                            % Sum runoff from the shallow layer (without its interflow), interflow_slow, and runoff_interflow
+                            % NOTE: runoff_interflow can't be captured back to free drainage to feed groundwater (bypass_frac_interflow=0);
+                            runoff_total  = runoff  + runoff_interflow + interflow_slow; % TODO: is it correct? 
                             
                             % Integrate to daily.
                             if doSubstepIntegration
@@ -1035,7 +1155,7 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
                             precip = getSubDailyForcing(obj,obj.variables.precip);
                             runoff = getTransformedForcing(obj, 'runoff_total',SMSnumber, false);
                             AET = getTransformedForcing(obj, 'evap_soil_total',SMSnumber, false);
-                            drainage = getTransformedForcing(obj, 'drainage',SMSnumber, false);
+                            drainage = getTransformedForcing(obj, 'drainage',SMSnumber, false); % TODO: this is correct as interflow is already in runoff total?
                             
                             fluxEstError = [0;precip(2:end) - diff(SMS + SMS_interflow) -  runoff(2:end) - AET(2:end) - drainage(2:end)];
                             
@@ -1076,14 +1196,19 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
             
             [params, param_names] = getDerivedParameters@climateTransform_soilMoistureModels(obj);   
             
-            param_names(size(param_names,1)+1:size(param_names,1)+5) = {
+            param_names(size(param_names,1)+1:size(param_names,1)+8) = {
                            'SMSC_interflow: back transformed soil moisture interflow layer storage capacity (in rainfall units)'; ...                  
                            % 'SMSC_interflow_trees: back transformed soil moisture interflow layer storage capacity in trees unit (in rainfall units)'; ...
                            'S_interflow_initial: fractional initial interflow layer soil moisture (-)'; ... 
                            'k_sat_interflow : back transformed interflow layer maximum vertical conductivity (in rainfall units/day)'; ...
                            'beta_interflow : back transformed power term for drainage rate of interflow layer (eg approx. Brook-Corey pore index power term)'; ...
-						   'alpha_interflow : back transformed power term for infiltration rate of interflow layer'};    
+						   'alpha_interflow : back transformed power term for infiltration rate of interflow layer';...
+						   'gamma_interflow : back transformed power term for soil evaporation rate (-)';...
+						   'PET_scaler_interflow : Scaling term for the ET from the interflow soil evaporation rate (-)';...
+						   'eps_interflow : equal to S_min/SMSC ratio. S_min is the minimum soil moisture threshold for runoff to occur.(-)'};    
         
+		
+		
             % Handle interflow soil layer parameters taken from the shallow
             % layer.
             if isnan(obj.SMSC_interflow)
@@ -1117,7 +1242,21 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
                 S_interflow_initial = obj.S_initialfrac.*SMSC_interflow;
             else
                 S_interflow_initial = obj.S_initialfrac_interflow.*SMSC_interflow;
-            end                         
+            end    
+
+			if isnan(obj.gamma_interflow)
+                gamma_interflow = 10^(obj.gamma);
+            else
+                gamma_interflow = 10^(obj.gamma_interflow);
+            end   
+			
+			if isnan(obj.eps_interflow)
+                eps_interflow = 10^(obj.eps);
+            else
+                eps_interflow = 10^(obj.eps_interflow);
+            end
+
+				
                        
             params = [  params;  ...
                         SMSC_interflow; ...
@@ -1125,8 +1264,105 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
                         S_interflow_initial; ...
                         k_sat_interflow; ...
                         beta_interflow; ...
-						alpha_interflow];
-        end        
+						alpha_interflow;...
+						gamma_interflow;...
+						obj.PET_scaler_interflow;...
+						eps_interflow];
+						                     
+						
+        end    
+
+
+		function isValidParameter = getParameterValidity(obj, params, param_names)
+		% getParameterValidity returns a logical vector for the validity or each parameter.
+		%
+		% Syntax:
+		%   isValidParameter = getParameterValidity(obj, params, param_names)
+		%
+		% Description:
+		%   Cycles though all active soil model parameters and returns a logical 
+		%   vector denoting if each parameter is valid, ie within the physical 
+		%   parameter bounds including reasonable mass balance of the surface and groundwater components.
+		%
+		% Input:
+		%   obj -  model object.
+		%
+		%   params - vector of model parameters
+		%
+		%   param_names - cell array of the parameter names.
+		%
+		% Outputs:
+		%   isValidParameter - column vector of the parameter validity.
+		%
+		% Example:
+		%   see HydroSight: time_series_model_calibration_and_construction;
+		%
+		% See also:
+		%   model_TFN_SW_GW: model_construction;
+		%
+		% Author: 
+		%   Dr. Tim Peterson, Monash University 
+		%   Giancarlo Bonotto, The University of Melbourne.
+		%
+		% Date:
+		%   April 2022
+
+            % Get physical bounds.
+            [params_upperLimit, params_lowerLimit] = getParameters_physicalLimit(obj);
+
+            % Get the filetred P and potential ET is already stored in the
+            % model object.
+            if isfield(obj.variables,'precip') && isfield(obj.variables,'evap')
+                P = obj.variables.precip;
+                PET = obj.variables.evap;
+                t = obj.variables.t;
+            else
+                filt = strcmp(obj.settings.forcingData_cols(:,1),'precip');
+                precip_col = obj.settings.forcingData_cols{filt,2};
+                P = obj.settings.forcingData(:, precip_col );
+
+                filt = strcmp(obj.settings.forcingData_cols(:,1),'et');
+                evap_col = obj.settings.forcingData_cols{filt,2};
+                PET = obj.settings.forcingData(:, evap_col );                
+                
+                t = obj.settings.forcingData(:, 1);
+            end
+
+            % Calculate mean aridity index
+            P = mean(P);
+            PET = mean(PET);
+            PET_on_P = PET/P;
+            
+            % Calculate Budyko samples of E/P using prior sampled values of 
+            % omega at PET_on_P.
+            AET_on_P = 1 + PET_on_P -(1+PET_on_P.^obj.settings.Budyko_omega).^(1./obj.settings.Budyko_omega);
+            
+            % Calculate the 1st and 99th percentiles
+            AET_on_P = prctile(AET_on_P, [10 90],1);
+            
+            % Initialise output
+            isValidParameter = true(size(params));
+            
+            % Calculate the soil moisture estimate of actual ET.
+            for i=1:size(params,2)
+                setParameters(obj, params(:,i));
+                setTransformedForcing(obj, t, true);
+                AET = mean(getTransformedForcing(obj, 'evap_soil'));
+
+                % Ceck if the AET is within the Budyko bounds
+                if AET/P < AET_on_P(1) || AET/P > AET_on_P(2)
+                    isValidParameter(:,i) = false;
+                end
+            end
+            setParameters(obj, params);
+
+            % Check parameters are within bounds.
+            isValidParameter = isValidParameter & params >= params_lowerLimit(:,ones(1,size(params,2))) & ...
+    		params <= params_upperLimit(:,ones(1,size(params,2)));   
+        end 
+
+
+		
     end
 
     

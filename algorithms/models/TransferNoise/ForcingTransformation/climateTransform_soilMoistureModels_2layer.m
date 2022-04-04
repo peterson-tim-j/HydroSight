@@ -491,7 +491,8 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
             if isnan(obj.SMSC_deep_trees) && obj.settings.activeParameters.SMSC_deep_trees
                 error('"SMSC_deep_trees" can only be initialsied to Nan if it is "Fixed".');
             end                
-            if isnan(obj.SMSC_deep) && obj.settings.activeParameters.SMSC_deep_trees % TODO: is it a bug?
+            % if isnan(obj.SMSC_deep) && obj.settings.activeParameters.SMSC_deep_trees % TODO: is it a bug?
+			if isnan(obj.SMSC_deep) && obj.settings.activeParameters.SMSC_deep 
                 error('"SMSC_deep" can only be initialsied to Nan if it is "Fixed".');
             end                
             

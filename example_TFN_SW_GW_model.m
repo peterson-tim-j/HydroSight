@@ -62,11 +62,11 @@ baseflow_options = {'baseflow_v1'; 'baseflow_v2'; 'baseflow_m1';'baseflow_m2';
                     'baseflow_bi_2'; 'baseflow_bi_3'; 'baseflow_bi_4'};
 
 
-% for i = 1:1
-for i = 1:length(list_bores)
+for i = 1:1
+% for i = 1:length(list_bores)
 
 % for bb = 1:length(baseflow_options)
-for bb = 1:1
+for bb = 11:11
 
 testing_only =1; % a flag so we run model in diagnosis mode
     
@@ -139,7 +139,7 @@ siteCoordinates = {bore_ID, 100, 100;...
 
 %---- 1-layer ----%
 % using 1-layer soil model "climateTransform_soilMoistureModels" allowing beta,
-% ksat, alpha to be calibrated. EPS=0 by default.
+% ksat to be calibrated. Alpha=0 fixed, EPS=0 by default.
 % forcingTransform_Precip = {'transformfunction', 'climateTransform_soilMoistureModels'; ...
 %                'forcingdata', {'precip','PRECIP';'et','APET'}; ...
 %                'outputdata', 'drainage'; ...
@@ -147,7 +147,7 @@ siteCoordinates = {bore_ID, 100, 100;...
 
 
 % using 1-layer soil model "climateTransform_soilMoistureModels" allowing beta,
-% ksat, alpha, and EPS to be calibrated.
+% ksat, alpha to be calibrated. EPS=0 fixed. 
 % forcingTransform_Precip = {'transformfunction', 'climateTransform_soilMoistureModels'; ...
 %                'forcingdata', {'precip','PRECIP';'et','APET'}; ...
 %                'outputdata', 'drainage'; ...
@@ -158,7 +158,7 @@ siteCoordinates = {bore_ID, 100, 100;...
 % forcingTransform_Precip = {'transformfunction', 'climateTransform_soilMoistureModels_v2'; ...
 %                'forcingdata', {'precip','PRECIP';'et','APET'}; ...
 %                'outputdata', 'drainage'; ...
-%                'options', {'SMSC',2,[];'beta',0,'';'k_sat',1,'';'alpha',0,'';'eps',0.0,'fixed'}};
+%                'options', {'SMSC',2,[];'beta',0,'';'k_sat',1,'';'alpha',0,'';'eps',0.0,''}};
 
 
 %---- 2-layers ----%
@@ -180,14 +180,58 @@ siteCoordinates = {bore_ID, 100, 100;...
            
 
 %---- INTERFLOW ----%
-% using 2-layer soil model "climateTransform_soilMoistureModels_interflow" allowing beta,
-% ksat, beta_deep,ksat_deep, and EPS to be calibrated.
+
+%---- Hypothesis 1 ---- NO INTERFLOW ----%  
+% using 1-layer soil model "climateTransform_soilMoistureModels_v2" 
+% ----- Alpha, beta, gamma, EPS are calibrated  ----%
+% forcingTransform_Precip = {'transformfunction', 'climateTransform_soilMoistureModels_v2'; ...
+%                'forcingdata', {'precip','PRECIP';'et','APET'}; ...
+%                'outputdata', 'drainage'; ...
+%                'options', {'SMSC',2,[];'k_infilt',inf,'fixed';'beta',0,'';'k_sat',1,'';'alpha',0,'';'eps',0.0,''; 'interflow_frac',0.0,'fixed'}};
+
+%---- Hypothesis 2 ---- INTERFLOW, NO STORAGE ----%
+% using 1-layer soil model "climateTransform_soilMoistureModels_v2" 
+% ---- Alpha, beta, gamma, EPS, inteflow_frac are calibrated  ----%
+% forcingTransform_Precip = {'transformfunction', 'climateTransform_soilMoistureModels_v2'; ...
+%                'forcingdata', {'precip','PRECIP';'et','APET'}; ...
+%                'outputdata', 'drainage'; ...
+%                'options', {'SMSC',2,[];'k_infilt',inf,'fixed'; 'beta',0,'';'k_sat',1,'';'alpha',0,'';'eps',0.0,'fixed'; 'interflow_frac',0.5,''}};
+
+%---- Hypothesis 3 ---- INTERFLOW, INFINITE STORAGE ----% 
+% using 2-layer soil model "climateTransform_soilMoistureModels_interflow" 
+% -----  Alpha, beta, gamma, EPS, inteflow_frac are calibrated. alpha_interflow=0 and beta_sat_interflow=1 fixed ----%
+% forcingTransform_Precip = {'transformfunction', 'climateTransform_soilMoistureModels_interflow'; ...
+%                'forcingdata', {'precip','PRECIP';'et','APET'}; ...
+%                'outputdata', 'drainage'; ...
+%                'options', {'SMSC',2,[];'SMSC_interflow',1,'fixed';'beta',0,'';'k_sat',1,'';'alpha',0,'';'eps',0.0,''; 'interflow_frac',0.5,'';'beta_interflow',1,'fixed';'k_sat_interflow',1,'';'alpha_interflow',0,'fixed'}}; 
+          
+%---- Hypothesis 4 ---- INTERFLOW, FINITE STORAGE, NO ET LOSSES ----%
+% using 2-layer soil model "climateTransform_soilMoistureModels_interflow" 
+% ---- Alpha, beta, gamma, EPS, inteflow_frac, alpha_interflow, beta_sat_interflow are calibrated. gamma_interflow= -999999999 fixed ----%
+% forcingTransform_Precip = {'transformfunction', 'climateTransform_soilMoistureModels_interflow'; ...
+%                'forcingdata', {'precip','PRECIP';'et','APET'}; ...
+%                'outputdata', 'drainage'; ...
+%                'options', {'SMSC',2,[];'SMSC_interflow',2,[];'beta',0,'';'k_sat',1,'';'alpha',0,'';'eps',0.0,''; 'interflow_frac',0.5,'';'beta_interflow',1,'';'k_sat_interflow',1,'';'alpha_interflow',0,''}}; 
+
+%---- Hypothesis 5 ---- INTERFLOW, FINITE STORAGE WITH ET LOSSES ----%
+% using 2-layer soil model "climateTransform_soilMoistureModels_interflow"
+% ---- Alpha, beta, gamma, EPS, inteflow_frac are calibrated  ----%
+% forcingTransform_Precip = {'transformfunction', 'climateTransform_soilMoistureModels_interflow'; ...
+%                'forcingdata', {'precip','PRECIP';'et','APET'}; ...
+%                'outputdata', 'drainage'; ...
+%                'options', {'SMSC',2,[];'SMSC_interflow',2,[];'beta',0,'';'k_sat',1,'';'alpha',0,'';'eps',0.0,''; 'interflow_frac',0.5,'';'beta_interflow',1,'';'k_sat_interflow',1,'';'alpha_interflow',1,''}}; 
+
+
+%---- Hypothesis 6 ---- INTERFLOW, FINITE STORAGE AND ET LOSSES ----- INTERFLOW STORE SAME PARAMETERS AS SHALLOW SOIL STORE ----%
+% using 2-layer soil model "climateTransform_soilMoistureModels_interflow"
+% ---- Alpha, beta, gamma, EPS, inteflow_frac are calibrated  ----%
 forcingTransform_Precip = {'transformfunction', 'climateTransform_soilMoistureModels_interflow'; ...
                'forcingdata', {'precip','PRECIP';'et','APET'}; ...
                'outputdata', 'drainage'; ...
                'options', {'SMSC',2,[];'SMSC_interflow',2,[];'beta',0,'';'k_sat',1,'';'alpha',0,'';'eps',0.0,''; 'interflow_frac',0.5,'';'beta_interflow',NaN,'fixed';'k_sat_interflow',NaN,'fixed';'alpha_interflow',NaN,'fixed'}}; 
-          
-           
+
+
+
            
            
 % The transformation of the ET is then defined. However because we've already
@@ -290,9 +334,9 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7)
     % HydroSight using model_TFN_SW_GW - joint rainfall-runoff model
     
     AMALGAMPar.n = length(params_initial);  % Dimension of the problem    ----  run7paramModel now has 9 parameters? are we allowing head-threshoold and head_to_baseflow to be calibrated? 
-    AMALGAMPar.N = 100;                     % Size of the population   - LENTGH OF OBS. TIMESERIES or just a calibration parameter?
+    AMALGAMPar.N = 200;                     % Size of the population   - LENTGH OF OBS. TIMESERIES or just a calibration parameter?
     AMALGAMPar.nobj = 2;                    % Number of objectives
-    AMALGAMPar.ndraw = 5000;               % Maximum number of function evaluations
+    AMALGAMPar.ndraw = 1000;               % Maximum number of function evaluations
     
     % Define the parameter ranges (minimum and maximum values)
     [params_upperLimit, params_lowerLimit] = getParameters_plausibleLimit(model_7params.model);

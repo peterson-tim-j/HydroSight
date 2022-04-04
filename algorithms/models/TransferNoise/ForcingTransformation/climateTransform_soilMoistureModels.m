@@ -764,7 +764,8 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                 params_upperLimit(ind,1) = 1;                                    
             end    
                    
-            if obj.settings.activeParameters.beta % TODO: is it a bug?
+            % if obj.settings.activeParameters.beta % TODO: is it a bug?
+			if obj.settings.activeParameters.gamma 
                 ind = cellfun(@(x)(strcmp(x,'gamma')),param_names); 
                 params_lowerLimit(ind,1) = log10(0.01);
                 params_upperLimit(ind,1) = log10(100);
@@ -904,7 +905,8 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                 params_upperLimit(ind,1) = log10(10);
             end      
             
-            if obj.settings.activeParameters.beta   % TODO: is it a bug?
+            % if obj.settings.activeParameters.beta   % TODO: is it a bug?
+			if obj.settings.activeParameters.gamma  
                 ind = cellfun(@(x)(strcmp(x,'gamma')),param_names);
                 params_lowerLimit(ind,1) = log10(0.1);
                 params_upperLimit(ind,1) = log10(10);
@@ -1284,22 +1286,18 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                                 isDailyIntegralFlux(i) = false;
                             end
                             
-                        case 'infiltration_fractional_capacity'                       
-                            % Calculate infiltration fractional capacity, representing the fraction of rainfall that is infiltrated 
-                            
+                        case 'infiltration_fractional_capacity'     
+						
+                            % CalculateS infiltration fractional capacity, representing the fraction of rainfall that is infiltrated 
                             infiltration_fractional_capacity = min(1, ((SMSC - SMS)/(SMSC*(1-eps))).^alpha);
-%                             forcingData(:,i) = infiltration_fractional_capacity;
-%                             isDailyIntegralFlux(i) = false;
-
-%                             
+                             
                             if doSubstepIntegration
-                                % TIM div by ttimestep added
-                                forcingData(:,i) = dailyIntegration(obj, infiltration_fractional_capacity./obj.variables.nDailySubSteps);
+                                % forcingData(:,i) = dailyIntegration(obj, infiltration_fractional_capacity./obj.variables.nDailySubSteps); % TODO: this was incorrect, right?
+								forcingData(:,i) = dailyIntegration(obj, infiltration_fractional_capacity);
                             else
                                 forcingData(:,i) = infiltration_fractional_capacity;
                             end
-                            
-                            
+                                                        
                             if doSubstepIntegration
                                 isDailyIntegralFlux(i) = true;
                             else
@@ -1321,18 +1319,9 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                                 infiltration =  effectivePrecip;                                
                             else
                                 % Tim's implemetation
+								% infiltration =  effectivePrecip .* (1-SMS/SMSC).^alpha;
                                 infiltration_fractional_capacity = getTransformedForcing(obj, 'infiltration_fractional_capacity', SMSnumber, false);
-                                % infiltration =  effectivePrecip .* (1-SMS/SMSC).^alpha;
-                                infiltration =  effectivePrecip .* infiltration_fractional_capacity;
-                                
-%                                 infiltration =  effectivePrecip .* ((SMSC - SMS)/(SMSC*(1-eps))).^alpha;
-%                                 for ii = 1:length(infiltration) % so i did this
-%                                     if infiltration(ii) > effectivePrecip(ii);
-%                                        infiltration(ii) = effectivePrecip(ii);
-%                                     else
-%                                        infiltration(ii) = infiltration(ii);
-%                                     end
-%                                 end                                     
+                                infiltration =  effectivePrecip .* infiltration_fractional_capacity;                                                                
                             end
                                                                              
                                                         

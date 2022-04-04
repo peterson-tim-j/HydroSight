@@ -371,105 +371,127 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
          % Calibrating only to FLOW using 2 flow obj-fun
 %         objFn_joint = [objFn_flow, objFn_flow];
         
-        % figure(15);
-        % plot(obj.parameters.climateTransform_soilMoistureModels_2layer_v2.variables.SMS)
-        % y = obj.parameters.climateTransform_soilMoistureModels_2layer_v2.SMSC;
-% %         plot(obj.parameters.climateTransform_soilMoistureModels.variables.SMS)
-% %         y = obj.parameters.climateTransform_soilMoistureModels.SMSC;
-% %         plot(obj.parameters.climateTransform_soilMoistureModels_v2.variables.SMS)
-% %         y = obj.parameters.climateTransform_soilMoistureModels_v2.SMSC;
-        % line([0,68000],[10.^(y),10.^(y)])
+                
         
-        % figure(16);
-        % xx = obj.parameters.climateTransform_soilMoistureModels_2layer_v2.variables.SMS ./ (10 .^ obj.parameters.climateTransform_soilMoistureModels_2layer_v2.SMSC);
-% %         xx = obj.parameters.climateTransform_soilMoistureModels.variables.SMS ./ (10 .^ obj.parameters.climateTransform_soilMoistureModels.SMSC);
-% %         xx = obj.parameters.climateTransform_soilMoistureModels_v2.variables.SMS ./ (10 .^ obj.parameters.climateTransform_soilMoistureModels_v2.SMSC);
-        % plot(xx)
-        % title('SMS / SMSC')
-        % xlabel('Sub-daily time-steps')
-        % ylabel('ratio')
-        % ylim([0 1])
+%         Getting the Observed head/flow vs. Simulated head/flow plots 
+        figure(i+1)
+        scatter (obj.inputData.head(:,2), (h_star(:,2) +  drainage_elevation))
+        title(' Observed Vs. Simulated Head')
+        xlabel('Obs. Head (mAHD)')
+        ylabel('Sim. Head (mAHD)')
+        axis square
+%                 daspect([1 1 1])
+        myRefLine = refline(1);
+        myRefLine.Color = 'r';
+        myRefLine.LineStyle = '--';
 
         
+        figure(i+2)
+        plot (obj.inputData.head(:,1), obj.inputData.head(:,2))
+        title(' Observed and Simulated Head')
+        xlabel('Date')
+        ylabel('Head (mAHD)')
+        hold on
+        plot (h_star(:,1), (h_star(:,2) +  drainage_elevation))
+        legend('Obs. Head','Sim. Head')
+        datetick('x', 'dd/mm/yy', 'keepticks')
+        hold off
+
         
-% %         Getting the Observed head/flow vs. Simulated head/flow plots 
-%         figure(i+1)
-%         scatter (obj.inputData.head(:,2), (h_star(:,2) +  drainage_elevation))
-%         title(' Observed Vs. Simulated Head')
-%         xlabel('Obs. Head (mAHD)')
-%         ylabel('Sim. Head (mAHD)')
-%         axis square
-% %                 daspect([1 1 1])
-%         myRefLine = refline(1);
-%         myRefLine.Color = 'r';
-%         myRefLine.LineStyle = '--';
-% 
-%         
-%         figure(i+2)
-%         plot (obj.inputData.head(:,1), obj.inputData.head(:,2))
-%         title(' Observed and Simulated Head')
-%         xlabel('Date')
-%         ylabel('Head (mAHD)')
-%         hold on
-%         plot (h_star(:,1), (h_star(:,2) +  drainage_elevation))
-%         legend('Obs. Head','Sim. Head')
-%         datetick('x', 'dd/mm/yy', 'keepticks')
-%         hold off
+        figure(i+3)
+        scatter (obsFlow(:,2), totalFlow_sim(:,2))
+        title(' Observed Vs. Simulated Flow')
+        xlabel('Obs. Flow (mm/day)')
+        ylabel('Sim. Flow (mm/day)')
+        axis square
+%         daspect([1 1 1])
+        myRefLine = refline(1);
+        myRefLine.Color = 'r';
+        myRefLine.LineStyle = '--';
 
-%         
-%         figure(i+3)
-%         scatter (obsFlow(:,2), totalFlow_sim(:,2))
-%         title(' Observed Vs. Simulated Flow')
-%         xlabel('Obs. Flow (mm/day)')
-%         ylabel('Sim. Flow (mm/day)')
-%         axis square
-% %         daspect([1 1 1])
-%         myRefLine = refline(1);
-%         myRefLine.Color = 'r';
-%         myRefLine.LineStyle = '--';
-% 
 
-%         figure(i+4)
-%         plot (obsFlow(:,1), obsFlow(:,2))
-%         title(' Observed and Simulated Flow')
-%         xlabel('Date')
-%         ylabel('Flow (mm/day)')
-%         hold on
-%         plot (totalFlow_sim(:,1), totalFlow_sim(:,2))
-%         legend('Obs. Flow','Sim. Flow')
-%         datetick('x', 'dd/mm/yy', 'keepticks')
-%         hold off
-%         
-%        
+        figure(i+4)
+        plot (obsFlow(:,1), obsFlow(:,2))
+        title(' Observed and Simulated Flow')
+        xlabel('Date')
+        ylabel('Flow (mm/day)')
+        hold on
+        plot (totalFlow_sim(:,1), totalFlow_sim(:,2))
+        legend('Obs. Flow','Sim. Flow')
+        datetick('x', 'dd/mm/yy', 'keepticks')
+        hold off
+        
+       
 %         plotting simulated total streamflow
-        % figure(i+5)
-        % plot(totalFlow_sim(:,1),totalFlow_sim(:,2))
-        % title('observed and simulated streamflow')
-        % xlabel('Date')
-        % ylabel('mm/day')
-        % ylim([0 (max(obsFlow(:,2))+10)])
-        % grid on
-        % ax = gca;
-        % ax.FontSize = 11;
-        % hold on
-        % plot(totalFlow_sim(:,1),baseFlow)
-        % hold on
-        % plot(quickFlow(:,1),quickFlow(:,2))
-        % hold on
-        % plot (obsFlow(:,1), obsFlow(:,2))
-        % datetick('x', 'dd/mm/yy', 'keepticks')
-        % hold off
-        % legend('totalFlow_sim','baseFlow','quickFlow','Observed_Flow')  
+        figure(i+5)
+        plot(totalFlow_sim(:,1),totalFlow_sim(:,2))
+        title('observed and simulated streamflow')
+        xlabel('Date')
+        ylabel('mm/day')
+        ylim([0 (max(obsFlow(:,2))+10)])
+        grid on
+        ax = gca;
+        ax.FontSize = 11;
+        hold on
+        plot(totalFlow_sim(:,1),baseFlow)
+        hold on
+        plot(quickFlow(:,1),quickFlow(:,2))
+        hold on
+        plot (obsFlow(:,1), obsFlow(:,2))
+        datetick('x', 'dd/mm/yy', 'keepticks')
+        hold off
+        legend('totalFlow_sim','baseFlow','quickFlow','Observed_Flow')  
 
-        % ploting obs total streamflow
-%         figure(i+6)
-%         plot( obsFlow(:,1), obsFlow(:,2))
-%         title(' streamflow observations')
-%         xlabel('Numeric Date ')
-%         ylabel('mm/day')
-%         grid on
-%         ax = gca;
-%         ax.FontSize = 13;
+%         ploting obs total streamflow
+        figure(i+6)
+        plot( obsFlow(:,1), obsFlow(:,2))
+        title(' streamflow observations')
+        xlabel('Numeric Date ')
+        ylabel('mm/day')
+        grid on
+        ax = gca;
+        ax.FontSize = 13;    
+        datetick('x', 'dd/mm/yy', 'keepticks')
+            
+%         ploting baseflow
+        figure(i+7)
+        plot(totalFlow_sim(:,1),baseFlow)
+        title(' baseflow simulated')
+        xlabel('Numeric Date ')
+        ylabel('mm/day')
+        datetick('x', 'dd/mm/yy', 'keepticks')
+        grid on
+        ax = gca;
+        ax.FontSize = 13;
+        legend('baseFlow')  
+
+
+        figure(15);
+%         plot(obj.parameters.climateTransform_soilMoistureModels_2layer_v2.variables.SMS)
+%         y = obj.parameters.climateTransform_soilMoistureModels_2layer_v2.SMSC;
+%         plot(obj.parameters.climateTransform_soilMoistureModels.variables.SMS)
+%         y = obj.parameters.climateTransform_soilMoistureModels.SMSC;
+%         plot(obj.parameters.climateTransform_soilMoistureModels_v2.variables.SMS, 'g')
+        plot(obj.parameters.climateTransform_soilMoistureModels_interflow.variables.SMS, 'g')
+%         y = obj.parameters.climateTransform_soilMoistureModels_v2.SMSC;
+        y = obj.parameters.climateTransform_soilMoistureModels_interflow.SMSC;
+        line([0,68000],[10.^(y),10.^(y)])
+        % datetick('x', 'dd/mm/yy', 'keepticks')
+        legend('SMS', 'SMSC')  
+
+        
+        figure(16);
+%         xx = obj.parameters.climateTransform_soilMoistureModels_2layer_v2.variables.SMS ./ (10 .^ obj.parameters.climateTransform_soilMoistureModels_2layer_v2.SMSC);
+%         xx = obj.parameters.climateTransform_soilMoistureModels.variables.SMS ./ (10 .^ obj.parameters.climateTransform_soilMoistureModels.SMSC);
+%         xx = obj.parameters.climateTransform_soilMoistureModels_v2.variables.SMS ./ (10 .^ obj.parameters.climateTransform_soilMoistureModels_v2.SMSC);
+        xx = obj.parameters.climateTransform_soilMoistureModels_interflow.variables.SMS ./ (10 .^ obj.parameters.climateTransform_soilMoistureModels_interflow.SMSC);
+        plot(xx)
+        title('SMS / SMSC')
+        xlabel('Sub-daily time-steps')
+        ylabel('ratio')
+        ylim([0 1])
+        % datetick('x', 'dd/mm/yy', 'keepticks')
+        legend('(SMS / SMSC)')  
 
                
          obj.variables.doingCalibration = true; % true to allow the parfor loop in AMALGAM - TURN THIS OFF when not using AMALGAM 
@@ -522,15 +544,15 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
      % WAS CALCULATED AS PER THE METHOD FOR HEAD THAT USES ALL FORCING DATA PRIOR TO OBS. HEAD.
      
 %      %---- 1-layer ----%
-%      % Get the runoff from the forcing tranform function.
-%      quickFlow_all = getTransformedForcing(obj.parameters.climateTransform_soilMoistureModels_v2, 'runoff_total', 1, true); % set "true" if need daily data
+     % Get the runoff from the forcing tranform function.
+%      quickFlow_all = getTransformedForcing(obj.parameters.climateTransform_soilMoistureModels_v2, 'runoff', 1, true); % set "true" if need daily data
 %      
 %      %---- 2-layer ----%
 %      % Get the runoff from the forcing tranform function.
 %      quickFlow_all = getTransformedForcing(obj.parameters.climateTransform_soilMoistureModels_2layer_v2, 'runoff_total', 1, true); % set "true" if need daily data
 
      %---- interflow store ----%
-     % Get the runoff from the forcing tranform function.
+%      % Get the runoff from the forcing tranform function.
      quickFlow_all = getTransformedForcing(obj.parameters.climateTransform_soilMoistureModels_interflow, 'runoff_total', 1, true); % set "true" if need daily data
 
 
@@ -748,12 +770,12 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
      
      % Get the runoff from the derived forcing output
      % USING 2-layer soil model
-     [tf, column_number] = ismember('runoff_total', derivedForcingData_colnames); % shall we now use runoff_total??
+%      [tf, column_number] = ismember('runoff_total', derivedForcingData_colnames); % shall we now use runoff_total??
      % USING 1-layer soil model
-%      [tf, column_number] = ismember('runoff', derivedForcingData_colnames); % shall we now use runoff_total??
+     [tf, column_number] = ismember('runoff', derivedForcingData_colnames); % shall we now use runoff_total??
      
      if ~tf
-         error('runoff_total is not one of the derivedForcingData variables. Check if using 2-layer v2 soil model')
+         error('runoff_total is not one of the derivedForcingData variables. Check if using 2-layer_v2 soil model')
      end
 
      quickFlow2 = allDerivedForcingData(:,column_number); % runoff in [mm/day], to get ML/day, mutiply by the catchmentArea - (quickflow from the runoff of the lumped 1-d soil moisture model)
@@ -878,8 +900,11 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
      
     % checking parameters used in the model            
      [params, param_names] = getParameters(obj);
-     params(1:end), param_names(1:end,2)
-     
+     check_parameters = {};
+     check_parameters(:,1) = param_names(1:end,2); 
+     check_parameters(:,2)= num2cell(params(1:end));
+     check_parameters
+
     end
      
     % Get the observed streamflow
