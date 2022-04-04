@@ -265,7 +265,8 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
 								'gamma_interflow    : log10(Power term for interflow soil evap. rate)', ...
                                 '               Input an NaN value and "fixed" to for it to equal gamma.', ... 
 								'PET_scaler_interflow    :  Scaling term for the ET from the interflow soil evaporation rate (0-1).', ...
-                                '               Input an NaN value and "fixed" to for it to equal zero. Fixed to zero as default', ... 								
+                                '               Input an NaN value and "fixed" to for it to equal zero. Fixed to zero as default', ...
+                                'eps_interflow         : S_min/SMSC ratio. S_min is the minimum interflow soil moisture threshold.',...
                                '', ...               
                                'References: ', ...
                                '1. Peterson & Western (2014), Nonlinear time-series modeling of unconfined groundwater head, Water Resour. Res., 50, 8330–8355', ...
@@ -978,8 +979,8 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
                 forcingData = zeros(nrows , length(variableName));
                 for i=1:length(variableName)
                     % Test if the flux can be derived from the parent class.
-                    if ~any(strcmp({'evap_soil_interflow','evap_soil_total', 'evap_gw_potential', ...
-                    'interflow_slow','runoff_total','SMS_interflow','mass_balance_error'}, ...
+                    if ~any(strcmp({'infiltration_fractional_capacity_interflow', 'infiltration_interflow', 'evap_soil_interflow','evap_soil_total', 'evap_gw_potential', ...
+                    'interflow_slow','runoff_interflow', 'runoff_total','SMS_interflow','mass_balance_error'}, ...
                     variableName{i}))
                 
                         if nargin==2
@@ -1049,8 +1050,8 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
 								forcingData(:,i) = infiltration_interflow;
 							end 
 							
-                        case 'evap_soil_interflow'    
-                            							
+                        case 'evap_soil_interflow'   
+                                                        							
 							% Calc potential ET for interflow store
 							if PET_scaler_interflow==0
 								interflow = getTransformedForcing(obj, 'interflow',SMSnumber, false); 
@@ -1063,9 +1064,7 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
 								evap = PET_scaler_interflow .* (evap - getTransformedForcing(obj, 'evap_soil',SMSnumber, false));
 																
 								% Est ET for interflow store
-								evap = evap .* (SMS_interflow/SMSC_interflow).^gamma_interflow;
-								
-								end
+								evap = evap .* (SMS_interflow/SMSC_interflow).^gamma_interflow;															
 							end
 																					                         
                                                         
@@ -1077,7 +1076,8 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
                                isDailyIntegralFlux(i) = false;
                             end          
 							
-                        case 'evap_soil_total'
+						case 'evap_soil_total'
+                           
                             evap = getTransformedForcing(obj, 'evap_soil',SMSnumber, false) + ...
                                    getTransformedForcing(obj, 'evap_soil_interflow',SMSnumber, false);
                             
@@ -1147,7 +1147,7 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
                                 isDailyIntegralFlux(i) = false;
                             end
                             
-                        case'SMS_interflow'
+                        case 'SMS_interflow'
                             forcingData(:,i) = SMS_interflow((1+obj.variables.nDailySubSteps):obj.variables.nDailySubSteps:end);
                             isDailyIntegralFlux(i) = true;
 
@@ -1244,16 +1244,16 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
                 S_interflow_initial = obj.S_initialfrac_interflow.*SMSC_interflow;
             end    
 
-			if isnan(obj.gamma_interflow)
+            if isnan(obj.gamma_interflow)
                 gamma_interflow = 10^(obj.gamma);
             else
                 gamma_interflow = 10^(obj.gamma_interflow);
-            end   
+            end
 			
-			if isnan(obj.eps_interflow)
-                eps_interflow = 10^(obj.eps);
+            if isnan(obj.eps_interflow)
+                eps_interflow = obj.eps;
             else
-                eps_interflow = 10^(obj.eps_interflow);
+                eps_interflow = obj.eps_interflow;
             end
 
 				
@@ -1282,7 +1282,7 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
 		% Description:
 		%   Cycles though all active soil model parameters and returns a logical 
 		%   vector denoting if each parameter is valid, ie within the physical 
-		%   parameter bounds including reasonable mass balance of the surface and groundwater components.
+		%   parameter bounds including reasonable mass-balance of the free-drainage (GW-recharge) and baseflow components.
 		%
 		% Input:
 		%   obj -  model object.
@@ -1354,6 +1354,10 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
                     isValidParameter(:,i) = false;
                 end
             end
+            
+            % Checking the mass-balance criteria between GW-recharge (freeCalculate the 1st and 99th percentiles
+            
+            
             setParameters(obj, params);
 
             % Check parameters are within bounds.
