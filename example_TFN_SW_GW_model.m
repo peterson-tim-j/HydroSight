@@ -192,19 +192,19 @@ siteCoordinates = {bore_ID, 100, 100;...
 %---- Hypothesis 2 ---- INTERFLOW, NO STORAGE ----%
 % using 1-layer soil model "climateTransform_soilMoistureModels_v2" 
 % ---- Alpha, beta, gamma, EPS, inteflow_frac are calibrated  ----%
-% forcingTransform_Precip = {'transformfunction', 'climateTransform_soilMoistureModels_v2'; ...
-%                'forcingdata', {'precip','PRECIP';'et','APET'}; ...
-%                'outputdata', 'drainage'; ...
-%                'options', {'SMSC',2,[];'k_infilt',Inf,'fixed'; 'beta',0,'';'k_sat',1,'';'alpha',0,'';'eps',0.0,''; 'interflow_frac',0.5,''}}; % withouth ('k_infilt',inf,'fixed') k_infilt is set to 1 automatically.. 
+forcingTransform_Precip = {'transformfunction', 'climateTransform_soilMoistureModels_v2'; ...
+               'forcingdata', {'precip','PRECIP';'et','APET'}; ...
+               'outputdata', 'drainage'; ...
+               'options', {'SMSC',2,[];'k_infilt',Inf,'fixed'; 'beta',0,'';'k_sat',1,'';'alpha',0,'';'eps',0.0,''; 'interflow_frac',0.5,''}}; % withouth ('k_infilt',inf,'fixed') k_infilt is set to 1 automatically.. 
 
 
 %---- Hypothesis 3 ---- INTERFLOW, INFINITE STORAGE ----% 
 % using 2-layer soil model "climateTransform_soilMoistureModels_interflow" 
 % -----  Alpha, beta, gamma, EPS, inteflow_frac are calibrated. alpha_interflow=0 and beta_sat_interflow=1 fixed ----%
-forcingTransform_Precip = {'transformfunction', 'climateTransform_soilMoistureModels_interflow'; ...
-               'forcingdata', {'precip','PRECIP';'et','APET'}; ...
-               'outputdata', 'drainage'; ...
-               'options', {'SMSC',2,[];'k_infilt',Inf,'fixed';'beta',0,'';'k_sat',1,'';'alpha',0,'';'eps',0.0,''; 'interflow_frac',0.5,'';'SMSC_interflow',1,'fixed';'alpha_interflow',0,'fixed';'eps_interflow',0,'fixed'; 'beta_interflow',1,'fixed';'k_sat_interflow',1,''; 'PET_scaler_interflow',0,'fixed'; 'gamma_interflow',0,'fixed'}}; 
+% forcingTransform_Precip = {'transformfunction', 'climateTransform_soilMoistureModels_interflow'; ...
+%                'forcingdata', {'precip','PRECIP';'et','APET'}; ...
+%                'outputdata', 'drainage'; ...
+%                'options', {'SMSC',2,[];'k_infilt',Inf,'fixed';'beta',0,'';'k_sat',1,'';'alpha',0,'';'eps',0.0,''; 'interflow_frac',0.5,'';'SMSC_interflow',1,'fixed';'alpha_interflow',0,'fixed';'eps_interflow',0,'fixed'; 'beta_interflow',1,'fixed';'k_sat_interflow',1,''; 'PET_scaler_interflow',0,'fixed'; 'gamma_interflow',0,'fixed'}}; 
           
 %---- Hypothesis 4 ---- INTERFLOW, FINITE STORAGE, NO ET LOSSES ----%
 % using 2-layer soil model "climateTransform_soilMoistureModels_interflow" 
@@ -586,7 +586,7 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7)
 %         Params_ParetoPoints = [1.7019, 1.9448, 1.3345, 0.1121, 0.53938, -1.4862, -2.8445, -0.23923, -1.8488, 849.92, 277.39]' % Baseflow_v1, Alpha = calibrated, RMSE, 300k iterations, 21/Jun/2021 
 %         Params_ParetoPoints = [1.699,	1.699,	3.1657,	0.10395, 0.71595, -1.629, -2.6554, -0.30524, -2.042, 37.394, 8.6176]' % Baseflow_v1, Kavestki 2006, Alpha = calibrated, 1-KGE, 1MM iterations, 15/July/2021, 23:49
 
-            % baseflow_m9     %SMSC_deep, SMSC, k_sat,   alpha, beta,    A,      b,     n,     alpha, linear_scaler  ,  head_threshold   
+              % baseflow_m9     %SMSC_deep, SMSC, k_sat,   alpha, beta,    A,      b,     n,     alpha, linear_scaler  ,  head_threshold   
 %         Params_ParetoPoints = [1.699	,1.858	,1.3349	,0.13023	,0.82128	,-1.4519	,-2.8058	,-0.22138	,-2.1682,	0.37731,	545.68]' % Brucknell, WRK..24, Baseflow_m9, Alpha = calibrated, 1-KGE, 100k iterations, 04/July/2021, 18:21
 %             % baseflow_m8     %SMSC_deep, SMSC, k_sat,   alpha, beta,    A,      b,     n,     alpha,  base_rate , exponential_scaler  , head_max  ,
 %         Params_ParetoPoints = [1.6998,	1.8887,	1.3346,	0.13948,	0.78443, -1.4194,	-2.774,	-0.23971,	-2.156,	0.01,	0.00039514,	1248.1]'      % Brucknell, WRK..24, Baseflow_m8, Alpha = calibrated, 1-KGE, 100k iterations, 04/July/2021, 04:24
@@ -601,7 +601,8 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7)
 %         Params_ParetoPoints = [1.699,	1.699,	3.1662,	0.0054334,	0.99997,	-1.3887,	-2.9017,	-0.31529,	-1.5605,	0.02553,	41.462]';      % Brucknell, WRK..24, Kavestki 2006, eps = 0, Baseflow_m6, Alpha = calibrated, 1-KGE, 1MM iterations, 19/July/2021, 17:55
               % baseflow_m3     %SMSC_deep,   SMSC,  k_sat,  alpha,   beta,         eps ,       A,       b,        n,     alpha,   head_max
 %         Params_ParetoPoints = [1.699,   	2.3975,	1.4849,	4.3364,	0.44775,	0.20551,	-0.709,	-2.3716,	-0.27126,	-1.8,	134.01]'      % Brucknell, WRK..24, Kavestki 2003, eps = calib, Baseflow_m3, Alpha = calibrated, 1-KGE, 50k iterations, 27/July/2021, 20:36
-
+              % baseflow_m9     %SMSC_deep, SMSC, k_sat, 'interflow_frac' ,   alpha, beta,    A,      b,     n,     alpha, linear_scaler  ,  head_threshold   
+        Params_ParetoPoints = [2.1709,	1.3345,	0.4556,	0.15952,	0.99637,	0.65963,	-1.0487,	-4.1573,	-0.34783,	-2.2424,	0.1683,	106.32]' % Brucknell, WRK..24, Baseflow_m9, Alpha = calibrated, 1-KGE, 10k iterations, 04/01/2021, 09:14
 
 
 %         % point 3
@@ -619,7 +620,7 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7)
  
 
 
-%        [ObjVals_prime, ~, ~, objFn_flow_NSE, objFn_flow_NNSE, objFn_flow_RMSE, objFn_flow_SSE, objFn_flow_bias, ~, ~,~] = objectiveFunction_joint(Params_ParetoPoints, time_points_head, time_points_streamflow, model_7params.model,{}); 
+       [ObjVals_prime, ~, ~, objFn_flow_NSE, objFn_flow_NNSE, objFn_flow_RMSE, objFn_flow_SSE, objFn_flow_bias, ~, ~,~] = objectiveFunction_joint(Params_ParetoPoints, time_points_head, time_points_streamflow, model_7params.model,{}); 
 %-------------------------------------------------------------------------------------------------------------------------------------------------------------------%        
   
 

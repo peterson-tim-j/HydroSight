@@ -1273,6 +1273,7 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
         end    
 
 
+       
 		function isValidParameter = getParameterValidity(obj, params, param_names)
 		% getParameterValidity returns a logical vector for the validity or each parameter.
 		%
@@ -1347,7 +1348,7 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
             for i=1:size(params,2)
                 setParameters(obj, params(:,i));
                 setTransformedForcing(obj, t, true);
-                AET = mean(getTransformedForcing(obj, 'evap_soil'));
+                AET = mean(getTransformedForcing(obj, 'evap_soil_total'));
 
                 % Ceck if the AET is within the Budyko bounds
                 if AET/P < AET_on_P(1) || AET/P > AET_on_P(2)
@@ -1355,17 +1356,12 @@ classdef climateTransform_soilMoistureModels_interflow < climateTransform_soilMo
                 end
             end
             
-            % Checking the mass-balance criteria between GW-recharge (freeCalculate the 1st and 99th percentiles
-            
-            
             setParameters(obj, params);
 
             % Check parameters are within bounds.
             isValidParameter = isValidParameter & params >= params_lowerLimit(:,ones(1,size(params,2))) & ...
     		params <= params_upperLimit(:,ones(1,size(params,2)));   
         end 
-
-
 		
     end
 
