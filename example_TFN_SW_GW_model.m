@@ -341,8 +341,14 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7)
     
     % Define the parameter ranges (minimum and maximum values)
     [params_upperLimit, params_lowerLimit] = getParameters_plausibleLimit(model_7params.model);
-%     ParRange.minn = params_lowerLimit(1:end-1,1); % ignoring the last value cause it refers to "doingCalibration", which is not used in "objectiveFunction_joint"
-%     ParRange.maxn = params_upperLimit(1:end-1,1); % ignoring the last value cause it refers to "doingCalibration", which is not used in "objectiveFunction_joint"
+    % ParRange.minn = params_lowerLimit(1:end-1,1); % ignoring the last value cause it refers to "doingCalibration", which is not used in "objectiveFunction_joint"
+    % ParRange.maxn = params_upperLimit(1:end-1,1); % ignoring the last value cause it refers to "doingCalibration", which is not used in "objectiveFunction_joint"
+    
+    % set baseflow head_threshold parameter bounds to be +5m within
+    % observed GW head data. 
+    params_upperLimit(end,:) = max(boreDataWL(:,6)) + 5; %TODO: is there a better way to define the bounds?
+    params_lowerLimit(end,:) = min(boreDataWL(:,6)) - 5; 
+    
     ParRange.minn = params_lowerLimit'; % transpose params_upperLimi to meet expect format in AMALGAM 
     ParRange.maxn = params_upperLimit'; % transpose params_upperLimi to meet expect format in AMALGAM 
     

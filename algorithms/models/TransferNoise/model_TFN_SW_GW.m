@@ -417,7 +417,8 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
             hold on
             plot (h_star(:,1), (h_star(:,2) +  drainage_elevation))
             legend('Obs. Head','Sim. Head')
-            datetick('x', 'dd/mm/yy', 'keepticks')
+           % datetick('x', 'dd/mm/yy', 'keepticks')
+            dynamicDateTicks()
             hold off
 
 
@@ -441,7 +442,8 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
             hold on
             plot (totalFlow_sim(:,1), totalFlow_sim(:,2))
             legend('Obs. Flow','Sim. Flow')
-            datetick('x', 'dd/mm/yy', 'keepticks')
+           % datetick('x', 'dd/mm/yy', 'keepticks')
+            dynamicDateTicks()
             hold off
 
 
@@ -461,7 +463,8 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
             plot(quickFlow(:,1),quickFlow(:,2))
             hold on
             plot (obsFlow(:,1), obsFlow(:,2))
-            datetick('x', 'dd/mm/yy', 'keepticks')
+           % datetick('x', 'dd/mm/yy', 'keepticks')
+            dynamicDateTicks()
             hold off
             legend('totalFlow_sim','baseFlow','quickFlow','Observed_Flow')
 
@@ -474,7 +477,8 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
             grid on
             ax = gca;
             ax.FontSize = 13;
-            datetick('x', 'dd/mm/yy', 'keepticks')
+           % datetick('x', 'dd/mm/yy', 'keepticks')
+            dynamicDateTicks()
 
             %         ploting baseflow
             figure(i+7)
@@ -482,7 +486,8 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
             title(' baseflow simulated')
             xlabel('Numeric Date ')
             ylabel('mm/day')
-            datetick('x', 'dd/mm/yy', 'keepticks')
+           % datetick('x', 'dd/mm/yy', 'keepticks')
+            dynamicDateTicks()
             grid on
             ax = gca;
             ax.FontSize = 13;
@@ -518,6 +523,7 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
 
 
             obj.variables.doingCalibration = true; % true to allow the parfor loop in AMALGAM - TURN THIS OFF when not using AMALGAM
+            
         end
 
         % get quickFlow and baseFlow using simulated head and streamflow
