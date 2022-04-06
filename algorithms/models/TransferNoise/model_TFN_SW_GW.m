@@ -396,7 +396,7 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
 
 
 
-            %         Getting the Observed head/flow vs. Simulated head/flow plots
+            % Getting the Observed head/flow vs. Simulated head/flow plots
             figure(i+1)
             scatter (obj.inputData.head(:,2), (h_star(:,2) +  drainage_elevation))
             title(' Observed Vs. Simulated Head')
@@ -523,7 +523,7 @@ classdef model_TFN_SW_GW < model_TFN & model_abstract
 
 
             obj.variables.doingCalibration = true; % true to allow the parfor loop in AMALGAM - TURN THIS OFF when not using AMALGAM
-            
+
         end
 
         % get quickFlow and baseFlow using simulated head and streamflow

@@ -1,7 +1,7 @@
 % example_TFN_model:
 %
 
-
+clear all
     % Add Paths
 %    addpath(pwd);
     addpath(genpath([pwd, filesep, 'algorithms']));
@@ -337,7 +337,7 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7)
     AMALGAMPar.n = length(params_initial);  % Dimension of the problem    ----  run7paramModel now has 9 parameters? are we allowing head-threshoold and head_to_baseflow to be calibrated? 
     AMALGAMPar.N = 200;                     % Size of the population   - LENTGH OF OBS. TIMESERIES or just a calibration parameter?
     AMALGAMPar.nobj = 2;                    % Number of objectives
-    AMALGAMPar.ndraw = 1000;               % Maximum number of function evaluations
+    AMALGAMPar.ndraw = 100;               % Maximum number of function evaluations
     
     % Define the parameter ranges (minimum and maximum values)
     [params_upperLimit, params_lowerLimit] = getParameters_plausibleLimit(model_7params.model);
@@ -565,9 +565,9 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7)
     
     
     
-%-----------------------------------------------------------------------------------------------------------------------------------------------%    
-    %%%%% Analysing some parameter sets along the pre-calculated Pareto
-    %%%%% Front to analyse model sensitivity and performance
+%-------------------------OLD MANUAL WORKFLOW TO GET THE HYDROGRAPH PLOTS FOR POINTS IN THE PARETO FRONT--------------------------------------------------------------------------------%    
+  %------------------------ Analysing some parameter sets along the pre-calculated Pareto ------------------%
+    
     
 %        % bore WRK931624 - precip only
           % point 1
@@ -608,7 +608,7 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7)
               % baseflow_m3     %SMSC_deep,   SMSC,  k_sat,  alpha,   beta,         eps ,       A,       b,        n,     alpha,   head_max
 %         Params_ParetoPoints = [1.699,   	2.3975,	1.4849,	4.3364,	0.44775,	0.20551,	-0.709,	-2.3716,	-0.27126,	-1.8,	134.01]'      % Brucknell, WRK..24, Kavestki 2003, eps = calib, Baseflow_m3, Alpha = calibrated, 1-KGE, 50k iterations, 27/July/2021, 20:36
               % baseflow_m9     %SMSC_deep, SMSC, k_sat, 'interflow_frac' ,   alpha, beta,    A,      b,     n,     alpha, linear_scaler  ,  head_threshold   
-        Params_ParetoPoints = [2.1709,	1.3345,	0.4556,	0.15952,	0.99637,	0.65963,	-1.0487,	-4.1573,	-0.34783,	-2.2424,	0.1683,	106.32]' % Brucknell, WRK..24, Baseflow_m9, Alpha = calibrated, 1-KGE, 10k iterations, 04/01/2021, 09:14
+%         Params_ParetoPoints = [2.1709,	1.3345,	0.4556,	0.15952,	0.99637,	0.65963,	-1.0487,	-4.1573,	-0.34783,	-2.2424,	0.1683,	106.32]' % Brucknell, WRK..24, Baseflow_m9, NEW INTERFLOW OBJECT, Alpha = calibrated, 1-KGE, 10k iterations, 04/01/2021, 09:14
 
 
 %         % point 3
@@ -626,9 +626,149 @@ modelLabel = sprintf(formatSpec,A1,A2,A3,A4,A5,A6,A7)
  
 
 
-       [ObjVals_prime, ~, ~, objFn_flow_NSE, objFn_flow_NNSE, objFn_flow_RMSE, objFn_flow_SSE, objFn_flow_bias, ~, ~,~] = objectiveFunction_joint(Params_ParetoPoints, time_points_head, time_points_streamflow, model_7params.model,{}); 
-%-------------------------------------------------------------------------------------------------------------------------------------------------------------------%        
-  
+%        [ObjVals_prime, ~, ~, objFn_flow_NSE, objFn_flow_NNSE, objFn_flow_RMSE, objFn_flow_SSE, objFn_flow_bias, ~, ~,~] = objectiveFunction_joint(Params_ParetoPoints, time_points_head, time_points_streamflow, model_7params.model,{}); 
+
+       
+       
+%--------------AUTOMATICALLY GENERATE HYDROGRAPH PLOTS FOR THE SWEET-SPOT IN THE LAST PARETO FRONT -------------------------------- %  
+
+
+
+
+% Getting the Observed head/flow vs. Simulated head/flow plots
+            figure(i+1)
+            scatter (obj.inputData.head(:,2), (h_star(:,2) +  drainage_elevation))
+            title(' Observed Vs. Simulated Head')
+            xlabel('Obs. Head (mAHD)')
+            ylabel('Sim. Head (mAHD)')
+            axis square
+            %                 daspect([1 1 1])
+            myRefLine = refline(1);
+            myRefLine.Color = 'r';
+            myRefLine.LineStyle = '--';
+
+
+            figure(i+2)
+            plot (obj.inputData.head(:,1), obj.inputData.head(:,2))
+            title(' Observed and Simulated Head')
+            xlabel('Date')
+            ylabel('Head (mAHD)')
+            hold on
+            plot (h_star(:,1), (h_star(:,2) +  drainage_elevation))
+            legend('Obs. Head','Sim. Head')
+           % datetick('x', 'dd/mm/yy', 'keepticks')
+            dynamicDateTicks()
+            hold off
+
+
+            figure(i+3)
+            scatter (obsFlow(:,2), totalFlow_sim(:,2))
+            title(' Observed Vs. Simulated Flow')
+            xlabel('Obs. Flow (mm/day)')
+            ylabel('Sim. Flow (mm/day)')
+            axis square
+            %         daspect([1 1 1])
+            myRefLine = refline(1);
+            myRefLine.Color = 'r';
+            myRefLine.LineStyle = '--';
+
+
+            figure(i+4)
+            plot (obsFlow(:,1), obsFlow(:,2))
+            title(' Observed and Simulated Flow')
+            xlabel('Date')
+            ylabel('Flow (mm/day)')
+            hold on
+            plot (totalFlow_sim(:,1), totalFlow_sim(:,2))
+            legend('Obs. Flow','Sim. Flow')
+           % datetick('x', 'dd/mm/yy', 'keepticks')
+            dynamicDateTicks()
+            hold off
+
+
+            %         plotting simulated total streamflow
+            figure(i+5)
+            plot(totalFlow_sim(:,1),totalFlow_sim(:,2))
+            title('observed and simulated streamflow')
+            xlabel('Date')
+            ylabel('mm/day')
+            ylim([0 (max(obsFlow(:,2))+10)])
+            grid on
+            ax = gca;
+            ax.FontSize = 11;
+            hold on
+            plot(totalFlow_sim(:,1),baseFlow)
+            hold on
+            plot(quickFlow(:,1),quickFlow(:,2))
+            hold on
+            plot (obsFlow(:,1), obsFlow(:,2))
+           % datetick('x', 'dd/mm/yy', 'keepticks')
+            dynamicDateTicks()
+            hold off
+            legend('totalFlow_sim','baseFlow','quickFlow','Observed_Flow')
+
+            %         ploting obs total streamflow
+            figure(i+6)
+            plot( obsFlow(:,1), obsFlow(:,2))
+            title(' streamflow observations')
+            xlabel('Numeric Date ')
+            ylabel('mm/day')
+            grid on
+            ax = gca;
+            ax.FontSize = 13;
+           % datetick('x', 'dd/mm/yy', 'keepticks')
+            dynamicDateTicks()
+
+            %         ploting baseflow
+            figure(i+7)
+            plot(totalFlow_sim(:,1),baseFlow)
+            title(' baseflow simulated')
+            xlabel('Numeric Date ')
+            ylabel('mm/day')
+           % datetick('x', 'dd/mm/yy', 'keepticks')
+            dynamicDateTicks()
+            grid on
+            ax = gca;
+            ax.FontSize = 13;
+            legend('baseFlow')
+
+
+            figure(15);
+            %         plot(obj.parameters.climateTransform_soilMoistureModels_2layer_v2.variables.SMS)
+            %         y = obj.parameters.climateTransform_soilMoistureModels_2layer_v2.SMSC;
+            %         plot(obj.parameters.climateTransform_soilMoistureModels.variables.SMS)
+            %         y = obj.parameters.climateTransform_soilMoistureModels.SMSC;
+                    plot(obj.parameters.climateTransform_soilMoistureModels_v2.variables.SMS, 'g')
+%             plot(obj.parameters.climateTransform_soilMoistureModels_interflow.variables.SMS, 'g')
+                    y = obj.parameters.climateTransform_soilMoistureModels_v2.SMSC;
+%             y = obj.parameters.climateTransform_soilMoistureModels_interflow.SMSC;
+            line([0,68000],[10.^(y),10.^(y)])
+            % datetick('x', 'dd/mm/yy', 'keepticks')
+            legend('SMS', 'SMSC')
+
+
+            figure(16);
+            %         xx = obj.parameters.climateTransform_soilMoistureModels_2layer_v2.variables.SMS ./ (10 .^ obj.parameters.climateTransform_soilMoistureModels_2layer_v2.SMSC);
+            %         xx = obj.parameters.climateTransform_soilMoistureModels.variables.SMS ./ (10 .^ obj.parameters.climateTransform_soilMoistureModels.SMSC);
+                    xx = obj.parameters.climateTransform_soilMoistureModels_v2.variables.SMS ./ (10 .^ obj.parameters.climateTransform_soilMoistureModels_v2.SMSC);
+%             xx = obj.parameters.climateTransform_soilMoistureModels_interflow.variables.SMS ./ (10 .^ obj.parameters.climateTransform_soilMoistureModels_interflow.SMSC);
+            plot(xx)
+            title('SMS / SMSC')
+            xlabel('Sub-daily time-steps')
+            ylabel('ratio')
+            ylim([0 1])
+            % datetick('x', 'dd/mm/yy', 'keepticks')
+            legend('(SMS / SMSC)')
+
+
+
+%---------------------------------------------------------------------------------------------------------------------------------- %  
+
+
+
+
+
+
 
     
     
