@@ -1224,11 +1224,12 @@ classdef model_TFN < model_abstract
                             % Set the forcing
                             setTransformedForcing(obj.parameters.(modelnames{i}),t, false);
                             
+                            
                             % Get the forcing for each variable
                             for j=1:length(variable_names)
                                 try
                                     forcingData = [forcingData, getTransformedForcing(obj.parameters.(modelnames{i}),variable_names{j})];
-                                    forcingData_colnames = {forcingData_colnames{:}, variable_names{j}};
+                                    forcingData_colnames = {forcingData_colnames{:}, variable_names{j}}; % SOMETHING GOES WRONG HERE SO THAT RUNOFF IS NOT STORED OR CALCULATED PROPERLY. 
                                 catch ME
                                     continue;
                                 end
@@ -1471,10 +1472,20 @@ classdef model_TFN < model_abstract
                 for j=1:nCompanants                    
                     calibData(ii,1).mean_forcing.(companants{j}) = obj.variables.(companants{j}).forcingMean(:,ii);
                 end                
-                              
-                % Add drainage elevation to the varargin variable sent to
-                % objectiveFunction.                
-                calibData(ii,1).drainage_elevation = obj.variables.d(ii);
+                    
+                
+                if ~isempty(obj.variables.d(ii))
+                    % Add drainage elevation to the varargin variable sent to
+                    % objectiveFunction.                
+                    calibData(ii,1).drainage_elevation = obj.variables.d(ii);
+                else
+                    fprintf('obj.variables.d(ii) must exist and have a value. How did it disappear?');
+                    break;
+                end
+
+                % % Add drainage elevation to the varargin variable sent to
+                % % objectiveFunction.                
+                % calibData(ii,1).drainage_elevation = obj.variables.d(ii);
                 
                 % Add noise std dev
                 if isfield(obj.variables,'sigma_n');

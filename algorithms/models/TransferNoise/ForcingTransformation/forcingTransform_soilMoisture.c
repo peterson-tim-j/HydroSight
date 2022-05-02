@@ -12,11 +12,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
                   Ksat = mxGetScalar( prhs[4] ),
                   alpha = mxGetScalar( prhs[5] ),
                   beta = mxGetScalar( prhs[6] ),
-                  gamma = mxGetScalar( prhs[7] );        
+                  gamma = mxGetScalar( prhs[7] ),
+				  eps = mxGetScalar( prhs[8] );        
     
     /* Declare input data */
     const double *precip= mxGetPr( prhs[1] ), *et= mxGetPr( prhs[2] );
-    
+     
     /* Declare output data */    
     double *soilMoisture;
         
@@ -67,13 +68,22 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         if (noPrecip == 1) 
             dSdt_precip = 0.0;
         else     
-            if (alpha == 1.0) 
-                dSdt_precip = precip[iDay] * (1.0 - soilMoisture_frac);                
-            else if (alpha == 0.0) 
-                dSdt_precip = precip[iDay];
-            else
-                dSdt_precip = precip[iDay] * pow(1.0 - soilMoisture_frac,alpha);
-
+			if (eps==0.0)
+				if (alpha == 1.0) 
+					dSdt_precip = precip[iDay] * (1.0 - soilMoisture_frac);                
+				else if (alpha == 0.0) 
+					dSdt_precip = precip[iDay];
+				else
+					dSdt_precip = precip[iDay] * pow(1.0 - soilMoisture_frac,alpha);
+			else 
+				if (alpha == 1.0) 
+					dSdt_precip = precip[iDay] * MIN(1.0, ((S_cap - soilMoisture[iDay-1])/(S_cap*(1-eps))));                
+				else if (alpha == 0.0) 
+					dSdt_precip = precip[iDay];
+				else
+					dSdt_precip = precip[iDay] * MIN(1.0, pow(((S_cap - soilMoisture[iDay-1])/(S_cap*(1-eps))),alpha));
+		
+		
         if (beta == 0.0 || Ksat==0.0 )
             dSdt_drain = 0.0;
         else if (beta==1.0)
@@ -112,13 +122,22 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             if (noPrecip == 1) 
                 dSdt_precip = 0.0;
             else          
-                if (alpha == 1.0) 
-                    dSdt_precip = precip[iDay] * (1.0 - soilMoisture_frac);                
-                else if (alpha == 0.0) 
-                    dSdt_precip = precip[iDay];
-                else
-                    dSdt_precip = precip[iDay] * pow(1.0 - soilMoisture_frac,alpha);                    
+				if (eps==0.0)
+					if (alpha == 1.0) 
+						dSdt_precip = precip[iDay] * (1.0 - soilMoisture_frac);                
+					else if (alpha == 0.0) 
+						dSdt_precip = precip[iDay];
+					else
+						dSdt_precip = precip[iDay] * pow(1.0 - soilMoisture_frac,alpha);
+				else 
+					if (alpha == 1.0) 
+						dSdt_precip = precip[iDay] * MIN(1.0, ((S_cap - soilMoisture[iDay])/(S_cap*(1-eps))));                
+					else if (alpha == 0.0) 
+						dSdt_precip = precip[iDay];
+					else
+						dSdt_precip = precip[iDay] * MIN(1.0, pow(((S_cap - soilMoisture[iDay])/(S_cap*(1-eps))),alpha));                 
 
+		
             if (beta == 0.0  || Ksat==0.0 )
                 dSdt_drain = 0.0;
             else if (beta == 1.0)
@@ -144,14 +163,26 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
                 d2Sdt2_precip = 0.0;
             }
             else {
-                if (alpha == 1.0)
-                    d2Sdt2_precip = -precip[iDay] / S_cap;
-                else if (alpha == 0.0) 
-                    d2Sdt2_precip = 0.0;
-                else if (alpha == 2.0)
-                    d2Sdt2_precip = -precip[iDay] * alpha / S_cap * (1.0 - soilMoisture_frac);
-                else
-                    d2Sdt2_precip = -precip[iDay] * alpha / S_cap * pow(1.0 - soilMoisture_frac,alpha-1.0);
+                if (eps==0.0)					
+					if (alpha == 1.0)
+						d2Sdt2_precip = -precip[iDay] / S_cap;
+					else if (alpha == 0.0) 
+						d2Sdt2_precip = 0.0;
+					else if (alpha == 2.0)
+						d2Sdt2_precip = -precip[iDay] * alpha / S_cap * (1.0 - soilMoisture_frac);
+					else
+						d2Sdt2_precip = -precip[iDay] * alpha / S_cap * pow(1.0 - soilMoisture_frac,alpha-1.0);
+				else 
+					if (soilMoisture[iDay] < (S_cap*eps))
+						d2Sdt2_precip = 0;
+					else if (alpha == 1.0)
+						d2Sdt2_precip = -precip[iDay] / (S_cap*(1-eps));
+					else if (alpha == 0.0) 
+						d2Sdt2_precip = 0.0;
+					else if (alpha == 2.0)
+						d2Sdt2_precip = -precip[iDay] * alpha / (S_cap*(1-eps)) * ((S_cap - soilMoisture[iDay])/(S_cap*(1-eps)));
+					else
+						d2Sdt2_precip = -precip[iDay] * alpha / (S_cap*(1-eps)) * pow(((S_cap - soilMoisture[iDay])/(S_cap*(1-eps))),alpha-1.0);
 
                 df = 1.0-dt * 0.5 * (d2Sdt2_precip + (beta * dSdt_drain + gamma * dSdt_et)/soilMoisture[iDay]); 
             }
@@ -186,23 +217,42 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
                     fb = soilMoisture_iDay_upper - soilMoisture[iDay-1] - dt*dSdt;
                 }
                 else {
-                    soilMoisture[iDay] = 0.5*S_cap;                                                                                                
-                    dSdt = 0.5*(precip[iDay] * pow(0.5,alpha)- Ksat * pow(0.5, beta) - et[iDay] * pow(0.5, gamma) +
-                                dSdt_iprevDay);
-                    f = soilMoisture[iDay] - soilMoisture[iDay-1] - dt*dSdt;
+					if (eps==0.0) {
+						soilMoisture[iDay] = 0.5*S_cap;                                                                                                
+						dSdt = 0.5*(precip[iDay] * pow(0.5,alpha)- Ksat * pow(0.5, beta) - et[iDay] * pow(0.5, gamma) +
+									dSdt_iprevDay);
+						f = soilMoisture[iDay] - soilMoisture[iDay-1] - dt*dSdt;
 
-                    soilMoisture_iDay_lower = 0.0;
-                    dSdt = 0.5*(precip[iDay] + dSdt_iprevDay);
-                    fa = soilMoisture_iDay_lower - soilMoisture[iDay-1] - dt*dSdt;
+						soilMoisture_iDay_lower = 0.0;
+						dSdt = 0.5*(precip[iDay] + dSdt_iprevDay);
+						fa = soilMoisture_iDay_lower - soilMoisture[iDay-1] - dt*dSdt;
 
-                    soilMoisture_iDay_upper = S_cap;                        
-                    dSdt = precip[iDay] * pow(0.0,alpha)- Ksat - et[iDay];
-                    /* Set to zero if dS/dt would overfill soil store. 
-                    if (dSdt > 0.0)
-                        dSdt = 0.0;  */                  
-                    dSdt =  0.5*(dSdt + dSdt_iprevDay);                    
-                    fb = soilMoisture_iDay_upper - soilMoisture[iDay-1] - dt*dSdt;                            
-                            
+						soilMoisture_iDay_upper = S_cap;                        
+						dSdt = precip[iDay] * pow(0.0,alpha)- Ksat - et[iDay];
+						/* Set to zero if dS/dt would overfill soil store. 
+						if (dSdt > 0.0)
+							dSdt = 0.0;  */                  
+						dSdt =  0.5*(dSdt + dSdt_iprevDay);                    
+						fb = soilMoisture_iDay_upper - soilMoisture[iDay-1] - dt*dSdt;   
+					}
+                    else {
+						soilMoisture[iDay] = 0.5*S_cap;                                                                                                
+						dSdt = 0.5*(precip[iDay] * MIN(1.0, pow((0.5/(S_cap*(1-eps))),alpha)) - Ksat * pow(0.5, beta) - et[iDay] * pow(0.5, gamma) +
+									dSdt_iprevDay);
+						f = soilMoisture[iDay] - soilMoisture[iDay-1] - dt*dSdt;
+
+						soilMoisture_iDay_lower = 0.0;
+						dSdt = 0.5*(precip[iDay] * MIN(1.0, pow((S_cap/(S_cap*(1-eps))),alpha)) + dSdt_iprevDay);
+						fa = soilMoisture_iDay_lower - soilMoisture[iDay-1] - dt*dSdt;
+
+						soilMoisture_iDay_upper = S_cap;                        
+						dSdt = precip[iDay] * pow(0.0,alpha)- Ksat - et[iDay];
+						/* Set to zero if dS/dt would overfill soil store. 
+						if (dSdt > 0.0)
+							dSdt = 0.0;  */                  
+						dSdt =  0.5*(dSdt + dSdt_iprevDay);                    
+						fb = soilMoisture_iDay_upper - soilMoisture[iDay-1] - dt*dSdt; 
+					}	
                 }
                
                 /* Reset error ests.*/
@@ -250,8 +300,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
                     if (noPrecip==1)
                         dSdt = 0.5*(- Ksat * pow(soilMoisture_frac, beta) - et[iDay] * pow(soilMoisture_frac, gamma) + dSdt_iprevDay);
                     else 
-                        dSdt = 0.5*(precip[iDay] * pow(1.0-soilMoisture_frac,alpha) - Ksat * pow(soilMoisture_frac, beta) - et[iDay] * pow(soilMoisture_frac, gamma) + dSdt_iprevDay);
-
+                        if (eps==0.0)
+							dSdt = 0.5*(precip[iDay] * pow(1.0-soilMoisture_frac,alpha) - Ksat * pow(soilMoisture_frac, beta) - et[iDay] * pow(soilMoisture_frac, gamma) + dSdt_iprevDay);
+						else if (soilMoisture[iDay] < (S_cap*eps))
+							dSdt = 0.5*(precip[iDay] - Ksat * pow(soilMoisture_frac, beta) - et[iDay] * pow(soilMoisture_frac, gamma) + dSdt_iprevDay);
+						else
+							dSdt = 0.5*(precip[iDay] * MIN(1.0, pow(((S_cap - soilMoisture[iDay])/(S_cap*(1-eps))),alpha)) - Ksat * pow(soilMoisture_frac, beta) - et[iDay] * pow(soilMoisture_frac, gamma) + dSdt_iprevDay);
+						
                     /* Recalculate f using new dS/dt value*/
                     f = soilMoisture[iDay] - soilMoisture[iDay-1] - dt*dSdt;
 

@@ -1,5 +1,11 @@
 function Build_C_code()
 
+
+    addpath(genpath([pwd, filesep, 'algorithms']));
+    addpath(genpath([pwd, filesep, 'dataPreparationAnalysis']));
+    addpath(genpath([pwd, filesep, 'Examples']));
+    addpath(genpath([pwd, filesep, 'GUI']));
+    
     % This function biulds the required C MEX fucntions.
     % NOTE, b default matlab uses -o2 optimisations.
     % Chnaging this to -ofast reduces the doIRFconvolution.c
@@ -23,7 +29,7 @@ function Build_C_code()
 
     % invoke MEX compilation tool
     if ispc
-        mex(mexopts{:},'algorithms\models\TransferNoise\ForcingTransformation\forcingTransform_soilMoisture.c');
+        mex(mexopts{:},'algorithms\models\TransferNoise\ForcingTransformation\c');
         mex(mexopts{:},'algorithms\models\TransferNoise\doIRFconvolution.c');
         
         movefile('doIRFconvolution.mexw64', 'algorithms\models\TransferNoise\doIRFconvolution.mexw64')

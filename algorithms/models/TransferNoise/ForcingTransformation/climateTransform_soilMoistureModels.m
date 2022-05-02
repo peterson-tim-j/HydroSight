@@ -10,9 +10,12 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
 %   automatically called by the function "model_TFN.m".
 %   
 %   The soil moisture model is defined by the following ordinary
-%   diffenential equation (Kavetski et al. 2006):
+%   diffenential equation (Kavetski et al. 2003, 2006):
 %   
-%   DS/dt = P_inf (1 - S/SMSC)^alpha - k_sat (S/SMSC)^beta - PET (S/SMSC)^gamma
+%   DS/dt = P_inf (1 - S/SMSC)^alpha - k_sat (S/SMSC)^beta - PET (S/SMSC)^gamma -- (Kavestki 2006)
+%
+%   DS/dt = P_inf [(SMSC-S)/(SMSC(1-eps))]^alpha - k_sat (S/SMSC)^beta - PET (S/SMSC)^gamma  -- (Kavestki 2003, 2006)
+%
 % 
 %   where:
 %       S       - is the soil moisture storage state variable [L];
@@ -37,6 +40,7 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
 %       gamma   - is a dimensionless parameter to transform the rate at
 %                 which soil water evaporation occurs with filling of the 
 %                 soil layer.
+%       eps      - ratio of S_min/SMSC. If eps=0, S_min=zero
 %       S_initialfrac - the initial soil moisture.
 %
 %	The soil moisture model can also be used to simulate the impacts from
@@ -74,6 +78,7 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
 %       interflow_frac- Fraction of free drainage going to interflow (0-1).
 %       beta          - log10(Power term for dainage rate).
 %       gamma         - log10(Power term for soil evap. rate).
+%       eps           - ratio of S_min/SMSC. If eps=0, S_min=zero
 %
 %   The soil moisture model is an adaption of VIC Model (Wood et al. 1992)
 %   by Kavetski et al. (2006). It is a soil moisture model that is without
@@ -87,7 +92,17 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
 %   details on how to build various types of models see the documentation
 %   for the class constructor (i.e. "climateTransform_soilMoistureModels"
 %   below);
-%   
+%
+%   The current infiltration term of the soil moisture model is an adaption of VIC Model (Wood et al. 1992) with a 
+%   S_min threshold as per Kalma et al. (1995) and Kavestki et al. (2003).
+%   This S_min term adds discontinuity to the infiltration term but the
+%   evapotranspiration and drainage terms are kept as in Kavetski et al.
+%   (2006), so the model has limited discontinuities (thus able to produce a first-order smooth
+%   calibration response surface) and therefore amenable to gradient based
+%   calibration. The S_min term is included as a ration of S_min/SMSC =
+%   eps, thus if eps = 0 we have the original soil moisture model given by
+%   Kavetski et al. (2006) 
+%
 %   Considerable effort has been put into efficiently solving the soil 
 %   moisture model while producing a smooth response surface. The
 %   differential equation is solved using a fixed-time step solver. For each
@@ -150,7 +165,8 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
         interflow_frac  % Fraction of free drainage going to interflow (0-1).        
         alpha           % Power term for infiltration.        
         beta            % Power term for dainage rate (eg Brook-Corey pore index power term)
-        gamma           % Power term for soil evaporation rate.        
+        gamma           % Power term for soil evaporation rate.  
+        eps             % Scaler defining S_min/SMSC ratio. S_min is the minimum soil moisture threshold for having runoff produced. If eps=0, runoff and infiltration terms are as Kavestki 2006. 
         %----------------------------------------------------------------        
     end
 
@@ -167,10 +183,10 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
         
         function [variable_names] = outputForcingdata_options(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates)
             variable_names = {'effectivePrecip'; 
-                              'drainage';       'infiltration';             'evap_soil';        'evap_gw_potential';        'runoff';       'SMS'; ...
+                              'drainage';       'infiltration';            'evap_soil';        'evap_gw_potential';        'runoff';       'SMS'; ...
                               'drainage_tree';  'infiltration_tree';        'evap_soil_tree';   'evap_gw_potential_tree';   'runoff_tree';  'SMS_tree'; ...
                               'drainage_nontree';'infiltration_nontree';    'evap_soil_nontree';'evap_gw_potential_nontree';'runoff_nontree';'SMS_nontree'; ...
-                              'mass_balance_error'};
+                              'infiltration_fractional_capacity'; 'interflow';  'mass_balance_error'};
         end
         
         function [options, colNames, colFormats, colEdits, toolTip] = modelOptions()
@@ -185,7 +201,8 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                         'interflow_frac',   0, 'Fixed'    ; ...
                         'alpha'         ,   0, 'Fixed'    ; ...
                         'beta'          , 0.5,'Calib.' ; ...
-                        'gamma'         ,   0,  'Fixed'};
+                        'gamma'         ,   0,  'Fixed' ; ...
+                        'eps'           ,   0,  'Fixed'};
 
         
             colNames = {'Parameter', 'Initial Value','Fixed or Calibrated?'};
@@ -205,7 +222,8 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                                 '   interflow_frac: Fraction of free drainage going to interflow (0-1).', ...
                                 '   alpha         : Power term for infiltration rate.\n', ...
                                 '   beta          : log10(Power term for dainage rate).\n', ...
-                                '   gamma         : log10(Power term for soil evap. rate).']);                               
+                                '   gamma         : log10(Power term for soil evap. rate).\n',...
+                                '   eps           : S_min/SMSC ratio. S_min is the minimum soil moisture threshold.']);                               
             
         end
         
@@ -232,7 +250,8 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                                 'alpha         : Power term for infiltration rate.', ...
                                 'beta          : log10(Power term for dainage rate).', ...
                                 'gamma         : log10(Power term for soil evap. rate).', ...
-                               '', ...               
+                                'eps           : S_min/SMSC ratio. S_min is the minimum soil moisture threshold.',...
+                                '', ...               
                                'References: ', ...
                                '1. Peterson & Western (2014), Nonlinear time-series modeling of unconfined groundwater head, Water Resour. Res., 50, 8330-8355'};
         end        
@@ -431,6 +450,8 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                         obj.(all_parameter_names{i}) = 0;                        
                     elseif strcmp(all_parameter_names{i}, 'S_initialfrac')
                         obj.(all_parameter_names{i}) = 0.5;  
+                    elseif strcmp(all_parameter_names{i}, 'eps')
+                        obj.(all_parameter_names{i}) = 0;
                     else
                         obj.(all_parameter_names{i}) = 0;
                     end
@@ -743,8 +764,9 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                 params_upperLimit(ind,1) = 1;                                    
             end    
                    
-            if obj.settings.activeParameters.beta
-                ind = cellfun(@(x)(strcmp(x,'gamma')),param_names);
+            % if obj.settings.activeParameters.beta % TODO: is it a bug?
+			if obj.settings.activeParameters.gamma 
+                ind = cellfun(@(x)(strcmp(x,'gamma')),param_names); 
                 params_lowerLimit(ind,1) = log10(0.01);
                 params_upperLimit(ind,1) = log10(100);
             end                  
@@ -767,6 +789,12 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                 params_lowerLimit(ind,1) = log10(1);
                 params_upperLimit(ind,1) = log10(10);
             end                
+            
+            if obj.settings.activeParameters.eps
+                ind = cellfun(@(x)(strcmp(x,'eps')),param_names);
+                params_lowerLimit(ind,1) = 0;
+                params_upperLimit(ind,1) = 1;
+            end  
         end  
         
 %% Return fixed upper and lower plausible parameter ranges. 
@@ -877,11 +905,18 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                 params_upperLimit(ind,1) = log10(10);
             end      
             
-            if obj.settings.activeParameters.beta
+            % if obj.settings.activeParameters.beta   % TODO: is it a bug?
+			if obj.settings.activeParameters.gamma  
                 ind = cellfun(@(x)(strcmp(x,'gamma')),param_names);
                 params_lowerLimit(ind,1) = log10(0.1);
                 params_upperLimit(ind,1) = log10(10);
             end                  
+            
+             if obj.settings.activeParameters.eps
+                ind = cellfun(@(x)(strcmp(x,'eps')),param_names);
+                params_lowerLimit(ind,1) = 0;
+                params_upperLimit(ind,1) = 1;
+            end   
         end        
         
 %% Check if the model parameters have chanaged since the last calculated.
@@ -1007,7 +1042,8 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                 interflow_frac = params(8,:);
                 alpha = params(9,:);
                 beta = params(10,:);
-                gamma = params(11,:);                 
+                gamma = params(11,:);
+                eps = params(12,:);
                 
                 % Filter the forcing data to input t.
                 filt_time = obj.settings.forcingData(:,1) >= t(1) & obj.settings.forcingData(:,1) <= t(end);
@@ -1098,7 +1134,7 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                     evap = getSubDailyForcing(obj,obj.variables.evap);
                     
                     % Run the soil models using the sub-steps.
-                    obj.variables.SMS = forcingTransform_soilMoisture(S_initial, effectivePrecip, evap, SMSC, k_sat, alpha, beta, gamma);
+                    obj.variables.SMS = forcingTransform_soilMoisture(S_initial, effectivePrecip, evap, SMSC, k_sat, alpha, beta, gamma, eps);
                     
                     % Run soil model again if tree cover is to be simulated
                     if  isfield(obj.settings,'simulateLandCover') && obj.settings.simulateLandCover
@@ -1109,7 +1145,7 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                         end
                         
                         obj.variables.SMS_trees = forcingTransform_soilMoisture(S_initial, effectivePrecip, obj.variables.evap, ...
-                            SMSC_trees, k_sat, alpha, beta, gamma);
+                            SMSC_trees, k_sat, alpha, beta, gamma, eps);
                     end
 %                 end                                                 
             end
@@ -1185,7 +1221,9 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
             interflow_frac = params(8,:);
             alpha = params(9,:);
             beta = params(10,:);
-            gamma = params(11,:);            
+            gamma = params(11,:); 
+            eps = params(12,:);
+                            
              
             % Set if the subdaily steps should be integrated.
             if nargin < 4
@@ -1248,20 +1286,46 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                                 isDailyIntegralFlux(i) = false;
                             end
                             
+                        case 'infiltration_fractional_capacity'     
+						
+                            % CalculateS infiltration fractional capacity, representing the fraction of rainfall that is infiltrated 
+                            infiltration_fractional_capacity = min(1, ((SMSC - SMS)/(SMSC*(1-eps))).^alpha);
+                             
+                            if doSubstepIntegration
+                                % forcingData(:,i) = dailyIntegration(obj, infiltration_fractional_capacity./obj.variables.nDailySubSteps); % TODO: this was incorrect, right?
+								forcingData(:,i) = dailyIntegration(obj, infiltration_fractional_capacity);
+                            else
+                                forcingData(:,i) = infiltration_fractional_capacity;
+                            end
+                                                        
+                            if doSubstepIntegration
+                                isDailyIntegralFlux(i) = true;
+                            else
+                                isDailyIntegralFlux(i) = false;
+                            end
+                                                    
                             
                         case 'infiltration'                       
                             % Calculate max. infiltration assuming none
                             % goes to SATURATED runoff.
                             effectivePrecip_daily = getTransformedForcing(obj, 'effectivePrecip',SMSnumber); 
                             effectivePrecip = getSubDailyForcing(obj,effectivePrecip_daily);
+                            
+							% Tim's implemetation
+							% infiltration_fractional_capacity_daily = getTransformedForcing(obj, 'infiltration_fractional_capacity',SMSnumber); 
+                            
                             if alpha==0
                                 infiltration_daily =  effectivePrecip_daily;
                                 infiltration =  effectivePrecip;                                
                             else
-                                infiltration =  effectivePrecip .* (1-SMS/SMSC).^alpha;
+                                % Tim's implemetation
+								% infiltration =  effectivePrecip .* (1-SMS/SMSC).^alpha;
+                                infiltration_fractional_capacity = getTransformedForcing(obj, 'infiltration_fractional_capacity', SMSnumber, false);
+                                infiltration =  effectivePrecip .* infiltration_fractional_capacity;                                                                
                             end
-                            
-                            % Calculatre when the soil is probably
+                                                                             
+                                                        
+                            % Calculate when the soil is probably
                             % saturated. 
                             drainage = getTransformedForcing(obj, 'drainage',SMSnumber, false);
                             evap = getTransformedForcing(obj, 'evap_soil',SMSnumber, false);
@@ -1305,19 +1369,34 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                                 isDailyIntegralFlux(i) = false;
                             end                            
                           
+						case 'interflow'
+                            
+                            % Calculate subdaily interflow.                        							
+							interflow = (interflow_frac) .* k_sat/obj.variables.nDailySubSteps .*(SMS/SMSC).^beta;
+                            
+                            if doSubstepIntegration
+                                forcingData(:,i) = dailyIntegration(obj, interflow);
+                                isDailyIntegralFlux(i) = true;
+                            else
+                               forcingData(:,i) = interflow;  
+                               isDailyIntegralFlux(i) = false;
+                            end           
+                            
+						
                         case 'runoff'
                             
                             % Calculate infiltration.
                             infiltration = getTransformedForcing(obj, 'infiltration',SMSnumber, false);
                             
                             % Calc sub daily interflow
-                            %interflow = getTransformedForcing(obj, 'interflow',SMSnumber, false);
+                            interflow = getTransformedForcing(obj, 'interflow',SMSnumber, false);
                                 
                             % Calc sub daily runoff
                             runoff = max(0,getSubDailyForcing(obj,obj.variables.precip) - infiltration);
-                            runoff = runoff * (1-bypass_frac);
+                            % runoff = runoff * (1-bypass_frac);
+							runoff = interflow + (runoff * (1-bypass_frac)); % only the runoff can be redirected to free drainage from shallow soil moisture
                             
-                            % Integreate to daily.
+                            % Integrate to daily.
                             if doSubstepIntegration
                                 forcingData(:,i) = dailyIntegration(obj, runoff);
                                 isDailyIntegralFlux(i) = true;
@@ -1413,7 +1492,8 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                            'interflow_frac : fraction of free drainage going to interflow (-)'; ...        
                            'alpha : power term for infiltration rate (-)'; ...       
                            'beta : back transformed power term for dainage rate (eg approx. Brook-Corey pore index power term)'; ...
-                           'gamma : back transformed power term for soil evaporation rate (-)'};    
+                           'gamma : back transformed power term for soil evaporation rate (-)';...
+                           'eps: S_min/SMSC ratio. S_min is the minimum soil moisture threshold.(-)'};    
         
             params = [  10.^(obj.SMSC); ...
                         10.^(obj.SMSC_trees); ...
@@ -1425,7 +1505,8 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                         obj.interflow_frac; ...
                         obj.alpha; ...
                         10.^(obj.beta); ...
-                        10.^(obj.gamma)];
+                        10.^(obj.gamma);...
+                        obj.eps];
         end
 
         % Return coordinates for forcing variable
