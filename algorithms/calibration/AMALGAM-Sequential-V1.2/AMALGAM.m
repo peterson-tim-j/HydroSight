@@ -116,14 +116,11 @@ Cg = repmat(0, AMALGAMPar.N, 1); % Initialize/Define the contstraint violation
 
 
 
-%     parfor ii = 1:AMALGAMPar.N % computing the Obj-functions using parallel computing
-    for ii = 1:AMALGAMPar.N % computing the Obj-functions using parallel computing
-        ii
-%         ObjVals_prime = objectiveFunction_joint(ParGen(ii,:)', Measurement.time_points_head, Measurement.time_points_streamflow, model_object,{}); % using time points from calibration_initialise to avoid mismatch of dimensions in line 2803 of model_TFN
+    parfor ii = 1:AMALGAMPar.N % computing the Obj-functions using parallel computing
+%     for ii = 1:AMALGAMPar.N % computing the Obj-functions using parallel computing
+
         [ObjVals_prime, ~, ~, objFn_flow_NSE, objFn_flow_NNSE, objFn_flow_RMSE, objFn_flow_SSE, objFn_flow_bias, objFn_flow_KGE, ~, ~,~] = objectiveFunction_joint(ParGen(ii,:)', Measurement.time_points_head, Measurement.time_points_streamflow, model_object,{}); % using time points from calibration_initialise to avoid mismatch of dimensions in line 2803 of model_TFN
-%         model_object.variables.doingCalibration = true; % true to pass through objectiveFunction_joint with the correct input during the loop.
         
-%         
         % Store the objective function values for each point that are minimized in AMALGAM
         ObjVals(ii,:) = ObjVals_prime;
 
@@ -133,16 +130,11 @@ Cg = repmat(0, AMALGAMPar.N, 1); % Initialize/Define the contstraint violation
         Cg(ii,1) = 0; % Define the constraint violation
 
     end
-  
-% This function now contains the body
-% of the parfor-loop
-
-    
     
 % ParGen a matrix of parameter sets
 % AMALGAMPar is a struct variable of number of parameters etc
 % Measurements I this can be empty
-% ModelName is 'objectiveFunction_joint'
+% ModelName is 'ScenarioName'
 % Extra will be the model object eg model_7params.model
 
 % Ranking and CrowdDistance Calculation
@@ -163,7 +155,7 @@ ParSet(1:AMALGAMPar.N,1:AMALGAMPar.n + AMALGAMPar.nobj + 1) = [ParGen Cg ObjVals
 % Define counter
 counter = 2;
 
-% ADDED THIS: Initialize matrix to store all the Obj-Functions for flow
+% ADDED Initialize matrix to store all the Obj-Functions for flow
 % that are calculated at each iteration of AMALGAM
 allOriginalObjVals_Flow = Par_allOriginalObjVals_Flow;
 
@@ -186,12 +178,9 @@ while (Iter < AMALGAMPar.ndraw),
     Child_allOriginalObjVals_Flow = repmat(inf, AMALGAMPar.N, 6); % initialize to speed up the parfor loop with the correct matrix of all original ObjVals for flow
     ChildCg = repmat(inf, AMALGAMPar.N, 1); % initialize physical constrains matrix
 
-%     parfor ii = 1:AMALGAMPar.N % computing the Obj-functions using parallel computing
-     for ii = 1:AMALGAMPar.N % computing the Obj-functions 
-         ii
-%          ObjVals_prime = objectiveFunction_joint(NewGen(ii,:)', Measurement.time_points_head, Measurement.time_points_streamflow, model_object,{}); % using time points from calibration_initialise to avoid mismatch of dimensions in line 2803 of model_TFN
+    parfor ii = 1:AMALGAMPar.N % computing the Obj-functions using parallel computing
+
          [ObjVals_prime, ~, ~, objFn_flow_NSE, objFn_flow_NNSE, objFn_flow_RMSE, objFn_flow_SSE, objFn_flow_bias, objFn_flow_KGE, ~, ~,~] = objectiveFunction_joint(NewGen(ii,:)', Measurement.time_points_head, Measurement.time_points_streamflow, model_object,{}); % using time points from calibration_initialise to avoid mismatch of dimensions in line 2803 of model_TFN
-%          model_object.variables.doingCalibration = true; % true to pass through objectiveFunction_joint with the correct input during the loop.
          
          % Store the objective function values for each point
          ChildObjVals(ii,:) = ObjVals_prime;
@@ -203,8 +192,7 @@ while (Iter < AMALGAMPar.ndraw),
          ChildCg(ii,1) = 0;
          
      end
-     
-     
+          
 
     % Step 4: Now merge parent and child populations and generate new one
     %[ParGen,ObjVals,Ranking,CrowdDist,Iout,Cg] = CreateNewPop(ParGen,NewGen,ObjVals,ChildObjVals,Itot,Cg,ChildCg,ParRange,Bounds); 
@@ -239,17 +227,6 @@ while (Iter < AMALGAMPar.ndraw),
     % Write Iter to screen -- to show progress
     Iter
     
-    % Plot Pareto Fronts on top of each other to show progress
-%     figure(1)
-%     scatter( ObjVals(:,1), ObjVals(:,2))
-%     title({['Pareto Front - GW head vs. Streamflow Obj-Functions' ]
-%         [model_object.inputData.bore_ID ' - ' 'Brucknell Creek' ]});
-% %     xlabel('SWSI (GW head)')
-%     xlabel('(1-NSE) (Flow)')
-%     ylabel('(1-NSE) (Flow)')
-%     grid on
-%     ax = gca;
-%     ax.FontSize = 13;
-%     hold on
+
     
 end;
