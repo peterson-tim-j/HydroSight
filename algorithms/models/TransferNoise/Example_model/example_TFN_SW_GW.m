@@ -17,7 +17,8 @@ addpath(genpath([pwd, filesep, 'GUI']));
 %   model for the joint calibration and simulation of GW head and streamflow time-series.
 
 %   The model requires the following three data files: obsHead_bore_WRK961324.csv,
-%   obsFlow_Brucknell.csv, and climate_Brucknell_Catchment_ETMortonCRAE.csv.
+%   obsFlow_Brucknell.csv, and climate_Brucknell_Catchment_ETMortonCRAE.csv, 
+%   List of Scenarios.csv.
 %
 %
 % References:
