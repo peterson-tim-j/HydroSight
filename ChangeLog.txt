@@ -191,7 +191,7 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 17 Oct 2021
 * Bug fixed in plotting Handtush calibration results within GUI (specifically, weighting function)
 
-9 Feb 2022 - 19 July 2022
+9 Feb 2022 - 15 September 2022
 * Simulations GUI redeveloped to allow plotting of each individual decomposed driver (and head) and examination of the forcing data, like available for model calibration. Note the latter is only available when new forcing data is used in the simulation.
 * Wizard GUI added to drawdown function input data selelction (eg responseFunction_FerrisKnowles.m) to allow selection of bores within a user set radius. Changes were primarily within model_TFN_gui.m.
 * Error and outlier detection algorithm performance significantly improved by (i) smoothing algorithm converted to C-code (ii) text output to command window removed and (iii) parallelisation of multiple bores. These new features improve the analysis time 10+ fold. Functionally, the vectorisation analyses all data points (excluding prior outliers), and not just those foward in time from the current time point. Additionally, the time point idenified as a outlier was changed from the first time point to that with the maximum absolute error (above the threshold); which improved the outlier detection. The latter two changes are different to Peterson et al. (2018, https://doi.org/10.1007/s10040-017-1660-7) and is likely to improve outlier detection.
