@@ -1,5 +1,8 @@
-HydroSight - _A toolbox for data-driven hydrogeological insights_
-==============================
+<img align="left" width="160" height="160" src="https://github.com/peterson-tim-j/HydroSight/blob/master/GUI/icons/icon_webpage.png">  
+
+# _HydroSight_: _Open-source data-driven hydrogeological insights_
+ 
+[![GitHub release](https://img.shields.io/github/release/peterson-tim-j/HydroSight)](https://github.com/peterson-tim-j/HydroSight/releases/) [![Github All Releases](https://img.shields.io/github/downloads/peterson-tim-j/HydroSight/total.svg?style=flat)]()   [![GitHub license](https://img.shields.io/github/license/peterson-tim-j/HydroSight)](https://github.com/peterson-tim-j/HydroSight/blob/master/LICENSE) [![GitHub forks](https://img.shields.io/github/forks/peterson-tim-j/HydroSight)](https://github.com/peterson-tim-j/HydroSight/network) [![GitHub stars](https://img.shields.io/github/stars/peterson-tim-j/HydroSight)](https://github.com/peterson-tim-j/HydroSight/stargazers)
 
 HydroSight is a highly flexible statistical toolbox for deriving quantitative insights value from groundwater monitoring data. It includes a powerful graphical interface for analying 100s of groundwater observation bores, allowing data-driven:
 
