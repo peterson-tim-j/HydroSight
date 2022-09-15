@@ -24,21 +24,21 @@ switch Par_info.prior
     case {'prior'}
         
         % Create the initial position of each chain by drawing each parameter individually from the prior
-        for qq = 1:DREAMPar.d,
-            for zz = 1:DREAMPar.N,
+        for qq = 1:DREAMPar.d
+            for zz = 1:DREAMPar.N
                 x(zz,qq) = eval(char(Par_info.prior_marginal(qq)));
-            end;
-        end;
+            end
+        end
         
     otherwise
         
         error('unknown initial sampling method');
-end;
+end
 
 % If specified do boundary handling ( "Bound","Reflect","Fold")
-if isfield(Par_info,'boundhandling'),
+if isfield(Par_info,'boundhandling')
     [x] = Boundary_handling(x,Par_info);
-end;
+end
 
 % Now evaluate the model ( = pdf ) and return fx
 [fx] = Evaluate_model(x,DREAMPar,Meas_info,f_handle, varargin{:});

@@ -1,4 +1,4 @@
-function res = uical(sDate, lang, minDate, maxDate)
+function res = uical(sDate, lang, minDate, maxDate, figure_icon, figure_name)
 % UICAL - Calendar date picker
 %
 %   Version : 1.1
@@ -87,15 +87,16 @@ switch numel(sDate)
 end
   
 
-% Language dependent strings
-set_language(lang);
+% Language dependent strings. 
+% Tim Peterson: edits to return daysN (but emerged in matlab ~2021 
+[daysN, monthsN] = set_language(lang);
 
 % Initializes output
 res = sDate(1:3);
 
 % Dimensions
 dayH   = 24;
-dayW   = 30;
+dayW   = 35;
 ctrlH  = 20;
 figH   = 7 * (dayH - 1) + ctrlH;
 figW   = 7 * (dayW-1);
@@ -125,8 +126,22 @@ handles.FgCal = figure( ...
   'CloseRequestFcn',@FgCal_CloseRequestFcn,...
   'WindowStyle','modal');
 
+% Set hydrosight icon
+if isa(figure_icon,'javax.swing.ImageIcon')
+    try
+        warning ('off','MATLAB:ui:javaframe:PropertyToBeRemoved');
+        javaFrame    = get(handles.FgCal,'JavaFrame'); %#ok<JAVFM>
+        javaFrame.setFigureIcon(figure_icon);
+    catch
+        % do nothing
+    end
+end 
+
 % Move the GUI to the center of the screen
 movegui(handles.FgCal,'center')
+
+% remove reside button
+set(handles.FgCal,'Resize','off');
 
 % Columns Headers containing initials of the week days
 for dayNidx=1:7
@@ -330,7 +345,10 @@ delete(handles.FgCal);
       'FontWeight'     ,'bold')
     
     % Update the name of the figure to reflect the selected day
-    set(handles.FgCal,'Name',sprintf('%u/%u/%u',fliplr(res)))
+    %set(handles.FgCal,'Name',sprintf('%u/%u/%u',fliplr(res)))
+
+    % Set name
+    set(handles.FgCal,'Name',figure_name);
 
     % Give focus to the "OK" button
     uicontrol(handles.PbChoose);
@@ -339,7 +357,7 @@ delete(handles.FgCal);
 
 
 %-------------------------------------------------------------------------------
-  function set_language(lang)
+  function [daysN, monthsN] = set_language(lang)
     % Sets language dependent strings used in the calendar
     % You can add languages by adding cases below.
     

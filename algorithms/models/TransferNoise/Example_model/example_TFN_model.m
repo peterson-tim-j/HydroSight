@@ -63,13 +63,13 @@ siteCoordinates = {bore_ID, 100, 100; 'PRECIP', 100, 100; 'APET', 100, 100; 'Rev
 % data input columns are 'PRECIP' and 'ET'.
 % Next, the 'outputdata' that is to be taken from the soil model is
 % defined. Each model has fixed options and here we're taking
-% 'drainage_normalised'.
+% 'drainage'.
 % Lastly, we can set 'options' for the soil model. In this case we are
 % defining the initial values for three parameters (SMSC, beta, ksat) and
 % fixing alpha to zero.
 forcingTransform_Precip = {'transformfunction', 'climateTransform_soilMoistureModels'; ...
                'forcingdata', {'precip','PRECIP';'et','APET'}; ...
-               'outputdata', 'drainage_normalised'; ...
+               'outputdata', 'drainage'; ...
                'options', {'SMSC',2,[];'beta',0,'';'k_sat',-inf,'fixed';'alpha',0,'fixed'}};
            
 % The transformation of the ET is then defined. However because we've already 

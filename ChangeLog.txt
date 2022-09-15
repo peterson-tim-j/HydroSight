@@ -179,7 +179,7 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 * Model examples re-run to reflect changes to the soil moisture model.
 
 12 Feb 2020
-* GUI model construction chnaged to allow the selection of mltiple bores. This was done in preparation for multi-bore analysis.
+* GUI model construction chnaged to allow the selection of multiple bores. This was done in preparation for multi-bore analysis.
 
 1 April 2021
 * Bug fixed in GUI weighting function model options ie for setting boundary condistions
@@ -187,3 +187,58 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 4 June 2021
 * Bug fixed in simulations using new forcing data. Note, this caused simulations with soil moisture model to not use the simulation 
   forcing data. Bug was in climateTransform_soilMoistureModels.m
+
+17 Oct 2021
+* Bug fixed in plotting Handtush calibration results within GUI (specifically, weighting function)
+
+9 Feb 2022 - 19 July 2022
+* Simulations GUI redeveloped to allow plotting of each individual decomposed driver (and head) and examination of the forcing data, like available for model calibration. Note the latter is only available when new forcing data is used in the simulation.
+* Wizard GUI added to drawdown function input data selelction (eg responseFunction_FerrisKnowles.m) to allow selection of bores within a user set radius. Changes were primarily within model_TFN_gui.m.
+* Error and outlier detection algorithm performance significantly improved by (i) smoothing algorithm converted to C-code (ii) text output to command window removed and (iii) parallelisation of multiple bores. These new features improve the analysis time 10+ fold. Functionally, the vectorisation analyses all data points (excluding prior outliers), and not just those foward in time from the current time point. Additionally, the time point idenified as a outlier was changed from the first time point to that with the maximum absolute error (above the threshold); which improved the outlier detection. The latter two changes are different to Peterson et al. (2018, https://doi.org/10.1007/s10040-017-1660-7) and is likely to improve outlier detection.
+* Plot the observed hydrograph added to outlier detection prior to analysis of the bore. Observed data is also shown in the table.
+* Plot the observed hydrograph when selecting the site ID within the model construction tab
+* Warnings added to GUI model construction, calibration and simulation when the settings are changed to a model already built, etc.
+* GUI tab added for model construction and calibration status.
+* GUI calibration produces detailed time-series plots of convergence. These plots are reproduced within the calibration status tab.
+* GUI model examples updated.
+* HydroSightModel.m solveModel() modified to store the forcing data in the object when the forcing data is an input (ie when differs to that used in the calibration).
+* Parameter physical bounds added to GUI calibration parameters tab.
+* New parameter (eps) added to climateTransform_soilMoistureModels() and climateTransform_soilMoistureModels_2layer() models that forces all precip. to infiltrate below eps*SMSC. This was added to overcome the plausible dynamic that all precip produces some runoff when alpha~=0.
+* New fluxes added to the outputs of climateTransform_soilMoistureModels() and climateTransform_soilMoistureModels_2layer() to allow more extensive exploration of internal dynamics.
+* Interflow removed from the outflow of the deep layer of climateTransform_soilMoistureModels_2layer().
+* Subdaily timestep for climateTransform_soilMoistureModels() and variants were reduced from 3 to 2 subdaily steps. This was done to reduce the calibration time, given that the majority of the model runtime involves solving the soil moisture ODE. 
+* Integration of subdaily fluxes from climateTransform_soilMoistureModels() and variants was extended to use (i) Simpons quadratic rule whe there are 2 sub daily time steps, (ii) Simpons 3/8 rule whe there are 3 sub daily time steps, and (iii) trapazoidal integration for all other time steps. This change was made to reduce the mass balance error for larger time steps. 
+* Major bugs fixed when using DREAM calibration and viewing results within the GUI. 
+* Hydrosight() error message changed to report line in HydroSight_GUI().
+* GUI outlier detection now shows the selected bore ID within the list of bore IDs.
+* "Cite project" menu item added to GUI. This analyses a project and lists the relevant citations.
+* gif2data() added to pre-rpcess gif icon data to data. This removed processing from GUI.
+* Question dialogs have been changed to have a 30sec time out using questdlg_timer().
+* Add row selection options 'copy selected modle labels' and 'paste copied model labels". This allows, say, the desired calibrated model rows to be selected within the build table.
+* New example added to GUI - ie outlier analysis of telemetered data.
+* New example added to GUI - ie modelling with incomplete pumping data as developed within Peterson and Fulton (2019).
+* Calibration plotting extended to overlay CDF plot to histogram of residuals. Uncertainty in CDF (from DREAM calibration) also added.
+* Head simulation with kriging changed from having a default maximum number of observations of 24 to 36. This change was made because when using a value of 24 the trends term of the universal kriging can be questionably large. The implications of this is that the influence of the trend in hindcasts or forecasts becomes questionable.
+* GUI buttons "<" and ">" added to calibration plot results and simulation results. Buttons allow efficient navigation through the plots.
+* GUI plotting for forcing calibration and simulation data extended to allow plotting of ratios of data. This allows, for example, the ratio of drainage divided by precipitation to be plotted over time. Note, setting the denominator flux to "(none)" plots the numerator data only.
+* Bug fixed in calendar GUI.
+* Bug fixed in climateTransform_soilMoistureModels_2layer.m setting of model options.
+* Bug fixed in model_TFN.m that now allows derived transformed forcing modules to be used.
+* Bugs fixed in matlab version checks within HydroSight_GUI.m.
+* Bug fixed that caused the setting of boundary conditions within drawdown equations (responseFunction_FerrisKnowles.m) within GUI to crash.
+* Bug fixed in outlier detection GUI table numbers.
+* Bug fixed in SPUCI.m so that the random seed is now applied.
+* Bug fixed in plotting calibration quantile-quantile plot of residuals. Functionality restored. 
+* Bug fixed in input of data for building 1st model of new project. This bug caused the file selection windows to not open.
+* Bug fixed caused by a model label ending  or startiong with a space.
+* Bug fixed causing the appending of GUI table data to crash.
+* Bug fixed causing models using derivedForcing_linearUnconstrainedScaling_dup() to fail during build  (see issue #38)
+* Bug fixed with GIF icons not allowing loading of GUI (issue #44).
+* Bug fixed that's casued when input head data is not chronologically sorted. Outlier and model construction GUI tabs now wort head data (issue #49).
+* Bug fixed in example_TFN_model.m (see issue #50).
+* Bug fixed where closing a question dialog (rather than answering) does not results in the action being cancelled. 
+* Bug fixed allowing non-finite soil moisture parameters (1 layer) to be non-finite. Models with non-finite values now throw an error.
+* Bug fixed causing the building of a model_TFN model to fail when it contains a transformed forcing input having >1 input forcing variables. 
+* Bug fixed in cmaes.m casuing non-reproducible solutions when the same random seed is used. Problem was caused by random sampling within a parallel for-loop used when bounds exceeded. This for-loop is no longer parallelised.
+* Bug fixed in spuci.m casuing non-reproducible solutions when the same random seed is used. Problem was caused by random sampling within the parallel for-loops for the complex evolutions and the initial sampling of the population.
+* Bug fixed in climateTransform_soilMoistureModels() and climateTransform_soilMoistureModels_2layer() causing the simulation of land cover change (i.e. using two parallel soil stores) to fail. 

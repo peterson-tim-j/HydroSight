@@ -45,12 +45,13 @@ classdef ExpSmooth < model_abstract
             
             % Set observed head data
             obj.inputData.head = obsHead;
+            nObs = size(obsHead,1);
             
             % Initialise parameters
-            obj.parameters.alpha = -1;            % Exponential smoothing parameter            
-            obj.parameters.beta = -3;             % Noise model parameter            
-            obj.parameters.gamma = -1;            % Exponential trend parameter (optional)
-                        
+            obj.parameters.alpha = -1;              % Exponential smoothing parameter            
+            obj.parameters.beta = 1;                % Noise model parameter            
+            obj.parameters.gamma = -1;              % Exponential trend parameter (optional)
+
             % Set Parameter names
             obj.variables.param_names = {'Auto-regressive','alpha';'Moving-average','beta';'Auto-regressive', 'gamma'};
             
@@ -123,10 +124,10 @@ classdef ExpSmooth < model_abstract
                     % Filter 'head' to only those time points input to the
                     % function.
                     [~, ind] = intersect(time_points_all,time_points);            
-                    head(:,:,ii) = [time_points, head(ind,:)];                                
+                    head(:,:,ii) = [time_points, headtmp(ind,:)];                                
                 
                     % Create noise component output.
-                    if isfield(obj.variables,'sigma_n');
+                    if isfield(obj.variables,'sigma_n')
                         noise(:,:,ii) = [head(:,1,ii), ones(size(head,1),2) .* norminv(Pnoise,0,1) .* obj.variables.sigma_n(ii)];
                     else
                         noise(:,:,ii) = [head(:,1,ii), zeros(size(head,1),2)];
@@ -136,7 +137,7 @@ classdef ExpSmooth < model_abstract
                 head = headtmp;                
                 
                 % Create noise component output.
-                if isfield(obj.variables,'sigma_n');
+                if isfield(obj.variables,'sigma_n')
                     noise(:,:) = [head(:,1), norminv(Pnoise,0,1) .* obj.variables.sigma_n(ones(size(head,1),2))];
                 else
                     noise(:,:) = [head(:,1), zeros(size(head,1),2)];
@@ -149,6 +150,30 @@ classdef ExpSmooth < model_abstract
                                  
         end
         
+        function noise = getNoise(obj, time_points, noisePercnile)
+
+            % Check if there is the noise variable, sigma
+            if ~isfield(obj.variables,'sigma_n')
+                noise = zeros(length(time_points),1);
+                return;
+            end
+
+            % Set percentile for noise
+            if nargin==2
+                noisePercnile = 0.95;
+            else
+                noisePercnile = noisePercnile(1);
+            end
+
+            noise = obj.variables.sigma_n;
+            nparamsets = length(noise);
+            if nparamsets>1
+                noise = reshape(noise, 1, 1, nparamsets);
+            end            
+
+            noise = [repmat(time_points,1,1,nparamsets), ones(size(time_points,1),2) .* norminv(noisePercnile,0,1) .* noise];
+        end
+
         function [params_initial, time_points] = calibration_initialise(obj, t_start, t_end)
             
             % Extract time steps
@@ -179,13 +204,26 @@ classdef ExpSmooth < model_abstract
             obj.variables.isObsTimePoints = double(obj.variables.isObsTimePoints);
             
             % Estimate the initial value and slope by fitting a smoothed
-            % spline.
-            %spline_model = smooth(time_points, obj.inputData.head(t_filt,2), 'rloess');
-            spline_time_points = [0; 1; (time_points(2:end)-time_points(1))]./365;
-            spline_vals = csaps((time_points-time_points(1))./365, obj.inputData.head(t_filt,2) - obj.variables.meanHead_calib,0.1,spline_time_points );
-            obj.variables.initialHead = spline_vals(1);
-            obj.variables.initialTrend = (spline_vals(2) - spline_vals(1))./(spline_time_points(2) - spline_time_points(1) );
-            
+            % spline (if there's the fitting toolbox), else use linear regression.
+            x = (time_points-time_points(1))./365;
+            y = obj.inputData.head(t_filt,2) - obj.variables.meanHead_calib;
+            try
+                spline_time_points = [0; 1/365];            
+                spline_vals = csaps(x, y ,0.1,spline_time_points );
+
+                obj.variables.initialHead = spline_vals(1) + obj.variables.meanHead_calib;
+                obj.variables.initialTrend = (spline_vals(2) - spline_vals(1))./(spline_time_points(2) - spline_time_points(1) );                
+            catch
+                % Use linear regression over the first 5 data points to get the initial
+                % slope and constant.
+                nPts = 5;
+                X = [ones(nPts ,1) x(1:nPts)];
+                b = X\y(1:nPts);
+
+                obj.variables.initialHead = b(1) + obj.variables.meanHead_calib;
+                obj.variables.initialTrend = b(2);                
+            end
+
             % Find upper limit for alpha above which numerical errors arise.
             beta_upperLimit = 1000; 
             delta_time = diff(obj.inputData.head(:,1),1)./365;
@@ -235,7 +273,7 @@ classdef ExpSmooth < model_abstract
             end
         end
         
-        function calibration_finalise(obj, params, useLikelihood)          
+        function h_star = calibration_finalise(obj, params, useLikelihood)          
             
             % Re-calc objective function and deterministic component of the head and innocations.
             % Importantly, the drainage elevation (ie the constant term for
@@ -243,7 +281,9 @@ classdef ExpSmooth < model_abstract
             % assigned to the object. When the calibrated model is solved
             % for a different time period then this
             % drainage value will be used by 'objectiveFunction'.
+            h_star = [];
             [obj.variables.objFn, obj.variables.h_star, obj.variables.h_forecast] = objectiveFunction(params, obj.variables.calibraion_time_points, obj, useLikelihood);                        
+            h_star = [obj.variables.calibraion_time_points, obj.variables.h_star];
  
             % Re-calc residuals and assign to object                        
             t_filt = obj.inputData.head(:,1) >=obj.variables.calibraion_time_points(1)  ...
@@ -259,7 +299,11 @@ classdef ExpSmooth < model_abstract
             
             % Calculate noise standard deviation.
             obj.variables.sigma_n = sqrt(mean( innov.^2 ./ (1 - exp( -2 .* 10.^obj.parameters.beta .* obj.variables.delta_t))));                    
-            
+
+            % Get noise component and omit columns for components.
+            noise = getNoise(obj, obj.variables.calibraion_time_points);
+            h_star = [h_star(:,:,:), h_star(:,2,:) - noise(:,2,:), h_star(:,2,:) + noise(:,3,:)];
+
             % Set a flag to indicate that calibration is complete.
             obj.variables.doingCalibration = false;
         end
@@ -279,86 +323,29 @@ classdef ExpSmooth < model_abstract
             end
                         
             % Set model parameters         
-            setParameters(obj, params, {'alpha','beta','gamma'});            
+            setParameters(obj, params, {'alpha','beta','gamma','initialHead','initialTrend'});            
             
             % Get model parameters and transform them from log10 space.
             alpha = 10.^obj.parameters.alpha;            
             beta = 10.^obj.parameters.beta;
             gamma = 10.^obj.parameters.gamma;
+            initialHead = obj.variables.initialHead;
+            initialTrend = obj.variables.initialTrend;
+            q = mean(obj.variables.delta_t);
             
             % Get time points
             t = obj.inputData.head(:,1);
 
             % Create filter for time points and apply to t
             t_filt =  find(t >=time_points(1) & t <= time_points(end));                   
-            
-            % Setup time-varying weigting terms from input parameters
-            % and their values at t0 using ONLY the time points with
-            % observed head values!
-            q = mean(obj.variables.delta_t);
-            alpha_i = 1 - (1 - alpha)^q;
-            gamma_i = 1 - (1 - gamma)^q;
-            
-            % Initialise the output and subract the mean from the observed
-            % head.
-            h_ar = zeros(length(time_points),1);
-            h_obs = obj.inputData.head(:,2) - obj.variables.meanHead_calib;            
-            
-            % Assign linear regression estimate the initial slope and intercept.
-            %h_trend(1) = obj.variables.initialTrend_calib;
-            %h_trend = obj.variables.initialTrend_calib;
-            h_trend = obj.variables.initialTrend;
-            h_ar(1) = obj.variables.initialHead;
-            h_forecast = h_ar;
-            indPrevObsTimePoint = 1;
-            indPrevObs = 1;
-            
-            % Undertake double exponential smoothing.
-            % Note: It is based on Cipra T. and Hanzák T. (2008). Exponential 
-            % smoothing for irregular time series. Kybernetika,  44(3), 385-399.
-            % Importantly, this can be undertaken for time-points that have observed 
-            % heads and those that are to be interpolated (or extrapolated). 
-            % The for loop cycles though each time point to be simulated.
-            % If the time point is an observation then the alpha, gamma and
-            % h_trend are updates and an index is stored pointng to the last true obs point. 
-            % If the time point is not an observation then a forecast is
-            % undertaken using the most recent values of alpha, gamma and
-            % h_trend
-            for i=2:length(time_points)
-               
-               delta_t = (time_points(i)-time_points(indPrevObsTimePoint))/365;
-                
-               if obj.variables.isObsTimePoints(i)
-                   % Update smoothing model using the observation at the
-                   % current time point.
-                   if indPrevObs==1
-                       gamma_weight = (1-gamma)^delta_t;
-                   else                                              
-                       gamma_weight = delta_t_prev/delta_t * (1-gamma)^delta_t;            
-                   end                    
-                   
-                   alpha_weight = (1-alpha).^delta_t;
-                   
-                   alpha_i = alpha_i./(alpha_weight + alpha_i); 
-                   gamma_i = gamma_i./(gamma_weight + gamma_i);
-                   h_ar(i) = (1-alpha_i) * (h_ar(indPrevObsTimePoint) + delta_t * h_trend) + alpha_i * h_obs(indPrevObs+1);
-                   h_forecast(i) = h_ar(indPrevObsTimePoint) + delta_t * h_trend;
-                   h_trend = (1-gamma_i) * h_trend + gamma_i * (h_ar(i) - h_ar(indPrevObsTimePoint))./delta_t;
-                                                         
-                   indPrevObsTimePoint = i;
-                   indPrevObs = indPrevObs+1;
-                   delta_t_prev = delta_t;
-               else
-                   % Make a forecast to the current non-observation time
-                   % point.
-                   h_forecast(i) = h_ar(indPrevObsTimePoint) + delta_t * h_trend;
-                   h_ar(i) = h_forecast(i);
-               end
-            end            
-            
-            % Add the mean head onto the smoothed estimate and forecast
-            h_ar = h_ar + obj.variables.meanHead_calib;
-            h_forecast = h_forecast + obj.variables.meanHead_calib;
+             
+            % do head smoothing and forecast.
+            nObs = int32(length(time_points));
+            h_obs = obj.inputData.head(:,2);
+            isObsTimePoints = double(obj.variables.isObsTimePoints);
+            meanHead_calib = obj.variables.meanHead_calib;
+            [h_ar,h_forecast] = doExpSmoothing(nObs, time_points,h_obs, isObsTimePoints, ...
+                meanHead_calib, alpha,gamma,q, initialHead, initialTrend);
              
             % Assign output for non-corrected head
             h_star = h_ar;
@@ -404,7 +391,7 @@ classdef ExpSmooth < model_abstract
         end
         
         function [params_upperLimit, params_lowerLimit] = getParameters_physicalLimit(obj)            
-            
+            % Create parameter range and use limits if derived prior.
             if isfield(obj.variables,'beta_upperLimit')
                 params_upperLimit = [0; obj.variables.beta_upperLimit; 0];
             else
@@ -413,15 +400,21 @@ classdef ExpSmooth < model_abstract
             if isfield(obj.variables,'beta_lowerLimit')
                 params_lowerLimit = [-inf; obj.variables.beta_lowerLimit; -inf];
             else
-                params_lowerLimit = [-inf; -5 ; -inf];
+                params_lowerLimit = [-inf; -5; -inf];
             end            
         end
         
         function [params_upperLimit, params_lowerLimit] = getParameters_plausibleLimit(obj)
-
-            params_upperLimit = [0; 2; 0];
-            params_lowerLimit = [-3; -2; -3];
-
+            if isfield(obj.variables,'beta_upperLimit')
+                params_upperLimit = [0; obj.variables.beta_upperLimit; 0];
+            else
+                params_upperLimit = [0; 2; 0];
+            end
+            if isfield(obj.variables,'beta_lowerLimit')
+                params_lowerLimit = [-3; obj.variables.beta_lowerLimit; -3];
+            else
+                params_lowerLimit = [-3; -2; -3];
+            end 
         end        
         
         function isValidParameter = getParameterValidity(obj, params, time_points)

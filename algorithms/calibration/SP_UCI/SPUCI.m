@@ -1,5 +1,5 @@
-function [bestx,bestf,icall, exitFlag, exitStatus] = SPUCI(funcHandle, funcHangle_validParams, x0,bl_plausible, bu_plausible, bl_phys, bu_phys, ... 
-                                                            maxn, kstop,pcento,peps,ngs,iseed,iniflg, calibGUI_interface_obj, varargin) 
+function [bestx,bestf,icall, exitFlag, exitStatus] = SPUCI(funcHandle, funcHangle_validParams, x0, bl_plausible, bu_plausible, bl_phys, bu_phys, ... 
+                                                            maxn, kstop,pcento,peps,ngs,iseed,iniflg, GUIobj, silent, varargin) 
 % This is the Matlab code implementing the SP-UCI algorithm,written by Dr.
 % Wei Chu, 08/2012, based on the SCE Matlab codes written by Dr. Q. Duan
 % 9/2004.
@@ -53,6 +53,7 @@ function [bestx,bestf,icall, exitFlag, exitStatus] = SPUCI(funcHandle, funcHangl
 %  - GauSamp() was commented out. It increased the number of model
 %  evaluations by 'npt' for little identifiable improvement in the
 %  solution.
+%  - 'silent' logical input added to suppress outputes to command window.
 %
 
 % Check if derived forcing is to be handled
@@ -63,7 +64,6 @@ if any(~isempty(stochDerivedForcingData_prior))
 end
 
 % Initialization of agorithmic 
-%iseed= 123456
 nopt=length(x0); %dimentions of the problem
 npg=2*nopt+1;%  npg = number of members is a complex
 nps=nopt+1;%  nps = number of members in a simplex
@@ -75,20 +75,25 @@ npt=npg*ngs;%npt = the total number of members (the population size)
 
 bound = bu_plausible - bl_plausible;% boundary of the feasible space.
 
+% Initialise random number generator.
+if ~isempty(iseed) && isnumeric(iseed)
+    rng(iseed);
+end
+
 % Initialise exist outputs. Tim Peterson 2016
 exitFlag = 0;
 exitStatus = 'Calibration scheme did not start.';
 bestf_ever = inf;
 
 % Initialization of the populaton and calculate their objective function value. 
-[x,xf, icall] = initialisePopulation(funcHandle, funcHangle_validParams, x0,bl_plausible, bu_plausible, iniflg, npt, nopt, 0, varargin{:});
+
+[x,xf, icall] = initialisePopulation(funcHandle, funcHangle_validParams, x0,bl_plausible, bu_plausible, iniflg, npt, nopt, 0, iseed, varargin{:});
 
 % Check if the population degeneration occured
 [x, xf, icall]=DimRest(funcHandle, funcHangle_validParams, x,xf,bl_phys,bu_phys,icall, varargin{:});
 
 % Get the initial derived forcing data
 stochDerivedForcingData_best = getStochForcingData(varargin{1});
-
 
 % Sort the population again and record the best and worst points
 [xf,idx]=sort(xf);
@@ -99,40 +104,30 @@ worstx=x(npt,:); worstf=xf(npt);
 % Computes the normalized geometric range of the parameters
 gnrng=exp(mean(log((max(x)-min(x))./bound)));
 
-disp('The Initial Loop: 0');
-disp(['BESTF  : ' num2str(bestf)]);
-disp(['BESTX  : ' num2str(bestx)]);
-disp(['WORSTF : ' num2str(worstf)]);
-disp(['WORSTX : ' num2str(worstx)]);
-disp(' ');
+if ~silent
+    disp('The Initial Loop: 0');
+    disp(['BESTF  : ' num2str(bestf)]);
+    disp(['BESTX  : ' num2str(bestx)]);
+    disp(['WORSTF : ' num2str(worstf)]);
+    disp(['WORSTX : ' num2str(worstx)]);
+    disp(' ');
+end
 
-% Check for convergency;
-if icall >= maxn;
-    disp('*** OPTIMIZATION SEARCH TERMINATED BECAUSE THE LIMIT');
-    disp('ON THE MAXIMUM NUMBER OF TRIALS ');
-    disp(maxn);
-    disp('HAS BEEN EXCEEDED.  SEARCH WAS STOPPED AT TRIAL NUMBER:');
-    disp(icall);
-    disp('OF THE INITIAL LOOP!');
-end;
+% Update GUI.
+if ~isempty(GUIobj)  && isa(GUIobj, 'HydroSight_GUI')
+    
+    % Update the GUI plots
+    modelCalibration_CalibPlotsUpdate(GUIobj, false, 'SP-UCI', [], 0, icall, bestx', bestf, worstx', worstf, bestf);
 
-if gnrng < peps;
-    disp('THE POPULATION HAS CONVERGED TO A PRESPECIFIED SMALL PARAMETER SPACE');
-end;
-
-% Update the diary file
-if ~isempty(calibGUI_interface_obj)
-    updatetextboxFromDiary(calibGUI_interface_obj);
-    [doQuit, exitFlagQuit, exitStatusQuit] = getCalibrationQuitState(calibGUI_interface_obj);
-    if doQuit
-        exitFlag = exitFlagQuit;
-        exitStatus = exitStatusQuit;
-        return;
-    end    
+    % Get quit/skip state for calibration.
+    [exitCalib, exitFlag, exitStatus] = modelCalibration_getCalibState(GUIobj);
+    if exitCalib
+        return
+    end
 end
 
 % Update exist status output. Tim Peterson 2016
-exitStatus = 'Calibration scheme did started.';
+exitStatus = 'Calibration started.';
 
 % Begin evolution loops:
 criter=[];
@@ -141,6 +136,7 @@ xigs = [];
 bestf_ever=bestf;
 bestx_ever=bestx;
 nloop=0;
+nloop_prior = 0;
 minloops = 2*kstop;
 %isbestf_ever_inkstop = false;
 while nloop<=minloops || (icall<maxn && gnrng>peps && criter_change>pcento)
@@ -174,7 +170,7 @@ while nloop<=minloops || (icall<maxn && gnrng>peps && criter_change>pcento)
     % Sort derived forcings by new index complexes    
     if useDerivedForcing && nloop>1
         stochDerivedForcingData_new = cell(ngs,1);
-        for igs = 1: ngs;
+        for igs = 1: ngs
             % Get the appropriate derived forcing data for each complex. 
             stochDerivedForcingData_new{igs} = stochDerivedForcingData{xigs(igs)};
         end
@@ -182,34 +178,6 @@ while nloop<=minloops || (icall<maxn && gnrng>peps && criter_change>pcento)
         clear stochDerivedForcingData_new
         
     end
-
-    %-----------------
-    % Importantly, with the derived forcing changing then objective
-    % function value for each parameter set is most likely to change. 
-    % Therefore, all parameter sets are re-evaluated. Also, the stochastic 
-    % forcing parameters are perturbed. This is done to avoid the stoachstic
-    % forcing data from converging to a local miniumum.  
-    if useDerivedForcing                
-        if ~isempty(xigs) && iscell(stochDerivedForcingData) && length(stochDerivedForcingData)==ngs
-            model = varargin{1};
-            stochDerivedForcingData_sliced = stochDerivedForcingData(xigs);
-            
-            parfor i=1:npt
-                % Assign derived forcing using xigs
-                updateStochForcingData(model, stochDerivedForcingData_sliced{i});
-
-                % Update/perturb the stochastic forcing parameters.
-                %xtmp = updateStochForcingParameters(model, stochDerivedForcingData_sliced{i}, x(i,:)');
-                %x(i,:) = xtmp';
-
-                % Get the new objective function value.
-                xf(i) = feval(funcHandle, x(i,:)', varargin{:});
-            end
-            clear stochDerivedForcingData_sliced;
-        end
-        icall = icall + npt;
-    end       
-    %-----------------
     
     % Initialise cell array for cx and cf
     cx = cell(ngs,1);
@@ -221,7 +189,14 @@ while nloop<=minloops || (icall<maxn && gnrng>peps && criter_change>pcento)
     model = varargin{1};
         
     % Loop on complexes (sub-populations);
+    %disp('DBG: Starting updating of complexes');
     parfor igs = 1: ngs
+
+        % Initialise random number generator to a known seed based on the
+        % input seed and the iterations
+        if ~isempty(iseed) && isnumeric(iseed)
+            rng(iseed + nloop + igs);
+        end
 
         % Assign derived forcing using xigs
         if useDerivedForcing && nloop>1
@@ -231,25 +206,25 @@ while nloop<=minloops || (icall<maxn && gnrng>peps && criter_change>pcento)
         % This is the major computionation load. It was shifted into a
         % stand alone function by Tim Peterson to allow parrellisation.
         [cx{igs}, cf{igs}, cicall(igs), stochDerivedForcingData{igs}] = doComplexEvolution(funcHandle, funcHangle_validParams, ind{igs}, x, xf, ...
-        bl_plausible, bu_plausible, bl_phys,bu_phys, nspl, nps, npg, useDerivedForcing , varargin{:});
+        bl_phys,bu_phys, nspl, nps, npg, useDerivedForcing , igs, varargin{:});
         
     % End of Loop on Complex Evolution;
     end
-    %display(['... parfor run time =',num2str(toc)]);
-        
+    %disp('DBG: Finished updating of complexes');    
+
     % Check if derived forcing is to be handled
     if any(cellfun(@(x) ~isempty(x), stochDerivedForcingData))
         useDerivedForcing = true;
     end
 
     % Put cx and cf back into the population;
-    for igs = 1: ngs;
+    for igs = 1: ngs
         x(ind{igs},:)=cx{igs};
         xf(ind{igs})=cf{igs};
     end
 
     % Record the igs number for each parameter. 
-    for igs = 1: ngs;
+    for igs = 1: ngs
         xigs(ind{igs})=igs;
     end
     
@@ -277,16 +252,19 @@ while nloop<=minloops || (icall<maxn && gnrng>peps && criter_change>pcento)
         % actual best (or may further decline) because it may be been
         % derived using a stochastic forcing time-series from ealier within
         % the evolutionary loop, rather than the stocastic forcing from the
-        % end of the loop. Therefore, the best ngs*2 points agre re-derived
+        % end of the loop. Therefore, the best ngs*2 points are re-derived
         % below (note, only ngs*2 are derived rather than all simply to
         % reduce the computational load).
         model = varargin{1};
         stochDerivedForcingData_sliced = stochDerivedForcingData(xigs);
+        %disp('DBG: Re-calc obj for best estimates');
         parfor i=1:(ngs*2)
             % Assign derived forcing using xigs
             updateStochForcingData(model, stochDerivedForcingData_sliced{i});
             xf(i) = feval(funcHandle, x(i,:)', varargin{:});
         end
+        %disp('DBG: Finished re-calc obj for best estimates');
+        
         clear stochDerivedForcingData_sliced;
         icall = icall + npt;
         
@@ -365,42 +343,40 @@ while nloop<=minloops || (icall<maxn && gnrng>peps && criter_change>pcento)
 
 
     criter_change = inf;
-    criter=[criter;bestf];        
-%     if useDerivedForcing
-%         isbestf_ever_inkstop = false;
-%     else
-%         isbestf_ever_inkstop = true;
-%     end
+    criter=[criter;bestf];        %#ok<AGROW> 
     if (nloop >= kstop)
         criter_change=abs(criter(nloop)-criter(nloop-kstop+1))*100;
-        criter_change=criter_change/mean(abs(criter(nloop-kstop+1:nloop)));
-        
-%         %Check if bestf_ever is within the last kstop iterations.
-%         if any(criter(nloop-kstop+1:nloop)==bestf_ever)
-%           isbestf_ever_inkstop = true;
-%         end
+        criter_change=criter_change/mean(abs(criter(nloop-kstop+1:nloop)));        
     end
     
-    disp(['LOOP       : ' num2str(nloop) '  - Trial - ' num2str(icall)]);
-    if useDerivedForcing   
-        disp(['BESTF loop : ' num2str(bestf,8)]);
-        disp(['BESTF ever : ' num2str(bestf_ever,8)]);
-    else
-        disp(['BESTF      : ' num2str(bestf,8)]);
+    if ~silent
+        disp(['LOOP       : ' num2str(nloop) '  - Trial - ' num2str(icall)]);
+        if useDerivedForcing
+            disp(['BESTF loop : ' num2str(bestf,8)]);
+            disp(['BESTF ever : ' num2str(bestf_ever,8)]);
+        else
+            disp(['BESTF      : ' num2str(bestf,8)]);
+        end
+        disp(['BESTX      : ' num2str(bestx)]);
+        disp(['WORSTF     : ' num2str(worstf,8)]);
+        disp(['WORSTX     : ' num2str(worstx)]);
+        disp(['F convergence val.: ',num2str(criter_change,8)]);
+        disp(['X convergence val.: ',num2str(gnrng,8)]);
+        disp(' ');
+
+        % Check for convergency;
+        if icall >= maxn
+            if nloop<=minloops
+                disp(['NOTE: THE MAXIMUM NUMBER OF TRIALS ' num2str(maxn) ' HAS BEEN EXCEEDED.']);
+                disp('HOWEVER THE MINIMUM NUMBER OF LOOPS HAS BEEN NOT BEEN MET (KSTOP*2).');
+                disp('HENCE, OPERATIONS WILL CONTINUE FOR THE MINIMUM NUMBER OF LOOPS.');
+            else
+                disp('*** OPTIMIZATION SEARCH TERMINATED BECAUSE THE LIMIT');
+                disp(['ON THE MAXIMUM NUMBER OF TRIALS ' num2str(maxn) ' HAS BEEN EXCEEDED']);
+                disp('AND THE MINIMUM NUMBER OF LOOPS HAS BEEN MET (KSTOP*2).');
+            end
+        end
     end
-    disp(['BESTX      : ' num2str(bestx)]);
-    disp(['WORSTF     : ' num2str(worstf,8)]);
-    disp(['WORSTX     : ' num2str(worstx)]);
-    disp(['F convergence val.: ',num2str(criter_change,8)]);
-    disp(['X convergence val.: ',num2str(gnrng,8)]);
-    disp(' ');    
-    
-    % Check for convergency;
-    exitCalib = false;
-    if icall >= maxn;
-        disp('*** OPTIMIZATION SEARCH TERMINATED BECAUSE THE LIMIT');
-        disp(['ON THE MAXIMUM NUMBER OF TRIALS ' num2str(maxn) ' HAS BEEN EXCEEDED!']);        
-    end;
     
     % If stochastic derived forcing is used, then assess if the method
     % should be refined (ie for pumpingRate_SAestimation() the
@@ -420,9 +396,10 @@ while nloop<=minloops || (icall<maxn && gnrng>peps && criter_change>pcento)
         % clustered, then if the stochastic forcing has not finished re-run
         % but with randomised parameters AND the best solution yet.
         if ~finishedStochForcing 
-            disp('');
-            disp('NOTE: The derived stochastic forcing is being refined. The calibration is being re-run.');
-            
+            if ~silent
+                disp('');
+                disp('NOTE: The derived stochastic forcing is being refined. The calibration is being re-run.');
+            end
             % Put the nest stoch forcing into each cell of the cell array of stoch
             % forcing for each complex.
             for igs = 1: ngs
@@ -433,7 +410,7 @@ while nloop<=minloops || (icall<maxn && gnrng>peps && criter_change>pcento)
             % Initialization of the populaton and calculate their objective
             % function value AND add the best parameter set so far.
             %bestf_ever = inf;
-            [x,xf, icall] = initialisePopulation(funcHandle, funcHangle_validParams, bestx_ever,bl_plausible, bu_plausible, true, npt, nopt, icall, varargin{:});            
+            [x,xf, icall] = initialisePopulation(funcHandle, funcHangle_validParams, bestx_ever,bl_plausible, bu_plausible, true, npt, nopt, icall, iseed, varargin{:});            
 
             % Check if the population degeneration occured
             [x, xf, icall]=DimRest(funcHandle, funcHangle_validParams, x,xf,bl_phys,bu_phys,icall, varargin{:});
@@ -442,37 +419,41 @@ while nloop<=minloops || (icall<maxn && gnrng>peps && criter_change>pcento)
             criter_change =  inf;
             gnrng = inf;
             criter = criter(end);
+            nloop_prior = nloop_prior + nloop;
             nloop=1;
             %doReEval_DerivedForcing=false;
-        else
+        elseif ~silent
             disp('NOTE: The derived stochastic forcing has reached the user set resolution.');
         end
     end    
         
-
-    if criter_change < pcento
-        disp(['THE BEST POINT HAS IMPROVED IN LAST ' num2str(kstop) ' LOOPS BY ', ...
-            'LESS THAN THE THRESHOLD ' num2str(pcento) '%']);
-        disp('CONVERGENCY HAS ACHIEVED BASED ON OBJECTIVE FUNCTION CRITERIA!!!')
-    end;
-    
-    if gnrng < peps;
-        disp('THE POPULATION HAS CONVERGED TO A PRESPECIFIED SMALL PARAMETER SPACE');
-    end;
-    
-    % Update the diary file
-    if ~isempty(calibGUI_interface_obj)
-        updatetextboxFromDiary(calibGUI_interface_obj);
-        [doQuit, exitFlagQuit, exitStatusQuit] = getCalibrationQuitState(calibGUI_interface_obj);
-        if doQuit
-            exitFlag = exitFlagQuit;
-            exitStatus = exitStatusQuit;
-            return;
+    if ~silent
+        if criter_change < pcento
+            disp(['THE BEST POINT HAS IMPROVED IN LAST ' num2str(kstop) ' LOOPS BY ', ...
+                'LESS THAN THE THRESHOLD ' num2str(pcento) '%']);
+            disp('CONVERGENCY HAS ACHIEVED BASED ON OBJECTIVE FUNCTION CRITERIA!!!')
         end
-    end    
+
+        if gnrng < peps
+            disp('THE POPULATION HAS CONVERGED TO A PRESPECIFIED SMALL PARAMETER SPACE');
+        end
+    end
+
+    % Update GUI and check if user has asked to quit.
+    if ~isempty(GUIobj)  && isa(GUIobj, 'HydroSight_GUI')
+        % Update the GUI plots
+        modelCalibration_CalibPlotsUpdate(GUIobj, false, 'SP-UCI', [], nloop+nloop_prior, icall, bestx', bestf, worstx', worstf, bestf_ever);
+
+        % Get quit/skip state for calibration.
+        [exitCalib, exitFlag, exitStatus] = modelCalibration_getCalibState(GUIobj);
+        if exitCalib
+            return
+        end
+    end
     
     % End of the Outer Loops
-end;
+    %disp('DBG: LOOP finsihed');
+end
 
 % Apply best model settings
 model = varargin{1};
@@ -481,40 +462,42 @@ if useDerivedForcing
 end
 bestf = feval(funcHandle, bestx_ever', varargin{:});
 
-disp(['SEARCH WAS STOPPED AT TRIAL NUMBER: ' num2str(icall)]);
-disp(['NORMALIZED GEOMETRIC RANGE = ' num2str(gnrng)]);
-disp(['THE BEST POINT HAS IMPROVED IN LAST ' num2str(kstop) ' LOOPS BY ', ...
-    num2str(criter_change) '%']);
+if ~silent
+    disp(['SEARCH WAS STOPPED AT TRIAL NUMBER: ' num2str(icall)]);
+    disp(['NORMALIZED GEOMETRIC RANGE = ' num2str(gnrng)]);
+    disp(['THE BEST POINT HAS IMPROVED IN LAST ' num2str(kstop) ' LOOPS BY ', ...
+        num2str(criter_change) '%']);
+end
 
 % Update exist status output. Tim Peterson 2016
 if icall>=maxn 
     exitFlag=1;
     exitStatus = 'Insufficient maximum number of model evaluations for convergence.';
-elseif gnrng<peps && criter_change>pcento;
+elseif gnrng<peps && criter_change>pcento
     exitFlag=1;
     exitStatus = ['Only parameter convergence (obj func. convergence = ',num2str(criter_change),' & threshold = ',num2str(pcento),') achieved in ', num2str(icall),' function evaluations.'];
-elseif gnrng>peps && criter_change<pcento;
+elseif gnrng>peps && criter_change<pcento
     exitFlag=1;
     exitStatus = ['Only objective function convergence achieved (param. convergence = ',num2str(gnrng),' & threshold = ',num2str(peps),') in ', num2str(icall),' function evaluations.'];
-elseif gnrng<peps && criter_change<pcento;
+elseif gnrng<peps && criter_change<pcento
     exitFlag=2;
     exitStatus = ['Parameter and objective function convergence achieved in ', num2str(icall),' function evaluations.'];
 end
 
 % Update the diary file
-if ~isempty(calibGUI_interface_obj)
-    updatetextboxFromDiary(calibGUI_interface_obj);
-    [doQuit, exitFlagQuit, exitStatusQuit] = getCalibrationQuitState(calibGUI_interface_obj);
-    if doQuit
-        exitFlag = exitFlagQuit;
-        exitStatus = exitStatusQuit;
-        return;
-    end    
-end
+% if ~isempty(calibGUI_interface_obj)
+%     updatetextboxFromDiary(calibGUI_interface_obj, bestf, bestx, worstf, worstx);
+%     [doQuit, exitFlagQuit, exitStatusQuit] = getCalibrationQuitState(calibGUI_interface_obj);
+%     if doQuit
+%         exitFlag = exitFlagQuit;
+%         exitStatus = exitStatusQuit;
+%         return;
+%     end
+% end
 
 end
 
-function [cx, cf, icall, forcingData] = doComplexEvolution(funcHandle, funcHangle_validParams, ind, x, xf, bl_plausible, bu_plausible, bl, bu, nspl, nps, npg, useDerivedForcing, varargin)
+function [cx, cf, icall, forcingData] = doComplexEvolution(funcHandle, funcHangle_validParams, ind, x, xf, bl, bu, nspl, nps, npg, useDerivedForcing, igs, varargin)
 
         % initialse count of local function calls
         icall = 0;
@@ -523,31 +506,52 @@ function [cx, cf, icall, forcingData] = doComplexEvolution(funcHandle, funcHangl
         cx=x(ind,:);
         cf=xf(ind);                 
         
-        % Sort population
-        [cf,idd]=sort(cf);
-        cx=cx(idd,:);
-                
-        % Check if the population degeneration occured
-        [cx, cf, icall]=DimRest(funcHandle, funcHangle_validParams, cx,cf,bl,bu,icall, varargin{:});
-
         % Get initial derived forcing.        
         if useDerivedForcing
             forcingData_tmp = getStochForcingData(varargin{1});    
             forcingData = forcingData_tmp;
         else
             forcingData={};
+        end        
+
+        %-----------------
+        % Importantly, with the derived forcing changing then objective
+        % function value for each parameter set is most likely to change.
+        % Therefore, all parameter sets are re-evaluated. Also, the stochastic
+        % forcing parameters are perturbed. This is done to avoid the stoachstic
+        % forcing data from converging to a local miniumum.
+        %tic;:
+        if useDerivedForcing
+            for i=1:size(cx,1)
+                cf(i) = feval(funcHandle, cx(i,:)', varargin{:});
+            end
+            icall = icall + size(cx,1);
         end
-                        
-        % Evolve sub-population igs for nspl steps:
+%         disp(['    DBG: Reevaluated population num ', num2str(igs),' t=',num2str(toc)]);      
+
+        %-----------------
+
+        % Sort population
+        [cf,idd]=sort(cf);
+        cx=cx(idd,:);
+                
+        % Check if the population degeneration occured
+        %tic;: icall_prior = icall;
+        [cx, cf, icall]=DimRest(funcHandle, funcHangle_validParams, cx,cf,bl,bu,icall, varargin{:});
+        %disp(['    DBG: Population degredation num ', num2str(igs),' t=',num2str(toc), char newline, ...
+        %      '    Num func evals= ', num2str(icall-icall_prior)]);       
+
+        % Evolve sub-population igs for nspl steps:                
+        %tic;: icall_prior = icall;
         for loop=1:nspl
             % Select simplex by sampling the complex according to a linear
-            % probability distribution            
+            % probability distribution     
+            lcs = nan(nps,1);
             lcs(1) = 1;
             for k3=2:nps
                 for iter=1:1e9
                     lpos = 1 + floor(npg+0.5-sqrt((npg+0.5)^2 - npg*(npg+1)*rand));
-                    idx=find(lcs(1:k3-1)==lpos); 
-                    if isempty(idx)&&lpos<npg+1 
+                    if isempty(find(lcs(1:k3-1)==lpos, 1)) && lpos<npg+1 
                         break; 
                     end 
                 end
@@ -559,7 +563,6 @@ function [cx, cf, icall, forcingData] = doComplexEvolution(funcHandle, funcHangl
             s=cx(lcs,:); 
             sf = cf(lcs);
 
-            %[s,sf,icall, forcingData]=MCCE(funcHandle, funcHangle_validParams, s,sf,bl,bu,icall, useDerivedForcing,  forcingData, varargin{:});
             [s,sf,icall]=MCCE(funcHandle, funcHangle_validParams, s,sf,bl,bu,icall, varargin{:});
   
             % Replace the simplex into the complex;
@@ -572,31 +575,31 @@ function [cx, cf, icall, forcingData] = doComplexEvolution(funcHandle, funcHangl
 
             % End of Inner Loop for Competitive Evolution of Simplexes
         end
-
+        %disp(['    DBG: Evolved complexes for num ', num2str(igs),' t=',num2str(toc), char newline, ...
+        %      '    Num func evals= ', num2str(icall-icall_prior)]);       
         % Get final derived forcing
         if useDerivedForcing
             forcingData= getStochForcingData(varargin{1});
         end        
         
         % Conduct Gaussian Resampling 
-        %[cx, cf, icall]=GauSamp(funcHandle, funcHangle_validParams, cx,cf,bl_plausible, bu_plausible,icall,  forcingData, varargin{:});
-
-%         % Evaluate each parameter set with the final derived forcing
-%         if useDerivedForcing
-%             for loop=1:size(cx,1)
-%                 updateStochForcingData(varargin{1}, forcingData);
-%                 cf(loop)= feval(funcHandle,cx(loop,:)', varargin{:});                                
-%                 icall = icall + 1;
-%             end            
-%         end
-        
+        %[cx, cf, icall]=GauSamp(funcHandle, funcHangle_validParams, cx,cf,bl_plausible, bu_plausible,icall,  forcingData, varargin{:});       
 end
 
-function [x,xf, icall] = initialisePopulation(funcHandle, funcHangle_validParams, x0,bl_plausible, bu_plausible, iniflg, npt, nopt, icall, varargin)
+function [x,xf, icall] = initialisePopulation(funcHandle, funcHangle_validParams, x0,bl_plausible, bu_plausible, iniflg, npt, nopt, icall, iseed, varargin)
 
+    %disp('DBG: Initialising population');
+    %tic;:
     bound = bu_plausible - bl_plausible;
     x=zeros(npt,nopt);
     parfor i=1:npt
+
+        % Initialise random number generator to a known seed based on the
+        % input seed and the iterations
+        if ~isempty(iseed) && isnumeric(iseed)
+            rng(iseed + icall + i);
+        end
+        
         while 1
             x(i,:)=bl_plausible+rand(1,nopt).*bound;
 
@@ -620,12 +623,10 @@ function [x,xf, icall] = initialisePopulation(funcHandle, funcHangle_validParams
     % (2) set any possible model variables (eg phi cards used for get_h_star
     xf(1) = feval(funcHandle, x(1,:)', varargin{:});
         
-    %tic;
     parfor i=2:npt
         xf(i) = feval(funcHandle, x(i,:)', varargin{:});
         icall = icall + 1;
     end
-    %display(['... parfor run time =',num2str(toc)]);
 
     % Sort the population in order of increasing function values;
     [xf,idx]=sort(xf);
@@ -636,5 +637,5 @@ function [x,xf, icall] = initialisePopulation(funcHandle, funcHangle_validParams
         updateStochForcingData(varargin{1}, stochDerivedForcingData);
     end       
     
-    
+    %disp(['DBG: Finsihed Initialising population, t=',num2str(toc)]);
 end

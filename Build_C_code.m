@@ -1,6 +1,6 @@
 function Build_C_code()
 
-    % This function biulds the required C MEX fucntions.
+    % This function builds the required C MEX fucntions.
     % NOTE, b default matlab uses -o2 optimisations.
     % Chnaging this to -ofast reduces the doIRFconvolution.c
     % runtime from 0.017534s to 0.010353s on a x64 Linux maxtine (in 2018) (41% faster).
@@ -25,16 +25,23 @@ function Build_C_code()
     if ispc
         mex(mexopts{:},'algorithms\models\TransferNoise\ForcingTransformation\forcingTransform_soilMoisture.c');
         mex(mexopts{:},'algorithms\models\TransferNoise\doIRFconvolution.c');
-        
-        movefile('doIRFconvolution.mexw64', 'algorithms\models\TransferNoise\doIRFconvolution.mexw64')
-        movefile('forcingTransform_soilMoisture.mexw64', 'algorithms\models\TransferNoise\ForcingTransformation\forcingTransform_soilMoisture.mexw64')
+        mex(mexopts{:},'algorithms\models\ExpSmooth\doExpSmoothing.c');
+               
+        delete('algorithms\models\TransferNoise\doIRFconvolution.mexw64');
+        delete('algorithms\models\TransferNoise\ForcingTransformation\forcingTransform_soilMoisture.mexw64');
+        delete('algorithms\models\TransferNoise\ForcingTransformation\forcingTransform_soilMoisture.mexw64');
 
+        movefile('doIRFconvolution.mexw64', 'algorithms\models\TransferNoise','f');
+        movefile('forcingTransform_soilMoisture.mexw64', 'algorithms\models\TransferNoise\ForcingTransformation','f');
+        movefile('doExpSmoothing.mexw64', 'algorithms\models\ExpSmooth','f');
     else        
         mex(mexopts{:},'algorithms/models/TransferNoise/ForcingTransformation/forcingTransform_soilMoisture.c');
         mex(mexopts{:},'algorithms/models/TransferNoise/doIRFconvolution.c');        
+        mex(mexopts{:},'algorithms/models/ExpSmooth/doExpSmoothing.c');
         
-        movefile('doIRFconvolution.mexa64', 'algorithms/models/TransferNoise')
-        movefile('forcingTransform_soilMoisture.mexa64', 'algorithms/models/TransferNoise/ForcingTransformation')
+        movefile('doIRFconvolution.mexa64', 'algorithms/models/TransferNoise','f');
+        movefile('forcingTransform_soilMoisture.mexa64', 'algorithms/models/TransferNoise/ForcingTransformation','f');
+        movefile('doExpSmoothing.mexa64', 'algorithms/models/ExpSmooth','f');
     end
 
     

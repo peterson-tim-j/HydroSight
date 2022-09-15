@@ -47,7 +47,7 @@ if DREAMPar.CPU > 1,
     % Close the matlab pool
     % TJP Edits
     [ver verdate] = version;
-    if year(verdate)<2015      
+    if year(datenum(verdate))<2015      
         matlabpool('close');
     end
     % If input output writing, then remove directories

@@ -40,7 +40,7 @@ classdef derivedweighting_PearsonsPositiveRescaled < derivedResponseFunction_abs
                         
             % Define default parameters 
             if nargin==5
-                params=log10(1);
+                params=0.01;
             end
                 
             % Set parameters for transfer function.
@@ -80,8 +80,9 @@ classdef derivedweighting_PearsonsPositiveRescaled < derivedResponseFunction_abs
         
         % Return fixed upper and lower bounds to the parameters.
         function [params_upperLimit, params_lowerLimit] = getParameters_physicalLimit(obj)
-            params_upperLimit = inf;
-            params_lowerLimit = log10(sqrt(eps()));
+            params_upperLimit = log10(1.0);
+            params_lowerLimit = log10(eps());
+
         end        
         
         % Return fixed upper and lower plausible parameter ranges. 
@@ -89,8 +90,8 @@ classdef derivedweighting_PearsonsPositiveRescaled < derivedResponseFunction_abs
         % for the calibration. These parameter ranges are only used in the 
         % calibration if the user does not input parameter ranges.
         function [params_upperLimit, params_lowerLimit] = getParameters_plausibleLimit(obj)
-            params_upperLimit = log10(1);
-            params_lowerLimit = -5;
+            params_upperLimit = log10(0.1);
+            params_lowerLimit = log10(sqrt(eps()));
         end
         
         % Calculate impulse-response function.
@@ -126,7 +127,7 @@ classdef derivedweighting_PearsonsPositiveRescaled < derivedResponseFunction_abs
             result = intTheta_lowerTail(obj.settings.sourceObject, t);
             
             % Rescale the result.
-            result = 10.^obj.A .* (result./A_orig);
+            result = 10.^obj.A .* (result./(10.^obj.A));
         end
                 
         % Transform the estimate of the response function * the forcing.
@@ -136,8 +137,8 @@ classdef derivedweighting_PearsonsPositiveRescaled < derivedResponseFunction_abs
         
         % Return the derived variables.
         function [params, param_names] = getDerivedParameters(obj)
-            params = [];
-            param_names = cell(0,2);
+            params(1,:) = 10.^obj.A;
+            param_names = {'A : Pearsons weighting function rescaling'};                
         end
 
         function delete(obj)

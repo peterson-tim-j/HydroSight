@@ -102,9 +102,9 @@ classdef responseFunction_Pearsons < responseFunction_abstract
             b_filt =  strcmp('b',param_names);
             n_filt =  strcmp('n',param_names);
             
-            A = params(A_filt,:);
-            b = params(b_filt,:);
-            n = params(n_filt,:);
+            A = params(A_filt,:); %#ok<PROPLC> 
+            b = params(b_filt,:); %#ok<PROPLC> 
+            n = params(n_filt,:); %#ok<PROPLC> 
                                     
             % Get physical bounds.
             [params_upperLimit, params_lowerLimit] = getParameters_physicalLimit(obj);
@@ -115,8 +115,8 @@ classdef responseFunction_Pearsons < responseFunction_abstract
                  
             % Check the b and n parameters will not produce NaN or Inf
             % values when theta() is integrated to -inf (see intTheta()).
-            isValidParameter(n_filt,gamma(10.^n)==inf) = false;
-            isValidParameter(b_filt | n_filt, (10.^b).^(10.^n)<=0) = false;            
+            isValidParameter(n_filt,gamma(10.^n)==inf) = false; %#ok<PROPLC> 
+            isValidParameter(b_filt | n_filt, (10.^b).^(10.^n)<=0) = false; %#ok<PROPLC>            
 
         end
         
@@ -138,7 +138,7 @@ classdef responseFunction_Pearsons < responseFunction_abstract
             if isfield(obj.settings,'params_upperPhysicalLimit')
                 params_upperLimit = obj.settings.params_upperPhysicalLimit;
             else
-                params_upperLimit = [inf; log10(-log(sqrt(eps()))); inf];
+                params_upperLimit = [inf; log10(-log(sqrt(eps()))); 2]; % last value is n. when 10^n ~>100 t_peak^(10^n) 0> inf.
             end
         end        
         
@@ -147,11 +147,8 @@ classdef responseFunction_Pearsons < responseFunction_abstract
         % for the calibration. These parameter ranges are only used in the 
         % calibration if the user does not input parameter ranges.
         function [params_upperLimit, params_lowerLimit] = getParameters_plausibleLimit(obj)
-            %params_upperLimit = [log10(1/1000/1e-4); log10(0.1);         log10(10)          ];
             params_upperLimit = [log10(1); log10(0.1);         log10(10)          ];
-            %params_lowerLimit = [log10(sqrt(eps()))+2;    log10(sqrt(eps()))+2; log10(sqrt(eps()))+2 ];
             params_lowerLimit = [-5;    -5; -2 ];
-            %params_lowerLimit = [log10(1/1000/0.1);    -5; -2 ];
         end
         
         % Calculate impulse-response function.
@@ -421,7 +418,7 @@ classdef responseFunction_Pearsons < responseFunction_abstract
         % Return the theta values for the GUI 
         function [derivedData, derivedData_names] = getDerivedData(obj,derivedData_variable,t,axisHandle)
            
-            [params, param_names] = getParameters(obj);
+            params = getParameters(obj);
             nparamSets = size(params,2);
             setParameters(obj,params(:,1));
             derivedData_tmp = theta(obj, t);            
@@ -454,8 +451,8 @@ classdef responseFunction_Pearsons < responseFunction_abstract
                 plot(axisHandle,t, derivedData_prctiles(:,4),'-b');
                 hold(axisHandle,'off');                
                 
-                ind = find(abs(derivedData_prctiles(:,4)) > max(abs(derivedData_prctiles(:,4)))*0.05,1,'last');
-                if isempty(ind);
+                ind = find(abs(derivedData_prctiles(:,4)) > max(abs(derivedData_prctiles(:,4)))*0.1,1,'last');
+                if isempty(ind)
                     ind = length(t);
                 end                
                 xlim(axisHandle, [1, t(ind)]);
@@ -467,11 +464,11 @@ classdef responseFunction_Pearsons < responseFunction_abstract
                 derivedData =[t,derivedData];
                 derivedData_names = cell(nparamSets+1,1);
                 derivedData_names{1,1}='Time lag (days)';
-                derivedData_names(2:end,1) = strcat(repmat({'Weight-Parm. Set'},1,nparamSets )',num2str([1:nparamSets ]'));                
+                derivedData_names(2:end,1) = strcat(repmat({'Weight-Parm. Set'},1,nparamSets )',num2str(transpose(1:nparamSets)));                
             else
                 plot(axisHandle, t,derivedData_tmp,'-b');                                   
                 ind = find(abs(derivedData_tmp) > max(abs(derivedData_tmp))*0.05,1,'last');
-                if isempty(ind);
+                if isempty(ind)
                     ind = length(t);
                 elseif ind==1
                     ind = ceil(length(t)*0.05);

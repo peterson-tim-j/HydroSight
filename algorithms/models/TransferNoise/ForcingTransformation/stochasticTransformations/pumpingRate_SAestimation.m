@@ -194,7 +194,7 @@ classdef pumpingRate_SAestimation < stochForcingTransform_abstract & dynamicprop
             colEdits = logical([0 1]);
 
             options{1,1} = 'Downscaling time-step (none=0, monthly=1, weekly=2, daily=3):';
-            options{1,2} = 3;
+            options{1,2} = 1;
 
             options{2,1} = 'Minimum number of bore meter readings:';
             options{2,2} = 2;
@@ -203,8 +203,8 @@ classdef pumpingRate_SAestimation < stochForcingTransform_abstract & dynamicprop
             options{3,2} = 7;
                                                 
             toolTip = sprintf([ 'Use this table to define the method for downscaling time-step. \n', ...
-                                'Note, pumps have less than the min. number of meter readings \n', ...
-                                'will be omitted from analysis.']);
+                                'Note, pumping bores with less than the min. number of meter \n', ...
+                                'readings will be omitted from analysis.']);
         end
         
         function modelDescription = modelDescription()
@@ -732,7 +732,7 @@ classdef pumpingRate_SAestimation < stochForcingTransform_abstract & dynamicprop
                     % estimated.
                     filt_calibPeriod = obj.variables.(pumpName)(:,1)<=obj.variables.t_end_calib;
                     if isempty(filt) && any(~isfinite(obj.variables.(pumpName)(filt_calibPeriod ,4)))
-                        error(['Pump ',pumpName,' has no metered usage in calib. period.'])
+                        error(['Pump ',pumpName,' has no metered usage in calib. period. Either remove the pump or extend the calibration period.'])
                     end
                     
                     % Calculate the median metered pump rate. 
@@ -1110,11 +1110,12 @@ classdef pumpingRate_SAestimation < stochForcingTransform_abstract & dynamicprop
                     % Initialise to input forcing data.
                     colForcingData_filt = strcmp(obj.settings.forcingData_cols(:,1), variableName{i});
                     colForcingData = obj.settings.forcingData_cols{colForcingData_filt,2};
-                    if i==1
-                        forcingData = obj.settings.forcingData(:,colForcingData);
-                    else
-                        forcingData(:,i) = obj.settings.forcingData(:,colForcingData);
-                    end
+%                     if i==1
+%                         forcingData = obj.settings.forcingData(:,colForcingData);
+%                     else
+%                         forcingData(:,i) = obj.settings.forcingData(:,colForcingData);
+%                     end
+                    forcingData.(variableName{i}) = obj.settings.forcingData(:,colForcingData);
                     
                     % Skip if the pump was removed because if could not be
                     % downscaled
@@ -1124,7 +1125,9 @@ classdef pumpingRate_SAestimation < stochForcingTransform_abstract & dynamicprop
                     
                     % Add stochastically generated forcing data
                     filt_calibPeriod = obj.variables.(variableName{i})(:,2)>0;
-                    forcingData(obj.variables.(variableName{i})(filt_calibPeriod,2),i) = obj.variables.(variableName{i})(filt_calibPeriod ,8);                                                         
+                    filt_calibPeriod_rowNum = obj.variables.(variableName{i})(filt_calibPeriod,2);
+                    %forcingData(obj.variables.(variableName{i})(filt_calibPeriod,2),i) = obj.variables.(variableName{i})(filt_calibPeriod ,8);
+                    forcingData.(variableName{i})(filt_calibPeriod_rowNum,1) = obj.variables.(variableName{i})(filt_calibPeriod ,8);                                                         
                     
                     % If there are any remaining -999s, then these should
                     % be in evaluation periods. To handle this, the mean daily
@@ -1139,7 +1142,7 @@ classdef pumpingRate_SAestimation < stochForcingTransform_abstract & dynamicprop
                     if ~obj.variables.doingCalibration
                         
                         % Find remaining periods of-999s.
-                        ind_999s = find(forcingData(:,i) == -999);
+                        ind_999s = find(forcingData.(variableName{i}) == -999);
 
                         % If there are any -999s then, firstly, calculate the
                         % probability of the pumping being on for each calendar
@@ -1150,28 +1153,32 @@ classdef pumpingRate_SAestimation < stochForcingTransform_abstract & dynamicprop
                             % Build indexes to the start of pumping and the end
                             % of the calibration period.
                             obsTime = obj.settings.forcingData(:, 1);
-                            ind_startOfPumping = find(forcingData(:,i)>0,1,'first');                        
+                            ind_startOfPumping = find(forcingData.(variableName{i})>0,1,'first');                        
                             if isfield(obj.variables,'t_end_calib') && isfinite(obj.variables.t_end_calib)
                                 ind_endOfCalib = find(obsTime>=obj.variables.t_end_calib,1,'first');
+                                if isempty(ind_endOfCalib)
+                                    ind_endOfCalib = size(obsTime,1);
+                                end
                             else
                                 ind_endOfCalib = size(obsTime,1);
                             end
-                            filt_obsTimes = obsTime>=obsTime(ind_startOfPumping) & obsTime<=obsTime(ind_endOfCalib) & forcingData(:,i)~=-999;
+                            filt_obsTimes = obsTime>=obsTime(ind_startOfPumping) & obsTime<=obsTime(ind_endOfCalib) & forcingData.(variableName{i})~=-999;
 
                             % Calculate the probability that the pump is on
                             % during each calander day.                        
                             [monthsDays,~,ind] = unique(month(obsTime(filt_obsTimes))*100+day(obsTime(filt_obsTimes)),'rows');
-                            meanUsagePerDay = accumarray(ind, forcingData(filt_obsTimes,i), [], @mean);                
+                            meanUsagePerDay = accumarray(ind, forcingData.(variableName{i})(filt_obsTimes,1), [], @mean);                
                             meanUsagePerDay = [monthsDays, meanUsagePerDay];
 
                             % Calculate the mean probability that the pump is on for
                             % each day day of the year.
-                            meanProbPumpOn = accumarray(ind, forcingData(filt_obsTimes,i)>0, [], @mean);
+                            meanProbPumpOn = accumarray(ind, forcingData.(variableName{i})(filt_obsTimes,1)>0, [], @mean);
                             meanProbPumpOn = [monthsDays, meanProbPumpOn];                        
 
                             % Find the periods of -999s with a meter reading
                             % >0 immediatly after a -999.
-                            ind_999s_metered = ind_999s(forcingData(min(ind_999s+1,size(forcingData,1)),i)>0);
+                            nrows = size(forcingData.(variableName{i}),1);
+                            ind_999s_metered = ind_999s(forcingData.(variableName{i})(min(ind_999s+1,nrows),1)>0);
 
                             % Loop through the -999 metered periods and
                             % downscale the metered volume using the mean
@@ -1179,11 +1186,11 @@ classdef pumpingRate_SAestimation < stochForcingTransform_abstract & dynamicprop
                             for j=1:length(ind_999s_metered)
 
                                 % Find the metered volume for the period.
-                                pumpingVol = forcingData(min(size(forcingData,1),ind_999s_metered(j)+1),i);                            
+                                pumpingVol = forcingData.(variableName{i})(min(nrows,ind_999s_metered(j)+1),1);
 
                                 % Find the first -999 for the metered period.
                                 k = ind_999s_metered(j);
-                                while forcingData(k,i) == -999
+                                while forcingData.(variableName{i})(k,1) == -999
                                     k = k-1;
                                 end
                                 k=k+1;
@@ -1220,11 +1227,11 @@ classdef pumpingRate_SAestimation < stochForcingTransform_abstract & dynamicprop
 
                                 % Assign downscaled weights to the forcing
                                 % data.
-                                forcingData(ind_999s_metered_period,i) = pumpingVol;
+                                forcingData.(variableName{i})(ind_999s_metered_period,1) = pumpingVol;
                             end
 
                             % Find the remaining -999s.
-                            ind_999s = find(forcingData(:,i) == -999);
+                            ind_999s = find(forcingData.(variableName{i}) == -999);
 
                             % Find the day and month of each -999 day
                             monthDay_period = month(obsTime(ind_999s))*100+day(obsTime(ind_999s));
@@ -1233,14 +1240,14 @@ classdef pumpingRate_SAestimation < stochForcingTransform_abstract & dynamicprop
                             % average usage for each day of the year.                         
                             for j=1:length(monthDay_period)                           
                                 ind_monthsDays = find(monthsDays == monthDay_period(j),1,'first');
-                                forcingData(ind_999s(j),i) = meanUsagePerDay(ind_monthsDays ,2);
+                                forcingData.(variableName{i})(ind_999s(j),1) = meanUsagePerDay(ind_monthsDays ,2);
                             end
 
                         end     
                     end
                 end
             catch ME
-                error('The requested transformed forcing variable is not known.');
+                error(['The requested transformed forcing variable is not known. Auto-generated error message is:',ME.message]);
             end
         end
         

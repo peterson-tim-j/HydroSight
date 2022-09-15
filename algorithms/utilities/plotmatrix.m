@@ -129,7 +129,7 @@ end
 BigAx = newplot(cax);
 fig = ancestor(BigAx,'figure');
 hold_state = ishold(BigAx);
-set(BigAx,'Visible','off','color','none')
+set(BigAx,'Visible','on','color','none')
 
 if any(sym=='.'),
   units = get(BigAx,'units');
@@ -156,22 +156,35 @@ BigAxHV = get(BigAx,'HandleVisibility');
 BigAxParent = get(BigAx,'Parent');
 for i=rows:-1:1,
   for j=cols:-1:1,
-    axPos = [pos(1)+(j-1)*width pos(2)+(rows-i)*height ...
+    axPos{i,j} = [pos(1)+(j-1)*width pos(2)+(rows-i)*height ...
              width*(1-space) height*(1-space)];
-    findax = findobj(fig,'Type','axes','Position',axPos);
+    findax = findobj(fig,'Type','axes','Position',axPos{i,j});
     if isempty(findax),
-      ax(i,j) = axes('Position',axPos,'HandleVisibility',BigAxHV,'parent',BigAxParent);
-      set(ax(i,j),'visible','on');
+      ax(i,j) = axes('Position',axPos{i,j},'HandleVisibility',BigAxHV,'parent',BigAxParent);
+      set(ax(i,j),'visible','on');   
     else
       ax(i,j) = findax(1);
     end
-    hh(i,j,:) = plot(reshape(x(:,j,:),[m k]), ...
-                     reshape(y(:,i,:),[m k]),sym,'parent',ax(i,j))';
-    set(hh(i,j,:),'markersize',markersize);
-    set(ax(i,j),'xlimmode','auto','ylimmode','auto','xgrid','off','ygrid','off')
-    xlim(i,j,:) = get(ax(i,j),'xlim');
-    ylim(i,j,:) = get(ax(i,j),'ylim');
   end
+end
+
+% Correct plot positions.
+for i=rows:-1:1
+  for j=cols:-1:1
+      set(ax(i,j),'Position',axPos{i,j},'Visible','on');
+  end
+end
+
+% Plot data in corrected plots
+for i=rows:-1:1
+    for j=cols:-1:1
+        hh(i,j,:) = plot(reshape(x(:,j,:),[m k]), ...
+            reshape(y(:,i,:),[m k]),sym,'parent',ax(i,j))';
+        set(hh(i,j,:),'markersize',markersize);
+        set(ax(i,j),'xlimmode','auto','ylimmode','auto','xgrid','off','ygrid','off')
+        xlim(i,j,:) = get(ax(i,j),'xlim');
+        ylim(i,j,:) = get(ax(i,j),'ylim');
+    end
 end
 
 if putlabels & ~xx
@@ -210,18 +223,21 @@ set(BigAx,'XTick',get(ax(rows,1),'xtick'),'YTick',get(ax(rows,1),'ytick'), ...
 
 if dohist, % Put a histogram on the diagonal for plotmatrix(y) case
   for i=rows:-1:1,
-    histax = axes('Position',get(ax(i,i),'Position'),'HandleVisibility',BigAxHV,'parent',BigAxParent);
+    %histax = axes('Position',get(ax(i,i),'Position'),'HandleVisibility',BigAxHV,'parent',BigAxParent);
     [nn,xx] = hist(reshape(y(:,i,:),[m k]));
-    patches(i,:) = bar(histax,xx,nn,'hist');
+    %patches(i,:) = bar(histax,xx,nn,'hist');
+    patches(i,:) = bar(ax(i,i),xx,nn,'hist');
     if putlabels; 
 	    xt = 0.5*(max(y(:,i,:)) + min(y(:,i,:)));
 	    yt = 0.9*max(nn);
 	    txt = varnames{i};
   	    text(xt,yt,txt)
     end
-    set(histax,'xtick',[],'ytick',[],'xgrid','off','ygrid','off');
-    set(histax,'xlim',[xlimmin(1,i)-dx(i) xlimmax(1,i)+dx(i)]);
-    pax(i) = histax;  % ax handles for histograms
+    if i>1 && i<rows
+        set(ax(i,i),'xtick',[],'ytick',[],'xgrid','off','ygrid','off');
+    end
+    set(ax(i,i),'xlim',[xlimmin(1,i)-dx(i) xlimmax(1,i)+dx(i)]);
+    %pax(i) = histax;  % ax handles for histograms
   end
   patches = patches';
 end
@@ -234,6 +250,7 @@ end
 % if ~hold_state,
 %    set(fig,'NextPlot','replace')
 % end
+
 
 % Also set Title and X/YLabel visibility to on and strings to empty
 set([get(BigAx,'Title'); get(BigAx,'XLabel'); get(BigAx,'YLabel')], ...

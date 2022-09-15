@@ -20,7 +20,7 @@ if strcmp(DREAMPar.parallel,'no')
 else
     % TJP Edit for ost 2014b matlab
     [ver verdate] = version;
-    if year(verdate)<2015    
+    if year(datenum(verdate))<2015    
         % First close possible parallel jobs
         try
             matlabpool close force local; 

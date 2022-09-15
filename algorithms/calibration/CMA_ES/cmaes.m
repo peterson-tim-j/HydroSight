@@ -9,7 +9,7 @@ function [xmin, ...      % minimum search point of last iteration
     xstart, ...    % objective variables initial point, determines N
     insigma, ...   % initial coordinate wise standard deviation(s)
     inopts, ...    % options struct, see defopts below
-    calibGUI_interface_obj, ...  % Object for interfacing with calibratoin GUI
+    GUIobj, ...    % Object for GUI
     varargin )     % arguments passed to objective function 
 % cmaes.m, Version 3.61.beta, last change: April, 2012 
 % CMAES implements an Evolution Strategy with Covariance Matrix
@@ -358,7 +358,9 @@ opts.SaveFilename = deblank(opts.SaveFilename); % remove trailing white spaces
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  
 counteval = 0; countevalNaN = 0; 
+countiter_priorRestarts = 0;
 irun = 0;
+countiter = 0;
 while irun <= myeval(opts.Restarts) % for-loop does not work with resume
   irun = irun + 1; 
 
@@ -386,7 +388,7 @@ if ~flgresume % not resuming a former run
 else % flgresume is true, do resume former run
   tmp = whos('-file', opts.SaveFilename);
   for i = 1:length(tmp)
-    if strcmp(tmp(i).name, 'localopts');
+    if strcmp(tmp(i).name, 'localopts')
       error('Saved variables include variable "localopts", please remove');
     end
   end
@@ -426,7 +428,7 @@ stopMaxIter = myeval(opts.MaxIter);
 stopFunEvals = myeval(opts.StopFunEvals);  
 stopIter = myeval(opts.StopIter); 
 if flgresume
-    stopIter = stopIter + countiter
+    stopIter = stopIter + countiter;
 end
 stopTolX = myeval(opts.TolX);
 stopTolUpX = myeval(opts.TolUpX);
@@ -632,17 +634,6 @@ else % flgresume
     bnd.iniphase = 1;
   end
 
-  % Update the diary file
-  if ~isempty(calibGUI_interface_obj)
-     updatetextboxFromDiary(calibGUI_interface_obj);
-    [doQuit, exitFlagQuit, exitStatusQuit] = getCalibrationQuitState(calibGUI_interface_obj);
-    if doQuit
-        exitFlag = exitFlagQuit;
-        exitStatus = exitStatusQuit;
-        return;
-    end     
-  end  
-  
   % ooo initial feval, for output only
   if irun == 1 
     out.solutions.bestever.x = xmean;
@@ -654,12 +645,12 @@ else % flgresume
     fitness.hist(1)=feval(fitfun, xmean, varargin{:}); 
     fitness.histsel(1)=fitness.hist(1);
     counteval = counteval + 1;
-    if fitness.hist(1) < out.solutions.bestever.f 
-	out.solutions.bestever.x = xmean;
-	out.solutions.bestever.f = fitness.hist(1);
-	out.solutions.bestever.evals = counteval;
-	bestever = out.solutions.bestever;
-    end
+    if fitness.hist(1) < out.solutions.bestever.f
+    	out.solutions.bestever.x = xmean;
+    	out.solutions.bestever.f = fitness.hist(1);
+    	out.solutions.bestever.evals = counteval;
+    	bestever = out.solutions.bestever;
+    end   
   else
     fitness.hist(1)=NaN; 
     fitness.histsel(1)=NaN; 
@@ -667,20 +658,22 @@ else % flgresume
     
   % initialize random number generator
   if ischar(opts.Seed)
-    randn('state', eval(opts.Seed));     % random number generator state
+    rng(eval(opts.Seed));     % random number generator state
   else
-    randn('state', opts.Seed);
+    rng( opts.Seed);
   end
   %qqq
 %  load(opts.SaveFilename, 'startseed');
 %  randn('state', startseed);
 %  disp(['SEED RELOADED FROM ' opts.SaveFilename]);
-  startseed = randn('state');         % for retrieving in saved variables
+%  startseed = randn('state');         % for retrieving in saved variables
+  startseed = rng();
 
   % Initialize further constants
   chiN=N^0.5*(1-1/(4*N)+1/(21*N^2));  % expectation of 
 				      %   ||N(0,I)|| == norm(randn(N,1))
   
+  countiter_priorRestarts = countiter_priorRestarts + countiter;
   countiter = 0;
   % Initialize records and output
   if irun == 1
@@ -756,20 +749,8 @@ else % flgresume
   
 end % else flgresume 
 
-% Update the diary file
-if ~isempty(calibGUI_interface_obj)
-    updatetextboxFromDiary(calibGUI_interface_obj);
-    [doQuit, exitFlagQuit, exitStatusQuit] = getCalibrationQuitState(calibGUI_interface_obj);
-    if doQuit
-        exitFlag = exitFlagQuit;
-        exitStatus = exitStatusQuit;
-        return;
-    end 
-end  
-
-
 % -------------------- Generation Loop --------------------------------
-stopflag = {};
+stopflag = cell(0);
 while isempty(stopflag)
   % set internal parameters
   if countiter == 0 || lambda ~= lambda_last
@@ -937,7 +918,7 @@ while isempty(stopflag)
           if ~exist('noiseEpsilon','var');
               noiseEpsilon = [];
           end
-          parfor k=1:length(invalidParamSets)
+          for k=1:length(invalidParamSets)
               nResamples=0;
               maxResamples=1000;
               while (1)
@@ -999,7 +980,7 @@ while isempty(stopflag)
   % non-parallel evaluation and remaining NaN-values
   % set also the reevaluated solution to NaN
   fitness.raw(lambda + find(isnan(fitness.raw(1:noiseReevals)))) = NaN;  
-  for k=find(isnan(fitness.raw)), 
+  for k=find(isnan(fitness.raw)) 
       
     % fitness.raw(k) = NaN; 
     tries = flgEvalParallel;  % in parallel case this is the first re-trial
@@ -1643,9 +1624,15 @@ while isempty(stopflag)
   end
 
   % Set stop flag
-  if fitness.raw(1) <= stopFitness, stopflag(end+1) = {'fitness'}; end
-  if counteval >= stopMaxFunEvals, stopflag(end+1) = {'maxfunevals'}; end
-  if countiter >= stopMaxIter, stopflag(end+1) = {'maxiter'}; end
+  if fitness.raw(1) <= stopFitness
+      stopflag(end+1) = {'fitness'}; 
+  end
+  if counteval >= stopMaxFunEvals
+      stopflag(end+1) = {'maxfunevals'}; 
+  end
+  if countiter >= stopMaxIter
+      stopflag(end+1) = {'maxiter'}; 
+  end
   if all(sigma*(max(abs(pc), sqrt(diagC))) < stopTolX) 
     stopflag(end+1) = {'tolx'};
   end
@@ -1855,16 +1842,21 @@ while isempty(stopflag)
   end
   time.t0 = clock;
 
-  % Update the diary file
-  if ~isempty(calibGUI_interface_obj)
-     updatetextboxFromDiary(calibGUI_interface_obj);
-    [doQuit, exitFlagQuit, exitStatusQuit] = getCalibrationQuitState(calibGUI_interface_obj);
-    if doQuit
-        exitFlag = exitFlagQuit;
-        exitStatus = exitStatusQuit;
-        return;
-    end     
-  end   
+  % Update GUI.
+  if ~isempty(GUIobj)  && isa(GUIobj, 'HydroSight_GUI')
+      % Update the GUI plots
+      modelCalibration_CalibPlotsUpdate(GUIobj, false,'CMA-ES',[], countiter+countiter_priorRestarts, counteval, ...
+          arxvalid(:, fitness.idx(1)), fitness.raw(1), ...
+          std(arxvalid,[],2), max(sigma*sqrt(diagC)) , out.solutions.bestever.f);
+
+      % Get quit/skip state for calibration.
+      [exitCalib, ~, exiflag] = modelCalibration_getCalibState(GUIobj);
+      if exitCalib
+          stopflag(end+1)={exiflag};
+          return
+      end
+  end
+
   
   % ----- end output generation -----
 
@@ -1935,16 +1927,12 @@ end
     break; 
   end
   
-  % Update the diary file
-  if ~isempty(calibGUI_interface_obj)
-     updatetextboxFromDiary(calibGUI_interface_obj);
-    [doQuit, exitFlagQuit, exitStatusQuit] = getCalibrationQuitState(calibGUI_interface_obj);
-    if doQuit
-        exitFlag = exitFlagQuit;
-        exitStatus = exitStatusQuit;
-        return;
-    end     
-  end  
+  % Update GUI.
+  if ~isempty(GUIobj)  && isa(GUIobj, 'HydroSight_GUI')
+      modelCalibration_CalibPlotsUpdate(GUIobj, false,'CMA-ES',[], countiter+countiter_priorRestarts, counteval, ...
+          xmin, fmin,std(arxvalid,[],2), max(sigma*sqrt(diagC)), out.solutions.bestever.f);
+  end
+
   
 end % while irun <= Restarts
 

@@ -288,7 +288,7 @@ classdef model_TFN < model_abstract
             % Check there are an even number model type options, ie for
             % option option type there is an option value.
             if length(varargin) <= 0 
-               display('Default model of only precipitation forcing has been adopted because no model components were input');
+               disp('Default model of only precipitation forcing has been adopted because no model components were input');
             elseif size( varargin , 2) ~=3
                error('Invalid model options. The inputs must of three columns in the following order: model_component, property, property_value');
             end            
@@ -348,169 +348,192 @@ classdef model_TFN < model_abstract
                     % transform forcing data (eg using a soil moisture
                     % model).
                     if iscell(propertyValue)
+                        % Check if the propertyValue is simply a vector of
+                        % input forcing column names or numbers.
+                        isVector_propertyValue = false;
+                        if size(propertyValue,2)==1
+                            isVector_propertyValue = all(cellfun(@(x) ischar(x) || isnumeric(x), propertyValue));
+                        end
+
                         % If 'propertyValue' is a vector then it should be
                         % a list of forcing sites.
-                        if isvector(propertyValue)
+                        if isVector_propertyValue
                             % Check each forcing site name is valid.
-                            for j=1:length(propertyValue)                            
+                            for j=1:length(propertyValue)
                                 if isnumeric(propertyValue{j}) && ( propertyValue{j}<0 || propertyValue{j}+2>size(forcingData_data,2))
                                     error(['Invalid forcing column number for component:', modelComponent,'. It must be an intereger >0 and <= the number of forcing data columns.' ]);
                                 elseif ischar(propertyValue{j})
                                     % Check the forcing column name is valid.
                                     filt = cellfun(@(x)(strcmp(x,propertyValue{j})),forcingData_colnames);                                
-                                    if isempty(find(filt))
+                                    if isempty(find(filt, 1))
                                         error(['Invalid forcing column name for component:', modelComponent,'. Each forcing name must be listed within the input forcing data column names.' ]);
                                     end
                                 end
                             end
                         else
-                            % Check that the input is of the expected
-                            % format for creating a class to derive the
-                            % forcing data. The Expected format is an Nx2
-                            % matrix (where N<=5) and the first colum
-                            % should have rows for 'tranformationfunction'
-                            % and 'outputvariable'.
-                            if size(propertyValue,2) ~= 2 || size(propertyValue,1) < 2 || size(propertyValue,1) > length(valid_transformProperties)
-                                error(['Invalid inputs for transforming the forcing data for component:', modelComponent,'. The input cell array must have >=2 and <=5 rows and 2 columns.' ]);
-                            end
-                            
-                            % Check it has the required minimum inputs to
-                            % the first columns.
-                            if sum( strcmp(propertyValue(:,1), valid_transformProperties{1}))~=1 || ...
-                            sum( strcmp(propertyValue(:,1), valid_transformProperties{3}))~=1    
-                                error(['Invalid inputs for transforming the forcing data for component:', modelComponent,'. The first column of the input cell array must have rows for "transformfunction" and "outputdata".' ]);
-                            end
-                            
-                            % Check that the first column only contains
-                            % inputs that are acceptable.
-                            for j=1:size(propertyValue,1)                                                                
-                                if sum( strcmp(valid_transformProperties, propertyValue{j,1}))~=1    
-                                    error(['Invalid inputs for transforming the forcing data for component:', modelComponent,'. Read the help for "model_TFN" to see the accepted values.' ]);
+                            % Check if the propertyValue is for one input
+                            % variable (ie is a cell array of 2 cols) or is
+                            % for multiple input variable (ie 1 col with
+                            % the sub property values having 2 coluimns).
+                            % The latter would occur when multiple pumos
+                            % are used within a transforation function.
+                            el=1;
+                            doLoop = true;
+                            while el<=size(propertyValue,1) && doLoop
+                                if size(propertyValue,2) == 1
+                                    subPropertyValue=propertyValue{el};
+                                    doLoop = true;
+                                elseif size(propertyValue,2) == 2
+                                    subPropertyValue=propertyValue;
+                                    doLoop = false;
                                 end
-                            end
-                            
-                            % Check that the transformation function name
-                            % is a valid class definition name.
-                            filt  =  strcmp(propertyValue(:,1), valid_transformProperties{1});
-                            if isempty(meta.class.fromName(propertyValue{filt,2})) 
-                                error(['The following forcing transform function name is not accessible:',propertyValue{filt,2}]);
-                            end   
-                            
-                            % Check that the forcing transformation
-                            % function name is consistent with the abstract
-                            % 'forcingTransform_abstract'.
-                            try
-                                if ~any(strcmp(findAbstractName( propertyValue{filt,2}),'forcingTransform_abstract')) && ~any(strcmp(findAbstractName( propertyValue{filt,2}),'derivedForcingTransform_abstract'))
-                                    error(['The following forcing transform function class definition is not derived from the "forcingTransform_abstract.m" abstract:',propertyValue{filt,2}]);
+                                el=el+1;
+
+                                % Check that the input is of the expected
+                                % format for creating a class to derive the
+                                % forcing data. The Expected format is an Nx2
+                                % matrix (where N<=5) and the first colum
+                                % should have rows for 'tranformationfunction'
+                                % and 'outputvariable'.
+                                if size(subPropertyValue,2) ~= 2 || size(subPropertyValue,1) < 2 || size(subPropertyValue,1) > length(valid_transformProperties)
+                                    error(['Invalid inputs for transforming the forcing data for component:', modelComponent,'. The input cell array must have >=2 and <=5 rows and 2 columns.' ]);
                                 end
-                            catch ME
-                                display('... Warning: Checking that the required abstract for the forcing transform class definition was used failed. This is may be because the version of matlab is pre-2014a.');
-                            end
-                            
-                            % Get a list of required forcing inputs.
-                            [requiredFocingInputs, isOptionalInput] = feval(strcat(propertyValue{filt,2},'.inputForcingData_required'),bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates);
-                                                        
-                            % Check that the input forcing cell array has
-                            % the correct dimensions.
-                            filt  =  strcmp(propertyValue(:,1), valid_transformProperties{2});                            
-                            if any(filt)
-                                if size(propertyValue{filt,2},2) ~=2 || ...
-                                (size(propertyValue{filt,2},1) ~= length(requiredFocingInputs(~isOptionalInput)) && size(propertyValue{filt,2},1) ~= length(requiredFocingInputs) ...
-                                && size(propertyValue{filt,2},1)>1)
-                                    error(['Invalid forcing data for the forcing transform function name for component:', modelComponent,'. It must be a cell array of two columns and ',num2str(length(requiredFocingInputs)), ' rows (one row for each required input forcing).']);
+
+                                % Check it has the required minimum inputs to
+                                % the first columns.
+                                if sum( strcmp(subPropertyValue(:,1), valid_transformProperties{1}))~=1 || ...
+                                        sum( strcmp(subPropertyValue(:,1), valid_transformProperties{3}))~=1
+                                    error(['Invalid inputs for transforming the forcing data for component:', modelComponent,'. The first column of the input cell array must have rows for "transformfunction" and "outputdata".' ]);
                                 end
-                            
-                                % Check that the required inputs are specified.
-                                for j=1:length(requiredFocingInputs)
-                                    if isOptionalInput(j)
-                                        continue
-                                    end
-                                    if ~any( strcmp(propertyValue{filt,2}, requiredFocingInputs{j}))
-                                        error(['Invalid inputs for transforming the forcing data for component:', modelComponent,'. A forcing data site name must be specified for the following transform function input:',requiredFocingInputs{j} ]);
+
+                                % Check that the first column only contains
+                                % inputs that are acceptable.
+                                for j=1:size(subPropertyValue,1)
+                                    if sum( strcmp(valid_transformProperties, subPropertyValue{j,1}))~=1
+                                        error(['Invalid inputs for transforming the forcing data for component:', modelComponent,'. Read the help for "model_TFN" to see the accepted values.' ]);
                                     end
                                 end
-                            end
-                            
-                            % Get a list of valid output forcing variable names.
-                            filt  =  strcmp(propertyValue(:,1), valid_transformProperties{1});
-                            [optionalFocingOutputs] = feval([propertyValue{filt,2},'.outputForcingdata_options'], bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates);
-                                                                                    
-                            % Check that the output variable a char or cell vector.
-                            filt  =  strcmp(propertyValue(:,1), valid_transformProperties{3});                              
-                            if isnumeric(propertyValue{filt,2}) || (iscell(propertyValue{filt,2}) && ~isvector(propertyValue{filt,2}))
-                                error(['Invalid output forcing variable for the forcing transform function name for component:', modelComponent,' . It must be a string or a cell vector of strings of valid output variable names.']);
-                            end
-                            
-                            % Check each output variable name is valid.
-                            if ischar(propertyValue{filt,2})
-                                if ~any(strcmp(optionalFocingOutputs, propertyValue{filt,2}))
-                                    error(['Invalid output forcing variable for the forcing transform function name for component:', modelComponent,' . The output variable name must be equal to one of the listed output variables for the transformaion function.']);
+
+                                % Check that the transformation function name
+                                % is a valid class definition name.
+                                filt  =  strcmp(subPropertyValue(:,1), valid_transformProperties{1});
+                                if isempty(meta.class.fromName(subPropertyValue{filt,2}))
+                                    error(['The following forcing transform function name is not accessible:',subPropertyValue{filt,2}]);
                                 end
-                            else                                
-                                for j=1:length(propertyValue{filt,2})
-                                    if ~any(strcmp(optionalFocingOutputs, propertyValue{filt,2}{j}))
-                                        error(['Invalid output forcing variable for the forcing transform function name for component:', modelComponent,' . Each output variable name must be equal to one of the listed output variables for the transformaion function.']);
+
+                                % Check that the forcing transformation
+                                % function name is consistent with the abstract
+                                % 'forcingTransform_abstract'.
+                                try
+                                    if ~any(strcmp(findAbstractName( subPropertyValue{filt,2}),'forcingTransform_abstract')) && ~any(strcmp(findAbstractName( subPropertyValue{filt,2}),'derivedForcingTransform_abstract'))
+                                        error(['The following forcing transform function class definition is not derived from the "forcingTransform_abstract.m" abstract:',subPropertyValue{filt,2}]);
+                                    end
+                                catch
+                                    disp('... Warning: Checking that the required abstract for the forcing transform class definition was used failed. This is may be because the version of matlab is pre-2014a.');
+                                end
+
+                                % Get a list of required forcing inputs.
+                                [requiredFocingInputs, isOptionalInput] = feval(strcat(subPropertyValue{filt,2},'.inputForcingData_required'),bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates);
+
+                                % Check that the input forcing cell array has
+                                % the correct dimensions and that the
+                                % required input forcing variables are defined. 
+                                filt  =  strcmp(subPropertyValue(:,1), valid_transformProperties{2});
+                                if any(filt)
+                                    if size(subPropertyValue{filt,2},2) ~=2 ||  size(subPropertyValue{filt,2},1) < sum(~isOptionalInput)
+                                        error(['Invalid forcing data for the forcing transform function name for component:', modelComponent,'. It must be a cell array of two columns and least ',num2str(sum(~isOptionalInput)), ' rows (one row for each required input forcing).']);
+                                    end
+
+                                    % Check that the required inputs are specified.
+                                    for j=1:length(requiredFocingInputs)
+                                        if isOptionalInput(j)
+                                            continue
+                                        end
+                                        if ~any( strcmp(subPropertyValue{filt,2}, requiredFocingInputs{j}))
+                                            error(['Invalid inputs for transforming the forcing data for component:', modelComponent,'. A forcing data site name must be specified for the following transform function input:',requiredFocingInputs{j} ]);
+                                        end
                                     end
                                 end
-                            end
-                            
-                            % Get a list of unique model components that have transformed forcing data
-                            % and the transformation model does not require
-                            % the input of another component.
-                            k=0;
-                            for j=1: size(varargin,1)
-                                if  strcmp( varargin{j,2}, valid_properties{2}) ...
-                                && iscell(varargin{j,3}) && ~isvector(varargin{j,3})
-                            
-                                    % Check if the transformation model
-                                    % input as the required inputs and does
-                                    % not require the input of another
-                                    % component.                                    
-                                    if  any(strcmp(varargin{j,3}(:,1), valid_transformProperties{1})) ...
-                                    &&  any(strcmp(varargin{j,3}(:,1), valid_transformProperties{2})) ...
-                                    &&  any(strcmp(varargin{j,3}(:,1), valid_transformProperties{3})) ...
-                                    && ~any(strcmp(varargin{j,3}(:,1), valid_transformProperties{5}))
-                                        k = k+1;
-                                        % Record the component name.
-                                        modelComponets_transformed{k,1} =  varargin{j,1};
-                                        
-                                        % Add the transformation model
-                                        % name.
-                                        filt = strcmp(varargin{j,3}(:,1), valid_transformProperties{1});
-                                        modelComponets_transformed{k,2} =  varargin{j,3}{filt,2};
+
+                                % Get a list of valid output forcing variable names.
+                                filt  =  strcmp(subPropertyValue(:,1), valid_transformProperties{1});
+                                [optionalFocingOutputs] = feval([subPropertyValue{filt,2},'.outputForcingdata_options'], bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates);
+
+                                % Check that the output variable a char or cell vector.
+                                filt  =  strcmp(subPropertyValue(:,1), valid_transformProperties{3});
+                                if isnumeric(subPropertyValue{filt,2}) || (iscell(subPropertyValue{filt,2}) && ~isvector(subPropertyValue{filt,2}))
+                                    error(['Invalid output forcing variable for the forcing transform function name for component:', modelComponent,' . It must be a string or a cell vector of strings of valid output variable names.']);
+                                end
+
+                                % Check each output variable name is valid.
+                                if ischar(subPropertyValue{filt,2})
+                                    if ~any(strcmp(optionalFocingOutputs, subPropertyValue{filt,2}))
+                                        error(['Invalid output forcing variable for the forcing transform function name for component:', modelComponent,' . The output variable name must be equal to one of the listed output variables for the transformaion function.']);
                                     end
+                                else
+                                    for j=1:length(subPropertyValue{filt,2})
+                                        if ~any(strcmp(optionalFocingOutputs, subPropertyValue{filt,2}{j}))
+                                            error(['Invalid output forcing variable for the forcing transform function name for component:', modelComponent,' . Each output variable name must be equal to one of the listed output variables for the transformaion function.']);
+                                        end
+                                    end
+                                end
+
+                                % Get a list of unique model components that have transformed forcing data
+                                % and the transformation model does not require
+                                % the input of another component.
+                                k=0;
+                                for j=1: size(varargin,1)
+                                    if  strcmp( varargin{j,2}, valid_properties{2}) ...
+                                            && iscell(varargin{j,3}) && ~isvector(varargin{j,3})
+
+                                        % Check if the transformation model
+                                        % input as the required inputs and does
+                                        % not require the input of another
+                                        % component.
+                                        if  any(strcmp(varargin{j,3}(:,1), valid_transformProperties{1})) ...
+                                                &&  any(strcmp(varargin{j,3}(:,1), valid_transformProperties{2})) ...
+                                                &&  any(strcmp(varargin{j,3}(:,1), valid_transformProperties{3})) ...
+                                                && ~any(strcmp(varargin{j,3}(:,1), valid_transformProperties{5}))
+                                            k = k+1;
+                                            % Record the component name.
+                                            modelComponets_transformed{k,1} =  varargin{j,1}; %#ok<AGROW>
+
+                                            % Add the transformation model
+                                            % name.
+                                            filt = strcmp(varargin{j,3}(:,1), valid_transformProperties{1});
+                                            modelComponets_transformed{k,2} =  varargin{j,3}{filt,2}; %#ok<AGROW>
+                                        end
+                                    end
+                                end
+
+                                % Check that each complete transforamtion model
+                                % is unique.
+                                if size( unique(modelComponets_transformed(:,2)),1) ...
+                                        ~= size( modelComponets_transformed(:,2),1)
+                                    error('Non-unique complete transformation models. Each complete transformation model must be input for only one model component. A complete model is that having at least the following inputs: transformfunction, forcingdata, outputdata');
+                                end
+
+                                % Get a unique list of unique tranformation functions
+                                modelComponets_transformed_uniqueTransFunc = unique(modelComponets_transformed(:,2));
+
+                                % Check the inputcomponent is a valid
+                                % component.
+                                filt  =  strcmp(subPropertyValue(:,1), valid_transformProperties{5});
+                                if any(filt) && ischar(subPropertyValue{filt,2})
+                                    if ~any(strcmp(modelComponets_transformed_uniqueTransFunc(:,1), subPropertyValue{filt,2}))
+                                        error(['Invalid source function for the forcing transform function name for component:', modelComponent,' . The input function must be a tranformation function name that is listed within the model.']);
+                                    end
+                                elseif any(filt) && iscell(subPropertyValue{filt,2})
+                                    for j=1:length(subPropertyValue{filt,2})
+                                        if ~any(strcmp(modelComponets_transformed_uniqueTransFunc(:,1), subPropertyValue{filt,2}{j}))
+                                            error(['Invalid source function for the forcing transform function name for component:', modelComponent,' . The input function must be a tranformation function name that is listed within the model.']);
+                                        end
+                                    end
+                                elseif any(filt)
+                                    error(['Invalid source function for the forcing transform function name for component:', modelComponent,' . The input component must be a a tranformation function name (string or cell vector of strings) that is listed within the model input options and it must also have a function transformation.']);
                                 end
                             end
 
-                            % Check that each complete transforamtion model
-                            % is unique.
-                            if size( unique(modelComponets_transformed(:,2)),1) ...
-                            ~= size( modelComponets_transformed(:,2),1)
-                                error('Non-unique complete transformation models. Each complete transformation model must be input for only one model component. A complete model is that having at least the following inputs: transformfunction, forcingdata, outputdata');
-                            end
-                            
-                            % Get a unique list of model components with
-                            % complete transforamtion models and a list of
-                            % unieq tranformation functions
-                            modelComponets_transformed_uniqueComponents = unique(modelComponets_transformed(:,1));
-                            modelComponets_transformed_uniqueTransFunc = unique(modelComponets_transformed(:,2));
-                            
-                            % Check the inputcomponent is a valid
-                            % component.
-                            filt  =  strcmp(propertyValue(:,1), valid_transformProperties{5});
-                            if any(filt) && ischar(propertyValue{filt,2})
-                                if ~any(strcmp(modelComponets_transformed_uniqueTransFunc(:,1), propertyValue{filt,2}))
-                                    error(['Invalid source function for the forcing transform function name for component:', modelComponent,' . The input function must be a tranformation function name that is listed within the model.']);
-                                end
-                            elseif any(filt) && iscell(propertyValue{filt,2})   
-                                for j=1:length(propertyValue{filt,2})
-                                    if ~any(strcmp(modelComponets_transformed_uniqueTransFunc(:,1), propertyValue{filt,2}{j}))
-                                        error(['Invalid source function for the forcing transform function name for component:', modelComponent,' . The input function must be a tranformation function name that is listed within the model.']);                                        
-                                    end
-                                end
-                            elseif any(filt)
-                                error(['Invalid source function for the forcing transform function name for component:', modelComponent,' . The input component must be a a tranformation function name (string or cell vector of strings) that is listed within the model input options and it must also have a function transformation.']);                                
-                            end
                         end
                         
                     elseif ~isnumeric( propertyValue ) &&  (isnumeric(propertyValue) && any(propertyValue<0)) ...
@@ -699,7 +722,7 @@ classdef model_TFN < model_abstract
                             if any(filt_inputForcing) && any(filt_outputForcing)
                                 obj.inputData.componentData.(modelComponent).isForcingModel2BeRun = true;
                                 obj.inputData.componentData.(modelComponent).inputForcingComponent = varargin{ii,3}{filt,2};
-                                transformFunctionIndexes_inputComponents = [transformFunctionIndexes_inputComponents; ii];
+                                transformFunctionIndexes_inputComponents = [transformFunctionIndexes_inputComponents; ii]; %#ok<AGROW> 
                             else
                                 error(['Invalid forcing transformation for component:', modelComponent,'. When a transformation model uses another transformation model as an input then the forcing data and the output variable must be specified.' ]);
                             end
@@ -715,7 +738,7 @@ classdef model_TFN < model_abstract
                             filt_outputForcing = strcmp(varargin{ii,3}(:,1), valid_transformProperties{3});
                             if any(filt_inputForcing) && any(filt_outputForcing)
                                 obj.inputData.componentData.(modelComponent).isForcingModel2BeRun = true;
-                                transformFunctionIndexes_noInputComponents = [transformFunctionIndexes_noInputComponents; ii];                            
+                                transformFunctionIndexes_noInputComponents = [transformFunctionIndexes_noInputComponents; ii];                            %#ok<AGROW> 
                             elseif ~any(filt_inputForcing) && any(filt_outputForcing)
                                 obj.inputData.componentData.(modelComponent).isForcingModel2BeRun = false;
                             end
@@ -736,7 +759,7 @@ classdef model_TFN < model_abstract
                                 if any(filt_inputForcing) && any(filt_outputForcing)
                                     obj.inputData.componentData.(modelComponent).isForcingModel2BeRun = true;
                                     obj.inputData.componentData.(modelComponent).inputForcingComponent = varargin{ii,3}{j}{filt,2};
-                                    transformFunctionIndexes_inputComponents = [transformFunctionIndexes_inputComponents; ii];
+                                    transformFunctionIndexes_inputComponents = [transformFunctionIndexes_inputComponents; ii]; %#ok<AGROW> 
                                 else
                                     error(['Invalid forcing transformation for component:', modelComponent,'. When a transformation model uses another transformation model as an input then the forcing data and the output variable must be specified.' ]);
                                 end
@@ -752,7 +775,7 @@ classdef model_TFN < model_abstract
                                 filt_outputForcing = strcmp(varargin{ii,3}{j}(:,1), valid_transformProperties{3});
                                 if any(filt_inputForcing) && any(filt_outputForcing)
                                     obj.inputData.componentData.(modelComponent).isForcingModel2BeRun = true;
-                                    transformFunctionIndexes_noInputComponents = [transformFunctionIndexes_noInputComponents; ii];                            
+                                    transformFunctionIndexes_noInputComponents = [transformFunctionIndexes_noInputComponents; ii];                            %#ok<AGROW> 
 %                                 elseif ~any(filt_inputForcing) && any(filt_outputForcing)
 %                                     obj.inputData.componentData.(modelComponent).isForcingModel2BeRun = false;
                                 end
@@ -786,7 +809,6 @@ classdef model_TFN < model_abstract
             for ii = transformFunctionIndexes_noInputComponents'
                 
                 modelComponent = varargin{ii,1};
-                propertyValue = varargin{ii,3};
 
                 % Get the following inputs to build the model object:
                 % transformation function name, input data column names,
@@ -837,13 +859,13 @@ classdef model_TFN < model_abstract
                         continue                        
                     end                    
                     if isnumeric(transformObject_inputs{j,2})
-                        colNum = [colNum; transformObject_inputs{j,2}-2];                        
+                        colNum = [colNum; transformObject_inputs{j,2}-2];                        %#ok<AGROW> 
                     elseif ischar(transformObject_inputs{j,2})
                         filt = find(strcmpi(forcingData_colnames, transformObject_inputs{j,2}));
                         if sum(filt)==0
                             error(['An unexpected error occured for component :', modelComponent,'. Within the input cell array for "forcingdata", the second column contains a forcing site name that is not listed within the input forcing data column names.' ]);
                         end
-                        colNum = [colNum; filt];          
+                        colNum = [colNum; filt];          %#ok<AGROW> 
                         
                     else
                         error(['An unexpected error occured for component :', modelComponent,'. Within the input cell array for "forcingdata", the second column contains a forcing data column number or site name that is listed within the input forcing data column names.' ]);
@@ -877,10 +899,10 @@ classdef model_TFN < model_abstract
                     t = obj.inputData.forcingData(:,1);
                     setTransformedForcing(obj.parameters.(transformObject_name), t, true)
                     for j=1:length(variableName)
-                    	try                                                         
-                            forcingData = getTransformedForcing(obj.parameters.(transformObject_name), variableName{j});
+                        try
+                            forcingData = getTransformedForcing(obj.parameters.(transformObject_name), variableName{j}); %#ok<NASGU> 
                             isValidVariableName(j) = true;
-                        catch ME
+                        catch
                             isValidVariableName(j) = false;
                         end
                     end
@@ -910,7 +932,6 @@ classdef model_TFN < model_abstract
             for ii = transformFunctionIndexes_inputComponents'
                 
                 modelComponent = varargin{ii,1};
-                propertyValue = varargin{ii,3};
 
                 % Get the following inputs to build the model object:
                 % transformation function name, input data column names,
@@ -928,34 +949,28 @@ classdef model_TFN < model_abstract
                 end
                 filt = strcmp(varargin{ii,3}(:,1), valid_transformProperties{5});
                 transformObject_sourceName = varargin{ii,3}{filt,2};
-                
-%                 % Find the name of the input transformation object for the
-%                 % specified input component name.
-%                 transformObject_inputComponentName = obj.inputData.componentData.(transformObject_inputComponentName).forcing_object;
-                
+                               
                 % Find the required columns in forcing data so that only the
                 % required data is input.
                 colNum=1;
-                for j=1:size(forcingData_inputs,1)
-                    if isnumeric(forcingData_inputs{j,1})
-                        colNum = [colNum; forcingData_inputs{j,1}];             
-                    elseif ischar(forcingData_inputs{j,1})
-                        filt = find(strcmpi(forcingData_colnames, forcingData_inputs{j,1}));
+                for j=1:size(transformObject_inputs,1)
+                    if isnumeric(transformObject_inputs{j,2})
+                        colNum = [colNum; transformObject_inputs{j,2}];             %#ok<AGROW> 
+                    elseif ischar(forcingData_colnames{j,2})
+                        filt = find(strcmpi(forcingData_colnames, transformObject_inputs{j,2}));
                         if sum(filt)==0
                             error(['An unexpected error occured for component :', modelComponent,'. Within the input cell array for "forcingdata", the second column contains a forcing site name that is not listed within the input forcing data column names.' ]);
                         end
-                        colNum = [colNum; filt];                                
+                        colNum = [colNum; filt];                                %#ok<AGROW> 
                     else
                         error(['An unexpected error occured for component :', modelComponent,'. Within the input cell array for "forcingdata", the second column contains a forcing data column number or site name that is listed within the input forcing data column names.' ]);
                     end
                 end
                 
-                try                
-                    %colNum_extras = true(length(forcingData_colnames),1);
-                    %colNum_extras(colNum) = false;
-                    %colNum_extras = find(colNum_extras);
-                    %forcingData_colnamesTmp = forcingData_colnames([colNum;colNum_extras]);
-                    %forcingData_dataTmp = forcingData_data(:,[colNum;colNum_extras]);                                                                                    
+                % Add the input data column number for the data used by the
+                % object (ie in addition to the source data sued for the
+                % tranformation function)
+                try                                    
                     obj.parameters.(transformObject_name) = feval(transformObject_name, bore_ID, forcingData_data(:,colNum), forcingData_colnames(colNum), siteCoordinates, transformObject_inputs, obj.parameters.(transformObject_sourceName), transformObject_options);
                     
                     % Add coordinates for the output variable
@@ -977,7 +992,7 @@ classdef model_TFN < model_abstract
 
                 % Check if the current model object requires input of
                 % another weighting function object.
-                inputWeightingFunctionIndex = find( strcmpi(varargin(:,1),modelComponent) & strcmpi(varargin(:,2),valid_properties{4}));
+                inputWeightingFunctionIndex = find( strcmpi(varargin(:,1),modelComponent) & strcmpi(varargin(:,2),valid_properties{4}), 1);
                 
                 % Build weighting function for those NOT requiring the
                 % input of other weighting function objects.
@@ -997,23 +1012,6 @@ classdef model_TFN < model_abstract
                                 filt = cellfun( @(x) ~isempty(x), forcingData_inputs);
                                 forcingData_inputs = forcingData_inputs(filt);
                             end
-%                             for j=1:size(forcingData_inputs,1)
-%                                 % Skip if optional forcing input
-%                                 if strcmp(forcingData_inputs{j,1},'(none)')
-%                                     continue
-%                                 end
-%                                 if isnumeric(forcingData_inputs{j,1})
-%                                     colNum = [colNum; forcingData_inputs{j,1}];             
-%                                 elseif ischar(forcingData_inputs{j,1})
-%                                     filt = find(strcmpi(forcingData_colnames, forcingData_inputs{j,1}));
-%                                     if sum(filt)==0
-%                                         error(['An unexpected error occured for component :', modelComponent,'. Within the input cell array for "forcingdata", the second column contains a forcing site name that is not listed within the input forcing data column names.' ]);
-%                                     end
-%                                     colNum = [colNum; filt];                                
-%                                 else
-%                                     error(['An unexpected error occured for component :', modelComponent,'. Within the input cell array for "forcingdata", the second column contains a forcing data column number or site name that is listed within the input forcing data column names.' ]);
-%                                 end
-%                             end
                         end
 
                         % Check that the response 
@@ -1024,14 +1022,14 @@ classdef model_TFN < model_abstract
                                 error(['The following response function function class definition is not derived from the "responseFunction_abstract.m" anstract:',propertyValue]);
                             end
                         catch
-                            display('... Warning: Checking that the required abstract for the response function transform class definition was used failed. This is may be because the version of matlab is pre-2014a.');
+                            disp('... Warning: Checking that the required abstract for the response function transform class definition was used failed. This is may be because the version of matlab is pre-2014a.');
                         end                        
 
                         % Filter for options.
                         filt = find( strcmpi(varargin(:,1),modelComponent) & strcmpi(varargin(:,2),valid_properties{3}));                       
                         
                         % Convert input forcing data to cell if string
-                        if ischar(forcingData_inputs);
+                        if ischar(forcingData_inputs)
                             forcingData_inputs_tmp{1}=forcingData_inputs;
                             forcingData_inputs = forcingData_inputs_tmp;
                             clear forcingData_inputs_tmp;
@@ -1044,7 +1042,7 @@ classdef model_TFN < model_abstract
                             obj.parameters.(modelComponent) = feval(propertyValue, bore_ID, forcingData_inputs, siteCoordinates, {}); 
                         end
                     catch exception
-                         display(['ERROR: Invalid weighting function class object name: ',char(propertyValue),'. The weighting function object could not be created.']);
+                         disp(['ERROR: Invalid weighting function class object name: ',char(propertyValue),'. The weighting function object could not be created.']);
                          rethrow(exception);
                     end                            
                 end
@@ -1093,41 +1091,17 @@ classdef model_TFN < model_abstract
                                 filt = cellfun( @(x) ~isempty(x), forcingData_inputs);
                                 forcingData_inputs = forcingData_inputs(filt);
                             end
-                        end
-                        
-%                         % Get the column number for forcing data
-%                         colNum = 1;
-%                         if isfield(obj.inputData.componentData.(modelComponent),'dataColumn')
-%                             colNum = obj.inputData.componentData.(modelComponent).dataColumn;
-%                         elseif isfield(obj.inputData.componentData.(modelComponent),'inputForcing')
-% 
-%                             % Get the names (or column numbers) of the input forcing data. 
-%                             forcingData_inputs = obj.inputData.componentData.(modelComponent).inputForcing(:,2);
-%                             
-%                             for j=1:size(forcingData_inputs,1)
-%                                 if isnumeric(forcingData_inputs{j,1})
-%                                     colNum = [colNum; forcingData_inputs{j,1}];             
-%                                 elseif ischar(forcingData_inputs{j,1})
-%                                     filt = find(strcmpi(forcingData_colnames, forcingData_inputs{j,1}));
-%                                     if sum(filt)==0
-%                                         error(['An unexpected error occured for component :', modelComponent,'. Within the input cell array for "forcingdata", the second column contains a forcing site name that is not listed within the input forcing data column names.' ]);
-%                                     end
-%                                     colNum = [colNum; filt];                                
-%                                 else
-%                                     error(['An unexpected error occured for component :', modelComponent,'. Within the input cell array for "forcingdata", the second column contains a forcing data column number or site name that is listed within the input forcing data column names.' ]);
-%                                 end
-%                             end
-%                         end                    
+                        end                                       
 
                         % Convert input forcing data to cell if string
-                        if ischar(forcingData_inputs);
+                        if ischar(forcingData_inputs)
                             forcingData_inputs_tmp{1}=forcingData_inputs;
                             forcingData_inputs = forcingData_inputs_tmp;
                             clear forcingData_inputs_tmp;
                         end
 
                         % Filter for options.
-                        filt = find( strcmpi(varargin(:,1),modelComponent) & strcmpi(varargin(:,2),valid_properties{3}));
+                        filt =  strcmpi(varargin(:,1),modelComponent) & strcmpi(varargin(:,2),valid_properties{3});
                         
                         % Call the object. 
                         % NOTE: these objects have an additional input
@@ -1136,7 +1110,7 @@ classdef model_TFN < model_abstract
                         % object.
                         obj.parameters.(modelComponent) = feval(propertyValue, bore_ID,forcingData_inputs, siteCoordinates, obj.parameters.(inputWeightingFunctionName), varargin(filt,3)); 
                     catch exception
-                         display(['ERROR: Invalid weighting function class object name: ',char(propertyValue),'. The weighting function object could not be created.']);
+                         disp(['ERROR: Invalid weighting function class object name: ',char(propertyValue),'. The weighting function object could not be created.']);
                          rethrow(exception);
                     end                            
                 end
@@ -1147,7 +1121,7 @@ classdef model_TFN < model_abstract
             obj.parameters.noise.alpha = log10(0.1);    
             
             % Set the parameter names variable.   
-            [junk, obj.variables.param_names] = getParameters(obj);            
+            [~, obj.variables.param_names] = getParameters(obj);            
 
             % Set variable declarign that calibration is not being
             % undertaken.
@@ -1162,9 +1136,9 @@ classdef model_TFN < model_abstract
             forcingData_requiredColNames = {};
             for i=1:length(modelComponentAll)
                 if isfield(obj.inputData.componentData.(modelComponentAll{i}), 'dataColumn')
-                    forcingData_requiredColNames = {forcingData_requiredColNames{:}, forcingData_colnames{obj.inputData.componentData.(modelComponentAll{i}).dataColumn}};
+                    forcingData_requiredColNames = [forcingData_requiredColNames; forcingData_colnames(obj.inputData.componentData.(modelComponentAll{i}).dataColumn)]; %#ok<AGROW> 
                 else
-                    forcingData_requiredColNames = {forcingData_requiredColNames{:}, obj.inputData.componentData.(modelComponentAll{i}).inputForcing{:,2}};
+                    forcingData_requiredColNames = [forcingData_requiredColNames; obj.inputData.componentData.(modelComponentAll{i}).inputForcing(:,2)]; %#ok<AGROW> 
                 end
             end
             
@@ -1201,8 +1175,6 @@ classdef model_TFN < model_abstract
                 modelnames = fieldnames(obj.parameters);
                 for i=1:length(modelnames)
                     if isobject(obj.parameters.(modelnames{i}))
-                        forcingData_colnames_tmp = {};
-                        forcingData_tmp = [];
                         if any(strcmp(methods(obj.parameters.(modelnames{i})),'setTransformedForcing')) && ...
                         any(strcmp(methods(obj.parameters.(modelnames{i})),'getTransformedForcing'))
                             % Get the list of all possible forcing data outputs.                                
@@ -1227,9 +1199,10 @@ classdef model_TFN < model_abstract
                             % Get the forcing for each variable
                             for j=1:length(variable_names)
                                 try
-                                    forcingData = [forcingData, getTransformedForcing(obj.parameters.(modelnames{i}),variable_names{j})];
-                                    forcingData_colnames = {forcingData_colnames{:}, variable_names{j}};
-                                catch ME
+                                    fluxes = getTransformedForcing(obj.parameters.(modelnames{i}),variable_names{j});
+                                    forcingData = [forcingData, fluxes.(variable_names{j})]; %#ok<AGROW> 
+                                    forcingData_colnames = [forcingData_colnames, variable_names(j)]; %#ok<AGROW> 
+                                catch
                                     continue;
                                 end
                             end                            
@@ -1251,7 +1224,7 @@ classdef model_TFN < model_abstract
                     if isobject(obj.parameters.(modelnames{i}))
                         try
                             setForcingData(obj.parameters.(modelnames{i}), forcingData, forcingData_colnames)
-                        catch ME
+                        catch
                             % do nothing
                         end
                     end
@@ -1403,23 +1376,13 @@ classdef model_TFN < model_abstract
             % Clear obj.variables of temporary variables.
             if isfield(obj.variables, 'theta_est_indexes_min'), obj.variables = rmfield(obj.variables, 'theta_est_indexes_min'); end
             if isfield(obj.variables, 'theta_est_indexes_max'), obj.variables = rmfield(obj.variables, 'theta_est_indexes_max'); end
-            %if isfield(obj.variables, 'SMS_frac'), obj.variables = rmfield(obj.variables, 'SMS_frac'); end            
-            %if isfield(obj.variables, 'recharge'), obj.variables = rmfield(obj.variables, 'recharge'); end            
-            %if isfield(obj.variables, 'SMSC'), obj.variables = rmfield(obj.variables, 'SMSC'); end            
-            %if isfield(obj.variables, 'SMSC_1'), obj.variables = rmfield(obj.variables, 'SMSC_1'); end            
-            %if isfield(obj.variables, 'SMSC_2'), obj.variables = rmfield(obj.variables, 'SMSC_2'); end            
-            %if isfield(obj.variables, 'f'), obj.variables = rmfield(obj.variables, 'f'); end            
-            %if isfield(obj.variables, 'b'), obj.variables = rmfield(obj.variables, 'b'); end                                    
-            %if isfield(obj.variables, 'ksat'), obj.variables = rmfield(obj.variables, 'ksat'); end
-            %if isfield(obj.variables, 'ksat_1'), obj.variables = rmfield(obj.variables, 'ksat_1'); end
-            %if isfield(obj.variables, 'ksat_2'), obj.variables = rmfield(obj.variables, 'ksat_2'); end
             
             % Set a flag to indicate that calibration is NOT being undertaken.
             % obj.variables.doingCalibration = getInnovations;
             
             % Setup matrix of indexes for tor at each time_points
             filt = obj.inputData.forcingData ( : ,1) <= ceil(time_points(end));
-            tor = flipud([0:time_points(end)  - obj.inputData.forcingData(filt,1)+1]');
+            tor = flipud(transpose(0:time_points(end)  - obj.inputData.forcingData(filt,1)+1));
             ntor =  size( tor, 1);                                                     
             clear tor;            
             
@@ -1437,79 +1400,56 @@ classdef model_TFN < model_abstract
             % sttaic variables)
             % Free memory within mex function
             try
-                junk=doIRFconvolutionPhi([], [], [], [], false, 0);            
-            catch ME
+                junk=doIRFconvolutionPhi([], [], [], [], false, 0);            %#ok<NASGU> 
+            catch
                 % continue               
             end          
             
             % Get the parameter sets (for use in resetting if >sets)
             [params, param_names] = getParameters(obj);
+            nparamsets = size(params,2);
             
             % If the number of parameter sets is >1 then temporarily apply 
             % only the first parameter set. This is done only to reduce the
             % RAM requirements for the broadcasting of the obj variable in
             % the following parfor.
-            if size(params,2)>1
+            if nparamsets>1
                 setParameters(obj, params(:,1), param_names);
             end
-            
-            % Set percentile for noise 
-            Pnoise = 0.95;
-            
+                        
             % Solve the modle using each parameter set.
             obj.variables.delta_time = diff(time_points);
-            headtmp=cell(1,size(params,2));
-            noisetmp=cell(1,size(params,2));
             companants = fieldnames(obj.inputData.componentData);
             nCompanants = size(companants,1);                             
-            for ii=1:size(params,2)
+            for ii=1:nparamsets
                 % Get the calibration estimate of the mean forcing for the
                 % current parameter set. This is a bit of a work around to
                 % handle the issue of each parameter set having a unique
                 % mean forcing (if a forcing transform is undertaken). The
                 % workaround was required when DREAM was addded.
                 for j=1:nCompanants                    
-                    calibData(ii,1).mean_forcing.(companants{j}) = obj.variables.(companants{j}).forcingMean(:,ii);
+                    calibData(ii,1).mean_forcing.(companants{j}) = obj.variables.(companants{j}).forcingMean(:,:,ii); %#ok<AGROW> 
                 end                
                               
                 % Add drainage elevation to the varargin variable sent to
                 % objectiveFunction.                
-                calibData(ii,1).drainage_elevation = obj.variables.d(ii);
-                
-                % Add noise std dev
-                if isfield(obj.variables,'sigma_n');
-                    calibData(ii,1).sigma_n = obj.variables.sigma_n(ii);
-                else
-                    calibData(ii,1).sigma_n = 0;
-                end
-                
+                calibData(ii,1).drainage_elevation = obj.variables.d(ii);                       
             end
             
             % Solve model and add drainage constants
-            [~, headtmp{1}, colnames] = objectiveFunction(params(:,1), time_points, obj, calibData(1));                        
-            if size(params,2)>1
+            [~, head, colnames] = objectiveFunction(params(:,1), time_points, obj, calibData(1));                        
+            if nparamsets>1
+                head = cat(3, head, zeros(size(head,1),size(head,2), nparamsets-1));
                 parfor jj=2:size(params,2)
-                    [~, headtmp{jj}] = objectiveFunction(params(:,jj), time_points, obj, calibData(jj));                        
+                    [~, head(:,:,jj)] = objectiveFunction(params(:,jj), time_points, obj, calibData(jj));           
                 end              
             end
-            
-            % Add drainage constants and calculate total error bounds.
-            for ii=1:size(params,2)
-                headtmp{ii}(:,2) = headtmp{ii}(:,2) + calibData(ii).drainage_elevation;
-            
-                noisetmp{ii} = [headtmp{ii}(:,1), ones(size(headtmp{ii},1),2) .* norminv(Pnoise,0,1) .* calibData(ii).sigma_n];
-            end                            
-            head = zeros(size(headtmp{1},1),size(headtmp{1},2), size(params,2));
-            noise = zeros(size(headtmp{1},1),3, size(params,2));            
-            for ii=1:size(params,2)
-                head(:,:,ii) = headtmp{ii};
-                noise(:,:,ii) = noisetmp{ii};
-            end
-            %colnames = colnames{1};
-            clear headtmp noisetmp
-                             
+               
+            % Get noise
+            noise = getNoise(obj, time_points);
+                                       
             % Set the parameters if >1 parameter sets
-            if size(params,2)>1
+            if nparamsets>1
                 setParameters(obj,params, param_names);
             end
             
@@ -1519,6 +1459,30 @@ classdef model_TFN < model_abstract
             
         end
         
+        function noise = getNoise(obj, time_points, noisePercnile)
+
+            % Check if there is the noise variable, sigma
+            if ~isfield(obj.variables,'sigma_n')
+                noise = zeros(length(time_points),1);
+                return;
+            end
+
+            % Set percentile for noise
+            if nargin==2
+                noisePercnile = 0.95;
+            else
+                noisePercnile = noisePercnile(1);
+            end
+
+            noise = obj.variables.sigma_n;
+            nparamsets = length(noise);
+            if nparamsets>1
+                noise = reshape(noise, 1, 1, nparamsets);
+            end            
+
+            noise = [repmat(time_points,1,1,nparamsets), ones(size(time_points,1),2) .* norminv(noisePercnile,0,1) .* noise];
+        end
+
 %% Initialise the model prior to calibration.
         function [params_initial, time_points] = calibration_initialise(obj, t_start, t_end)
 % calibration_initialise initialises the model prior to calibration.
@@ -1581,8 +1545,8 @@ classdef model_TFN < model_abstract
             % sttaic variables)
             % Free memory within mex function
             try
-                junk=doIRFconvolutionPhi([], [], [], [], false, 0);            
-            catch ME
+                junk=doIRFconvolutionPhi([], [], [], [], false, 0);            %#ok<NASGU> 
+            catch
                 % continue               
             end            
                         
@@ -1609,7 +1573,7 @@ classdef model_TFN < model_abstract
             
             % Setup matrix of indexes for tor at each time_points
             filt = obj.inputData.forcingData ( : ,1) <= ceil(time_points(end));
-            tor = flipud([0:time_points(end)  - obj.inputData.forcingData(filt,1)+1]');
+            tor = flipud(transpose(0:time_points(end)  - obj.inputData.forcingData(filt,1)+1));
             ntor =  size(tor, 1);                                                     
             clear tor;
             
@@ -1627,7 +1591,7 @@ classdef model_TFN < model_abstract
         end        
         
 %% Finalise the model following calibration.
-        function calibration_finalise(obj, params, useLikelihood)            
+        function h_star = calibration_finalise(obj, params, useLikelihood)            
 % calibration_finalise finalises the model following calibration.
 %
 % Syntax:
@@ -1650,7 +1614,7 @@ classdef model_TFN < model_abstract
 %   calibration.
 %
 % Outputs:
-%   (none, the results are output to obj.variables)
+%   h_star: simulated head is returned. 
 %
 % Example:
 %   see HydroSight: time_series_model_calibration_and_construction;
@@ -1675,7 +1639,29 @@ classdef model_TFN < model_abstract
             % Set the stochastic forcing to NOT be in a 'calibration' state.
             setStochForcingState(obj, false, obj.variables.t_start, obj.variables.t_end);
 
-            for j=1:size(params,2)
+            % Initialise data
+            nparamSets = size(params,2);
+            objFn = NaN(1,nparamSets);
+            d = NaN(1,nparamSets);
+            time_points = obj.variables.time_points;
+            companantNames = fieldnames(obj.inputData.componentData);
+            nCompanants = size(companantNames,1);
+            forcingMean = inf(nCompanants,1,nparamSets);
+            nvars = zeros(nCompanants,1);
+            
+            % Run objective function to get data and num cols of h_star =
+            % in case there's >1 parameter set.
+            [objFn(:,1), h_star_tmp, ~ , d(1)] = objectiveFunction(params(:,1), time_points, obj,useLikelihood);
+            h_star = NaN(length(time_points),2,nparamSets);     
+            h_star(:,1:2,1) = h_star_tmp(:,1:2);
+            clear h_star_tmp
+            for j=1:nCompanants
+                nvars(j) = size(obj.variables.(companantNames{j}).forcingData,2);
+                forcingMean(j,1:nvars(j),1) = mean(obj.variables.(companantNames{j}).forcingData,1);
+            end
+            nvars_max = max(nvars);
+            
+            parfor i=2:nparamSets
                 % Re-calc objective function and deterministic component of the head and innocations.
                 % Importantly, the drainage elevation (ie the constant term for
                 % the regression) is calculated within 'objectiveFunction' and
@@ -1683,13 +1669,10 @@ classdef model_TFN < model_abstract
                 % for a different time period (or climate data) then this
                 % drainage value will be used by 'objectiveFunction'.
                 try
-                    [obj.variables.objFn(:,j), h_star, ~ , obj.variables.d(j)] = objectiveFunction(params(:,j), obj.variables.time_points, obj,useLikelihood);                        
+                    [objFn(:,i), h_star_tmp, ~ , d(i)] = objectiveFunction(params(:,i), time_points, obj,useLikelihood);                        
+                    h_star(:,:,i) = h_star_tmp(:,1:2);
                 catch ME
-                    if size(params,2)>1
-                        continue
-                    else
-                        error(ME.message);
-                    end
+                    error(ME.message);
                 end
 
                 % Calculate the mean forcing rates. These mean rates are used
@@ -1700,39 +1683,53 @@ classdef model_TFN < model_abstract
                 % multiplied by the mean forcing rate. To ensure future
                 % simulations use an identical mean forcing rate, the means are
                 % calculated here and used in all future simulations.
-                companants = fieldnames(obj.inputData.componentData);
-                nCompanants = size(companants,1);
-                for i=1:nCompanants
-                    obj.variables.(companants{i}).forcingMean(:,j) = mean(obj.variables.(companants{i}).forcingData)';
+                for j=1:nCompanants
+                    
+                    forcingMean_tmp = zeros(1,nvars_max);
+                    forcingMean_tmp(1,1:nvars(j)) = mean(obj.variables.(companantNames{j}).forcingData,1); %#ok<PFBNS> 
+                    forcingMean(j,:,i) = forcingMean_tmp;
                 end
+            end
+            for j=1:nCompanants
+                obj.variables.(companantNames{j}).forcingMean = forcingMean(j,1:nvars(j),:);
+            end
+            obj.variables.d = d;
+            obj.variables.objFn = objFn;
+            clear d objFn forcingMean
 
-                t_filt = find( obj.inputData.head(:,1) >=obj.variables.time_points(1)  ...
-                    & obj.inputData.head(:,1) <= obj.variables.time_points(end) );               
-                obj.variables.resid(:,j) = obj.inputData.head(t_filt,2)  -  (h_star(:,2) + obj.variables.d(j));
+            % Set model parameters (if params are multiple sets)
+            if nparamSets>1
+                setParameters(obj, params, obj.variables.param_names);
+            end
+
+            t_filt = find( obj.inputData.head(:,1) >=obj.variables.time_points(1)  ...
+                & obj.inputData.head(:,1) <= obj.variables.time_points(end) );
+            for i=1:nparamSets                  
+                resid = obj.inputData.head(t_filt,2)  -  h_star(:,2,i);
 
                 % Calculate mean of noise. This should be zero +- eps()
                 % because the drainage value is approximated assuming n-bar = 0.
-                obj.variables.n_bar(j) = real(mean( obj.variables.resid(:,j) ));
+                obj.variables.n_bar(i) = real(mean(resid));
 
                 % Calculate innovations
-                innov = obj.variables.resid(2:end,j) - obj.variables.resid(1:end-1,j).*exp( -10.^obj.parameters.noise.alpha .* obj.variables.delta_time );
+                innov = resid(2:end) - resid(1:end-1).*exp( -10.^obj.parameters.noise.alpha(i) .* obj.variables.delta_time );
 
                 % Calculate noise standard deviation.
-                obj.variables.sigma_n(j) = sqrt(mean( innov.^2 ./ (1 - exp( -2 .* 10.^obj.parameters.noise.alpha .* obj.variables.delta_time ))));
+                obj.variables.sigma_n(i) = sqrt(mean( innov.^2 ./ (1 - exp( -2 .* 10.^obj.parameters.noise.alpha(i) .* obj.variables.delta_time ))));
             end
+            
+            % Get noise component and omit columns for components.
+            noise = getNoise(obj, time_points);
+            clear time_points
+            h_star = [h_star(:,:,:), h_star(:,2,:) - noise(:,2,:), h_star(:,2,:) + noise(:,3,:)];
             
             % Set a flag to indicate that calibration is complete.
             obj.variables.doingCalibration = false;
-            
-            % Set model parameters (if params are multiple sets)
-            if size(params,2)>1
-                setParameters(obj, params, obj.variables.param_names);            
-            end
-            
+                        
             % Free memory within mex function
             try
-                junk=doIRFconvolutionPhi([], [], [], [], false, 0);            
-            catch ME
+                junk=doIRFconvolutionPhi([], [], [], [], false, 0);            %#ok<NASGU> 
+            catch
                 % continue               
             end
         end        
@@ -1833,13 +1830,28 @@ classdef model_TFN < model_abstract
             else
                 [h_star, colnames] = get_h_star(obj, time_points,mean_forcing);                 
             end
-            
+
+            % Increment count of function calls
+            obj.variables.nobjectiveFunction_calls = obj.variables.nobjectiveFunction_calls +  size(params,2);
+                        
             % Return of there are nan or inf value
-            if any(isnan(h_star(:,2)) | isinf(h_star(:,2)));
-                objFn = inf;
+            if any(isnan(h_star(:,2)) | isinf(h_star(:,2)))
+                if getLikelihood
+                    objFn = -inf;
+                else
+                    objFn = inf;
+                end
                 return;
             end
-                            
+               
+            % Add the elevation to the estimated total variability in the
+            % heads. Importantly, an approximation of the drainage level,d, is
+            % required. TSpecifically, the mean noise, n_bar, equals zero.
+            if isempty(drainage_elevation)
+                drainage_elevation = obj.variables.h_bar - mean(h_star(:,2));
+            end
+            h_star(:,2) = h_star(:,2) +  drainage_elevation;
+            
             % If the results from this method call are not to be used for
             % summarising calibration results, then exit here. This is
             % required because the innovations can only be calculated at
@@ -1849,18 +1861,10 @@ classdef model_TFN < model_abstract
                 return;
             end
             
-            % Calculate residual between observed and modelled.
-            % Importantly, an approximation of the drainage level,d, is
-            % required here to calculate the residuals. To achieve this
-            % requires an assumption that the mean noise, n_bar, equals
-            % zero. If this is not the case, then d_bar calculated below
-            % may differ from d calculated within 'calibration_finalise'.
+            % Calculate residual between observed and modelled. 
             t_filt = find( obj.inputData.head(:,1) >=time_points(1)  ...
                 & obj.inputData.head(:,1) <= time_points(end) );          
-            if isempty(drainage_elevation)
-                drainage_elevation = obj.variables.h_bar - mean(h_star(:,2));      
-            end
-            resid= obj.inputData.head(t_filt,2)  - (h_star(:,2) +  drainage_elevation);                 
+            resid= obj.inputData.head(t_filt,2)  - h_star(:,2);
             
             % Calculate innovations using residuals from the deterministic components.            
             innov = resid(2:end) - resid(1:end-1).*exp( -10.^obj.parameters.noise.alpha .* obj.variables.delta_time );
@@ -1874,10 +1878,7 @@ classdef model_TFN < model_abstract
             if getLikelihood
                 N = size(resid,1);
                 objFn = -0.5 * N * ( log(2*pi) + log(objFn./N)+1); 
-            end
-            % Increment count of function calls
-            obj.variables.nobjectiveFunction_calls = obj.variables.nobjectiveFunction_calls +  size(params,2);
-            
+            end            
         end
            
 %% Set the model parameters to the model object from a vector.
@@ -1949,8 +1950,7 @@ classdef model_TFN < model_abstract
                 
                 % Get parameter names for this component
                 if isobject( obj.parameters.( currentField ) )
-                    [param_values, companant_params] = getParameters(obj.parameters.( currentField ));
-                    clear param_values;
+                    [~, companant_params] = getParameters(obj.parameters.( currentField ));
                 else
                      companant_params = fieldnames( obj.parameters.( currentField ) ) ;
                 end
@@ -2053,9 +2053,9 @@ classdef model_TFN < model_abstract
                     
                     for j=1: size(param_names_temp,1)
                         nparams = nparams + 1;
-                        param_names{ nparams , 1} = currentField;
-                        param_names{ nparams , 2} = param_names_temp{j};
-                        params( nparams,: ) = params_temp(j,:);                        
+                        param_names{ nparams , 1} = currentField; %#ok<AGROW> 
+                        param_names{ nparams , 2} = param_names_temp{j}; %#ok<AGROW> 
+                        params( nparams,: ) = params_temp(j,:);                        %#ok<AGROW> 
                     end
                     
                 else
@@ -2064,9 +2064,9 @@ classdef model_TFN < model_abstract
                     for j=1: size(companant_params,1)
                        if ~strcmp( companant_params(j), 'type')
                           nparams = nparams + 1;
-                          param_names{nparams,1} =  currentField;
-                          param_names{nparams,2} =  char(companant_params(j));
-                          params(nparams,:) = obj.parameters.( currentField ).( char(companant_params(j)) );
+                          param_names{nparams,1} =  currentField; %#ok<AGROW> 
+                          param_names{nparams,2} =  char(companant_params(j)); %#ok<AGROW> 
+                          params(nparams,:) = obj.parameters.( currentField ).( char(companant_params(j)) ); %#ok<AGROW> 
                        end
                     end
                 end
@@ -2136,9 +2136,9 @@ classdef model_TFN < model_abstract
                     
                     for j=1: size(param_names_temp,1)
                         nparams = nparams + 1;
-                        param_names{ nparams , 1} = currentField;
-                        param_names{ nparams , 2} = param_names_temp{j};
-                        params( nparams,: ) = params_temp(j,:);                        
+                        param_names{ nparams , 1} = currentField; %#ok<AGROW> 
+                        param_names{ nparams , 2} = param_names_temp{j}; %#ok<AGROW> 
+                        params( nparams,: ) = params_temp(j,:);                        %#ok<AGROW> 
                     end
                 end
             end
@@ -2152,8 +2152,6 @@ classdef model_TFN < model_abstract
             % Get model componants
             companants = fieldnames(obj.parameters);
             
-            derivedData_types_p1={};
-            derivedData_types_p2={};
             for ii=1: size(companants,1)
                 modelComponant = char( companants(ii) ) ;
                 % Get derived data for each componant.
@@ -2279,8 +2277,8 @@ classdef model_TFN < model_abstract
                     % Call object method.
                     [params_upperLimit_temp, params_lowerLimit_temp] = getParameters_physicalLimit( obj.parameters.( currentField ) );                
                     
-                    params_upperLimit = [params_upperLimit; params_upperLimit_temp];
-                    params_lowerLimit = [params_lowerLimit; params_lowerLimit_temp];
+                    params_upperLimit = [params_upperLimit; params_upperLimit_temp]; %#ok<AGROW> 
+                    params_lowerLimit = [params_lowerLimit; params_lowerLimit_temp]; %#ok<AGROW> 
                                         
                 else
 
@@ -2288,8 +2286,8 @@ classdef model_TFN < model_abstract
                     
                     % This parameter is assumed to be the noise parameter 'alpha'.  
                     ind = length(params_upperLimit)+1;
-                    params_upperLimit = [params_upperLimit; params_plausibleUpperLimit(ind)];                                                        
-                    params_lowerLimit = [params_lowerLimit; params_plausibleLowerLimit(ind)];                                
+                    params_upperLimit = [params_upperLimit; params_plausibleUpperLimit(ind)];                                %#ok<AGROW> 
+                    params_lowerLimit = [params_lowerLimit; params_plausibleLowerLimit(ind)];                                %#ok<AGROW> 
                 end
             end            
         end        
@@ -2345,8 +2343,8 @@ classdef model_TFN < model_abstract
                 % Call object method.
                 [params_upperLimit_temp, params_lowerLimit_temp] = getParameters_plausibleLimit( obj.parameters.( currentField ) );
 
-                params_upperLimit = [params_upperLimit; params_upperLimit_temp];
-                params_lowerLimit = [params_lowerLimit; params_lowerLimit_temp];
+                params_upperLimit = [params_upperLimit; params_upperLimit_temp]; %#ok<AGROW> 
+                params_lowerLimit = [params_lowerLimit; params_lowerLimit_temp]; %#ok<AGROW> 
             else
                 companant_params = fieldnames( obj.parameters.( currentField ) );
                 for j=1: size(companant_params,1)
@@ -2356,15 +2354,15 @@ classdef model_TFN < model_abstract
                             % parameter scaling when the ET
                             % uses the precipitation transformation
                             % function.
-                            params_upperLimit = [params_upperLimit; 1];
-                            params_lowerLimit = [params_lowerLimit; 0];
+                            params_upperLimit = [params_upperLimit; 1]; %#ok<AGROW> 
+                            params_lowerLimit = [params_lowerLimit; 0]; %#ok<AGROW> 
                        elseif strcmp(currentField,'landchange') && (strcmp( companant_params(j), 'precip_scalar') ...
                        || strcmp(currentField,'landchange') && strcmp( companant_params(j), 'et_scalar'))  
                            % This parameter is the scaling parameter
                            % for either the ET or precip transformation
                            % functions.
-                           params_upperLimit = [params_upperLimit; 1.0];
-                           params_lowerLimit = [params_lowerLimit; -1.0];
+                           params_upperLimit = [params_upperLimit; 1.0]; %#ok<AGROW> 
+                           params_lowerLimit = [params_lowerLimit; -1.0]; %#ok<AGROW> 
                        else
                             % This parameter is assumed to be the noise parameter 'alpha'.  
                             alpha_upperLimit = 100; 
@@ -2382,8 +2380,8 @@ classdef model_TFN < model_abstract
                                 alpha_upperLimit = log10(alpha_upperLimit);
                             end                           
                             
-                            params_upperLimit = [params_upperLimit; alpha_upperLimit];
-                            params_lowerLimit = [params_lowerLimit; log10(sqrt(eps()))+4];
+                            params_upperLimit = [params_upperLimit; alpha_upperLimit]; %#ok<AGROW> 
+                            params_lowerLimit = [params_lowerLimit; log10(sqrt(eps()))+4]; %#ok<AGROW> 
 
                        end
                    end
@@ -2392,7 +2390,7 @@ classdef model_TFN < model_abstract
         end
     end 
         
-    function isValidParameter = getParameterValidity(obj, params, time_points)
+    function isValidParameter = getParameterValidity(obj, params, ~)
 % isValidParameter returns a logical vector for the validity or each parameter.
 %
 % Syntax:
@@ -2437,7 +2435,7 @@ classdef model_TFN < model_abstract
         isValidParameter = true(size(params));
         companants = fieldnames(obj.parameters);            
         
-        [junk, param_names] = getParameters(obj);
+        [~, param_names] = getParameters(obj);
         
         for ii=1: size(companants,1)
             currentField = char( companants(ii) ) ;
@@ -2460,7 +2458,7 @@ classdef model_TFN < model_abstract
              
             % Check the alphanoise parameter is large enough not to cause numerical
             % problems in the calcuation of the objective function.
-            elseif strcmp('noise',currentField);                
+            elseif strcmp('noise',currentField)             
                 alpha = params(filt,:); 
                 filt_noiseErr = exp(mean(log( 1- exp( bsxfun(@times,-2.*10.^alpha , obj.variables.delta_time) )),1)) <= eps() ...
                              | abs(sum( exp( bsxfun(@times,-2.*10.^alpha , obj.variables.delta_time) ),1)) < eps();                
@@ -2471,7 +2469,7 @@ classdef model_TFN < model_abstract
             end
             
             % Break if any parameter sets are invalid!
-            if size(params,2)==1 && any(any(~isValidParameter));
+            if size(params,2)==1 && any(any(~isValidParameter))
                 return;
             end
         end
@@ -2534,9 +2532,9 @@ classdef model_TFN < model_abstract
                     tmp = theta(obj.parameters.( char(companants(ii))), tor );
                     nTranfterFunctions =  nTranfterFunctions + 1;
                     if size(tmp,2)>1
-                        theta_est(:,nTranfterFunctions) = sum(tmp,2);
+                        theta_est(:,nTranfterFunctions) = sum(tmp,2); %#ok<AGROW> 
                     else
-                        theta_est(:,nTranfterFunctions) = tmp;
+                        theta_est(:,nTranfterFunctions) = tmp; %#ok<AGROW> 
                     end
                 catch
                     % do nothing
@@ -2675,7 +2673,7 @@ classdef model_TFN < model_abstract
 
             % Calc theta_t for max time to initial time (NOTE: min tor = 0).                        
             filt = obj.inputData.forcingData ( : ,1) <= ceil(time_points(end));
-            tor = flipud([0:time_points(end)  - obj.inputData.forcingData(1,1)+1]');
+            tor = flipud(transpose(0:time_points(end)  - obj.inputData.forcingData(1,1)+1));
             tor_end = tor( obj.variables.theta_est_indexes_min(1,:) )';            
             t = obj.inputData.forcingData( filt ,1);
 
@@ -2730,7 +2728,16 @@ classdef model_TFN < model_abstract
                     obj.inputData.componentData.(companants{i}).outputVariable);
                 
                     obj.variables.(companants{i}).forcingData_colnames = obj.inputData.componentData.(companants{i}).outputVariable;
-                                        
+
+                    fnames = fieldnames(obj.variables.(companants{i}).forcingData);
+                    if length(fnames)>1
+                        obj.variables.(companants{i}).forcingData = table2array(struct2table(obj.variables.(companants{i}).forcingData));
+                    else
+                        obj.variables.(companants{i}).forcingData = obj.variables.(companants{i}).forcingData.(fnames{1});
+                    end
+                    %   error('Each model component must have only one forcing variable to be weighted.')
+                    %end
+                    %obj.variables.(companants{i}).forcingData = obj.variables.(companants{i}).forcingData.(fnames{1});
                 else
                     
                     % Non-transformed forcing is assumed to be a daily
@@ -2768,7 +2775,7 @@ classdef model_TFN < model_abstract
                     %forcingMean = obj.variables.(companants{i}).forcingMean                    
                     forcingMean = varargin{1}.(companants{i});
                 else
-                    forcingMean = mean(obj.variables.(companants{i}).forcingData);
+                    forcingMean = mean(obj.variables.(companants{i}).forcingData,1);
                 end                
                 
                 % Integrate transfer function over tor.
@@ -2813,9 +2820,9 @@ classdef model_TFN < model_abstract
                         
                     % Add output name to the cell array
                     if ischar(obj.variables.(companants{i}).forcingData_colnames)
-                        colnames{iOutputColumns} = companants{i};
+                        colnames{iOutputColumns} = companants{i}; %#ok<AGROW> 
                     else
-                        colnames{iOutputColumns} = [companants{i}, ' - ',obj.variables.(companants{i}).forcingData_colnames{j}];
+                        colnames{iOutputColumns} = [companants{i}, ' - ',obj.variables.(companants{i}).forcingData_colnames{j}]; %#ok<AGROW> 
                     end
                 end
             end
@@ -2824,7 +2831,7 @@ classdef model_TFN < model_abstract
             % vector.
             if size(h_star,2)>1
                 h_star = [time_points , sum(h_star,2), h_star];
-                colnames = {'time','Head',colnames{:}};
+                colnames = ['time','Head',colnames];
             else
                 h_star = [ time_points, h_star];
                 colnames = {'time','Head'};               

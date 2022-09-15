@@ -263,10 +263,10 @@ classdef responseFunction_Hantush < responseFunction_FerrisKnowles
             else
                 plot(axisHandle, t,derivedData_tmp(:,ind),'-b');      
                 t_ind = find(abs(derivedData_tmp(:,ind)) > max(abs(derivedData_tmp(:,ind)))*0.05,1,'last');
-                if isempty(ind);
-                    ind = length(t);
+                if isempty(t_ind );
+                    t_ind  = length(t);
                 end
-                xlim(axisHandle, [1, t(ind)]);
+                xlim(axisHandle, [1, t(t_ind )]);
                 
                 derivedData_names = {'Time lag (days)','Weight'};
                 derivedData =[t,derivedData_tmp(:,ind) ];

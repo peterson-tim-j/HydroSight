@@ -146,10 +146,10 @@ else % Contraction point
         end
         if ~isValid || fnew > fw
             
-            % Find valid parameter set.
-            maxIts = 10;
-            nIts=0;
-            while nIts<=maxIts 
+%             % Find valid parameter set.
+%             maxIts = 10;
+%             nIts=0;
+%             while nIts<=maxIts 
                 sig=cov(s);
                 Dia=diag(sig);
                 sig=diag((Dia+mean(Dia))*2);
@@ -161,13 +161,14 @@ else % Contraction point
                 
                 % Check if the point is valid
                 isValid = feval(funcHangle_validParams,snew', varargin{:});
-                if all(isValid)
-                    break;
-                end   
-                
-                % Update counter
-                nIts = nIts + 1;
-            end
+%                 if all(isValid)
+%                     snew = snew_tmp;
+%                     break;
+%                 end   
+%                 
+%                 % Update counter
+%                 nIts = nIts + 1;
+%             end
             
             % Evaluate valid parameter set, else return Inf.
             if all(isValid)

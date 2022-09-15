@@ -3,7 +3,8 @@ classdef model_gui_abstract < handle
     %   Detailed explanation goes here
     
     properties
-        Figure;
+        Figure
+        Figure_icon
         boreID
         siteData
         forcingData

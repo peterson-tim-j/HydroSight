@@ -121,7 +121,7 @@ dx = zeros(DREAMPar.N,DREAMPar.d);
 gamma = randsample([0 1],DREAMPar.N,true,[ 1 - DREAMPar.p_unit_gamma DREAMPar.p_unit_gamma ]);   
 
 % Create N proposals
-for i = 1:DREAMPar.N,               
+for i = 1:DREAMPar.N              
     % Derive vector r1
     r1 = DREAMPar.R(i,draw(1:DE_pairs(i),i)); 
     % Derive vector r2
@@ -131,11 +131,13 @@ for i = 1:DREAMPar.N,
     % How many dimensions are sampled?
     D = numel(A);                
     % Make sure that at least one dimension is selected!
-    if ( D == 0 ),
-        a = randperm(DREAMPar.d); A = a(1); D = 1;
-    end;
+    if ( D == 0 )
+        a = randperm(DREAMPar.d); 
+        A = a(1); 
+        D = 1;
+    end
     % Which gamma to use?
-    if ( gamma(i) == 1 ),
+    if ( gamma(i) == 1 )
         % Calculate direct jump
         dx(i,1:DREAMPar.d) = ( 1 + rnd_jump(i,1:DREAMPar.d) ) .* sum( X(r1,1:DREAMPar.d) - X(r2,1:DREAMPar.d) , 1 ) ...
             + eps(i,1:DREAMPar.d); 
@@ -146,13 +148,13 @@ for i = 1:DREAMPar.N,
         gamma_D = Table_gamma(D,DE_pairs(i));
         % Calculate jump
         dx(i,A) = ( 1 + rnd_jump(i,A) ) .* gamma_D .* sum( X(r1,A) - X(r2,A) , 1 ) + eps(i,A);
-    end;
-end;
+    end
+end
 
 % Generate candidate points by perturbing the current X values with jump and eps
 x_new = X + dx;
 
 % If specified do boundary handling ( "Bound","Reflect","Fold")
-if isfield(Par_info,'boundhandling'),
+if isfield(Par_info,'boundhandling')
     [x_new] = Boundary_handling(x_new,Par_info);
-end;
+end

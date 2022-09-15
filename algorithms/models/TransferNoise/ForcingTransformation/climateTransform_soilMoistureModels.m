@@ -10,9 +10,12 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
 %   automatically called by the function "model_TFN.m".
 %   
 %   The soil moisture model is defined by the following ordinary
-%   diffenential equation (Kavetski et al. 2006):
+%   diffenential equation (Kavetski et al. 2003, 2006):
 %   
-%   DS/dt = P_inf (1 - S/SMSC)^alpha - k_sat (S/SMSC)^beta - PET (S/SMSC)^gamma
+%   DS/dt = P_inf (1 - S/SMSC)^alpha - k_sat (S/SMSC)^beta - PET (S/SMSC)^gamma -- (Kavestki 2006)
+%
+%   DS/dt = P_inf [(SMSC-S)/(SMSC(1-eps))]^alpha - k_sat (S/SMSC)^beta - PET (S/SMSC)^gamma  -- (Kavestki 2003, 2006)
+%
 % 
 %   where:
 %       S       - is the soil moisture storage state variable [L];
@@ -37,6 +40,7 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
 %       gamma   - is a dimensionless parameter to transform the rate at
 %                 which soil water evaporation occurs with filling of the 
 %                 soil layer.
+%       eps      - ratio of S_min/SMSC. If eps=0, S_min=zero
 %       S_initialfrac - the initial soil moisture.
 %
 %	The soil moisture model can also be used to simulate the impacts from
@@ -74,6 +78,7 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
 %       interflow_frac- Fraction of free drainage going to interflow (0-1).
 %       beta          - log10(Power term for dainage rate).
 %       gamma         - log10(Power term for soil evap. rate).
+%       eps           - ratio of S_min/SMSC. If eps=0, S_min=zero
 %
 %   The soil moisture model is an adaption of VIC Model (Wood et al. 1992)
 %   by Kavetski et al. (2006). It is a soil moisture model that is without
@@ -87,7 +92,17 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
 %   details on how to build various types of models see the documentation
 %   for the class constructor (i.e. "climateTransform_soilMoistureModels"
 %   below);
-%   
+%
+%   The current infiltration term of the soil moisture model is an adaption of VIC Model (Wood et al. 1992) with a 
+%   S_min threshold as per Kalma et al. (1995) and Kavestki et al. (2003).
+%   This S_min term adds discontinuity to the infiltration term but the
+%   evapotranspiration and drainage terms are kept as in Kavetski et al.
+%   (2006), so the model has limited discontinuities (thus able to produce a first-order smooth
+%   calibration response surface) and therefore amenable to gradient based
+%   calibration. The S_min term is included as a ration of S_min/SMSC =
+%   eps, thus if eps = 0 we have the original soil moisture model given by
+%   Kavetski et al. (2006) 
+%
 %   Considerable effort has been put into efficiently solving the soil 
 %   moisture model while producing a smooth response surface. The
 %   differential equation is solved using a fixed-time step solver. For each
@@ -150,7 +165,8 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
         interflow_frac  % Fraction of free drainage going to interflow (0-1).        
         alpha           % Power term for infiltration.        
         beta            % Power term for dainage rate (eg Brook-Corey pore index power term)
-        gamma           % Power term for soil evaporation rate.        
+        gamma           % Power term for soil evaporation rate.  
+        eps             % Scaler defining S_min/SMSC ratio. S_min is the minimum soil moisture threshold for having runoff produced. If eps=0, runoff and infiltration terms are as Kavestki 2006. 
         %----------------------------------------------------------------        
     end
 
@@ -167,10 +183,10 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
         
         function [variable_names] = outputForcingdata_options(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates)
             variable_names = {'effectivePrecip'; 
-                              'drainage';       'infiltration';             'evap_soil';        'evap_gw_potential';        'runoff';       'SMS'; ...
-                              'drainage_tree';  'infiltration_tree';        'evap_soil_tree';   'evap_gw_potential_tree';   'runoff_tree';  'SMS_tree'; ...
-                              'drainage_nontree';'infiltration_nontree';    'evap_soil_nontree';'evap_gw_potential_nontree';'runoff_nontree';'SMS_nontree'; ...
-                              'mass_balance_error'};
+                              'drainage';       'infiltration_fracCapacity';         'infiltration';         'evap_soil';        'evap_gw_potential';        'runoff';      'interflow';         'SMS'; ...
+                              'drainage_tree';  'infiltration_fracCapacity_tree';    'infiltration_tree';    'evap_soil_tree';   'evap_gw_potential_tree';   'runoff_tree';  'interflow_tree';   'SMS_tree'; ...
+                              'drainage_nontree';'infiltration_fracCapacity_nontree';'infiltration_nontree'; 'evap_soil_nontree';'evap_gw_potential_nontree';'runoff_nontree';'interflow_nontree';   'SMS_nontree'; ...
+                              'mass_balance_error'; 'mass_balance_error_nontree'; 'mass_balance_error_tree'};
         end
         
         function [options, colNames, colFormats, colEdits, toolTip] = modelOptions()
@@ -183,30 +199,30 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                         'k_sat'         ,   1, 'Calib.'   ; ...
                         'bypass_frac'   ,   0, 'Fixed'    ; ...
                         'interflow_frac',   0, 'Fixed'    ; ...
-                        'alpha'         ,   0, 'Fixed'    ; ...
+                        'alpha'         ,   1, 'Fixed'    ; ...
                         'beta'          , 0.5,'Calib.' ; ...
-                        'gamma'         ,   0,  'Fixed'};
+                        'gamma'         ,   0,  'Fixed' ; ...
+                        'eps'           ,   0,  'Fixed'};
+
 
         
             colNames = {'Parameter', 'Initial Value','Fixed or Calibrated?'};
             colFormats = {'char', 'char', {'Calib.' 'Fixed'}};
             colEdits = logical([0 1 1]);
 
-            toolTip = sprintf([ 'Use this table to define the type of soil moisture model. \n', ...
-                                'Each parameter (except the soil moisture capacity) can be \n', ...
-                                'set to a fixed value or calibrated. Below is a summary: \n \n' , ...
-                                '   SMSC          : log10(Soil moisture capacity as water depth).\n', ...
-                                '   SMSC_trees    : log10(Tree soil moisture capacity as water depth).\n', ...
-                                '   treeArea_frac : Scaler applied to the tree fraction input data.\n', ...
-                                '   S_initialfrac : Initial soil moisture fraction (0-1).\n', ...
-                                '   k_infilt      : log10(Soil infiltration capacity as water depth).\n', ...
-                                '   k_sat         : log10(Maximum vertical infiltration rate).\n', ...
-                                '   bypass_frac   : Fraction of runoff to bypass drainage.\n', ...
-                                '   interflow_frac: Fraction of free drainage going to interflow (0-1).', ...
-                                '   alpha         : Power term for infiltration rate.\n', ...
-                                '   beta          : log10(Power term for dainage rate).\n', ...
-                                '   gamma         : log10(Power term for soil evap. rate).']);                               
-            
+            toolTip = sprintf([ 'SMSC         : log10(Soil moisture capacity).\n', ...
+                                'SMSC_trees   : log10(Tree SMSC).\n', ...
+                                'treeArea_frac: Tree fraction scalar.\n', ...                                
+                                'S_initialfrac: Initial soil moisture frac.\n', ...
+                                'k_infilt     : log10(Max. infilt. capacity).\n', ...
+                                'k_sat        : log10(Max. drainage rate).\n', ...
+                                'bypass_frac  : Frac. runoff to bypass drainage.\n', ...
+                                'interflow_frac: Frac. drainage to interflow.\n', ...
+                                'alpha        : Power term for infilt. rate.\n', ...
+                                'beta         : log10(Power term for dainage).\n', ...
+                                'gamma        : log10(Power term for soil evap.).\n', ...
+                                'eps          : Threshold SMSC frac. for runoff.']);                               
+
         end
         
         function modelDescription = modelDescription()
@@ -232,7 +248,8 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                                 'alpha         : Power term for infiltration rate.', ...
                                 'beta          : log10(Power term for dainage rate).', ...
                                 'gamma         : log10(Power term for soil evap. rate).', ...
-                               '', ...               
+                                'eps           : Fraction of SMSC, below which all precip. infiltrates.',...
+                                '', ...               
                                'References: ', ...
                                '1. Peterson & Western (2014), Nonlinear time-series modeling of unconfined groundwater head, Water Resour. Res., 50, 8330-8355'};
         end        
@@ -404,7 +421,7 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                 % Record the parameter as 'Active'. That is, it can be
                 % calibrated within the time series model,
                 if ~isempty(ind)
-                    if ncols_modelOptions ==3 && strcmp(lower(modelOptions{ind,3}),'fixed')
+                    if ncols_modelOptions ==3 && strcmpi(modelOptions{ind,3},'fixed')
                         obj.settings.fixedParameters.(all_parameter_names{i})=true;
                         obj.settings.activeParameters.(all_parameter_names{i})=false;
                         obj.(all_parameter_names{i}) = modelOptions{ind,2};
@@ -431,6 +448,8 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                         obj.(all_parameter_names{i}) = 0;                        
                     elseif strcmp(all_parameter_names{i}, 'S_initialfrac')
                         obj.(all_parameter_names{i}) = 0.5;  
+                    elseif strcmp(all_parameter_names{i}, 'eps')
+                        obj.(all_parameter_names{i}) = 0;
                     else
                         obj.(all_parameter_names{i}) = 0;
                     end
@@ -462,6 +481,14 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
             
             % Set parameters for transfer function.
             setParameters(obj, paramsInitial)                             
+
+            % Throw an error if any parameters are not finite
+            for i=1:length(all_parameter_names)
+                if ~strcmp(all_parameter_names{i}, 'k_infilt') && ~contains(all_parameter_names{i},'_deep') && ...
+                 ~isfinite(obj.(all_parameter_names{i}))
+                    error('All soil moisture model parameters must be finite.');
+                end
+            end
 
             % Initialise soil moisture variables
             obj.variables.t = [];
@@ -743,7 +770,7 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                 params_upperLimit(ind,1) = 1;                                    
             end    
                    
-            if obj.settings.activeParameters.beta
+            if obj.settings.activeParameters.gamma
                 ind = cellfun(@(x)(strcmp(x,'gamma')),param_names);
                 params_lowerLimit(ind,1) = log10(0.01);
                 params_upperLimit(ind,1) = log10(100);
@@ -751,15 +778,15 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
             
             if obj.settings.activeParameters.SMSC
                 ind = cellfun(@(x)(strcmp(x,'SMSC')),param_names);
-                params_lowerLimit(ind,1) = log10(10);
+                params_lowerLimit(ind,1) = log10(25);
                 %params_upperLimit(ind,1) = Inf;
-                params_upperLimit(ind,1) = log10(1000);
+                params_upperLimit(ind,1) = log10(5000);
             end    
             
             if obj.settings.activeParameters.SMSC_trees
                 ind = cellfun(@(x)(strcmp(x,'SMSC_trees')),param_names);
-                params_lowerLimit(ind,1) = log10(10);
-                params_upperLimit(ind,1) = log10(2000);
+                params_lowerLimit(ind,1) = log10(25);
+                params_upperLimit(ind,1) = log10(5000);
             end              
      
             if obj.settings.activeParameters.beta
@@ -767,8 +794,13 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                 params_lowerLimit(ind,1) = log10(1);
                 params_upperLimit(ind,1) = log10(10);
             end                
+            
+            if isfield( obj.settings.activeParameters,'eps') && obj.settings.activeParameters.eps
+                ind = cellfun(@(x)(strcmp(x,'eps')),param_names);
+                params_lowerLimit(ind,1) = 0;
+                params_upperLimit(ind,1) = 1;
+            end  
         end  
-        
 %% Return fixed upper and lower plausible parameter ranges. 
         function [params_upperLimit, params_lowerLimit] = getParameters_plausibleLimit(obj)
 % getParameters_plausibleLimit returns the plausible limits to each soil model parameter.
@@ -877,14 +909,20 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                 params_upperLimit(ind,1) = log10(10);
             end      
             
-            if obj.settings.activeParameters.beta
+            if obj.settings.activeParameters.gamma
                 ind = cellfun(@(x)(strcmp(x,'gamma')),param_names);
                 params_lowerLimit(ind,1) = log10(0.1);
                 params_upperLimit(ind,1) = log10(10);
             end                  
+            
+             if isfield( obj.settings.activeParameters,'eps') && obj.settings.activeParameters.eps
+                ind = cellfun(@(x)(strcmp(x,'eps')),param_names);
+                params_lowerLimit(ind,1) = 0;
+                params_upperLimit(ind,1) = 1;
+             end   
         end        
         
-%% Check if the model parameters have chanaged since the last calculated.
+        %% Check if the model parameters have chanaged since the last calculated.
         function detectParameterChange(obj, params)
 % detectParameterChange detects if the soil model parameters have changed.            
 %
@@ -939,7 +977,8 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
             set_params = getParameters(obj);
 
             % Check if there are any changes to the parameters.
-            if isempty(set_params) || max(abs(set_params - params)) ~= 0            
+            if isempty(set_params) || size(set_params,2) ~= size(params,2) || ...
+            any(set_params ~= params,'all')            
                 obj.variables.isNewParameters = true;
             else
                 obj.variables.isNewParameters = false;
@@ -1007,8 +1046,9 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                 interflow_frac = params(8,:);
                 alpha = params(9,:);
                 beta = params(10,:);
-                gamma = params(11,:);                 
-                
+                gamma = params(11,:);
+                eps = params(12,:);
+
                 % Filter the forcing data to input t.
                 filt_time = obj.settings.forcingData(:,1) >= t(1) & obj.settings.forcingData(:,1) <= t(end);
                 
@@ -1028,16 +1068,7 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                     filt = strcmp(obj.settings.forcingData_cols(:,1),'TreeFraction');
                     tree_col = obj.settings.forcingData_cols{filt,2};
                     obj.variables.treeFrac = obj.settings.forcingData(filt_time, tree_col );                    
-                end
-                
-                % Filter percip by max infiltration rate, k_infilt.  
-%                 effectivePrecip = obj.variables.precip;
-%                 if k_infilt < inf && (obj.settings.activeParameters.k_infilt || obj.settings.fixedParameters.k_infilt)
-%                     lambda_p = obj.settings.lambda_p .* k_infilt;
-%                     effectivePrecip= (effectivePrecip>0).*(effectivePrecip+ lambda_p * log( 1./(1 + exp( (effectivePrecip - k_infilt)./lambda_p))));
-%                     effectivePrecip(isinf(effectivePrecip)) = k_infilt;
-%                 end
-                effectivePrecip = getTransformedForcing(obj, 'effectivePrecip',1);
+                end                               
 
                 % Set the initial soil moisture.
                 if isempty(S_initialfrac)
@@ -1046,85 +1077,71 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                     S_initial = S_initialfrac * SMSC;
                 end
                 
-                % Store the time points
-                %obj.variables.t = t(filt_time);
+                % Get subset size
+                nSubSteps = getNumDailySubsteps(obj);
+
+                % Define daily sub-steps.
+                t_substeps = linspace(1,0,nSubSteps+1);
+
+                % Get number of days
+                nDays = length(obj.variables.precip);
+
+                % Build the timesteps for sub-daily analysis.
+                obj.variables.t = bsxfun(@minus,obj.variables.t, t_substeps(2:end));
+                obj.variables.t = reshape(obj.variables.t', nDays * nSubSteps,1);
+
+                % Add the initial time step
+                obj.variables.t = [floor(obj.variables.t(1)); obj.variables.t];
+
+                % Scale ksat from units of 'per day' to 'per sub daily
+                % time step'
+                k_sat = k_sat./nSubSteps;
+
+                % If SMS in not initialised to nub-daily, then initialise.
+                % This is only done to allow successful calling of
+                % getSubDailyForcing().
+
+                % Get effective daily total precip, ie limited by
+                % infiltration limit.
+                flux = getTransformedForcing(obj, 'effectivePrecip',true);
+
+                % Expand input forcing data to have the required number of days and
+                % scale the forcing data by the number of time steps.
+                effectivePrecip = getSubDailyForcing(obj,flux.effectivePrecip);
+                evap = getSubDailyForcing(obj,obj.variables.evap);
                 
-                % Call MEX function containing soil moisture model.
-%                 if ~doSubDailyEst
-%                     obj.variables.SMS = forcingTransform_soilMoisture(S_initial, effectivePrecip, obj.variables.evap, SMSC, k_sat, alpha, beta, gamma);
-%                     
-%                     % Empty sub daily data to ensure there is no
-%                     % inconistency.
-%                     obj.variables.t_subdaily = [];
-%                     obj.variables.SMS_subdaily = [];
-%                     
-%                     % Run soil model again if tree cover is to be simulated
-%                     if  isfield(obj.settings,'simulateLandCover') && obj.settings.simulateLandCover
-%                         if isempty(S_initialfrac)
-%                             S_initial = 0.5.*SMSC_trees;
-%                         else
-%                             S_initial = S_initialfrac * SMSC_trees;
-%                         end
-%                         
-%                         obj.variables.SMS_trees = forcingTransform_soilMoisture(S_initial, effectivePrecip, obj.variables.evap, ...
-%                             SMSC_trees, k_sat, alpha, beta, gamma);                        
-%                     end
-%                     
-%                 else 
-
-                    % Get subset size
-                    nSubSteps = getNumDailySubsteps(obj);
-
-                    % Define daily sub-steps.
-                    t_substeps = linspace(1,0,nSubSteps+1);
-                    
-                    % Get number of days
-                    nDays = length(effectivePrecip);
-                    
-                    % Build the timesteps for sub-daily analysis.
-                    obj.variables.t = bsxfun(@minus,obj.variables.t, t_substeps(2:end)); 
-                    obj.variables.t = reshape(obj.variables.t', nDays * nSubSteps,1);
-                    
-                    % Add the initial time step
-                    obj.variables.t = [floor(obj.variables.t(1)); obj.variables.t];
-                    
-                    % Scale ksat from units of 'per day' to 'per sub daily
-                    % time step'
-                    k_sat = k_sat./nSubSteps;
-                    
-                    % Expand input forcing data to have the required number of days and
-                    % scale the forcing data by the number of time steps.
-                    effectivePrecip = getSubDailyForcing(obj,effectivePrecip);
-                    evap = getSubDailyForcing(obj,obj.variables.evap);
-                    
-                    % Run the soil models using the sub-steps.
-                    obj.variables.SMS = forcingTransform_soilMoisture(S_initial, effectivePrecip, evap, SMSC, k_sat, alpha, beta, gamma);
-                    
-                    % Run soil model again if tree cover is to be simulated
-                    if  isfield(obj.settings,'simulateLandCover') && obj.settings.simulateLandCover
-                        if isempty(S_initialfrac)
-                            S_initial = 0.5.*SMSC_trees;
-                        else
-                            S_initial = S_initialfrac * SMSC_trees;
-                        end
-                        
-                        obj.variables.SMS_trees = forcingTransform_soilMoisture(S_initial, effectivePrecip, obj.variables.evap, ...
-                            SMSC_trees, k_sat, alpha, beta, gamma);
+                % Run the soil models using the sub-steps.
+                obj.variables.SMS = forcingTransform_soilMoisture(S_initial, effectivePrecip, evap, SMSC, k_sat, alpha, beta, gamma, eps);
+               
+                % Run soil model again if tree cover is to be simulated
+                if  isfield(obj.settings,'simulateLandCover') && obj.settings.simulateLandCover
+                    if isempty(S_initialfrac)
+                        S_initial = 0.5.*SMSC_trees;
+                    else
+                        S_initial = S_initialfrac * SMSC_trees;
                     end
-%                 end                                                 
+
+                    obj.variables.SMS_trees = forcingTransform_soilMoisture(S_initial, effectivePrecip, evap, SMSC_trees, k_sat, alpha, beta, gamma, eps);
+                end
+
             end
         end
         
 %% Return the transformed forcing data
-        function [forcingData, isDailyIntegralFlux] = getTransformedForcing(obj, variableName, SMSnumber, doSubstepIntegration) 
+        function [forcingData, isDailyIntegralFlux] = getTransformedForcing(obj, variableName, doSubstepIntegration) 
 % getTransformedForcing returns the required flux from the soil model.
 %
 % Syntax:
 %   [precip_Forcing, et_Forcing] = getTransformedForcing(obj, variableName)
+%   [precip_Forcing, et_Forcing] = getTransformedForcing(obj, variableName, doSubstepIntegration)
 %
 % Description:  
 %   This method returns the requested flux/data from the soil moisture 
-%   differential equation. The available fluxes/data are as follows:
+%   differential equation. A subset of the available fluxes/data are as
+%   follows. Note, when obj.settings.simulateLandCover==true and
+%   VariableName does not include the extension '_tree' or '_nontree' then
+%   the flux is derived for both the non-tree and tree soil stores and
+%   weighted to produce a combined estimate.
 %
 %   * drainage: soil free drainage ranging (0 to k_sat) at the end of the day.
 %   * drainage_bypassFlow: free drainage plus a parameter set fraction of runoff;
@@ -1134,11 +1151,15 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
 %   * evap_gw_potential: groundwater evaporative potential (PET - soil ET)
 %   * runoff: daily total runoff.
 %   * SMS: soil moisture storage at the end of each day.
+%   * mass_balance: daily mass balance error.
 %
 % Input:
 %   obj - soil moisture model object.
 %
 %   variableName - a string for the variable name to return.
+%
+%   doSubstepIntegration - numerically integrate the user-defined number of
+%   subdaily timesteps to daily.
 %
 % Outputs:
 %   forcingData  - a vector (Nx1) of the forcing data output to
@@ -1161,12 +1182,17 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
 % Author: 
 %   Dr. Tim Peterson, The Department of Infrastructure Engineering, 
 %   The University of Melbourne.
+%   Guancarlo Boniotto, The University of Melbourne (extension of eps term
+%   for runoff)
 %
 % Date:
 %   11 April 2012  
         
+            % Initialise output
+            forcingData = struct();
+
             % back transform the parameters
-            [params, param_names] = getDerivedParameters(obj);
+            params = getDerivedParameters(obj);
             
             if ischar(variableName)
                 variableNametmp{1}=variableName;
@@ -1185,216 +1211,241 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
             interflow_frac = params(8,:);
             alpha = params(9,:);
             beta = params(10,:);
-            gamma = params(11,:);            
-             
+            gamma = params(11,:); 
+            eps = params(12,:);
+
             % Set if the subdaily steps should be integrated.
-            if nargin < 4
+            if nargin < 3
                 doSubstepIntegration = true;
             end
             
-            % Get the soil moisture store for the required soil unit
-            if nargin==2 || SMSnumber==1
-                SMS = obj.variables.SMS;
-                SMSnumber = 1;
-            elseif SMSnumber==2
-                SMS = obj.variables.SMS_trees;
-                SMSC = SMSC_trees;
-            else
-                error('The soil moisture unit number is unknown')
-            end            
-            
-            % Calculate the required fluxes.
-            try 
-                if doSubstepIntegration
-                    nrows = size(obj.variables.precip,1);
-                else
-                    nrows = size(getSubDailyForcing(obj,obj.variables.precip),1);
+            % Calc. effective precip first. This is because it can be done
+            % prior to the SMS being estimated, which is required for the
+            % first call to setTranformForcing().
+            ii=1;
+            if any(strcmp(variableName,'effectivePrecip'))
+                % Limit precip to the maxim soil infiltration rate.
+                effectivePrecip = obj.variables.precip;
+                if k_infilt < inf && (obj.settings.activeParameters.k_infilt || obj.settings.fixedParameters.k_infilt)
+                    lambda_p = obj.settings.lambda_p .* k_infilt;
+                    effectivePrecip= (effectivePrecip>0).*(effectivePrecip+ lambda_p * log( 1./(1 + exp( (effectivePrecip - k_infilt)./lambda_p))));
+                    effectivePrecip(isinf(effectivePrecip)) = k_infilt;
                 end
-                forcingData = zeros(nrows , length(variableName));
-                
-                for i=1:length(variableName)
-                    switch variableName{i}                    
-                        case 'drainage'
-                            runoff = 0;
-                            if bypass_frac~=0
-                                % Get runoff
-                                runoff = getTransformedForcing(obj, 'runoff',SMSnumber, false);
-                                
-                                % Re-scale runoff from that going to the stream to that going to recharge plus the stream.
-                                runoff  = runoff ./ (1-bypass_frac);
-                            end            
-                            
-                            drainage = (1-interflow_frac) .* k_sat/obj.variables.nDailySubSteps .*(SMS/SMSC).^beta;
-                            drainage  = drainage + bypass_frac.*runoff;
-                            if doSubstepIntegration
-                                forcingData(:,i) = dailyIntegration(obj, drainage);
-                                isDailyIntegralFlux(i) = true;
-                            else
-                               forcingData(:,i) = drainage;  
-                               isDailyIntegralFlux(i) = false;
-                            end
-                            
-                        case 'evap_soil'    
-                            % Expand input forcing data to have the required number of substeps.
-                            evap = getSubDailyForcing(obj,obj.variables.evap);
-                                                        
-                            % Est ET
-                            evap = evap .* (SMS/SMSC).^gamma;         
-                            if doSubstepIntegration
-                                forcingData(:,i) = dailyIntegration(obj, evap);
-                                isDailyIntegralFlux(i) = true;
-                            else
-                                forcingData(:,i) = evap;
-                                isDailyIntegralFlux(i) = false;
-                            end
-                            
-                            
-                        case 'infiltration'                       
-                            % Calculate max. infiltration assuming none
-                            % goes to SATURATED runoff.
-                            effectivePrecip_daily = getTransformedForcing(obj, 'effectivePrecip',SMSnumber); 
-                            effectivePrecip = getSubDailyForcing(obj,effectivePrecip_daily);
-                            if alpha==0
-                                infiltration_daily =  effectivePrecip_daily;
-                                infiltration =  effectivePrecip;                                
-                            else
-                                infiltration =  effectivePrecip .* (1-SMS/SMSC).^alpha;
-                            end
-                            
-                            % Calculatre when the soil is probably
-                            % saturated. 
-                            drainage = getTransformedForcing(obj, 'drainage',SMSnumber, false);
-                            evap = getTransformedForcing(obj, 'evap_soil',SMSnumber, false);
-                            Infilt2Runoff = [0;(SMS(1:end-1) + infiltration(2:end) - evap(2:end) - drainage(2:end)) - SMSC];
-                            Infilt2Runoff(Infilt2Runoff<0) = 0;
-                            
-                            % Subtract estimated satruated excess runoff
-                            % from the infiltration and then integrate.
-                            if alpha==0
-                                % Integrate ONLY saturated runoff
-                                if doSubstepIntegration
-                                    Infilt2Runoff = dailyIntegration(obj, Infilt2Runoff);
-                                    
-                                    % Subtract from precip.
-                                    forcingData(:,i) = infiltration_daily - Infilt2Runoff;
-                                else
-                                    forcingData(:,i) = infiltration - Infilt2Runoff;
-                                end
-                            else
-                                infiltration = infiltration - Infilt2Runoff;
-                                if doSubstepIntegration
-                                    forcingData(:,i) = dailyIntegration(obj, infiltration);
-                                else
-                                    forcingData(:,i) = infiltration;
-                                end                                
-                            end
-                            
-                            if doSubstepIntegration
-                                isDailyIntegralFlux(i) = true;
-                            else
-                                isDailyIntegralFlux(i) = false;
-                            end
 
-                        case 'evap_gw_potential'
-                            evap = getSubDailyForcing(obj,obj.variables.evap) - getTransformedForcing(obj, 'evap_soil',SMSnumber, false);
-                            if doSubstepIntegration
-                                forcingData(:,i) = dailyIntegration(obj, evap);
-                                isDailyIntegralFlux(i) = true;
-                            else
-                                forcingData(:,i) = evap;
-                                isDailyIntegralFlux(i) = false;
-                            end                            
-                          
-                        case 'runoff'
-                            
-                            % Calculate infiltration.
-                            infiltration = getTransformedForcing(obj, 'infiltration',SMSnumber, false);
-                            
-                            % Calc sub daily interflow
-                            %interflow = getTransformedForcing(obj, 'interflow',SMSnumber, false);
-                                
-                            % Calc sub daily runoff
-                            runoff = max(0,getSubDailyForcing(obj,obj.variables.precip) - infiltration);
-                            runoff = runoff * (1-bypass_frac);
-                            
-                            % Integreate to daily.
-                            if doSubstepIntegration
-                                forcingData(:,i) = dailyIntegration(obj, runoff);
-                                isDailyIntegralFlux(i) = true;
-                            else
-                                forcingData(:,i) = runoff;
-                                isDailyIntegralFlux(i) = false;
-                            end
-                       
-                        case'SMS'
-                            forcingData(:,i) = SMS((1+obj.variables.nDailySubSteps):obj.variables.nDailySubSteps:end);
-                            isDailyIntegralFlux(i) = false;
+                % Integreate to daily.
+                if doSubstepIntegration
+                    forcingData.(variableName{ii}) = effectivePrecip;
+                    isDailyIntegralFlux(ii) = true;
+                else
+                    % Dissaggregate to subdaily
+                    effectivePrecip = getSubDailyForcing(obj,effectivePrecip);
+                    effectivePrecip = subDailyVector2Matrix(obj, effectivePrecip, true);
 
-                        case'effectivePrecip'
-                            effectivePrecip = obj.variables.precip;
-                            if k_infilt < inf && (obj.settings.activeParameters.k_infilt || obj.settings.fixedParameters.k_infilt)
-                                lambda_p = obj.settings.lambda_p .* k_infilt;
-                                effectivePrecip= (effectivePrecip>0).*(effectivePrecip+ lambda_p * log( 1./(1 + exp( (effectivePrecip - k_infilt)./lambda_p))));
-                                effectivePrecip(isinf(effectivePrecip)) = k_infilt;
-                            end
-                            forcingData(:,i) = effectivePrecip;
-                            isDailyIntegralFlux(i) = true;
-                        case 'mass_balance_error'
-                            precip = getSubDailyForcing(obj,obj.variables.precip);
-                            runoff = getTransformedForcing(obj, 'runoff',SMSnumber, false);
-                            AET = getTransformedForcing(obj, 'evap_soil',SMSnumber, false);
-                            drainage = getTransformedForcing(obj, 'drainage',SMSnumber, false);
-                            
-                            fluxEstError = [0;precip(2:end) - diff(SMS) -  runoff(2:end) - AET(2:end) - drainage(2:end)];
-                            
-                            % Integreate to daily.
-                            if doSubstepIntegration
-                                forcingData(:,i) = dailyIntegration(obj, fluxEstError);
-                                isDailyIntegralFlux(i) = true;
-                            else
-                                forcingData(:,i) = fluxEstError;
-                                isDailyIntegralFlux(i) = false;
-                            end
-                             
-                        otherwise
-                            if  isfield(obj.settings,'simulateLandCover') && obj.settings.simulateLandCover && nargin==2 
-                                if isempty(strfind(variableName{i}, '_nontree')) && isempty(strfind(variableName{i}, '_tree'))
-                                    error('The requested transformed forcing variable is not known.');
-                                end
-                            else                            
-                                error('The requested transformed forcing variable is not known.');
-                            end
+                    forcingData.(variableName{ii}) = effectivePrecip;
+                    isDailyIntegralFlux(ii) = false;
+                end
+                ii=ii+1;
+
+                % Return if only effective precip to be calculated.
+                if length(variableName)==1
+                    return
+                end
+            end
+
+            % Calculate the required fluxes.
+            for i=ii:length(variableName)
+                try
+                    % Get the soil moisture store for the required soil unit
+                    if contains(variableName{i}, '_nontree')
+                        SMS = obj.variables.SMS;
+                        variabName_suffix = '_nontree';
+                    elseif contains(variableName{i}, '_tree')
+                        SMS = obj.variables.SMS_trees;
+                        SMSC = SMSC_trees;
+                        variabName_suffix = '_tree';
+                    else
+                        SMS = obj.variables.SMS;
+                        variabName_suffix = '';
                     end
 
-                    % Get flixes for tree soil unit (if required) and weight the
-                    % flux from the two units
-                    if  isfield(obj.settings,'simulateLandCover') && obj.settings.simulateLandCover && nargin==2
-                        if ~isempty(strfind(variableName{i}, '_nontree'))
-                            % Get flux for non-tree componant
-                            ind = strfind(variableName{i}, '_nontree');
-                            variableName{i} = variableName{i}(1:ind-1);
-                            [forcingData(:,i),isDailyIntegralFlux(i)]  = getTransformedForcing(obj, variableName{i}, 1) ;
-                            forcingData(:,i) =  (1-treeArea_frac .* obj.variables.treeFrac) .* forcingData(:,i);
-                        elseif ~isempty(strfind(variableName{i}, '_tree'))
-                            % Get flux for non-tree componant
-                            ind = strfind(variableName{i}, '_tree');
-                            variableName{i} = variableName{i}(1:ind-1);
-                            [forcingData(:,i),isDailyIntegralFlux(i)] = getTransformedForcing(obj, variableName{i}, 2);                
-                            forcingData(:,i) = treeArea_frac .* obj.variables.treeFrac .* forcingData(:,i);
-                        else
-                            % Get flux for tree SMS
-                            forcingData_trees = getTransformedForcing(obj, variableName{i}, 2);                    
+                    % Convert subdaily soil moisture to a matrix, if not done by
+                    % setTransformedForcing().
+                    SMS = subDailyVector2Matrix(obj, SMS, false);
 
-                            % Do weighting
-                            forcingData(:,i) = (1-treeArea_frac .* obj.variables.treeFrac) .* forcingData(:,i) + ...
-                                          treeArea_frac .* obj.variables.treeFrac .* forcingData_trees;
+                    if isfield(obj.settings,'simulateLandCover') && obj.settings.simulateLandCover && isempty(variabName_suffix)
+                        % Get flux for combined non-tree and tree componants and weight.
+
+                        % Get flux for tree SMS
+                        [fluxes_nontree, isDailyIntegralFlux(i)] = getTransformedForcing(obj, strcat(variableName{i},'_nontree'), doSubstepIntegration);
+                        fluxes_tree = getTransformedForcing(obj, strcat(variableName{i},'_tree'), doSubstepIntegration);
+
+                        % Do weighting
+                        forcingData.(variableName{i}) = (1-treeArea_frac .* obj.variables.treeFrac) .* fluxes_nontree.(strcat(variableName{i},'_nontree')) + ...
+                            treeArea_frac .* obj.variables.treeFrac .* fluxes_tree.(strcat(variableName{i},'_tree'));
+                    else
+                        switch variableName{i}
+                            case {'drainage', 'drainage_tree', 'drainage_nontree'}
+
+                                % Cal.c bypass frainage (ie % runoff)
+                                runoff = 0;
+                                if bypass_frac~=0
+                                    % Get runoff
+                                    runoff = getTransformedForcing(obj, strcat('runoff',variabName_suffix), false);
+
+                                    % Re-scale runoff from that going to the stream to that going to recharge plus the stream.
+                                    runoff  = strcat('runoff',variabName_suffix) ./ (1-bypass_frac);
+                                end
+                                nDailySubSteps = getNumDailySubsteps(obj);
+                                drainage = (1-interflow_frac) .* k_sat/nDailySubSteps .*(SMS/SMSC).^beta;
+                                drainage  = drainage + bypass_frac.*runoff;
+                                if doSubstepIntegration
+                                    forcingData.(variableName{i}) = dailyIntegration(obj, drainage);
+                                    isDailyIntegralFlux(i) = true;
+                                else
+                                    forcingData.(variableName{i}) = drainage;
+                                    isDailyIntegralFlux(i) = false;
+                                end
+                            case {'interflow','interflow_tree', 'interflow_nontree'}
+                                nDailySubSteps = getNumDailySubsteps(obj);
+                                interflow = interflow_frac .* k_sat/nDailySubSteps .*(SMS/SMSC).^beta;
+
+                                if doSubstepIntegration
+                                    forcingData.(variableName{i}) = dailyIntegration(obj, interflow);
+                                    isDailyIntegralFlux(i) = true;
+                                else
+                                    forcingData.(variableName{i}) = interflow;
+                                    isDailyIntegralFlux(i) = false;
+                                end
+                            case {'evap_soil', 'evap_soil_tree', 'evap_soil_nontree'}
+                                % Expand input forcing data to have the required number of substeps.
+                                evap = getSubDailyForcing(obj,obj.variables.evap);
+                                evap = subDailyVector2Matrix(obj, evap, true);
+
+                                % Est ET
+                                evap = evap .* (SMS/SMSC).^gamma;
+                                if doSubstepIntegration
+                                    forcingData.(variableName{i}) = dailyIntegration(obj, evap);
+                                    isDailyIntegralFlux(i) = true;
+                                else
+                                    forcingData.(variableName{i}) = evap;
+                                    isDailyIntegralFlux(i) = false;
+                                end
+
+                            case {'infiltration_fracCapacity', 'infiltration_fracCapacity_tree', 'infiltration_fracCapacity_nontree'}
+
+                                % Calculate infiltration fractional capacity, representing the fraction of rainfall that is infiltrated
+                                nDailySubSteps = getNumDailySubsteps(obj);
+                                infiltration_fractional_capacity = min(1, ((SMSC - SMS)/(SMSC*(1-eps))).^alpha);
+
+                                if doSubstepIntegration
+                                    forcingData.(variableName{i}) = 1./nDailySubSteps.*dailyIntegration(obj, infiltration_fractional_capacity);
+                                    isDailyIntegralFlux(i) = true;
+                                else
+                                    forcingData.(variableName{i}) = infiltration_fractional_capacity;
+                                    isDailyIntegralFlux(i) = false;
+                                end
+
+                            case {'infiltration', 'infiltration_tree', 'infiltration_nontree'}
+                                % Calculate max. infiltration assuming none
+                                % goes to SATURATED runoff.
+
+                                if doSubstepIntegration
+                                    if alpha==0
+                                        fluxes = getTransformedForcing(obj, ['effectivePrecip', strcat({'drainage','evap_soil','interflow'},variabName_suffix)], true);
+                                        infiltration =  fluxes.effectivePrecip;
+                                    else
+                                        fluxes = getTransformedForcing(obj, ['effectivePrecip', strcat({'drainage','evap_soil','interflow','infiltration_fracCapacity'},variabName_suffix)], true);
+                                        infiltration =  fluxes.effectivePrecip .* fluxes.(strcat('infiltration_fracCapacity',variabName_suffix));
+                                    end
+
+                                    % Calculatre when the soil is probably saturated.
+                                    Infilt2Runoff = (SMS(:,1) + infiltration - fluxes.(strcat('evap_soil',variabName_suffix)) - ...
+                                        fluxes.(strcat('drainage',variabName_suffix)) - ...
+                                        fluxes.(strcat('interflow',variabName_suffix)) ) - SMSC;
+                                    Infilt2Runoff(Infilt2Runoff<0) = 0;
+
+                                    % Subtract estimated satruated excess runoff
+                                    % from the infiltration and then integrate.
+                                    infiltration = infiltration - Infilt2Runoff;
+
+                                    forcingData.(variableName{i}) = infiltration;
+                                    isDailyIntegralFlux(i) = true;
+                                else
+                                    error('Infiltration can only be calculated at a daily timestep.')
+                                end
+                            case {'evap_gw_potential', 'evap_gw_potential_tree', 'evap_gw_potential_nontree'}
+                                % Expand input forcing data to have the required number of substeps.
+                                PET = getSubDailyForcing(obj,obj.variables.evap);
+                                PET = subDailyVector2Matrix(obj, PET, true);
+
+                                % Get soil ET
+                                fluxes = getTransformedForcing(obj, strcat('evap_soil',variabName_suffix), false);
+
+                                % Calc groundwater PET
+                                evap = PET - fluxes.(strcat('evap_soil',variabName_suffix));
+                                if doSubstepIntegration
+                                    forcingData.(variableName{i}) = dailyIntegration(obj, evap);
+                                    isDailyIntegralFlux(i) = true;
+                                else
+                                    forcingData.(variableName{i}) = evap;
+                                    isDailyIntegralFlux(i) = false;
+                                end
+
+                            case {'runoff', 'runoff_tree', 'runoff_nontree'}
+                                if doSubstepIntegration
+                                    % Calculate infiltration.
+                                    fluxes = getTransformedForcing(obj, strcat({'infiltration','interflow'},variabName_suffix), true);
+
+                                    % Get subdaily precip
+                                    precip = obj.variables.precip;
+
+                                    % Calc sub daily runoff
+                                    runoff = max(0, precip - fluxes.(strcat('infiltration',variabName_suffix)));
+                                    runoff = runoff * (1-bypass_frac) + fluxes.(strcat('interflow',variabName_suffix));
+
+                                    forcingData.(variableName{i}) = runoff;
+                                    isDailyIntegralFlux(i) = true;
+                                else
+                                    error('Runoff can only be calculated at a daily timestep.')
+                                end
+
+                            case {'SMS', 'SMS_tree', 'SMS_nontree'}
+                                if doSubstepIntegration
+                                    forcingData.(variableName{i}) = SMS(:,1);   % Returns value at the start of each day.
+                                else
+                                    forcingData.(variableName{i}) = SMS;
+                                end
+                                isDailyIntegralFlux(i) = false;
+
+                            case {'mass_balance_error', 'mass_balance_error_tree', 'mass_balance_error_nontree'}
+                                % Calculate fluxes at daily or subdaily time
+                                % step and then calc. mass balance error
+                                if doSubstepIntegration
+                                    % Get fluxes
+                                    precip = obj.variables.precip;
+                                    fluxes = getTransformedForcing(obj, strcat({'runoff','evap_soil', 'drainage','SMS'},variabName_suffix), true);
+
+                                    % Calc mass balance error
+                                    fluxEstError = [precip(1:(end-1),1) - diff(fluxes.(strcat('SMS',variabName_suffix))) -  ...
+                                        fluxes.(strcat('runoff',variabName_suffix))(1:(end-1),1) - ...
+                                        fluxes.(strcat('evap_soil',variabName_suffix))(1:(end-1),1) - fluxes.(strcat('drainage',variabName_suffix))(1:(end-1),1);0];
+
+                                    isDailyIntegralFlux(i) = true;
+                                else
+                                    error('Mass balance can only be calculated at a daily timestep.')
+                                end
+
+                                forcingData.(variableName{i}) = fluxEstError;
+                            otherwise
+                                error('The requested transformed forcing variable is not known.');
                         end
-                    end                    
+                    end
+                catch ME
+                    error(ME.message)
                 end
-            catch ME
-                error(ME.message)
             end
-            
+
+
 
         end
 
@@ -1402,7 +1453,7 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
         % Return the derived variables. This is used by this class to get
         % the back transformed parameters.
         function [params, param_names] = getDerivedParameters(obj)
-            
+         
             param_names = {'SMSC: back transformed soil moisture storage capacity (in rainfall units)'; ...                  
                            'SMSC_trees: back transformed soil moisture storage capacity in trees unit (in rainfall units)'; ...
                            'treeArea_frac: fractional area of the tree units (-)'; ...
@@ -1413,19 +1464,67 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                            'interflow_frac : fraction of free drainage going to interflow (-)'; ...        
                            'alpha : power term for infiltration rate (-)'; ...       
                            'beta : back transformed power term for dainage rate (eg approx. Brook-Corey pore index power term)'; ...
-                           'gamma : back transformed power term for soil evaporation rate (-)'};    
-        
-            params = [  10.^(obj.SMSC); ...
-                        10.^(obj.SMSC_trees); ...
-                        obj.treeArea_frac; ...
-                        obj.S_initialfrac; ...
-                        10.^obj.k_infilt; ...
-                        10.^obj.k_sat; ...
-                        obj.bypass_frac; ...
-                        obj.interflow_frac; ...
-                        obj.alpha; ...
-                        10.^(obj.beta); ...
-                        10.^(obj.gamma)];
+                           'gamma : back transformed power term for soil evaporation rate (-)'; ...
+                           'eps : fraction of SMSC, below which all precip. infiltrates.'};    
+ 
+            param_names_trim = {'SMSC'; ...                  
+                           'SMSC_trees'; ...
+                           'treeArea_frac'; ...
+                           'S_initialfrac'; ... 
+                           'k_infilt'; ...
+                           'k_sat'; ...
+                           'bypass_frac'; ...
+                           'interflow_frac'; ...        
+                           'alpha'; ...       
+                           'beta'; ...
+                           'gamma'; ...
+                           'eps'};    
+                         
+            if ~isempty(obj.eps)
+                params = [  10.^(obj.SMSC(1)); ...
+                    10.^(obj.SMSC_trees(1)); ...
+                    obj.treeArea_frac(1); ...
+                    obj.S_initialfrac(1); ...
+                    10.^obj.k_infilt(1); ...
+                    10.^obj.k_sat(1); ...
+                    obj.bypass_frac(1); ...
+                    obj.interflow_frac(1); ...
+                    obj.alpha(1); ...
+                    10.^(obj.beta(1)); ...
+                    10.^(obj.gamma(1)); ...
+                    obj.eps(1)];
+            else
+                params = [  10.^(obj.SMSC(1)); ...
+                    10.^(obj.SMSC_trees(1)); ...
+                    obj.treeArea_frac(1); ...
+                    obj.S_initialfrac(1); ...
+                    10.^obj.k_infilt(1); ...
+                    10.^obj.k_sat(1); ...
+                    obj.bypass_frac(1); ...
+                    obj.interflow_frac(1); ...
+                    obj.alpha(1); ...
+                    10.^(obj.beta(1)); ...
+                    10.^(obj.gamma(1)); ...
+                    0];
+            end
+
+            % Expand vector of params to matrix - if obj has multiple
+            % parameter sets.
+            calibParamNames = getActiveParameters(obj);
+            if length(obj.(calibParamNames{1}))>1
+                params = repmat(params, 1, length(obj.(calibParamNames{1})));
+                for i=1:length(param_names_trim)
+                    if length(obj.(param_names_trim{i}))>1
+                        if any(strcmp(param_names_trim{i}, {'SMSC','SMSC_trees','k_infilt','k_sat','beta','gamma'}))
+                            params(i,:) = 10.^(obj.(param_names_trim{i}));
+                        elseif strcmp(param_names_trim{i}, 'eps') && isempty(obj.eps)
+                            params(i,:) = 0;
+                        else
+                            params(i,:) = obj.(param_names_trim{i});
+                        end
+                    end
+                end   
+            end           
         end
 
         % Return coordinates for forcing variable
@@ -1510,23 +1609,43 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
         end
         
         function data_daily = dailyIntegration(obj, data)
-                       
-            % reshape data so sun-daily steps are on one row     
+            % Note, this function numerically integrates sub-daily soil fluxes
+            % to a daily time step. The soil moisture ODE C-code is used
+            % to simulate sub-daily dynamics by inputting data
+            % dissaggregated to sub-daily - ie the daily total precip is
+            % divided by the number of sub-daily timesteps (eg 30 mm/day
+            % becomes three steps of 10mm per 8 hours) and K_sat is similar scaled
+            % down. Also, the ODE predicts the SMS at time t using the
+            % forcing data at time t, not the prior forcing.
+            
+            % Get number of daily steps     
             nSubSteps = obj.variables.nDailySubSteps;
-            nDays = floor(length(obj.variables.t)./nSubSteps);
-            data_reshaped = zeros(nDays , nSubSteps+1);
-                        
-            for (i=1:(nSubSteps+1))
-                data_reshaped(:,i) = data(i:nSubSteps :(end- (nSubSteps+1)+i ));
+
+            % Get number of days
+            nDays = length(obj.variables.precip);
+
+            % check dimenions of data correspond to the expected format of subdaily
+            % data.
+            if size(data,1)~= nDays
+                error('Input data has a different number of rows than the number of days of forcing data.')
+            elseif size(data,2)~= (nSubSteps+1)
+                error('Input data has a different number of columns than the number of sub-daily timesteps + 1.')
             end
             
-            % To trapazoidal integration
-            data_daily = trapz(0:nSubSteps, data_reshaped, 2);
-            
+            % integrate to daily
+            if nSubSteps==2
+                % Use Simpson's quadratic rule
+                data_daily = nSubSteps/6*(data(:,1) + 4*data(:,2) + data(:,3));
+            elseif nSubSteps==3
+                % Use Simpson's 3/8 rule
+                data_daily = nSubSteps/8*(data(:,1) + 3*(data(:,2) + data(:,3)) + data(:,4));
+            else
+                % Use trapazoidal method
+                data_daily = trapz(0:nSubSteps, data, 2);
+            end
         end
         
         function nDailySubSteps = getNumDailySubsteps(obj)
-
             if isfield(obj.variables,'nDailySubSteps')
                 nDailySubSteps = obj.variables.nDailySubSteps;
             else
@@ -1540,7 +1659,6 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
             nSubSteps = getNumDailySubsteps(obj);
             
             % Get number of days
-            %nDays = (length(obj.variables.precip)-1)./nSubSteps;
             nDays = length(obj.variables.precip);
             
             % Get the forcing rate PER substep.
@@ -1553,6 +1671,73 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
             % condition being added to to t.
             data = [0;data];
         end
+
+        function data = subDailyVector2Matrix(obj, data, isClimateData)
+            % Get subset size
+            nSubSteps = getNumDailySubsteps(obj);
+            
+            % Get number of days
+            nDays = length(obj.variables.precip);
+
+            % Check if the data is alreadt in matrix form. If so, do
+            % nothing.
+            if size(data,1)==nDays && size(data,2)==nSubSteps
+                return
+            end
+
+            % Check input vector is sub-daily
+            if length(data) ~= (nDays*nSubSteps+1)
+                data=[];
+                error('Input data must be a vector of subdaily data.');
+            end
+
+            % Reshape subdaily vector into a matrix of ndays rows by
+            % (nSubSteps+1) columns, where the value at column nSubSteps+1 is the
+            % value for the end of the day. This is done to allow integration
+            % across the whole day.
+            if isClimateData %  The value for the last time step of the day is
+                % the that for the current day, and not that at the start
+                % of the next day, as done for soil moistire.
+                data = reshape(data(2:end), nSubSteps, nDays)';
+                data = [data, data(:,end)];
+            else % This option should be soil moisture, where the RHS column should be
+                 % the valu at the end of the current day.
+                data_end = data(end);
+                data = reshape(data(1:end-1), nSubSteps, nDays)'; 
+                data = [data, [data(2:end,1);data_end]];
+            end
+        end
+
+        function data = subDailyMatrix2Vector(obj, data)
+            % Get subset size
+            nSubSteps = getNumDailySubsteps(obj);
+            
+            % Get number of days
+            nDays = length(obj.variables.precip);
+
+            % Check if the data is already in vector form. If so, do
+            % nothing.
+            if size(data,1)==nDays*nSubSteps+1 || size(data,2)==1
+                return
+            end
+
+            % Check input matrix has each day as a row.
+            if size(data,1) ~= nDays
+                data=[];
+                error('Input data must be a matrix with each row being a different day.');
+            end
+
+            % Check input matrix has each column as subdaily steps
+            if size(data,2)-1 ~= nSubSteps
+                data=[];
+                error('Input data must be a matrix with each column being equal to the numebr of subdaily steps+1.');
+            end
+            
+            % Reshape subdaily mastrix into a vector of ndays * nSubSteps
+            % where the value of the end colum is ignored, since it's equal 
+            % to the value at the start of the next day.
+            data = [reshape(data(:,1:end-1)',1,nDays*nSubSteps)'; data(end,end)];
+        end        
     end
     
 end

@@ -248,7 +248,7 @@ classdef HydroSightModel < handle
                 catch ME
                     error('An error occured when extracting the forcing data from the input cell array. The first row must be the column headings and all of the following rows the numeric data.');
                 end
-            elseif strcmp(class(forcingData),'table')
+            elseif isa(forcingData,'table')
                 % Assume the datatype is a table object
                 forcingData_colnames = forcingData.Properties.VariableNames;
                 forcingData_data = forcingData{:,:};
@@ -306,8 +306,8 @@ classdef HydroSightModel < handle
                   end
                end
                % Check the bore ID(s) coordinates are input.
-               if iscell(bore_ID)
-                   hasBoreIDCoordinates=false;                   
+               hasBoreIDCoordinates=false;
+               if iscell(bore_ID)                
                    for i=1:size(siteCoordinates,1)
                        for j=1:length(bore_ID)
                            if strcmp(siteCoordinates(i,1), bore_ID{j})
@@ -317,20 +317,12 @@ classdef HydroSightModel < handle
                        end
                    end                   
                else
-                   hasBoreIDCoordinates=false;
                    for i=1:size(siteCoordinates,1)
                        if strcmp(siteCoordinates(i,1), bore_ID)
                            hasBoreIDCoordinates=true;
                            break;
                        end
                    end
-               end
-               hasBoreIDCoordinates=false;
-               for i=1:size(siteCoordinates,1)
-                  if strcmp(siteCoordinates(i,1), bore_ID)
-                      hasBoreIDCoordinates=true;
-                      break;
-                  end
                end
                if ~hasBoreIDCoordinates
                    error('The site coordinate cell array must list the coordinate for the input bore ID. Note, the site names are case-sensitive.');
@@ -361,25 +353,14 @@ classdef HydroSightModel < handle
             % This feature is included to overcome the considerable
             % computational burdon of calibrating the model to daily head
             % observations using 50+ years of prior daily climate data.
-            if ~isempty(obsHead_maxObsFreq) && obsHead_maxObsFreq >0
-                
-                % Aggregate sub-daily observed groundwater to daily steps            
-                j=1;
-                ii=1;
-                while ii  <= size(obsDates,1)
-                    % Find last observation for the day
-                    [iirow, junk] = find( obsDates == obsDates(ii,1), 1, 'last');
+            if ~isempty(obsHead_maxObsFreq) && obsHead_maxObsFreq >0                
 
-                    % Derive the date and time at the end of the day
-                    date_time = datenum(obsHead(iirow,1), obsHead(iirow,2), obsHead(iirow,3), 23, 59, 59 );
+                % Take the last observation per day.
+                obsDate_daily = [year(obsDates), month(obsDates), day(obsDates)];
+                [~, ind_last] = unique(obsDate_daily,'rows','last'); 
+                obsHead = [obsDates(ind_last), obsHead(ind_last,end)];                
+                clear obsDate_daily
 
-                    % Add date and head to new matrix.
-                    obsHead(j,1:2) = [ date_time , obsHead(iirow,end)];
-                    j=j+1;
-                    ii = iirow+1;
-                end
-                obsHead = obsHead(1:j-1,1:2);                
-                
                 % Now thin out to requested freq.
                 obsHead_orig = obsHead;
                 obsHead = zeros(size(obsHead));
@@ -405,7 +386,7 @@ classdef HydroSightModel < handle
             end
             % Warn the user of the obs. date was aggregated.
             if size(obsHead,1) < size(obsHead,1)
-                display([char(13), 'Warning: some input head observations were of a sub-daily frequency.', char(13), ...
+                disp([char(13), 'Warning: some input head observations were of a sub-daily frequency.', char(13), ...
                     'These have been aggregeated to a daily frequency by taking the last obseration of the day.', char(13), ...
                     'The aggregation process assumed that the input data was sorted by date and time.']);
             end
@@ -571,19 +552,18 @@ classdef HydroSightModel < handle
                     catch ME
                         error('An error occured when extracting the forcing data from the input cell array. The first row must be the column headings and all of the following rows the numeric data.');
                     end
-                elseif strcmp(class(forcingData),'table')
+                elseif isa(forcingData,'table')
                     % Assume the datatype is a table object
                     forcingData_colnames = forcingData.Properties.VariableNames;
                     forcingData_data = forcingData{:,:}; 
                 else 
                     error('The input forcing data must be a table, structure ot cell array variable. It cannot be double array.');
-                    return;
                 end
 
                % Check the column names for the new forcing data are identical
-               for i=1:length(forcingData_colnames)
-                  if ~any(cellfun( @(x) strcmp(x, forcingData_colnames{i}), forcingData_colnames_modConstruc))
-                      error('New forcing dat must have identical column names to the original data.');
+               for i=1:length(forcingData_colnames_modConstruc)
+                  if ~any(cellfun( @(x) strcmp(x, forcingData_colnames_modConstruc{i}), forcingData_colnames))
+                      error('New forcing data must have identical column names to the original data.');
                   end
                end
                
@@ -602,7 +582,8 @@ classdef HydroSightModel < handle
            
            % Undertake the simulation of the head                      
            try
-              [obj.simulationResults{simInd,1}.head, obj.simulationResults{simInd,1}.colnames, obj.simulationResults{simInd,1}.noise] = solve(obj.model, time_points);
+              [obj.simulationResults{simInd,1}.head, obj.simulationResults{simInd,1}.colnames, obj.simulationResults{simInd,1}.noise] = ...
+              solve(obj.model, time_points);
            catch ME
                          
               % Add the original forcing back into the model.
@@ -624,7 +605,7 @@ classdef HydroSightModel < handle
                for i=1:nparams
                   modelResults{i,1}.head_estimates = [obj.simulationResults{simInd,1}.head(:,1:2,i), ...
                       obj.simulationResults{simInd,1}.head(:,2,i) - obj.simulationResults{simInd,1}.noise(:,2,i),  ...
-                      obj.simulationResults{simInd,1}.head(:,2,i) + obj.simulationResults{simInd,1}.noise(:,3,i)];
+                      obj.simulationResults{simInd,1}.head(:,2,i) + obj.simulationResults{simInd,1}.noise(:,2,i)];
                   modelResults{i,1}.krigingData = [obj.calibrationResults.data.modelledHead(:,1), obj.calibrationResults.data.modelledHead_residuals(:,i)];
                   modelResults{i,1}.range = obj.calibrationResults.performance.variogram_residual.range(i);
                   modelResults{i,1}.sill = obj.calibrationResults.performance.variogram_residual.sill(i);
@@ -643,7 +624,7 @@ classdef HydroSightModel < handle
                end
                
               % Set constant for the kriging
-              maxKrigingObs = 24;
+              maxKrigingObs = 36;
               if isnumeric(doKrigingOnResiduals) && ceil(doKrigingOnResiduals)>0
                 maxKrigingObs = ceil(doKrigingOnResiduals);
               end
@@ -653,7 +634,7 @@ classdef HydroSightModel < handle
               % Remove the simulation results. This is done to minimise the
               % size of obj in the following parfor loop, which if nparams
               % >>1 then the RAM requirements can be huge.
-              simulationResults = obj.simulationResults;
+              simulationResults = obj.simulationResults; %#ok<PROPLC> 
               obj.simulationResults=[];
               
               % Call model interpolation
@@ -662,8 +643,8 @@ classdef HydroSightModel < handle
               end
 
               % Add simulation results back onto the object.
-              obj.simulationResults = simulationResults;
-              clear simulationResults;
+              obj.simulationResults = simulationResults; %#ok<PROPLC> 
+              clear simulationResults modelResults;
               
               % Calculate the contribution from interpolation
               kriging_contribution = head_estimates(:,2,:) - obj.simulationResults{simInd,1}.head(:,2,:);
@@ -684,24 +665,43 @@ classdef HydroSightModel < handle
            end
 
            % Add contribution from kriging plus the variance
-           if ~isempty(krigingVariance);               
+           if ~isempty(krigingVariance)   
                obj.simulationResults{simInd,1}.head = [obj.simulationResults{simInd,1}.head, kriging_contribution, krigingVariance];
-               obj.simulationResults{simInd,1}.colnames = {obj.simulationResults{simInd,1}.colnames{:}, 'Kriging Adjustment','Kriging Variance'};
+               obj.simulationResults{simInd,1}.colnames = [obj.simulationResults{simInd,1}.colnames, 'Kriging Adjustment','Kriging Variance'];
                h = obj.simulationResults{simInd,1}.head;
            end           
            
            % Post-proess the stored simulation results to just percentiles
            if size(obj.simulationResults{simInd,1}.head,3)>1                
+               % Calc. range (5-95th%ile) in noise using both the spread in the head
+               % from each parameter set, and the spreda in the noise.
+                obj.simulationResults{simInd,1}.noise = [obj.simulationResults{simInd,1}.head(:,1,1), ...
+                    prctile( obj.simulationResults{simInd,1}.head(:,2,:) - obj.simulationResults{simInd,1}.noise(:,2,:) ,5,3), ...
+                    prctile( obj.simulationResults{simInd,1}.head(:,2,:) + obj.simulationResults{simInd,1}.noise(:,2,:) ,95,3)];
+               
+               % Now calc spread in the head est from each parameter set.
                head_tmp=obj.simulationResults{simInd,1}.head(:,1,1);
                 for i=2:size(obj.simulationResults{simInd,1}.head,2)
-                     head_tmp = [head_tmp, permute(prctile( obj.simulationResults{simInd,1}.head(:, i,:),[50 5 95],3),[1,3,2])];
+                     head_tmp = [head_tmp, permute(prctile( obj.simulationResults{simInd,1}.head(:, i,:),[50 5 95],3),[1,3,2])]; %#ok<AGROW> 
                 end
                 obj.simulationResults{simInd,1}.head = head_tmp;
-                obj.simulationResults{simInd,1}.noise = [obj.simulationResults{simInd,1}.head(:,1,1), prctile( obj.simulationResults{simInd,1}.noise(:, 2,:),5,3), prctile( obj.simulationResults{simInd,1}.noise(:, 2,:),95,3)];
            end
            
-           % Add the original forcing back into the model.
+           % Store the new forcing data (and derived flixes) and stotre the original forcing back into the model.
            if ~isempty(forcingData)
+               time_points_forcing = table2array(forcingData(:,1));
+
+%                parfor z = startInd:endInd
+%                    setParameters(tmpModel.model,paramValues(:,z), paramsNames);
+%                    tableData_derived(:,:,z) = getDerivedForcingData(tmpModel,t);
+%                end
+               [derivedForcingData, derivedForcingData_colnames] = getDerivedForcingData(obj, time_points_forcing);
+               [forcingData, forcingData_colnames] = getForcingData(obj);
+               obj.simulationResults{simInd,1}.data_input = forcingData;
+               obj.simulationResults{simInd,1}.data_derived = derivedForcingData;                              
+               obj.simulationResults{simInd,1}.colnames_input = forcingData_colnames;
+               obj.simulationResults{simInd,1}.colnames_derived = derivedForcingData_colnames;
+
                setForcingData(obj, forcingData_modConstruc, forcingData_colnames_modConstruc);
            end
            
@@ -746,7 +746,7 @@ classdef HydroSightModel < handle
            %end
         end
     
-        function solveModelPlotResults(obj, simulationLabel, axisHandle)        
+        function solveModelPlotResults(obj, simulationLabel, axisHandle, iModelComponants)        
 % Plot the simulation results
 %
 % Syntax:
@@ -766,6 +766,8 @@ classdef HydroSightModel < handle
 %
 %   handle - Matlab figure handle to a pre-existing figure window in which
 %   the plot is to be created (optional).
+%
+%   iModelComponants - vector of components to plot. 
 %
 % Output:  
 %   (none)
@@ -795,11 +797,7 @@ classdef HydroSightModel < handle
            % the calibration results are plotted into 'h'.            
            if nargin==2 || isempty(axisHandle)
                % Create new figure window.
-               figHandle = figure('Name',['Soln. ',strrep(obj.bore_ID,'_',' ')]);
-           elseif ~iscell(axisHandle)    
-                error('Input handle is not a valid figure handle.');
-           else
-                h = axisHandle;                
+               figHandle = figure('Name',['Soln. ',strrep(obj.bore_ID,'_',' ')]);         
            end
             
            % Find simulation label
@@ -826,55 +824,20 @@ classdef HydroSightModel < handle
            else
                 nModelComponants = size(obj.simulationResults{simInd,1}.head,2)-2;
            end
-
+           if nargin==3
+               iModelComponants = 0:nModelComponants;
+           else
+                if any(iModelComponants<0 | iModelComponants>nModelComponants)
+                    error('Input "iModelComponants" invalid. Must be >0 and < no. model components.')
+                end
+                iModelComponants = unique(sort(iModelComponants));
+           end
+           
            % Check if there is data for the climate lags
            doClimateLagCalcuations = false;
            if isfield(obj.simulationResults,'head_lag')
                doClimateLagCalcuations = true;
            end
-           
-           % Plot observed and modelled time series.
-           %-------
-           if ~isempty(axisHandle)
-              h = axisHandle{1}; 
-           elseif nModelComponants>0
-              h = subplot(2+nModelComponants+doClimateLagCalcuations,1,1:2, 'Parent',figHandle);  
-              h_legend = [];
-           else
-              h = gca();
-           end
-            
-            % Plot time series of heads.                        
-            %-------
-            % Plot bounds for noise component.
-            if hasNoiseComponant
-               XFill = [obj.simulationResults{simInd,1}.head(:,1)' fliplr(obj.simulationResults{simInd,1}.head(:,1)')];
-               YFill = [[obj.simulationResults{simInd,1}.head(:,2) + obj.simulationResults{simInd,1}.noise(:,3)]', fliplr([obj.simulationResults{simInd,1}.head(:,2) - obj.simulationResults{simInd,1}.noise(:,2)]')];
-
-               fill(XFill, YFill,[0.8 0.8 0.8],'Parent',h);
-               clear XFill YFill               
-               hold(h,'on');
-            end
-
-            if hasModelledDistn
-
-               XFill = [obj.simulationResults{simInd,1}.head(:,1)' ...
-                        fliplr(obj.simulationResults{simInd,1}.head(:,1)')];
-               YFill = [obj.simulationResults{simInd,1}.head(:,4)', ...
-                        fliplr(obj.simulationResults{simInd,1}.head(:,3)')];
-                    
-               fill(XFill, YFill,[0.6 0.6 0.6],'Parent',h);
-               clear XFill YFill               
-               hold(h,'on');                    
-            end
-            
-           % Plot modelled deterministic componant.
-           plot(h, obj.simulationResults{simInd,1}.head(:,1), obj.simulationResults{simInd,1}.head(:,2),'-b' );
-           hold(h,'on');         
-           
-           % Plot observed head
-           head = getObservedHead(obj);
-           plot(h, head(:,1), head(:,2),'.-k' );
            
            % Calculate and set the date limits from the simulation period
            dateLimits = [floor(min(obj.simulationResults{simInd,1}.head(:,1))), ceil(max(obj.simulationResults{simInd,1}.head(:,1)))];
@@ -882,47 +845,96 @@ classdef HydroSightModel < handle
            dateLimits(1) = floor(dateLimits(1) - (dateRange * 0.05));
            dateLimits(2) = ceil(dateLimits(2) + (dateRange * 0.05));
            
-           % Set axis labels,  title and x axis limits
-           datetick(h, 'x','yy');
-           ylabel(h, 'Head (m)');           
-           title(h, ['Bore ', strrep(obj.bore_ID,'_',' ') , ' - Simulated head']); 
-           xlim(h,dateLimits);
-           
-            % Create legend strings  
-            i=1;
-            if hasNoiseComponant
-                if hasModelledDistn
-                    legendstr{i}='Total Err. (5th-95th)';
-                else
-                    legendstr{i}='Total Err.';
-                end
-                i=i+1;
-            end
-            if hasModelledDistn
-                legendstr{i}='Param. Err. (5th-95th)';            
-                i=i+1;
-            end
-            if hasModelledDistn
-                legendstr{i}='Sim. (median)';
-            else
-                legendstr{i}='Sim.';
-            end            
-            i=i+1;                                
-            legendstr{i}='Observed';
-            i=i+1;            
-            legend(h,legendstr, 'Location','NorthWest' );
-           
-
-           hold(h,'off');
+           % Plot observed and modelled time series.
+           %-------
+           if ~isempty(axisHandle)
+              h = axisHandle; 
+           elseif nModelComponants>0
+              h = subplot(2+nModelComponants+doClimateLagCalcuations,1,1:2, 'Parent',figHandle);  
+           else
+              h = gca();
+           end
+            
+           % Plot time series of heads.
+           %-------
+           if any(iModelComponants==0)
+               % Plot bounds for noise component.
+               if hasNoiseComponant
+                   XFill = [obj.simulationResults{simInd,1}.head(:,1)' fliplr(obj.simulationResults{simInd,1}.head(:,1)')];
+                   YFill = [obj.simulationResults{simInd,1}.head(:,2)'+obj.simulationResults{simInd,1}.noise(:,3)', ...
+                           fliplr(obj.simulationResults{simInd,1}.head(:,2)'-obj.simulationResults{simInd,1}.noise(:,2)')];       
+                   
+                   fill(XFill, YFill,[0.8 0.8 0.8],'Parent',h);
+                   clear XFill YFill
+                   hold(h,'on');
+               end
+               
+               if hasModelledDistn
+                   
+                   XFill = [obj.simulationResults{simInd,1}.head(:,1)' ...
+                       fliplr(obj.simulationResults{simInd,1}.head(:,1)')];
+                   YFill = [obj.simulationResults{simInd,1}.head(:,4)', ...
+                       fliplr(obj.simulationResults{simInd,1}.head(:,3)')];
+                   
+                   fill(XFill, YFill,[0.6 0.6 0.6],'Parent',h);
+                   clear XFill YFill
+                   hold(h,'on');
+               end
+               
+               % Plot modelled deterministic componant.
+               plot(h, obj.simulationResults{simInd,1}.head(:,1), obj.simulationResults{simInd,1}.head(:,2),'-b' );
+               hold(h,'on');
+               
+               % Plot observed head
+               head = getObservedHead(obj);
+               plot(h, head(:,1), head(:,2),'.-k' );
+                  
+               % Set axis labels,  title and x axis limits
+               datetick(h, 'x','yy');
+               ylabel(h, 'Head (m)');
+               title(h, [strrep(obj.bore_ID,'_',' ') , ' - Simulated head']);
+               xlim(h,dateLimits);
+               
+               % Create legend strings
+               i=1;
+               if hasNoiseComponant
+                   if hasModelledDistn
+                       legendstr{i}='Total Err. (5th-95th)';
+                   else
+                       legendstr{i}='Total Err.';
+                   end
+                   i=i+1;
+               end
+               if hasModelledDistn
+                   legendstr{i}='Param. Err. (5th-95th)';
+                   i=i+1;
+               end
+               if hasModelledDistn
+                   legendstr{i}='Sim. (median)';
+               else
+                   legendstr{i}='Sim.';
+               end
+               i=i+1;
+               legendstr{i}='Observed';
+               legend(h,legendstr, 'Location','northeastoutside' );
+               
+               
+               hold(h,'off');
+               
+           end
            %-------
             
            % Plot contributions to head
            %-------
            if nModelComponants>0
                for ii=1:nModelComponants
-                   if ~isempty(axisHandle)
-                       h = axisHandle{ii+1}; 
-                   else
+                   
+                   % Skip component if it's not a component to be plotted
+                   if ~any(iModelComponants==ii)
+                       continue
+                   end
+                   
+                   if isempty(axisHandle)
                         h = subplot(2+nModelComponants+doClimateLagCalcuations,1, 2+ii, 'Parent',figHandle );
                    end
                    if hasModelledDistn
@@ -944,7 +956,7 @@ classdef HydroSightModel < handle
                    
                    % Set axis labels and title
                    datetick(h, 'x','yy');                   
-                   ylabel(h, 'Head rise(m)');
+                   ylabel(h, 'Head change (m)');
                    title(h, ['Head contribution from: ', strrep(obj.simulationResults{simInd,1}.colnames{ii+2},'_',' ') ]);
                    xlim(h,dateLimits);                   
                    
@@ -1077,7 +1089,7 @@ classdef HydroSightModel < handle
                 expVariogram = variogram([krigingData(:,1), zeros( size(krigingData(:,1))) ] ...
                 , krigingData(:,2) , 'maxdist', min(365*10, krigingData(end,1) - krigingData(1,1) ), 'nrbins', 10);
             
-                [range, sill, nugget, variogram_model] ...
+                [range, sill, nugget] ...
                     = variogramfit(expVariogram.distance, expVariogram.val, 365/4, 0.75.*var( krigingData(:,2)), expVariogram.num, variogramOptions,...
                     'model', 'exponential', 'nugget', 0.25.*var( krigingData(:,2)) ,'plotit',false );          
                 
@@ -1189,7 +1201,7 @@ classdef HydroSightModel < handle
         end
         
 %% Calibrate the model        
-        function calibSchemeSettings = calibrateModel(obj, diaryObj, t_start, t_end, calibrationSchemeName, SchemeSetting , params_upperBound, params_lowerBound)
+        function calibSchemeSettings = calibrateModel(obj, guiObj, t_start, t_end, calibrationSchemeName, SchemeSetting , params_upperBound, params_lowerBound)
 
 % Calibrate the model
 %
@@ -1335,8 +1347,8 @@ classdef HydroSightModel < handle
                     TolX = 1e-11;
                     TolFun = 1e-12;                    
                     Restarts = 4;
-                    insigmaFrac = 1/3;
-                    Seed = floor(mod(datenum(now),1)*1000000);                   
+                    Sigma = 1/3;
+                    Seed = floor(mod(now,1)*1000000);                   
                     
                      if isnumeric(SchemeSetting) 
                         if SchemeSetting<0 || floor(SchemeSetting)~=ceil(SchemeSetting) 
@@ -1348,7 +1360,7 @@ classdef HydroSightModel < handle
                             MaxFunEvals = SchemeSetting.MaxFunEvals;
                         end
                         if isfield(SchemeSetting,'PopSize') && isfinite(SchemeSetting.PopSize)
-                            PopSize = SchemeSetting.PopSize;
+                            PopSize = max(PopSize, SchemeSetting.PopSize * nparams);
                         end                        
                         if isfield(SchemeSetting,'TolX') && isfinite(SchemeSetting.TolX)
                             TolX = SchemeSetting.TolX;
@@ -1356,11 +1368,11 @@ classdef HydroSightModel < handle
                         if isfield(SchemeSetting,'tolFun') && isfinite(SchemeSetting.tolFun)
                             TolFun = SchemeSetting.TolFun;
                         end
-                        if isfield(SchemeSetting,'restarts') && isfinite(SchemeSetting.restarts)
+                        if isfield(SchemeSetting,'Restarts') && isfinite(SchemeSetting.Restarts)
                             Restarts = SchemeSetting.Restarts;
                         end                         
-                        if isfield(SchemeSetting,'insigmaFrac') && isfinite(SchemeSetting.insigmaFrac)
-                            insigmaFrac = SchemeSetting.insigmaFrac;
+                        if isfield(SchemeSetting,'Sigma') && isfinite(SchemeSetting.Sigma)
+                            Sigma = SchemeSetting.Sigma;
                         end                         
                         if isfield(SchemeSetting,'Seed') && isfinite(SchemeSetting.Seed)
                             Seed = SchemeSetting.Seed;
@@ -1370,6 +1382,10 @@ classdef HydroSightModel < handle
                          error('The input for the CMAES calibration scheme must be an input scalar integer >=0 or a structure variable.');    
                      end
                      
+
+                     % Create vector of sigma using fraction of the
+                     % plausible parameter bounds.
+
                      % Build the complete calibSchemeSettings structural
                      % variable.
                      calibSchemeSettings.MaxFunEvals = MaxFunEvals;
@@ -1377,7 +1393,7 @@ classdef HydroSightModel < handle
                      calibSchemeSettings.TolX = TolX;
                      calibSchemeSettings.TolFun = TolFun;
                      calibSchemeSettings.Restarts = Restarts;
-                     calibSchemeSettings.insigmaFrac = insigmaFrac;
+                     calibSchemeSettings.Sigma = Sigma;
                      calibSchemeSettings.Seed = Seed;
                      
                      % Set the random seed
@@ -1394,7 +1410,8 @@ classdef HydroSightModel < handle
                     pcento = 1e-6;    
                     peps = 1e-6;
                     ngs = 2 * nparams;
-                    iseed = floor(mod(datenum(now),1)*1000000);                    
+                    iseed = floor(mod(now,1)*1000000);     
+                    silent = false;
                     
                     if isnumeric(SchemeSetting) 
                         if SchemeSetting<1 || floor(SchemeSetting)~=ceil(SchemeSetting) 
@@ -1420,7 +1437,10 @@ classdef HydroSightModel < handle
                         end
                         if isfield(SchemeSetting,'iseed') && isfinite(SchemeSetting.iseed)
                             iseed = SchemeSetting.iseed;
-                        end                 
+                        end  
+                        if isfield(SchemeSetting,'silent') && islogical(SchemeSetting.silent)
+                            silent = SchemeSetting.silent;
+                        end
                     else
                         error('The input for the SP-UCI calibration scheme must be an input scalar integer >=1 or a structure variable.');    
                     end                    
@@ -1433,6 +1453,7 @@ classdef HydroSightModel < handle
                     calibSchemeSettings.peps = peps;
                     calibSchemeSettings.ngs = ngs;
                     calibSchemeSettings.iseed = iseed;
+                    calibSchemeSettings.silent = silent;
                                     
                      % Set the random seed
                      rng(calibSchemeSettings.iseed);                    
@@ -1440,13 +1461,15 @@ classdef HydroSightModel < handle
                 case 'DREAM'
                     % Set default options
                     N_per_param = 1;
-                    T = 5;
+                    Tmin = 1500; 
+                    T = 10000;
                     nCR = 3;    
                     delta = 3;
                     lambda = 0.05;
                     zeta = 0.05;
                     outlier = 'iqr';
                     pJumpRate_one = 0.2;
+                    steps = 100;
                     
                     if isnumeric(SchemeSetting) 
                         if SchemeSetting<1 || floor(SchemeSetting)~=ceil(SchemeSetting) 
@@ -1458,6 +1481,9 @@ classdef HydroSightModel < handle
                         if isfield(SchemeSetting,'N_per_param') && isfinite(SchemeSetting.N_per_param)
                             N_per_param = SchemeSetting.N_per_param;
                         end
+                        if isfield(SchemeSetting,'Tmin') && isfinite(SchemeSetting.Tmin)
+                            Tmin = SchemeSetting.Tmin;
+                        end                                                
                         if isfield(SchemeSetting,'T') && isfinite(SchemeSetting.T)
                             T = SchemeSetting.T;
                         end                        
@@ -1478,12 +1504,16 @@ classdef HydroSightModel < handle
                         end
                         if isfield(SchemeSetting,'pJumpRate_one') && isfinite(SchemeSetting.pJumpRate_one)
                             pJumpRate_one = SchemeSetting.pJumpRate_one;
-                        end                        
+                        end       
+                        if isfield(SchemeSetting,'steps') && isfinite(SchemeSetting.steps)
+                            steps = SchemeSetting.steps;
+                        end       
                     end
                     
                     % Build the complete calibSchemeSettings structural
                     % variable.
                     calibSchemeSettings.N_per_param = N_per_param;
+                    calibSchemeSettings.Tmin = Tmin;                    
                     calibSchemeSettings.T = T;
                     calibSchemeSettings.nCR = nCR;
                     calibSchemeSettings.delta = delta;
@@ -1491,6 +1521,7 @@ classdef HydroSightModel < handle
                     calibSchemeSettings.zeta = zeta;
                     calibSchemeSettings.outlier = outlier;
                     calibSchemeSettings.pJumpRate_one = pJumpRate_one;
+                    calibSchemeSettings.steps = steps;
                                                                               
                 otherwise
                     error('The requested calibration scheme is unknown.');
@@ -1512,6 +1543,12 @@ classdef HydroSightModel < handle
             obj.calibrationResults = [];
             obj.evaluationResults = [];            
 
+            % Record version details and date of calib.
+            [versionNumber,versionDate] = getHydroSightVersion();
+            obj.calibrationResults.date = datestr(now(),0);
+            obj.calibrationResults.HydroSight.versionNum = versionNumber;
+            obj.calibrationResults.HydroSight.versionDate = versionDate;            
+
             % Add flag to denote the calibration is not complete.
             obj.calibrationResults.isCalibrated = false;
             
@@ -1527,7 +1564,7 @@ classdef HydroSightModel < handle
             
             % Initialsise model calibration and evaluation outputs.
             t_filt = obj.model.inputData.head(:,1) >=t_start  & obj.model.inputData.head(:,1) <= t_end;  
-            time_points = obj.model.inputData.head(t_filt,1);
+            neval = sum(~t_filt);
             obj.calibrationResults.time_start =  t_start;
             obj.calibrationResults.time_end =  t_end;
             obj.calibrationResults.data.obsHead =  obj.model.inputData.head(t_filt , :);
@@ -1542,7 +1579,7 @@ classdef HydroSightModel < handle
                     '  (ii) contact the calibration dates to increase the observation data for evaluation.']);
             end                            
             
-            if obj.model.inputData.head(~t_filt,1)>0
+            if neval>0
                 % Add data to evaluation structure
                 obj.evaluationResults.time_lessThan =  t_start;
                 obj.evaluationResults.time_greaterThan =  t_end;
@@ -1575,7 +1612,7 @@ classdef HydroSightModel < handle
             if nargin ==6
 
                 [params_upperBound, params_lowerBound] = getParameters_plausibleLimit(obj.model);
-                if any(isnan(params_upperBound)) || any(isnan(params_upperBound)) || ...
+                if any(isnan(params_upperBound)) || any(isnan(params_lowerBound)) || ...
                 any(~isreal(params_lowerBound)) || any(~isreal(params_lowerBound))
                     error('The plausible parameter boundaries must be a real number between (and including) -inf and inf.')
                 end                
@@ -1588,29 +1625,29 @@ classdef HydroSightModel < handle
             % physical boundaries.
             if any( params_upperBound > params_upperPhysBound) 
                 params_upperBound = min(params_upperBound, params_upperPhysBound);    
-                display('WARNING: At least one upper parameter boundary exceeds the upper lower physical boundary.');
-                display('         They have been shifted to equal the upper physical boundary.');                
-                display( char(13) );            
+                disp('WARNING: At least one upper parameter boundary exceeds the upper lower physical boundary.');
+                disp('         They have been shifted to equal the upper physical boundary.');                
+                disp( char(13) );            
             end
             if any( params_lowerBound < params_lowerPhysBound)               
                 params_lowerBound = max(params_lowerBound, params_lowerPhysBound);                
-                display('WARNING: At least one lower parameter boundary exceeds the lower physical boundary.');
-                display('         They have been shifted to equal the lower physical boundary.');
-                display( char(13) );            
+                disp('WARNING: At least one lower parameter boundary exceeds the lower physical boundary.');
+                disp('         They have been shifted to equal the lower physical boundary.');
+                disp( char(13) );            
             end             
             
             % Check the upper bound is greater than the lower parameter
             % bound. 
             if any(params_lowerBound >= params_upperBound - sqrt(eps()) )
-                disp(sprintf('          %s \t %s \t  %s \t %s \t \t %s \t \t %s', 'Model','Param.','Lower', 'Upper'));
-                disp(sprintf('          %s \t %s \t \t %s \t %s \t %s \t %s', 'Componant','Name'));            
+                disp(sprintf('          %s \t %s \t  %s \t %s \t \t %s \t \t %s', 'Model','Param.','Lower', 'Upper')); %#ok<DSPS> 
+                disp(sprintf('          %s \t %s \t \t %s \t %s \t %s \t %s', 'Componant','Name'));            %#ok<DSPS> 
                 for ii=1:nparams
                     if length(obj.model.variables.param_names{ii,1}) < 5
                         params_str = sprintf('          %s \t \t %s \t \t %8.4g \t %8.4g \t %8.4g \t %8.4g', obj.model.variables.param_names{ii,1}, obj.model.variables.param_names{ii,2}, params_lowerBound(ii), params_upperBound(ii) );
                     else
                         params_str = sprintf('          %s \t %s \t \t %8.4g \t %8.4g \t %8.4g \t %8.4g', obj.model.variables.param_names{ii,1}, obj.model.variables.param_names{ii,2}, params_lowerBound(ii), params_upperBound(ii) );
                     end
-                    disp([params_str]);    
+                    disp(params_str);    
                 end 
 
                 error('The parameter lower bounds must be less than the parameter upper bounds and the difference must be greater than sqrt(eps()).');
@@ -1620,97 +1657,121 @@ classdef HydroSightModel < handle
             % lower parameter boundaries. If not adjust the violating
             % parameter to the closest boundary.
             if any(params < params_lowerBound)
-                display(  'WARNING: Some of the initial parameter values have been shifted to the lower');
-                display(  '         boundary because they violoate the lower parameter boundary.');
-                display( char(13) );
+                disp(  'WARNING: Some of the initial parameter values have been shifted to the lower');
+                disp(  '         boundary because they violoate the lower parameter boundary.');
+                disp( char(13) );
                 params = max(params, params_lowerBound);
             elseif any(params > params_upperBound)
-                display(  'WARNING: Some of the initial parameter values have been shifted to the upper');
-                display(  '         boundary because they violoate the upper parameter boundary.');
-                display( char(13) );
+                disp(  'WARNING: Some of the initial parameter values have been shifted to the upper');
+                disp(  '         boundary because they violoate the upper parameter boundary.');
+                disp( char(13) );
                 params = min(params, params_upperBound);                
             end            
             %------------
             
             % Output user set options.
-            display( char(13) );           
-            display('Global calibration scheme is to be undertaken using the following settings');
              switch calibrationSchemeName
                 case {'CMA ES','CMA_ES','CMAES','CMA-ES'}                    
-                    display( '      - Calibration scheme: Covariance Matrix Adaptation Evolution Strategy (CMA-ES)');
-                    display(['      - Number of initial CMA-ES parameter sets  = ',num2str(PopSize)]);                      
-                    display(['      - Maximum number of model evaluations (maxFunEvals) = ',num2str(MaxFunEvals)]);
-                    display(['      - Absolute change in the objective function for convergency (tolFun) = ',num2str(TolFun)]);
-                    display(['      - Largest absolute change in the parameters for convergency (tolX) = ',num2str(TolX)]);
-                    display(['      - Number CMA-ES calibration restarts (Restarts) = ',num2str(Restarts)]);
-                    display(['      - Standard deviation for the initial parameter sampling, as fraction of plausible parameter bounds (insigmaFrac) = ',num2str(insigmaFrac)]);
-                    display(['      - Random seed number (only for repetetive testing purposes) = ',num2str(Seed)]);
+                    disp( char(13) );
+                    disp('Global calibration scheme is to be undertaken using the following settings');
+                    disp( '      - Calibration scheme: Covariance Matrix Adaptation Evolution Strategy (CMA-ES)');
+                    disp(['      - Number of initial CMA-ES parameter sets  = ',num2str(PopSize)]);                      
+                    disp(['      - Maximum number of model evaluations (maxFunEvals) = ',num2str(MaxFunEvals)]);
+                    disp(['      - Absolute change in the objective function for convergency (tolFun) = ',num2str(TolFun)]);
+                    disp(['      - Largest absolute change in the parameters for convergency (tolX) = ',num2str(TolX)]);
+                    disp(['      - Number CMA-ES calibration restarts (Restarts) = ',num2str(Restarts)]);
+                    disp(['      - Standard deviation for the initial parameter sampling, as fraction of plausible parameter bounds (Sigma) = ',num2str(Sigma)]);
+                    disp(['      - Random seed number (only for repetetive testing purposes) = ',num2str(Seed)]);
                                         
                 case {'SP UCI','SP_UCI','SPUCI','SP-UCI'}
-                    display( '      - Calibration scheme: Shuffled complex evolution with principal components analysis–University of California at Irvine (SP-UCI)');                    
-                    display(['      - Max. number of model evaluations (maxn)= ',num2str(maxn)]);  
-                    display(['      - No. of evolution loops meeting convergence criteria (kstop) = ',num2str(kstop)]);  
-                    display(['      - % change in the objective function allowed in kstop loops before convergence (pcento)= ',num2str(pcento)]);  
-                    display(['      - Normalized geometric range of the parameters before convergence (peps)= ',num2str(peps)]);  
-                    display(['      - No. of complexes = ',num2str(ngs)]);  
-                    display(['      - Random seed = ',num2str(iseed)]);  
-                    
+                    if ~calibSchemeSettings.silent
+                        disp( char(13) );
+                        disp('Global calibration scheme is to be undertaken using the following settings');                        
+                        disp( '      - Calibration scheme: Shuffled complex evolution with principal components analysis–University of California at Irvine (SP-UCI)');
+                        disp(['      - Max. number of model evaluations (maxn)= ',num2str(maxn)]);
+                        disp(['      - No. of evolution loops meeting convergence criteria (kstop) = ',num2str(kstop)]);
+                        disp(['      - % change in the objective function allowed in kstop loops before convergence (pcento)= ',num2str(pcento)]);
+                        disp(['      - Normalized geometric range of the parameters before convergence (peps)= ',num2str(peps)]);
+                        disp(['      - No. of complexes = ',num2str(ngs)]);
+                        disp(['      - Random seed = ',num2str(iseed)]);
+                    end
                 case 'DREAM'
-                    display( '      - Calibration scheme: DiffeRential Evolution Adaptive Metropolis algorithm (DREAM)');                    
-                    display(['      - Number of generations per chain (T) = ',num2str(T*10000)]);                      
-                    display(['      - Number of Markov chains per model parameter (N_per_param) = ',num2str(N_per_param)]);  
-                    display(['      - Number of crossover values (nCR) = ',num2str(nCR)]);  
-                    display(['      - Number chain pairs for proposal (delta) = ',num2str(delta)]);  
-                    display(['      - Random error for ergodicity (lambda) = ',num2str(lambda)]);  
-                    display(['      - Randomization (zeta) = ',num2str(zeta)]);  
-                    display(['      - Test function name for detecting outlier chains (outlier) = ',outlier]);  
-                    display(['      - Probability of jumprate of 1 (pJumpRate_one) = ',num2str(pJumpRate_one)]);  
+                    disp( char(13) );
+                    disp('Global calibration scheme is to be undertaken using the following settings');
+                    disp( '      - Calibration scheme: DiffeRential Evolution Adaptive Metropolis algorithm (DREAM)');                    
+                    disp(['      - Min. converged generations per param (Tmin) = ',num2str(Tmin)]);    
+                    disp(['      - Max. generations per chain (T) = ',num2str(T)]);
+                    disp(['      - Number of Markov chains per model parameter (N_per_param) = ',num2str(N_per_param)]);  
+                    disp(['      - Number of crossover values (nCR) = ',num2str(nCR)]);  
+                    disp(['      - Number chain pairs for proposal (delta) = ',num2str(delta)]);  
+                    disp(['      - Random error for ergodicity (lambda) = ',num2str(lambda)]);  
+                    disp(['      - Randomization (zeta) = ',num2str(zeta)]);  
+                    disp(['      - Test function name for detecting outlier chains (outlier) = ',outlier]);  
+                    disp(['      - Probability of jumprate of 1 (pJumpRate_one) = ',num2str(pJumpRate_one)]);  
                                         
-             end             
-            display( '      - Summary of parameters for calibration and their bounds: ');
-            display( '        Param. componant and name, lower and upper boundary value: ');
-            disp(sprintf('          %s \t %s \t  %s \t %s \t \t %s \t \t %s', 'Model','Param.','Lower', 'Upper', 'Lower', 'Upper'));
-            disp(sprintf('          %s \t %s \t \t %s \t %s \t %s \t %s', 'Componant','Name','(Plausible)', '(Plausible)','(Physical)', '(Physical)'));            
-            for ii=1:nparams
-                if length(obj.model.variables.param_names{ii,1}) < 5
-                    params_str = sprintf('          %s \t \t %s \t \t %8.4g \t %8.4g \t %8.4g \t %8.4g', obj.model.variables.param_names{ii,1}, obj.model.variables.param_names{ii,2}, params_lowerBound(ii), params_upperBound(ii), params_lowerPhysBound(ii), params_upperPhysBound(ii) );
-                else
-                    params_str = sprintf('          %s \t %s \t \t %8.4g \t %8.4g \t %8.4g \t %8.4g', obj.model.variables.param_names{ii,1}, obj.model.variables.param_names{ii,2}, params_lowerBound(ii), params_upperBound(ii), params_lowerPhysBound(ii), params_upperPhysBound(ii) );
-                end
-                disp([params_str]);    
-            end 
+             end           
+             if any(strcmp(calibrationSchemeName,{'CMA ES','CMA_ES','CMAES','CMA-ES'})) || ...
+                (any(strcmp(calibrationSchemeName,{'SP UCI','SP_UCI','SPUCI','SP-UCI'})) && ~calibSchemeSettings.silent) || ...
+                strcmp(calibrationSchemeName,'DREAM')
+
+                 disp( '      - Summary of parameters for calibration and their bounds: ');
+                 disp( '        Param. componant and name, lower and upper boundary value: ');
+                 disp(sprintf('          %s \t %s \t  %s \t %s \t \t %s \t \t %s', 'Model','Param.','Lower', 'Upper', 'Lower', 'Upper')); %#ok<DSPS> 
+                 disp(sprintf('          %s \t %s \t \t %s \t %s \t %s \t %s', 'Componant','Name','(Plausible)', '(Plausible)','(Physical)', '(Physical)')); %#ok<DSPS> 
+                 for ii=1:nparams
+                     if length(obj.model.variables.param_names{ii,1}) < 5
+                         params_str = sprintf('          %s \t \t %s \t \t %8.4g \t %8.4g \t %8.4g \t %8.4g', obj.model.variables.param_names{ii,1}, obj.model.variables.param_names{ii,2}, params_lowerBound(ii), params_upperBound(ii), params_lowerPhysBound(ii), params_upperPhysBound(ii) );
+                     else
+                         params_str = sprintf('          %s \t %s \t \t %8.4g \t %8.4g \t %8.4g \t %8.4g', obj.model.variables.param_names{ii,1}, obj.model.variables.param_names{ii,2}, params_lowerBound(ii), params_upperBound(ii), params_lowerPhysBound(ii), params_upperPhysBound(ii) );
+                     end
+                     disp(params_str);
+                 end
+             end
             
             % Update the diary file
-            if ~isempty(diaryObj)
-                updatetextboxFromDiary(diaryObj);
-            end
+            %if ~isempty(guiObj)
+            %    updatetextboxFromDiary(guiObj);
+            %end
             
             %--------------------------------------------------------------
             % Do SCE calibration using the objective function SSE.m
             log_L=[];
             switch upper(calibrationSchemeName)
                 case {'CMA ES','CMA_ES','CMAES','CMA-ES'}
-                    
+                    % Store calib. settings
+                    obj.calibrationResults.calibMethod = 'CMA-ES';
+                    obj.calibrationResults.calibSchemeSettings = calibSchemeSettings;
+
+                    % Add additional settings for bounds and file handling.
                     calibSchemeSettings.LBounds = params_lowerPhysBound;
                     calibSchemeSettings.UBounds = params_upperPhysBound;
                     calibSchemeSettings.LogFilenamePrefix = ['CMAES_',obj.bore_ID];
                     calibSchemeSettings.LogPlot = 'off';
                     calibSchemeSettings.CMA.active = 1;
+                    calibSchemeSettings.LogModulo = 0;
+                    calibSchemeSettings.SaveVariables=0;
                     
                     calibSchemeSettings.EvalParallel = 'yes';     % Undertake parrallel function evaluation
                     calibSchemeSettings.SaveVariables = 'off';    % Do not save .mat file of results.
                     
                     useLikelihood = false;
                     
-                    % Define bounds and initial standard dev of params
-                    insigma = insigmaFrac*(params_upperBound - params_lowerBound);
-                    params_start = params_lowerBound + 1/2.*(params_upperBound - params_lowerBound);
-                    params_start = [mat2str(params_start) '+ insigma .* (2 * rand(',num2str(nparams),',1) -1)'];                    
-                    
+                    % Define initial standard dev of params. (sigma) as a
+                    % fraction of the parameter bounds. If a phyical bound
+                    % is |inf| the the plausible bound is used.
+                    filt = isinf(params_lowerBound);
+                    params_lowerPhysBound(filt) = params_lowerBound(filt);
+                    filt = isinf(params_upperPhysBound);
+                    params_upperPhysBound(filt) = params_upperBound(filt);
+
+                    insigma = Sigma*(params_upperPhysBound - params_lowerPhysBound);
+
                     % Do calibration
                     doParamTranspose = false;
-                    [params_finalEvol, fmin_finalEvol, numFunctionEvals, exitflag, evolutions, params_bestever] ...            
-                     = cmaes( 'calibrationObjectiveFunction', params_start, insigma, calibSchemeSettings, diaryObj, obj, time_points, doParamTranspose, useLikelihood );
+                    calibSchemeSettings.CMA.active = 1;
+                    calibSchemeSettings = rmfield(calibSchemeSettings,'Sigma'); 
+                    [~, ~, numFunctionEvals, exitflag, ~, params_bestever] ...            
+                     = cmaes( 'calibrationObjectiveFunction', params, insigma, calibSchemeSettings, guiObj, obj, time_points, doParamTranspose, useLikelihood );
 
                     % Assign best every solution to params variable
                     params = params_bestever.x;
@@ -1720,23 +1781,44 @@ classdef HydroSightModel < handle
                     if iscell(exitflag)
                         exitflag = exitflag{1};
                     end                    
-                    
+                        
                     % Store exit status
-                    if any( strcmp(exitflag, 'maxfunevals'))
+                    if any( strcmp(exitflag, 'User quit calibration.'))
+                        exitFlag = -1;
+                        exitStatus = 'User quit calibration.';
+
+                        obj.calibrationResults.exitFlag = exitFlag;
+                        obj.calibrationResults.exitStatus = exitStatus;                                                
+                    elseif any( strcmp(exitflag, 'User skipped calibration.'))
+                        exitFlag = -2;
+                        exitStatus = 'User skipped calibration.';
+
+                        obj.calibrationResults.exitFlag = exitFlag;
+                        obj.calibrationResults.exitStatus = exitStatus;
+                    elseif any( strcmp(exitflag, 'maxfunevals'))
                         exitFlag = 1;
-                        existStatus = 'Insufficient maximum number of model evaluations for convergence.';
+                        exitStatus = 'Insufficient maximum number of model evaluations for convergence.';
+
+                        obj.calibrationResults.exitFlag = exitFlag;
+                        obj.calibrationResults.exitStatus = exitStatus;                        
                     elseif any( strcmp(exitflag, 'maxiter'))
                         exitFlag = 1;
-                        existStatus = 'Insufficient maximum number of iterations for convergence.';
-                    elseif any( strcmp(exitflag, 'maxiter'))
-                        exitFlag = 1;
-                        existStatus = 'Insufficient maximum number of iterations for convergence.';                    
+                        exitStatus = 'Insufficient maximum number of iterations for convergence.';     
+
+                        obj.calibrationResults.exitFlag = exitFlag;
+                        obj.calibrationResults.exitStatus = exitStatus;                        
                     elseif any( strcmp(exitflag, 'tolx')) && ~any( strcmp(exitflag, 'tolfun'))
                         exitFlag=1;
                         exitStatus = ['Only parameter convergence (not obj. function convergence) achieved in ', num2str(numFunctionEvals),' function evaluations.'];
+
+                        obj.calibrationResults.exitFlag = exitFlag;
+                        obj.calibrationResults.exitStatus = exitStatus;                        
                     elseif ~any( strcmp(exitflag, 'tolx')) && any( strcmp(exitflag, 'tolfun'))
                         exitFlag=1;
                         exitStatus = ['Only objective function convergence achieved (not param. convergence) in ', num2str(numFunctionEvals),' function evaluations.'];
+
+                        obj.calibrationResults.exitFlag = exitFlag;
+                        obj.calibrationResults.exitStatus = exitStatus;
                     elseif  any( strcmp(exitflag, 'maxfunevals')) || ...
                     any( strcmp(exitflag, 'maxiter')) || ...    
                     any( strcmp(exitflag, 'stoptoresume')) || ...    
@@ -1746,14 +1828,20 @@ classdef HydroSightModel < handle
                     any( strcmp(exitflag, 'warnnoeffectcoord')) || ...    
                     any( strcmp(exitflag, 'warnnoeffectaxis')) || ...    
                     any( strcmp(exitflag, 'warnequalfunvals')) || ...    
-                    any( strcmp(exitflag, 'warnequalfunvalhist')) ...
+                    any( strcmp(exitflag, 'warnequalfunvalhist')) || ...
                     any( strcmp(exitflag, 'bug'))
                                                 
                         exitStatus = ['Calibration warning encountered:', exitflag,' See CMA-ES scheme documentation for details.'];                        
                         exitFlag=1;
+
+                        obj.calibrationResults.exitFlag = exitFlag;
+                        obj.calibrationResults.exitStatus = exitStatus;                        
                     elseif any( strcmp(exitflag, 'tolx')) && any( strcmp(exitflag, 'tolfun'))
                         exitFlag=2;
                         exitStatus = ['Parameter and objective function convergence achieved in ', num2str(numFunctionEvals),' function evaluations.'];
+
+                        obj.calibrationResults.exitFlag = exitFlag;
+                        obj.calibrationResults.exitStatus = exitStatus;                        
                     else
                         exitFlag=0;
                         exitStatus = ['Unhandled non-convergence issues. Total model evaluations undertaken = ', num2str(numFunctionEvals)];
@@ -1772,6 +1860,7 @@ classdef HydroSightModel < handle
                     peps = calibSchemeSettings.peps;
                     ngs = calibSchemeSettings.ngs;
                     iseed = calibSchemeSettings.iseed;
+                    silent = calibSchemeSettings.silent;
                     iniflg =  1;                
                     useLikelihood=false;
 
@@ -1783,20 +1872,25 @@ classdef HydroSightModel < handle
                     doParamTranspose = false;
                     [params, fmin,numFunctionEvals, exitFlag, exitStatus] = SPUCI(@calibrationObjectiveFunction, @calibrationValidParameters, ...
                         params', params_lowerBound', params_upperBound', params_lowerPhysBound', params_upperPhysBound', maxn, ...
-                        kstop, pcento, peps, ngs, iseed, iniflg, diaryObj, obj, time_points, doParamTranspose, useLikelihood); 
+                        kstop, pcento, peps, ngs, iseed, iniflg, guiObj, silent, obj, time_points, doParamTranspose, useLikelihood); 
                         params = params';
                     
-                    if exitFlag==0
-                        obj.calibrationResults.exitFlag = exitFlag;
-                        obj.calibrationResults.exitStatus = exitStatus;
-                        
+                    obj.calibrationResults.calibMethod = 'SP-UCI';
+                    obj.calibrationResults.calibSchemeSettings = calibSchemeSettings;                        
+                    obj.calibrationResults.exitFlag = exitFlag;
+                    obj.calibrationResults.exitStatus = exitStatus;
+
+                    if exitFlag==0                        
                         ME = MException('HydroSightModel:CalibrationFailure',exitStatus);
                         throw(ME);
                     end
 
                     
                 case 'DREAM'
-              
+                    % Store HydroSight handled DREAM settings
+                    obj.calibrationResults.calibMethod = 'DREAM';
+                    obj.calibrationResults.calibSchemeSettings = calibSchemeSettings;
+
                     % Application specific settings.
                     % -------------------------------------------------------------------------
                     % Set the approx. number of samples required for
@@ -1814,11 +1908,12 @@ classdef HydroSightModel < handle
                     calibSchemeSettings.pCR = 'yes';             % Adaptive tuning crossover values
                     calibSchemeSettings.thinning = 1;            % Each Tth sample is stored         
                     % -------------------------------------------------------------------------
-                    %                           MODEL SPECIFIC VALUES
+                    %                           MODEL SPECIFIC VALUES 
                     % -------------------------------------------------------------------------                    
                     calibSchemeSettings.d = nparams;             % Dimensionality target distribution
-                    calibSchemeSettings.N = max(calibSchemeSettings.N_per_param * nparams, 2*calibSchemeSettings.delta+1);   % Number of Markov chains                    
-                    calibSchemeSettings.T = 10000*calibSchemeSettings.T;  % Number of generations
+                    calibSchemeSettings.N = max(ceil(calibSchemeSettings.N_per_param * nparams), 2*calibSchemeSettings.delta+1);   % Number of Markov chains                    
+                    calibSchemeSettings.T = ceil(calibSchemeSettings.T);  % Max. Number of generations
+                    calibSchemeSettings.Tmin = ceil(calibSchemeSettings.Tmin);  % Min of generations for convergence
                     calibSchemeSettings.lik=2;                   % Choice of likelihood function
                     useLikelihood = true;
                     calibSchemeSettings.restart = 'no';
@@ -1837,14 +1932,16 @@ classdef HydroSightModel < handle
                     end
                     % Set parameter bounds
                     Par_info.prior ='latin';
-                    Par_info.min = params_lowerBound'; % If 'latin', min parameter values
-                    Par_info.max = params_upperBound'; % If 'latin', max parameter values                    
+                    Par_info.min = params_lowerPhysBound'; 
+                    Par_info.max = params_upperPhysBound'; 
+                    Par_info.min_initial = params_lowerBound'; % If 'latin', min parameter values
+                    Par_info.max_initial = params_upperBound'; % If 'latin', max parameter values   
                     Par_info.boundhandling ='reflect';% Explicit boundary handling
 
                     % Do calibration 
-                    doParamTranspose = true;
-                    [params,output,fx,log_L] = DREAM(@calibrationObjectiveFunction,calibSchemeSettings,Par_info,[], diaryObj, obj, time_points, doParamTranspose,useLikelihood);
-                              
+                    doParamTranspose = false;
+                    [params,output] = DREAM(@calibrationObjectiveFunction,@calibrationValidParameters,calibSchemeSettings,Par_info,[], guiObj, obj, time_points, doParamTranspose,useLikelihood);
+                          
                     % Extract the R_statistic values and dilter for those
                     % where R_statistic<1.2 for all parameters in the set.
                     r_stat_threshold = 1.2;
@@ -1854,16 +1951,16 @@ classdef HydroSightModel < handle
                     convergedParamSamplesThreshold = min(output.R_stat(r_stat_acceptable,1));
                     
                     % Find the total number of samples
-                    nParamSamples = output.R_stat(end, 1);
+                    numFunctionEvals = output.R_stat(end, 1);
                     
                     % Find the number of viable parameter sets                    
-                    convergedParamSamples = max(1,nParamSamples - convergedParamSamplesThreshold);
+                    convergedParamSamples = max(1,numFunctionEvals - convergedParamSamplesThreshold);
 
                     % To minimise RAM, only save a maximum of
                     % 2*convergedGenerations parameter sets.
                     if convergedParamSamples>=  2*reqMinParamSamples                        
                         convergedParamSamples = 2*reqMinParamSamples;
-                        convergedParamSamplesThreshold = nParamSamples - convergedParamSamples;
+                        convergedParamSamplesThreshold = numFunctionEvals - convergedParamSamples;
                     end
                     
                     if isempty(convergedParamSamples) || convergedParamSamples < 0.1*reqMinParamSamples
@@ -1871,31 +1968,46 @@ classdef HydroSightModel < handle
                             convergedParamSamples = 0;
                         end                    
                         exitFlag=1;
-                        exitStatus = ['Insufficient DREAM generations for reliable calibration-selected lesser of last 10,000 samples of 10% of no. samples. Number of reliable param. sets is ', num2str(convergedParamSamples), ...
-                            ' and recommended is at least ',num2str(reqMinParamSamples),'. Increase method number to greater than ',num2str(SchemeSetting)];
-                        
+                        exitStatus = {['Insufficient generations. No. reliable param. sets was ', num2str(convergedParamSamples)], ...
+                            ['This is <10% of the minimum requirement of ',num2str(reqMinParamSamples)],'Try increasing the number of generations per chain (T).'};
                         obj.calibrationResults.exitFlag = exitFlag;
                         obj.calibrationResults.exitStatus = exitStatus;
                         
-                        convergedParamSamples = min(floor(nParamSamples*0.1), 10000);
-                        convergedParamSamplesThreshold = nParamSamples - convergedParamSamples;
+                        convergedParamSamples = min(floor(numFunctionEvals*0.1), 10000);
+                        convergedParamSamplesThreshold = numFunctionEvals - convergedParamSamples;
                         
                     elseif convergedParamSamples < reqMinParamSamples
                         exitFlag=1;
-                        exitStatus = ['Possible insufficient DREAM generations. Number of reliable param. sets is ', num2str(convergedParamSamples), ...
-                            ' and recommended is at least ',num2str(reqMinParamSamples),'. Increase method number to greater than ',num2str(SchemeSetting)];
+                        exitStatus = {['Insufficient generations. No. reliable param. sets was ', num2str(convergedParamSamples)], ...
+                            ['The recommended number is >=',num2str(reqMinParamSamples)],'Try increasing the number of generations per chain (T).'};
                     else
                         exitFlag=2;
-                        exitStatus = ['Sufficient DREAM iterations. Number of reliable param. sets is ', num2str(convergedParamSamples), ...
-                            ' and recommended is at least ',num2str(reqMinParamSamples)];                        
+                        exitStatus = {['Sufficient DREAM iterations. Number of reliable param. sets is ', num2str(convergedParamSamples)], ...
+                            ['The recommended is >',num2str(reqMinParamSamples)]};                        
                     end
 
+                    % Check if user quit calibration (ie if using the GUI)
+                    % and update exit info accordingly
+                    if ~isempty(guiObj)  && isa(guiObj, 'HydroSight_GUI')
+                        [exitCalib, exitFlag_userQuit] = modelCalibration_getCalibState(guiObj);
+                        if exitCalib
+                            exitFlag=exitFlag_userQuit;
+                        end
+                    end
+
+                    % Get the parameters (and associated likelihood value) that meet the convergence criteria.
                     convergedParamSamplesThreshold = floor(convergedParamSamplesThreshold/calibSchemeSettings.N);
                     params = params(convergedParamSamplesThreshold:end,:,:);
                     params = genparset(params);
-                    paramsTmp = params(:,1:nparams)';
+
+                    % Sort the parameter sets from highest (ie best) to worst. This is done so
+                    % that the best solution in column 1.
+                    params = sortrows(params, size(params,2),"descend");
                     log_L = params(:,end)';
-                    params=paramsTmp;    
+                    params = params(:,1:nparams)';
+                    
+                    obj.calibrationResults.exitFlag = exitFlag;
+                    obj.calibrationResults.exitStatus = exitStatus;
                     
                     % Filt out any inf likiloof values (just in case)
                     filt = ~isinf(log_L);
@@ -1903,14 +2015,13 @@ classdef HydroSightModel < handle
                         exitStatus = [exitStatus, ' WARNING: ', num2str(sum(~filt)), ' parameter sets with liklihood value of inf were removed.'];
                         params = params(:,filt);                    
                         log_L = log_L(filt);
-                    end;                    
+                    end                 
                     
-                    clear paramsTmp
                 otherwise
                     error('The requested calibration scheme is unknown.');
             end            
             
-            display('--------------------------------------------');             
+            %display('--------------------------------------------');             
 
             %--------------------------------------------------------------
            
@@ -1927,78 +2038,75 @@ classdef HydroSightModel < handle
             
             % Call model objects to finalise calibration.
             calibration_initialise(obj.model, t_start, t_end);
-            calibration_finalise(obj.model, params, false );            
+            head_est_cal= calibration_finalise(obj.model, params, false );            
                        
-            % Add final parameters
+            % Add exist status
+            [versionNumber,versionDate] = getHydroSightVersion();
+            obj.calibrationResults.HydroSight.versionNum = versionNumber;
+            obj.calibrationResults.HydroSight.versionDate = versionDate;
+            obj.calibrationResults.date = datestr(now(),0); 
+            obj.calibrationResults.exitFlag = exitFlag;
+            obj.calibrationResults.exitStatus = exitStatus;                        
+            
+            % Get the final parameters
             [obj.calibrationResults.parameters.params_final, ...
                 obj.calibrationResults.parameters.params_name] = getParameters(obj.model);  
 
-            % Add exist status
-            obj.calibrationResults.exitFlag = exitFlag;
-            obj.calibrationResults.exitStatus = exitStatus;            
-            
-            % Calculate calibration and evaluation heads
-            %--------------------------------------------------------------            
-            try                
-                head_est = solveModel(obj, obsHead(:,1), [], '', false );
-            catch
-                head_est = solveModel(obj, obsHead(:,1));
-            end
-                
-            % Convert to real (just n case errors in pram est arose)
-            head_est = real(head_est);
+            % Set some constants on the form of the parameter sets
+            nparams = size(obj.calibrationResults.parameters.params_final,1);
+            nparamsets = size(obj.calibrationResults.parameters.params_final,2);
+            ncal = size(head_est_cal,1);
 
-            % Eval. residuals.            
-            neval = sum(~t_filt);        
-            if neval>0
-                
-                if size(head_est,3)>1
-                    obj.evaluationResults.data.modelledHead = [head_est(~t_filt,1,1), permute(prctile( head_est(~t_filt, 2,:),[50 5 95],3),[1,3,2])];
-                    obj.evaluationResults.data.modelledNoiseBounds = [head_est(~t_filt,1,1), prctile( head_est(~t_filt, 3,:),5,3), prctile( head_est(~t_filt, 4,:),95,3)];
-                    obj.evaluationResults.data.modelledHead_residuals = permute(bsxfun(@minus, obsHead(~t_filt,2), head_est(~t_filt, 2,:)),[ 1 3 2]);
-                    head_eval_resid = obj.evaluationResults.data.modelledHead_residuals;
-                else
-                    obj.evaluationResults.data.modelledHead = head_est(~t_filt,1:2);
-                    obj.evaluationResults.data.modelledNoiseBounds = head_est(~t_filt,[1,3,4]);
-                    obj.evaluationResults.data.modelledHead_residuals = obsHead(~t_filt,2) -obj.evaluationResults.data.modelledHead(:,2);
-                    head_eval_resid = obj.evaluationResults.data.modelledHead_residuals;
-                end
-                if size(head_est,3)>1
-                    obj.evaluationResults.data.modelledHead_residuals = single(obj.evaluationResults.data.modelledHead_residuals);
-                end
+            % Add calib. obs data and residuals
+            if nparamsets>1
+                obj.calibrationResults.data.modelledHead = [head_est_cal(:,1,1), head_est_cal(:, 2,1), permute(prctile( head_est_cal(:, 2,:),[5 95],3),[1,3,2])];                
+                obj.calibrationResults.data.modelledNoiseBounds = [head_est_cal(:,1,1), prctile( head_est_cal(:, 3,:),5,3), prctile( head_est_cal(:, 4,:),95,3)];
+                obj.calibrationResults.data.modelledHead_residuals = permute( bsxfun(@minus, single(obsHead(t_filt,2)), single(head_est_cal(:, 2,:))),[1 3 2]);
             else
+                obj.calibrationResults.data.modelledHead = head_est_cal(:,1:2);
+                obj.calibrationResults.data.modelledNoiseBounds = head_est_cal(:,[1,3,4]);
+                obj.calibrationResults.data.modelledHead_residuals = obsHead(t_filt,2) -obj.calibrationResults.data.modelledHead(:,2);
+            end
+
+            % Calculate evaluation heads
+            if neval>0
+                try
+                    head_est_eval = solveModel(obj, obsHead(~t_filt,1), [], '', false );
+                catch
+                    head_est_eval = solveModel(obj, obsHead(~t_filt,1));
+                end
+
+                if nparamsets>1
+                    obj.evaluationResults.data.modelledHead = [head_est_eval(:,1,1), head_est_eval(:, 2,1), permute(prctile( head_est_eval(:, 2,:),[5 95],3),[1,3,2])];
+                    obj.evaluationResults.data.modelledNoiseBounds = [head_est_eval(:,1,1), prctile( head_est_eval(:, 3,:),5,3), prctile( head_est_eval(:, 4,:),95,3)];
+                    obj.evaluationResults.data.modelledHead_residuals = permute(bsxfun(@minus, single(obsHead(~t_filt,2)), single(head_est_eval(:, 2,:))),[ 1 3 2]);
+                else
+                    obj.evaluationResults.data.modelledHead = head_est_eval(:,1:2);
+                    obj.evaluationResults.data.modelledNoiseBounds = head_est_eval(:,[1,3,4]);
+                    obj.evaluationResults.data.modelledHead_residuals = obsHead(~t_filt,2) -obj.evaluationResults.data.modelledHead(:,2);
+                end
+            else 
                 obj.evaluationResults =[];
             end
-            
-            % Add calib. obs data and residuals
-            if size(head_est,3)>1
-                obj.calibrationResults.data.modelledHead = [head_est(t_filt,1,1), permute(prctile( head_est(t_filt, 2,:),[50 5 95],3),[1,3,2])];                
-                obj.calibrationResults.data.modelledNoiseBounds = [head_est(t_filt,1,1), prctile( head_est(t_filt, 3,:),5,3), prctile( head_est(t_filt, 4,:),95,3)];
-                obj.calibrationResults.data.modelledHead_residuals = permute( bsxfun(@minus, obsHead(t_filt,2), head_est(t_filt, 2,:)),[1 3 2]);
-                head_calib_resid = obj.calibrationResults.data.modelledHead_residuals;
-            else
-                obj.calibrationResults.data.modelledHead = head_est(t_filt,1:2);
-                obj.calibrationResults.data.modelledNoiseBounds = head_est(t_filt,[1,3,4]);
-                obj.calibrationResults.data.modelledHead_residuals = obsHead(t_filt,2) -obj.calibrationResults.data.modelledHead(:,2);
-                head_calib_resid = obj.calibrationResults.data.modelledHead_residuals;
-            end
-            if size(head_est,3)>1
-                obj.calibrationResults.data.modelledHead_residuals = single(obj.calibrationResults.data.modelledHead_residuals);  % to reduce RAM from DREAM runs
-            end
-                                                
-            nparams = size(params,1);
-            nobs = size(obj.calibrationResults.data.modelledHead,1);            
             %--------------------------------------------------------------
             
                         
             % Calc. various performance measures including the coefficient of efficiency using the mean observed head
             %------------------
+            % Objective functiion and nume function evals
+            if strcmpi(calibrationSchemeName,'DREAM')
+                obj.calibrationResults.performance.objectiveFunction= log_L;
+            else
+                obj.calibrationResults.performance.objectiveFunction = fmin;
+            end
+            obj.calibrationResults.performance.numFunctionEvals = numFunctionEvals;
+
             % Mean error
-            obj.calibrationResults.performance.mean_error =  mean(head_calib_resid);
+            obj.calibrationResults.performance.mean_error =  mean(obj.calibrationResults.data.modelledHead_residuals,1);
             
             %RMSE
-            SSE = sum(head_calib_resid.^2);
-            RMSE = sqrt( 1/size(head_calib_resid,1) * SSE);
+            SSE = sum(obj.calibrationResults.data.modelledHead_residuals.^2,1);
+            RMSE = sqrt( 1/ncal * SSE);
             obj.calibrationResults.performance.RMSE = RMSE;                        
             
             % CoE
@@ -2007,17 +2115,17 @@ classdef HydroSightModel < handle
             obj.calibrationResults.performance.CoeffOfEfficiency_mean.CoE  = 1 - SSE./sum( (obsHead(t_filt,2) - mean(obsHead(t_filt,2)) ).^2);            
             
             % Unbiased CoE
-            residuals_unbiased = bsxfun(@minus,head_calib_resid, obj.calibrationResults.performance.mean_error);
+            residuals_unbiased = bsxfun(@minus,obj.calibrationResults.data.modelledHead_residuals, obj.calibrationResults.performance.mean_error);
             SSE_unbiased = sum(residuals_unbiased.^2);
             obj.calibrationResults.performance.CoeffOfEfficiency_mean.CoE_unbias  = 1 - SSE_unbiased./sum( (obsHead(t_filt,2) - mean(obsHead(t_filt,2)) ).^2);            
             
-            if neval > 0;                                   
+            if neval > 0                                  
                 % Mean error
-                obj.evaluationResults.performance.mean_error = mean(head_eval_resid); 
+                obj.evaluationResults.performance.mean_error = mean(obj.evaluationResults.data.modelledHead_residuals,1); 
                 
                 %RMSE
-                SSE = sum(head_eval_resid.^2);
-                obj.evaluationResults.performance.RMSE = sqrt( 1/size(head_eval_resid,1) * SSE);                
+                SSE = sum(obj.evaluationResults.data.modelledHead_residuals.^2,1);
+                obj.evaluationResults.performance.RMSE = sqrt( 1/neval * SSE);                
                 
                 % CoE
                 obj.evaluationResults.performance.CoeffOfEfficiency_mean.description = 'Coefficient of Efficiency (CoE) calculated using a base model of the mean observed head. If the CoE > 0 then the model produces an estimate better than the mean head.';
@@ -2025,46 +2133,48 @@ classdef HydroSightModel < handle
                 obj.evaluationResults.performance.CoeffOfEfficiency_mean.CoE  = 1 - SSE./sum( (obsHead(~t_filt,2) - mean(obsHead(~t_filt,2)) ).^2);            
 
                 % Unbiased CoE
-                residuals_unbiased = bsxfun(@minus,head_eval_resid, obj.evaluationResults.performance.mean_error);
+                residuals_unbiased = bsxfun(@minus,obj.evaluationResults.data.modelledHead_residuals, obj.evaluationResults.performance.mean_error);
                 SSE_unbiased = sum(residuals_unbiased.^2);
                 obj.evaluationResults.performance.CoeffOfEfficiency_mean.CoE_unbias  = 1 - SSE_unbiased./sum( (obsHead(~t_filt,2) - mean(obsHead(~t_filt,2)) ).^2);            
             end
             %------------------
                                     
             % Calc. F-test and P(F>F_critical)  
-            if size(head_est,3)>1
-                meanObsHead = mean(obj.calibrationResults.data.obsHead(:,2));
-                for i=1:size(head_est,3)
-                    RSS(:,i) = norm( head_est(t_filt, 2,i) - meanObsHead).^2;
-                    s2(:,i) = (norm(head_calib_resid(:,i))/sqrt(nobs - nparams)).^2;
+            if nparamsets>1
+                meanObsHead = mean(obj.calibrationResults.data.obsHead(:,2),1);
+                RSS = zeros(1,nparamsets);
+                s2 = zeros(1,nparamsets);
+                for i=1:nparamsets
+                    RSS(1,i) = norm( head_est_cal(:, 2,i) - meanObsHead).^2;
+                    s2(:,i) = (norm(obj.calibrationResults.data.modelledHead_residuals(:,i))/sqrt(ncal - nparams)).^2;
                 end
             else
-                RSS = norm( obj.calibrationResults.data.modelledHead(:,2)  - mean(obj.calibrationResults.data.obsHead(:,2))).^2;            
-                s2 = (norm(head_calib_resid)/sqrt(nobs - nparams)).^2;
+                RSS = norm(head_est_cal(:,2)  - mean(obj.calibrationResults.data.obsHead(:,2))).^2;            
+                s2 = (norm(obj.calibrationResults.data.modelledHead_residuals)/sqrt(ncal - nparams)).^2;
             end                        
             obj.calibrationResults.performance.F_test = (RSS/(nparams-1))./s2;      % F statistic for regression
-            if size(head_est,3)>1
-                for i=1:size(head_est,3)
-                    obj.calibrationResults.performance.F_prob(:,i) = fcdf(1./obj.calibrationResults.performance.F_test(:,i),nobs - nparams, nparams-1); % Significance probability for regression
+            if nparamsets>1
+                for i=1:nparamsets
+                    obj.calibrationResults.performance.F_prob(:,i) = fcdf(1./obj.calibrationResults.performance.F_test(:,i),ncal - nparams, nparams-1); % Significance probability for regression
                 end
             else
-                obj.calibrationResults.performance.F_prob = fcdf(1./obj.calibrationResults.performance.F_test,nobs - nparams, nparams-1); % Significance probability for regression
+                obj.calibrationResults.performance.F_prob = fcdf(1./obj.calibrationResults.performance.F_test,ncal - nparams, nparams-1); % Significance probability for regression
             end
             
-            if neval > 0;   
-                if size(head_est,3)>1
-                    meanObsHead = mean(obj.evaluationResults.data.obsHead(:,2));
-                    for i=1:size(head_est,3)
-                        RSS(:,i) = norm( head_est(~t_filt, 2,i) - meanObsHead).^2;
-                        s2(:,i) = (norm(head_eval_resid(:,i))/sqrt(neval - nparams)).^2;
+            if neval > 0 
+                if nparamsets>1
+                    meanObsHead = mean(obj.evaluationResults.data.obsHead(:,2),1);
+                    for i=1:nparamsets
+                        RSS(:,i) = norm( head_est_eval(:, 2,i) - meanObsHead).^2;
+                        s2(:,i) = (norm(obj.evaluationResults.data.modelledHead_residuals(:,i))/sqrt(neval - nparams)).^2;
                     end
                 else
-                    RSS = norm( obj.evaluationResults.data.modelledHead(:,2)  - mean(obj.evaluationResults.data.obsHead(:,2))).^2;            
-                    s2 = (norm(head_eval_resid)/sqrt(neval - nparams)).^2;
+                    RSS = norm( head_est_eval(:,2)  - mean(obj.evaluationResults.data.obsHead(:,2))).^2;            
+                    s2 = (norm(obj.evaluationResults.data.modelledHead_residuals)/sqrt(neval - nparams)).^2;
                 end                        
                 obj.evaluationResults.performance.F_test = (RSS/(nparams-1))./s2;      % F statistic for regression
-                if size(head_est,3)>1
-                    for i=1:size(head_est,3)
+                if nparamsets>1
+                    for i=1:nparamsets
                         obj.evaluationResults.performance.F_prob(:,i) = fcdf(1./obj.evaluationResults.performance.F_test(:,i),neval - nparams, nparams-1); % Significance probability for regression
                     end
                 else
@@ -2074,14 +2184,14 @@ classdef HydroSightModel < handle
             
             % Add BIC and Akaike information criterion                                 
             obj.calibrationResults.performance.AICc = 2*nparams - 2*log_L;
-            obj.calibrationResults.performance.AICc = obj.calibrationResults.performance.AICc + 2*nparams*(nparams+1)/(nobs-nparams-1);
-            obj.calibrationResults.performance.BIC = nparams*log(nobs) -2*log_L;
+            obj.calibrationResults.performance.AICc = obj.calibrationResults.performance.AICc + 2*nparams*(nparams+1)/(ncal-nparams-1);
+            obj.calibrationResults.performance.BIC = nparams*log(ncal) -2*log_L;
             
             % Calculate experimental variogram of residuals and fit an
             % exponential model
-            for i=1:size(head_est,3)   
+            for i=1:nparamsets
                 try
-                    resid = [obsHead(t_filt,1), obsHead(t_filt,2) - head_est(t_filt, 2,i)];
+                    resid = double([obsHead(t_filt,1), obj.calibrationResults.data.modelledHead_residuals(:,i)]);
                     calib_var = variogram([resid(:,1), zeros( size(resid(:,1))) ] ...
                         , resid(:,2) , 'maxdist', min(365,max(resid(:,1))-min(resid(:,1))), 'nrbins', min(size(resid,1),12));
 
@@ -2094,15 +2204,15 @@ classdef HydroSightModel < handle
                     obj.calibrationResults.performance.variogram_residual.h(:,i) = varmodel.h;
                     obj.calibrationResults.performance.variogram_residual.gamma(:,i) = varmodel.gamma;
                     obj.calibrationResults.performance.variogram_residual.gammahat(:,i) = varmodel.gammahat;
-                catch ME
+                catch
                     continue;
                 end
                     
             end 
-            if neval > 0;                
-                for i=1:size(head_est,3)      
+            if neval > 0              
+                for i=1:nparamsets
                     try
-                        resid = [obsHead(~t_filt,1), obsHead(~t_filt,2) - head_est(~t_filt, 2,i)];
+                        resid = double([obsHead(~t_filt,1), obj.evaluationResults.data.modelledHead_residuals(:,i)]);
                         eval_var = variogram([resid(:,1), zeros( size(resid(:,1))) ] ...
                             , resid(:,2) , 'maxdist', min(365,max(resid(:,1))-min(resid(:,1))), 'nrbins', min(size(resid,1),12));
 
@@ -2115,7 +2225,7 @@ classdef HydroSightModel < handle
                         obj.evaluationResults.performance.variogram_residual.h(:,i) = varmodel.h;
                         obj.evaluationResults.performance.variogram_residual.gamma(:,i) = varmodel.gamma;
                         obj.evaluationResults.performance.variogram_residual.gammahat(:,i) = varmodel.gammahat;
-                    catch ME
+                    catch
                         continue;
                     end                    
                 end                                 
@@ -2125,12 +2235,11 @@ classdef HydroSightModel < handle
             obj.calibrationResults.isCalibrated = true;            
         end
 
-        function handle = calibrateModelPlotResults(obj, plotNumber, figHandle)
+        function calibrateModelPlotResults(obj, plotNumber, figHandle)
 % Plot the calibration results
 %
 % Syntax:
 %   calibrateModelPlotResults(obj)
-%   calibrateModelPlotResults(obj, handle)
 %
 % Description:
 %   Creates a summary plot of the calibration results. The plot presents
@@ -2139,9 +2248,6 @@ classdef HydroSightModel < handle
 %
 % Input:
 %   obj -  model object
-%
-%   handle - Matlab figure handle to a pre-existing figure window in which
-%   the plot is to be created.
 %
 % Output:  
 %   (none)
@@ -2219,7 +2325,7 @@ classdef HydroSightModel < handle
             % Plot bounds for noise component.
             if isempty(plotNumber) || plotNumber==1 
                 if hasNoiseComponant
-                   if neval > 0; 
+                   if neval > 0
                        XFill = [obj.calibrationResults.data.modelledNoiseBounds(:,1)' ...
                                 obj.evaluationResults.data.modelledNoiseBounds(:,1)' ...
                                 fliplr([obj.calibrationResults.data.modelledNoiseBounds(:,1); ...
@@ -2240,7 +2346,7 @@ classdef HydroSightModel < handle
                 end
 
                 if hasModelledDistn
-                   if neval > 0; 
+                   if neval > 0
                        XFill = [obj.calibrationResults.data.modelledHead(:,1)' ...
                                 obj.evaluationResults.data.modelledHead(:,1)' ...
                                 fliplr([obj.calibrationResults.data.modelledHead(:,1); ...
@@ -2264,15 +2370,15 @@ classdef HydroSightModel < handle
                 hold(h,'on');
 
                 % Plot model results
-                h_plot = plot(h,obj.calibrationResults.data.modelledHead(:,1), obj.calibrationResults.data.modelledHead(:,2),'.-b' );
-                if neval > 0;
+                plot(h,obj.calibrationResults.data.modelledHead(:,1), obj.calibrationResults.data.modelledHead(:,2),'.-b' );
+                if neval > 0
                     plot(h,obj.evaluationResults.data.modelledHead(:,1), obj.evaluationResults.data.modelledHead(:,2),'.-r' );
                 end
                 datetick(h, 'x','yy');
                 xlabel(h, 'Date');
                 ylabel(h, 'Head (m)');           
                 if isempty(plotNumber)
-                    title(h, ['Bore ', obj.bore_ID, ' - Observed and modelled head']);
+                    title(h, [obj.bore_ID, ' - Observed and modelled head']);
                 else
                     title(h, 'Observed and modelled head');
                 end
@@ -2294,14 +2400,14 @@ classdef HydroSightModel < handle
                 legendstr{i}='Observed';
                 i=i+1;
                 if hasModelledDistn
-                    legendstr{i}='Calib. (median)';
+                    legendstr{i}='Calib. (best)';
                 else
                     legendstr{i}='Calib.';
                 end
                 i=i+1;                                
-                if neval > 0;
+                if neval > 0
                     if hasModelledDistn
-                        legendstr{i}='Eval. (median)';
+                        legendstr{i}='Eval. (best)';
                     else
                         legendstr{i}='Eval.';
                     end
@@ -2322,7 +2428,8 @@ classdef HydroSightModel < handle
             end
             if isempty(plotNumber) || plotNumber==2
                 if hasModelledDistn
-                    residuals = [obj.calibrationResults.data.modelledHead(:,1), prctile( obj.calibrationResults.data.modelledHead_residuals,[50 5 95],2)];
+                    residuals = [obj.calibrationResults.data.modelledHead(:,1), obj.calibrationResults.data.modelledHead_residuals(:,1), ...
+                        prctile( obj.calibrationResults.data.modelledHead_residuals,[5 95],2)];
                     ax=errorbar(h, residuals(:,1), residuals(:,2), residuals(:,2)-residuals(:,3), residuals(:,4)-residuals(:,2), '.b' );
                     set(ax,'Color',[0.6 0.6 0.6]);
                     set(ax,'MarkerEdgeColor','b');
@@ -2330,21 +2437,22 @@ classdef HydroSightModel < handle
                     scatter(h, obj.calibrationResults.data.modelledHead(:,1), obj.calibrationResults.data.modelledHead_residuals, '.b' );
                 end
                 hold(h,'on');
-                if neval > 0;
+                if neval > 0
                     if hasModelledDistn
-                        residuals = [obj.evaluationResults.data.modelledHead(:,1), prctile( obj.evaluationResults.data.modelledHead_residuals,[50 5 95],2)];
+                        residuals = [obj.evaluationResults.data.modelledHead(:,1), obj.evaluationResults.data.modelledHead_residuals(:,1), ...
+                            prctile(obj.evaluationResults.data.modelledHead_residuals,[5 95],2)];
                         ax=errorbar(h, residuals(:,1), residuals(:,2), residuals(:,2)-residuals(:,3), residuals(:,4)-residuals(:,2), '.r' );
                         set(ax,'Color',[0.6 0.6 0.6]);
                         set(ax,'MarkerEdgeColor','r');
                     else
                         scatter( h, obj.evaluationResults.data.modelledHead(:,1),  obj.evaluationResults.data.modelledHead_residuals, '.r'  );                
                     end
-                    legend(h,'Calibration','Evaluation','Location','northeastoutside');                
+                    legend(h,'Calib.','Eval.','Location','northeastoutside');                
                 end
                 xlabel(h, 'Date');
                 ylabel(h, 'Residuals (obs-est) (m)');
                 if hasModelledDistn
-                    title(h, 'Time series of residuals with parameter uncertainty (5th-95th) bars.');
+                    title(h, 'Time series of residuals with parameter uncertainty (5-Best-95th) bars.');
                 else
                     title(h, 'Time series of residuals');
                 end
@@ -2358,92 +2466,220 @@ classdef HydroSightModel < handle
                 h = subplot(nrow_plots,ncol_plots,iplot:iplot+nplots,'Parent',figHandle);
                 iplot = iplot + nplots + 1;                        
             end
-            if isempty(plotNumber) || plotNumber==3
-                residuals = [obj.calibrationResults.data.modelledHead(:,1), prctile( obj.calibrationResults.data.modelledHead_residuals,50,2)];
-                hist(h, residuals(:,2) , 0.5*size(residuals,1) );            
-                ylabel(h, 'Freq.');
+            if isempty(plotNumber) || plotNumber==3                
+                yyaxis(h,'left');                
+                ecdf(h, obj.calibrationResults.data.modelledHead_residuals(:,1)');
+
+                if hasModelledDistn
+                    ecdf_x = nan(size(obj.calibrationResults.data.modelledHead_residuals)+[1,0]);
+                    for i=1:size(obj.calibrationResults.data.modelledHead_residuals,2)
+                        try
+                            [ecdf_y, ecdf_x(:,i)] = ecdf(obj.calibrationResults.data.modelledHead_residuals(:,i));
+                        catch 
+                            % do nothing
+                        end
+                    end
+                    filt = any(isnan(ecdf_x),1);
+                    ecdf_x = prctile(ecdf_x(:,~filt), [5, 95],2);
+                    hold(h,'on')
+                    plot(h, ecdf_x(:,1),ecdf_y,'--b');
+                    plot(h, ecdf_x(:,2),ecdf_y,'-.b');
+                    hold(h,'off');
+                end
                 xlabel(h, 'Calib. residuals (obs-est) (m)');
+                ylabel(h, 'Prob.');
+                grid(h,'on');
+
+                yyaxis(h,'right');  
+                histogram(h, obj.calibrationResults.data.modelledHead_residuals(:,1));                
+                ylabel(h, 'Freq.');
                 axis(h, 'tight');
-                title(h, 'Histogram of calib. residuals');
+                
+                if hasModelledDistn
+                    title(h, 'Histogram (best) and CDF of calib. residuals (5th-Best-95th)');
+                else
+                    title(h, 'Histogram and CDF of calib. residuals');
+                end                
                 box(h,'on');
             end
             
             % Histograms of evaluation data
-            if isempty(plotNumber)
-                nplots = 0;
-                h = subplot(nrow_plots,ncol_plots,iplot:iplot+nplots,'Parent',figHandle);
-                iplot = iplot + nplots + 1;                        
-            end
-            if isempty(plotNumber) || plotNumber==4
-                if neval > 0;            
-                    residuals = [obj.evaluationResults.data.modelledHead(:,1), prctile( obj.evaluationResults.data.modelledHead_residuals,50,2)];
-                    hist(h, residuals(:,2) , 0.5*size(residuals,1) );                                
-                end           
-                ylabel(h, 'Freq.');
-                xlabel(h, 'Eval. residuals (obs-est) (m)');
-                axis(h, 'tight');
-                title(h, 'Histogram of eval. residuals');      
-                box(h,'on');
+            if neval > 0
+                if isempty(plotNumber)
+                    nplots = 0;
+                    h = subplot(nrow_plots,ncol_plots,iplot:iplot+nplots,'Parent',figHandle);
+                    iplot = iplot + nplots + 1;
+                end
+                if isempty(plotNumber) || plotNumber==4
+                    yyaxis(h,'left');
+                    ecdf(h, obj.evaluationResults.data.modelledHead_residuals(:,1)');
+
+                    if hasModelledDistn
+                        ecdf_x = nan(size(obj.evaluationResults.data.modelledHead_residuals)+[1,0]);
+                        for i=1:size(obj.evaluationResults.data.modelledHead_residuals,2)
+                            try
+                                [ecdf_y, ecdf_x(:,i)] = ecdf(obj.evaluationResults.data.modelledHead_residuals(:,i));
+                            catch
+                                % do nothing
+                            end
+                        end
+                        filt = any(isnan(ecdf_x),1);
+                        ecdf_x = prctile(ecdf_x(:,~filt), [5, 95],2);
+                        hold(h,'on')
+                        plot(h, ecdf_x(:,1),ecdf_y,'--b');
+                        plot(h, ecdf_x(:,2),ecdf_y,'-.b');
+                        hold(h,'off');
+                    end
+
+                    xlabel(h, 'Eval. residuals (obs-est) (m)');
+                    ylabel(h, 'Prob.');
+                    grid(h,'on');
+
+                    yyaxis(h,'right');
+                    histogram(h, obj.evaluationResults.data.modelledHead_residuals(:,1));
+                    ylabel(h, 'Freq.');
+                    axis(h, 'tight');
+                    
+                    if hasModelledDistn
+                        title(h, 'Histogram (best) and CDF of eval. residuals (5th-Best-95th)');
+                    else
+                        title(h, 'Histogram and CDF of eval. residuals');
+                    end
+                    box(h,'on');
+                end
             end
             
-            % QQ plot
+            % QQ plot - calibration
             if isempty(plotNumber)
                 nplots = 0;
                 h = subplot(nrow_plots,ncol_plots,iplot:iplot+nplots,'Parent',figHandle);
                 iplot = iplot + nplots + 1;
             end
             if isempty(plotNumber) || plotNumber==5
-                residuals_cal = prctile( obj.calibrationResults.data.modelledHead_residuals,50,2);
-                if neval > 0;                              
-                    residuals_eval = prctile( obj.evaluationResults.data.modelledHead_residuals,50,2);
-                    QQdata = NaN(size(residuals_cal,1),2);
-                    QQdata(:,1) = residuals_cal;
-                    QQdata(1:neval,2) = residuals_eval;
-                    qqplot(QQdata);
-                    legend('Calibration','Evaluation','Location','northeastoutside');                
+                if hasModelledDistn
+                    residuals = prctile(obj.calibrationResults.data.modelledHead_residuals, [5, 95],2);
+                    h2=qqplot(h, [residuals(:,1), ...
+                        obj.calibrationResults.data.modelledHead_residuals(:,1), ...
+                        residuals(:,2)]);
+                    set(h2(1),'Color',[0.6 0.6 0.6]);
+                    set(h2(1),'Marker','*', 'MarkerSize',3);
+                    set(h2(2),'Color','blue');
+                    set(h2(3),'Color',[0.6 0.6 0.6]);
+                    set(h2(3),'Marker','.', 'MarkerSize',4);
+                    set(h2(4),'Color',[0.6 0.6 0.6]);
+                    set(h2(5),'Color','blue');
+                    set(h2(6),'Color',[0.6 0.6 0.6]);
+                    set(h2(7),'Color',[0.6 0.6 0.6])
+                    set(h2(8),'Color','blue');
+                    set(h2(9),'Color',[0.6 0.6 0.6]);
+                    set(h2(7),'LineStyle','--');
+                    set(h2(9),'LineStyle',':');
+                    legend(h, 'Normal dist. outer quartiles (5th%ile)','Normal dist. outer quartiles (best)','Normal dist. outer quartiles (95th%ile)', ...
+                        'Normal dist. 1-3rd quartiles (5th%ile)','Normal dist. 1-3rd quartiles (best)','Normal dist. 1-3rd quartiles (95th%ile)', ...
+                        'Resid. (5th%ile)','Resid. (best)','Resid. (95th%ile)', ...
+                        'Location','northeastoutside');
                 else
-                    qqplot(residuals_cal );
-                end            
-                title(h, 'Quantile-quantile plot of residuals');
+                    h2 = qqplot(h, obj.calibrationResults.data.modelledHead_residuals );
+                    set(h2(1),'Color','red');
+                    set(h2(2),'Color','red');
+                    set(h2(3),'Color','red');                    
+                    legend(h,  'Normal dist. outer quartiles', 'Normal dist. 1-3rd quartiles','Resid.','Location','northeastoutside');                    
+                end
+                ylabel(h, 'Quantile of modelled residuals');
+                title(h, 'Quantile-quantile plot of calibration residuals');
                 box(h,'on');
+
             end
-            
+
+            % QQ plot - evaluation
+            if neval > 0
+                if isempty(plotNumber)
+                    nplots = 0;
+                    h = subplot(nrow_plots,ncol_plots,iplot:iplot+nplots,'Parent',figHandle);
+                    iplot = iplot + nplots + 1;
+                end
+                if isempty(plotNumber) || plotNumber==6 && neval > 0
+                    if hasModelledDistn
+                        residuals = prctile(obj.evaluationResults.data.modelledHead_residuals, [5, 95],2);
+                        h2=qqplot(h, [residuals(:,1), ...
+                            obj.evaluationResults.data.modelledHead_residuals(:,1), ...
+                            residuals(:,2)]);
+                        set(h2(1),'Color',[0.6 0.6 0.6]);
+                        set(h2(1),'Marker','*', 'MarkerSize',3);
+                        set(h2(2),'Color','blue');
+                        set(h2(3),'Color',[0.6 0.6 0.6]);
+                        set(h2(3),'Marker','.', 'MarkerSize',4);
+                        set(h2(4),'Color',[0.6 0.6 0.6]);
+                        set(h2(5),'Color','blue');
+                        set(h2(6),'Color',[0.6 0.6 0.6]);
+                        set(h2(7),'Color',[0.6 0.6 0.6])
+                        set(h2(8),'Color','blue');
+                        set(h2(9),'Color',[0.6 0.6 0.6]);
+                        set(h2(7),'LineStyle','--');
+                        set(h2(9),'LineStyle',':');
+                        legend(h, 'Normal dist. outer quartiles (5th%ile)','Normal dist. outer quartiles (best)','Normal dist. outer quartiles (95th%ile)', ...
+                            'Normal dist. 1-3rd quartiles (5th%ile)','Normal dist. 1-3rd quartiles (best)','Normal dist. 1-3rd quartiles (95th%ile)', ...
+                            'Resid. (5th%ile)','Resid. (best)','Resid. (95th%ile)', ...
+                            'Location','northeastoutside');
+                    else
+                        h2=qqplot(h, obj.evaluationResults.data.modelledHead_residuals);
+                        set(h2(1),'Color','red');
+                        set(h2(2),'Color','red');
+                        set(h2(3),'Color','red');
+                        legend(h,  'Normal dist. outer quartiles', 'Normal dist. 1-3rd quartiles','Resid.','Location','northeastoutside');
+                    end
+                    ylabel(h, 'Quantile of modelled residuals');
+                    title(h, 'Quantile-quantile plot of evaluation residuals');
+                    box(h,'on');
+                end
+            end
+
             % Scatter plot of obs versus modelled
             if isempty(plotNumber)
                 nplots = 0;
                 h = subplot(nrow_plots,ncol_plots,iplot:iplot+nplots,'Parent',figHandle);
                 iplot = iplot + nplots + 1;
             end
-            if isempty(plotNumber) || plotNumber==6
-                if hasModelledDistn                    
-                    residuals = [obj.calibrationResults.data.obsHead(:,2), prctile( obj.calibrationResults.data.modelledHead_residuals,[50 5 95],2)];
-                    ax=errorbar(h, residuals(:,1), residuals(:,2), residuals(:,2)-residuals(:,3), residuals(:,4)-residuals(:,2), '.b' );
+            if isempty(plotNumber) || plotNumber==7
+                if hasModelledDistn  
+                    ax=errorbar(h, obj.calibrationResults.data.obsHead(:,2), ...
+                        obj.calibrationResults.data.modelledHead(:,3), ...
+                        obj.calibrationResults.data.modelledHead(:,2)-obj.calibrationResults.data.modelledHead(:,3), ...
+                        obj.calibrationResults.data.modelledHead(:,4)-obj.calibrationResults.data.modelledHead(:,3), '.b' );
                     set(ax,'Color',[0.6 0.6 0.6]);
                     set(ax,'MarkerEdgeColor','b');
                 else
                     scatter(h, obj.calibrationResults.data.obsHead(:,2),  obj.calibrationResults.data.modelledHead(:,2),'.b');
                 end
                 hold(h,'on');
-                if neval > 0;    
-                    if hasModelledDistn                        
-                        residuals = [obj.evaluationResults.data.obsHead(:,2), prctile( obj.evaluationResults.data.modelledHead_residuals,[50 5 95],2)];
-                        ax=errorbar(h, residuals(:,1), residuals(:,2), residuals(:,2)-residuals(:,3), residuals(:,4)-residuals(:,2), '.r' );
+                if neval > 0
+                    if hasModelledDistn    
+                        ax=errorbar(h, obj.evaluationResults.data.obsHead(:,2), ...
+                            obj.evaluationResults.data.modelledHead(:,3), ...
+                            obj.evaluationResults.data.modelledHead(:,2)-obj.evaluationResults.data.modelledHead(:,3), ...
+                            obj.evaluationResults.data.modelledHead(:,4)-obj.evaluationResults.data.modelledHead(:,3), '.b' );                        
                         set(ax,'Color',[0.6 0.6 0.6]);
                         set(ax,'MarkerEdgeColor','r');
+                        head_min = min([obj.model.inputData.head(:,2);  min(obj.calibrationResults.data.modelledHead(:,2:4),[],'all'); min(obj.evaluationResults.data.modelledHead(:,2:4),[],'all')]);
+                        head_max = max([obj.model.inputData.head(:,2);  max(obj.calibrationResults.data.modelledHead(:,2:4),[],'all'); max(obj.evaluationResults.data.modelledHead(:,2:4),[],'all')]);                        
                     else
                         scatter(h, obj.evaluationResults.data.obsHead(:,2),  obj.evaluationResults.data.modelledHead(:,2),'.r');
-                    end
-                    legend(h,'Calibration','Evaluation','Location','northeastoutside');                
-                    head_min = min([obj.model.inputData.head(:,2);  obj.calibrationResults.data.modelledHead(:,2); obj.evaluationResults.data.modelledHead(:,2)] );
-                    head_max = max([obj.model.inputData.head(:,2);  obj.calibrationResults.data.modelledHead(:,2); obj.evaluationResults.data.modelledHead(:,2)] );
+                        head_min = min([obj.model.inputData.head(:,2);  min(obj.calibrationResults.data.modelledHead(:,2)); min(obj.evaluationResults.data.modelledHead(:,2))]);
+                        head_max = max([obj.model.inputData.head(:,2);  max(obj.calibrationResults.data.modelledHead(:,2)); max(obj.evaluationResults.data.modelledHead(:,2))]);                        
+                    end                                  
                 else
-                    head_min = min([obj.model.inputData.head(:,2);  obj.calibrationResults.data.modelledHead(:,2)] );
-                    head_max = max([obj.model.inputData.head(:,2);  obj.calibrationResults.data.modelledHead(:,2)] );
+                    if hasModelledDistn 
+                        head_min = min([obj.model.inputData.head(:,2);  min(obj.calibrationResults.data.modelledHead(:,2:4),[], 'all' )]);
+                        head_max = max([obj.model.inputData.head(:,2);  max(obj.calibrationResults.data.modelledHead(:,2:4),[], 'all')]);
+                    else
+                        head_min = min([obj.model.inputData.head(:,2);  obj.calibrationResults.data.modelledHead(:,2)], [], 'all' );
+                        head_max = max([obj.model.inputData.head(:,2);  obj.calibrationResults.data.modelledHead(:,2)], [], 'all' );
+                    end
                 end            
                 xlabel(h, 'Obs. head (m)');
                 ylabel(h, 'Modelled. head (m)');
                 if hasModelledDistn
-                    title(h, 'Observed vs. modelled heads with with parameter uncertainty (5th-95th) bars.');
+                    title(h, 'Observed vs. modelled heads with with parameter uncertainty (5-best-95th) bars.');
                 else
                     title(h, 'Observed vs. modelled heads');
                 end
@@ -2452,6 +2688,11 @@ classdef HydroSightModel < handle
                 plot(h, [head_min, head_max] , [head_min, head_max],'--k');
                 box(h,'on');
                 hold(h,'off');
+                if neval>0
+                    legend(h,'Calib.','Eval.','1:1','Location','northeastoutside');  
+                else
+                    legend(h,'Calib.','1:1','Location','northeastoutside');  
+                end
             end
             
             % Scatter plot of residuals versus observed head
@@ -2460,9 +2701,10 @@ classdef HydroSightModel < handle
                 h = subplot(nrow_plots,ncol_plots,iplot:iplot+nplots,'Parent',figHandle);
                 iplot = iplot + nplots + 1;
             end
-            if isempty(plotNumber) || plotNumber==7
+            if isempty(plotNumber) || plotNumber==8
                 if hasModelledDistn
-                    residuals = [obj.calibrationResults.data.obsHead(:,2), prctile( obj.calibrationResults.data.modelledHead_residuals,[50 5 95],2)];
+                    residuals = [obj.calibrationResults.data.obsHead(:,2), obj.calibrationResults.data.modelledHead_residuals(:,1), ...
+                        prctile( obj.calibrationResults.data.modelledHead_residuals,[5 95],2)];
                     ax=errorbar(h, residuals(:,1), residuals(:,2), residuals(:,2)-residuals(:,3), residuals(:,4)-residuals(:,2), '.b' );
                     set(ax,'Color',[0.6 0.6 0.6]);
                     set(ax,'MarkerEdgeColor','b');
@@ -2470,21 +2712,22 @@ classdef HydroSightModel < handle
                     scatter(h, obj.calibrationResults.data.obsHead(:,2), obj.calibrationResults.data.modelledHead_residuals,'.b');
                 end
                 hold(h,'on');
-                if neval > 0;                
+                if neval > 0
                     if hasModelledDistn
-                        residuals = [obj.evaluationResults.data.obsHead(:,2), prctile( obj.evaluationResults.data.modelledHead_residuals,[50 5 95],2)];
+                        residuals = [obj.evaluationResults.data.obsHead(:,2), obj.evaluationResults.data.modelledHead_residuals(:,1), ...
+                            prctile( obj.evaluationResults.data.modelledHead_residuals,[5 95],2)];
                         ax=errorbar(h, residuals(:,1), residuals(:,2), residuals(:,2)-residuals(:,3), residuals(:,4)-residuals(:,2), '.r' );
                         set(ax,'Color',[0.6 0.6 0.6]);
                         set(ax,'MarkerEdgeColor','r');
                     else                    
                         scatter(h, obj.evaluationResults.data.obsHead(:,2),  obj.evaluationResults.data.modelledHead_residuals,'.r');
                     end
-                    legend(h,'Calibration','Evaluation','Location','northeastoutside');                
+                    legend(h,'Calib.','Eval.','Location','northeastoutside');                
                 end            
                 xlabel(h, 'Obs. head (m)');
                 ylabel(h, 'Residuals (obs-est) (m)'); 
                 if hasModelledDistn
-                    title(h, 'Observed vs. residuals with parameter uncertainty (5th-95th) bars.');
+                    title(h, 'Observed vs. residuals with parameter uncertainty (5-best-95th) bars.');
                 else                
                     title(h, 'Observed vs. residuals');
                 end
@@ -2496,9 +2739,9 @@ classdef HydroSightModel < handle
             if isempty(plotNumber)
                 nplots = 0;
                 h = subplot(nrow_plots,ncol_plots,iplot:iplot+nplots,'Parent',figHandle);
-                iplot = iplot + nplots + 1;
+                iplot = iplot + nplots + 1; %#ok<NASGU> 
             end
-            if isempty(plotNumber) || plotNumber==8
+            if isempty(plotNumber) || plotNumber==9
                 if hasModelledDistn
                     % Extract data from cell arrays
                     deltaTime=[];
@@ -2510,22 +2753,22 @@ classdef HydroSightModel < handle
                         gammaHat = obj.calibrationResults.performance.variogram_residual.gammahat;                        
                     else
                         for i=1:size(obj.calibrationResults.performance.variogram_residual.range,1)
-                            deltaTime = [deltaTime,obj.calibrationResults.performance.variogram_residual.model{i}.h];
-                            gamma = [gamma,obj.calibrationResults.performance.variogram_residual.model{i}.gamma];
-                            gammaHat = [gammaHat,obj.calibrationResults.performance.variogram_residual.model{i}.gammahat];
+                            deltaTime = [deltaTime,obj.calibrationResults.performance.variogram_residual.model{i}.h]; %#ok<AGROW> 
+                            gamma = [gamma,obj.calibrationResults.performance.variogram_residual.model{i}.gamma]; %#ok<AGROW> 
+                            gammaHat = [gammaHat,obj.calibrationResults.performance.variogram_residual.model{i}.gammahat]; %#ok<AGROW> 
                         end
                     end
                     
                     %Plot data
-                    ax = errorbar(h, median(deltaTime,2) , median(gamma,2), median(gamma,2)-prctile(gamma,5 ,2),prctile(gamma,95 ,2)-median(gamma,2), '.b');
+                    ax = errorbar(h, deltaTime(:,1) , gamma(:,1), gamma(:,1)-prctile(gamma,5 ,2),prctile(gamma,95 ,2)-gamma(:,1), '.b');
                     set(ax,'Color',[0.6 0.6 0.6]);
                     set(ax,'MarkerEdgeColor','b');
                     hold(h,'on');
-                    plot(h, median(deltaTime,2) , median(gammaHat,2), '-b');
+                    plot(h, deltaTime(:,1) , gammaHat(:,1), '-b');
                     plot(h, prctile(deltaTime,5,2) , prctile(gammaHat,5,2), '--b');
                     plot(h, prctile(deltaTime,95,2) , prctile(gammaHat,95,2), '--b');                    
                     
-                    if neval > 0;                                
+                    if neval > 0                            
                         % Extract data from cell arrays
                         deltaTime=[];
                         gamma=[];
@@ -2536,24 +2779,24 @@ classdef HydroSightModel < handle
                             gammaHat = obj.evaluationResults.performance.variogram_residual.gammahat;                        
                         else
                             for i=1:size(obj.evaluationResults.performance.variogram_residual.range,1)
-                                deltaTime = [deltaTime,obj.evaluationResults.performance.variogram_residual.model{i}.h];
-                                gamma = [gamma,obj.evaluationResults.performance.variogram_residual.model{i}.gamma];
-                                gammaHat = [gammaHat,obj.evaluationResults.performance.variogram_residual.model{i}.gammahat];
+                                deltaTime = [deltaTime,obj.evaluationResults.performance.variogram_residual.model{i}.h]; %#ok<AGROW> 
+                                gamma = [gamma,obj.evaluationResults.performance.variogram_residual.model{i}.gamma]; %#ok<AGROW> 
+                                gammaHat = [gammaHat,obj.evaluationResults.performance.variogram_residual.model{i}.gammahat]; %#ok<AGROW> 
                             end
                         end                        
 
                         %Plot data
-                        ax = errorbar(h, median(deltaTime,2) , median(gamma,2), median(gamma,2)-prctile(gamma,5 ,2),prctile(gamma,95 ,2)-median(gamma,2), '.r');
+                        ax = errorbar(h, deltaTime(:,1) , gamma(:,1), gamma(:,1)-prctile(gamma,5 ,2),prctile(gamma,95 ,2)-gamma(:,1), '.r');
                         set(ax,'Color',[0.6 0.6 0.6]);
                         set(ax,'MarkerEdgeColor','r');                                        
                         plot(h, median(deltaTime,2) , median(gammaHat,2), '-r');
                         plot(h, prctile(deltaTime,5,2) , prctile(gammaHat,5,2), '--r');
                         plot(h, prctile(deltaTime,95,2) , prctile(gammaHat,95,2), '--r');                    
                     
-                        legend(h, 'Calib.(5-50-95th %ile)', 'Calib. model-50th %ile','Calib. model-5th %ile','Calib. model-95th %ile', ...
-                            'Eval.(5-50-95th %ile)','Eval. model-50th %ile','Eval. model-5th %ile','Eval. model-95th %ile','Location','northeastoutside');                
+                        legend(h, 'Calib. (5-best-95th%ile)', 'Calib. model (best)','Calib. model (5th%ile)','Calib. model (95th%ile)', ...
+                            'Eval. (5-best-95th%ile)','Eval. model (best)','Eval. model (5th%ile)','Eval. model (95th%ile)','Location','northeastoutside');                
                     else
-                        legend(h, 'Calib.(5-50-95th %ile)','Calib. model-50th %ile','Calib. model-5th %ile','Calib. model-95th %ile','Location','northeastoutside');                        
+                        legend(h, 'Calib. (5-best-95th%ile)','Calib. model (best)','Calib. model (5th%ile)','Calib. model (95th%ile)','Location','northeastoutside');                        
                     end
                 else
                     if isfield(obj.calibrationResults.performance.variogram_residual,'h')
@@ -2565,15 +2808,15 @@ classdef HydroSightModel < handle
                         gamma=[];
                         gammaHat=[];
                         for i=1:size(obj.calibrationResults.performance.variogram_residual.range,1)
-                            deltaTime = [deltaTime,obj.calibrationResults.performance.variogram_residual.model{i}.h];
-                            gamma = [gamma,obj.calibrationResults.performance.variogram_residual.model{i}.gamma];
-                            gammaHat = [gammaHat,obj.calibrationResults.performance.variogram_residual.model{i}.gammahat];
+                            deltaTime = [deltaTime,obj.calibrationResults.performance.variogram_residual.model{i}.h]; %#ok<AGROW> 
+                            gamma = [gamma,obj.calibrationResults.performance.variogram_residual.model{i}.gamma]; %#ok<AGROW> 
+                            gammaHat = [gammaHat,obj.calibrationResults.performance.variogram_residual.model{i}.gammahat]; %#ok<AGROW> 
                         end                        
                     end
                     scatter(h, deltaTime, gamma, 'ob');            
                     hold(h,'on');
                     plot(h, deltaTime, gammaHat, '-b');                        
-                    if neval > 0;     
+                    if neval > 0    
                         if isfield(obj.evaluationResults.performance.variogram_residual,'h')
                             deltaTime = obj.evaluationResults.performance.variogram_residual.h;
                             gamma = obj.evaluationResults.performance.variogram_residual.gamma;
@@ -2583,9 +2826,9 @@ classdef HydroSightModel < handle
                             gamma=[];
                             gammaHat=[];
                             for i=1:size(obj.evaluationResults.performance.variogram_residual.range,1)
-                                deltaTime = [deltaTime,obj.evaluationResults.performance.variogram_residual.model{i}.h];
-                                gamma = [gamma,obj.evaluationResults.performance.variogram_residual.model{i}.gamma];
-                                gammaHat = [gammaHat,obj.evaluationResults.performance.variogram_residual.model{i}.gammahat];
+                                deltaTime = [deltaTime,obj.evaluationResults.performance.variogram_residual.model{i}.h]; %#ok<AGROW> 
+                                gamma = [gamma,obj.evaluationResults.performance.variogram_residual.model{i}.gamma]; %#ok<AGROW> 
+                                gammaHat = [gammaHat,obj.evaluationResults.performance.variogram_residual.model{i}.gammahat]; %#ok<AGROW> 
                             end                                                    
                         end                        
                         
@@ -2658,17 +2901,18 @@ classdef HydroSightModel < handle
                 try
                     % Calcule sume of squared errors
                     objectiveFunctionValue =  objectiveFunction( params, time_points, obj.model, getLikelihood );
-                catch ME
+                catch
                     objectiveFunctionValue = inf;
                 end
             else
                 objectiveFunctionValue = inf(1,size(params,2));
+                modeltmp = obj.model;
                 parfor i=1: size(params,2)
                     %Calculate the residuals
                     try
                         % Calcule sume of squared errors
-                        objectiveFunctionValue(i) =  objectiveFunction( params(:,i), time_points, obj.model, getLikelihood );
-                    catch ME
+                        objectiveFunctionValue(i) =  objectiveFunction( params(:,i), time_points, modeltmp, getLikelihood );
+                    catch
                         objectiveFunctionValue(i) = inf;
                     end
                 end
@@ -2725,7 +2969,7 @@ classdef HydroSightModel < handle
             
             try
                 validParams = getParameterValidity(obj.model, params, time_points);
-            catch ME
+            catch
                 validParams = false;
             end
         end        

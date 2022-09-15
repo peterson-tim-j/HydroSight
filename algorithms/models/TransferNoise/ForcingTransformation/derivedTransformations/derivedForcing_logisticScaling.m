@@ -160,6 +160,7 @@ classdef derivedForcing_logisticScaling < derivedForcingTransform_abstract
         function setTransformedForcing(obj, t, forceRecalculation)
             % Get the source model transformation calculation.
             [forcingData, obj.variables.isDailyIntegralFlux] = getTransformedForcing(obj.settings.sourceObject, obj.settings.sourceObject_outputvariable{1});
+            forcingData = forcingData.(obj.settings.sourceObject_outputvariable{1});
             
             % Filter the forcing data to input t.
             filt_time = obj.settings.forcingData(:,1) >= t(1) & obj.settings.forcingData(:,1) <= t(end);
@@ -184,7 +185,7 @@ classdef derivedForcing_logisticScaling < derivedForcingTransform_abstract
         % Get tranformed forcing data
         function [forcingData, isDailyIntegralFlux] = getTransformedForcing(obj, outputVariableName)                
             if isfield(obj.variables,outputVariableName)
-                forcingData = obj.variables.(outputVariableName);
+                forcingData.(outputVariableName) = obj.variables.(outputVariableName);
                 isDailyIntegralFlux = obj.variables.isDailyIntegralFlux;
             else
                 error(['The following output variable was requested from this transformation model but the variable has not yet been set. Call "setTransformedForcing()" first: ',outputVariableName]);

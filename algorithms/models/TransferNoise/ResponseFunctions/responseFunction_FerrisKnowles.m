@@ -42,9 +42,9 @@ classdef  responseFunction_FerrisKnowles < responseFunction_abstract & dynamicpr
             options{2}.colNames = {'Setting name','Setting value'};
             options{2}.colFormats = {'char', {'true','false'}};
             options{2}.colEdits = logical([0 1]);            
-            options{2}.options = {'Calibrated radius of influence?','false';'Calibrate anisotropic ratio?','false'};
+            options{2}.options = {'Calibrated radius of influence?','false'};
             options{2}.TooltipString =['<html>Use this table to calibrate the radius of influence. Note,  <br>', ...
-                             'pumps outside of the radus will produce zero drawdown at the obs. bore.'];            
+                             'pumps outside of the radius will produce zero drawdown at the obs. bore.'];            
                          
         end    
         
@@ -63,7 +63,77 @@ classdef  responseFunction_FerrisKnowles < responseFunction_abstract & dynamicpr
                                '2. Shapoori V., Peterson T.J., Western A.W., Costelloe J.F, (in-review) Decomposing groundwater head variations', ...
                                'into climate and pumping components: a synthetic study, Hydrogeology Journal.'};
 
-        end           
+        end     
+
+        function [variable_names, isOptionalInput] = dataWizard(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates)
+            
+            dlg_title = 'Data Wizard: Pumping selection ...';
+            prompt = {'Maximum radius of selected pumps from the obs. bore (in units of coordinates):', ...
+                      'Maximum number of selected pumps:','Input name contains characters:'};            
+            num_lines = 1;
+            defaultans = {'5000','10',''};
+            answer = inputdlg(prompt,dlg_title,num_lines,defaultans);
+
+            if isempty(answer) || strcmp(answer,'Cancel')
+                variable_names=[];
+                isOptionalInput = true;
+                return
+            end
+
+            % Check inputs
+            try
+                maxDist = str2double(answer{1});
+                if maxDist <0
+                    warndlg('The maximum distance must be >>0. It will be set to Inf.','Input data error ...')
+                    maxDist = Inf;
+                end
+                maxNum = str2double(answer{2});
+                if maxNum<0
+                    warndlg('The maximum number of pumps must be >0. It will be set to Inf.','Input data error ...')
+                    maxNum = Inf;
+                end
+            catch
+                warndlg('Inputs #1 and #2 must be scalar numbers >0. Both will be set to Inf.','Input data error ...')
+                maxDist = Inf;
+                maxNum = Inf;
+            end
+
+            siteIDstr = answer{3};
+            if ~ischar(siteIDstr)
+                warndlg('The input name must be a string.It will be set to ""','Input data error ...')
+                siteIDstr = '';
+            end
+
+            % Get coordinate of the obs bore
+            filt = cellfun(@(x) strcmp(x, bore_ID),table2cell(siteCoordinates(:,1)));
+            boreEN = table2array(siteCoordinates(filt,2:3));
+
+            % Find the coordinates for the identified pumping bores.
+            filt = cellfun(@(x) any(strcmp(forcingData_colnames,x)), table2cell(siteCoordinates(:,1)));
+            pumpEN = table2array(siteCoordinates(filt,2:3));
+            pumpEN = bsxfun(@minus, pumpEN, boreEN);
+
+            % Calculate distance to pump
+            dist = sqrt(pumpEN(:,1).^2 + pumpEN(:,2).^2);
+
+            % Create table of pump IDs and diatances
+            pumpTable = table(siteCoordinates{filt,1},dist);
+            pumpTable = sortrows(pumpTable,2);
+
+            % Filter data based on user input criteria.
+            filt = table2array(pumpTable(:,2)) <= maxDist;
+            pumpTable = pumpTable(filt,1:2);
+
+            filt = contains(pumpTable{:,1},siteIDstr);
+            pumpTable = pumpTable(filt,1:2);
+
+            if size(pumpTable,1)>maxNum
+                pumpTable = pumpTable(1:maxNum,:);
+            end
+
+            % Return site IDs
+            variable_names = pumpTable(:,1);
+        end  
     end
 
 %%  PUBLIC METHODS      
@@ -85,7 +155,7 @@ classdef  responseFunction_FerrisKnowles < responseFunction_abstract & dynamicpr
                 nForcingSites=1;
                 forcingDataSiteID = {forcingDataSiteID};
             end
-            for j=1:nForcingSites;
+            for j=1:nForcingSites
                 
               filt = cellfun(@(x)strcmp(x,forcingDataSiteID(j)),siteCoordinates(:,1));
               obj.settings.pumpingBores{j,1}.BoreID = siteCoordinates{filt,1};
@@ -190,11 +260,7 @@ classdef  responseFunction_FerrisKnowles < responseFunction_abstract & dynamicpr
                             + (obj.settings.obsBore.Northing - obj.settings.pumpingBores{i,1}.Northing).^2);                
                     end                
                     obj.settings.pumpingBoresMaxDistance = max(pumpDistances);
-                end
-                if strcmp(options{2}(2,2),'true')
-                    dynPropMetaData{2} = addprop(obj,'searchRadiusIsotropicRatio');                
-                    obj.searchRadiusIsotropicRatio=0.5;                
-                end
+                end                
             else
                 obj.settings.pumpingBoresMaxDistance = inf;                
             end
@@ -205,11 +271,7 @@ classdef  responseFunction_FerrisKnowles < responseFunction_abstract & dynamicpr
                 
                 if isprop(obj,'searchRadiusFrac')
                     params=[params; 0.5];
-                end
-                if isprop(obj,'searchRadiusIsotropicRatio')
-                    params=[params; 0.5];
-                end
-                
+                end                
             end
                
             % Set parameters for transfer function.
@@ -223,9 +285,6 @@ classdef  responseFunction_FerrisKnowles < responseFunction_abstract & dynamicpr
             if isprop(obj,'searchRadiusFrac')
                 obj.searchRadiusFrac = params(3);
             end
-            if isprop(obj,'searchRadiusIsotropicRatio')
-                obj.searchRadiusIsotropicRatio = params(4);
-            end           
         end
         
         % Get model parameters
@@ -237,23 +296,19 @@ classdef  responseFunction_FerrisKnowles < responseFunction_abstract & dynamicpr
             if isprop(obj,'searchRadiusFrac')
                 params(3,:) = obj.searchRadiusFrac; 
                 param_names{3} = 'searchRadiusFrac';
-            end
-            if isprop(obj,'searchRadiusIsotropicRatio')
-                params(4,:) = obj.searchRadiusIsotropicRatio; 
-                param_names{4} = 'searchRadiusIsotropicRatio';
-            end            
+            end          
         end        
         
         function isValidParameter = getParameterValidity(obj, params, param_names)
             alpha_filt =  strcmp('alpha',param_names);
             beta_filt =  strcmp('beta',param_names);
             
-            alpha = params(alpha_filt,:);
-            beta = params(beta_filt,:);
+            alpha = params(alpha_filt,:); %#ok<PROPLC> 
+            beta = params(beta_filt,:);   %#ok<PROPLC> 
             
             % Calculate hydraulic transmissivity and S.
-            T= 1./(4.*pi.*10.^alpha);
-            S= 4 .* 10.^beta .* T;    
+            T= 1./(4.*pi.*10.^alpha); %#ok<PROPLC> 
+            S= 4 .* 10.^beta .* T;    %#ok<PROPLC> 
             
             % Get physical bounds.
             [params_upperLimit, params_lowerLimit] = getParameters_physicalLimit(obj);
@@ -266,17 +321,13 @@ classdef  responseFunction_FerrisKnowles < responseFunction_abstract & dynamicpr
         
         % Return fixed upper and lower bounds to the parameters.
         function [params_upperLimit, params_lowerLimit] = getParameters_physicalLimit(obj)
-            params_upperLimit = inf(2,1);
+            params_upperLimit = [-1; -1];
             params_lowerLimit = [log10(sqrt(eps())); log10(eps())];            
             
             if isprop(obj,'searchRadiusFrac')
                 params_upperLimit = [params_upperLimit; 1];
                 params_lowerLimit = [params_lowerLimit; 0];
-            end
-            if isprop(obj,'searchRadiusIsotropicRatio')
-                params_upperLimit = [params_upperLimit; 1];
-                params_lowerLimit = [params_lowerLimit; 0];
-            end         
+            end    
         end        
         
         % Return fixed upper and lower plausible parameter ranges. 
@@ -284,17 +335,26 @@ classdef  responseFunction_FerrisKnowles < responseFunction_abstract & dynamicpr
         % for the calibration. These parameter ranges are only used in the 
         % calibration if the user does not input parameter ranges.
         function [params_upperLimit, params_lowerLimit] = getParameters_plausibleLimit(obj)
-            params_upperLimit = [1; -1];
-            params_lowerLimit = [-5; -7];            
+
+            % Plausible values for T and S
+            Tupper = 1E5;
+            Supper = 0.1;
+            Tlower = 10;
+            Slower = 1E-5;
+
+            alpha_lower = log10(1./(Tupper.*4.*pi));
+            alpha_upper = log10(1./(Tlower.*4.*pi));
+
+            beta_upper = log10(Supper/(4*Tlower));
+            beta_lower = log10(Slower/(4*Tupper));
+            
+            params_upperLimit = [alpha_upper; beta_upper];
+            params_lowerLimit = [alpha_lower; beta_lower];            
 
             if isprop(obj,'searchRadiusFrac')
                 params_upperLimit = [params_upperLimit; 1];
                 params_lowerLimit = [params_lowerLimit; 0];
-            end
-            if isprop(obj,'searchRadiusIsotropicRatio')
-                params_upperLimit = [params_upperLimit; 1];
-                params_lowerLimit = [params_lowerLimit; 0];
-            end                     
+            end                 
         end
         
         % Calculate impulse-response function for each pumping bore.
@@ -348,7 +408,7 @@ classdef  responseFunction_FerrisKnowles < responseFunction_abstract & dynamicpr
         % This is used to minimise the impact from a finit forcign data
         % set.
         % TODO: IMPLEMENTED integral of theta
-        function result = intTheta_upperTail2Inf(obj, t)                       
+        function result = intTheta_upperTail2Inf(obj, ~)                       
             result = zeros(size(obj.settings.pumpingBores,1),1); 
         end   
 
@@ -434,7 +494,7 @@ classdef  responseFunction_FerrisKnowles < responseFunction_abstract & dynamicpr
                 error(['The following derived variable could not be found:',derivedData_variable]);
             end
             
-            [params, param_names] = getParameters(obj);
+            [params, ~] = getParameters(obj);
             nparamSets = size(params,2);
             setParameters(obj,params(:,1));
             derivedData_tmp = theta(obj, t);
@@ -469,7 +529,7 @@ classdef  responseFunction_FerrisKnowles < responseFunction_abstract & dynamicpr
                 hold(axisHandle,'off');                
                 
                 ind = find(abs(derivedData_prctiles(:,4)) > max(abs(derivedData_prctiles(:,4)))*0.05,1,'last');
-                if isempty(ind);
+                if isempty(ind)
                     ind = length(t);
                 end                
                 xlim(axisHandle, [1, t(ind)]);
@@ -486,7 +546,7 @@ classdef  responseFunction_FerrisKnowles < responseFunction_abstract & dynamicpr
             else
                 plot(axisHandle, t,derivedData_tmp(:,ind),'-b');      
                 t_ind = find(abs(derivedData_tmp(:,ind)) > max(abs(derivedData_tmp(:,ind)))*0.05,1,'last');
-                if isempty(t_ind );
+                if isempty(t_ind )
                     t_ind  = length(t);
                 end
                 xlim(axisHandle, [1, t(t_ind )]);

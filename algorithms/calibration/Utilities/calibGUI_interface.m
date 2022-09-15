@@ -11,9 +11,9 @@ end
 methods
     function this = calibGUI_interface(textboxHandle, filename)
         % Check the inputs
-        if ~ischar(filename)
-            error('The input for "filename" must be a string for a file name.');
-        end
+%         if ~ischar(filename)
+%             error('The input for "filename" must be a string for a file name.');
+%         end
         if ~isvalid(textboxHandle)
             error('The following input for "textboxHandle" must be a valid graphics handle.');
         end
@@ -49,43 +49,49 @@ methods
                 
     end
     
-    function updatetextboxFromDiary(this)
-               
-        % Turn diary off so that the command window is written to the file.
-        diary off;
-        this.status = 'off';        
-        
-        % Read the diary until end-of-file and add each line to the GUI tet
-        % box.
-        while 1
-            
-            % Read line and add line form file to the textbox.
-            txt = fgetl(this.fid);
-            if ischar(txt)
-                this.textboxHandle.String{length(this.textboxHandle.String)+1} = txt;
-            else
-                break;
-            end
+    function updatetextboxFromDiary(this, bestf, bestx, worstf, worstx)
 
-        end 
 
-        % Move the vertical scroll bar to the end        
-        %if isempty(this.jEdit)
-        %    this.jEdit = findjobj(this.textboxHandle,'persist');            
-        %end
-        jEdit = findjobj(this.textboxHandle,'persist');
-        
-        try
-            %
-            %jEdit = this.jEdit;
-            jEdit = jEdit.getComponent(0).getComponent(0);
-            jEdit.setCaretPosition(jEdit.getDocument.getLength);
-        catch ME
-            % do nothing
-        end
-        
-        diary(this.filename);
-        this.status = 'on';        
+
+%         % Turn diary off so that the command window is written to the file.
+%         diary off;
+%         this.status = 'off';        
+%         
+%         % Read the diary until end-of-file and add each line to the GUI tet
+%         % box.
+%         while 1
+%             
+%             % Read line and add line form file to the textbox.
+%             try
+%                 txt = fgetl(this.fid);
+%                 if ischar(txt)
+%                     this.textboxHandle.String{length(this.textboxHandle.String)+1} = txt;
+%                 else
+%                     break;
+%                 end
+%             catch ME
+%                 return
+%             end
+% 
+%         end 
+% 
+%         % Move the vertical scroll bar to the end        
+%         %if isempty(this.jEdit)
+%         %    this.jEdit = findjobj(this.textboxHandle,'persist');            
+%         %end
+%         %jEdit = findjobj(this.textboxHandle,'persist');
+%         
+%         try
+%             %
+%             %jEdit = this.jEdit;
+%             jEdit = jEdit.getComponent(0).getComponent(0);
+%             jEdit.setCaretPosition(jEdit.getDocument.getLength);
+%         catch ME
+%             % do nothing
+%         end
+%         
+%         diary(this.filename);
+%         this.status = 'on';        
     end
     
     function endDiary(this)

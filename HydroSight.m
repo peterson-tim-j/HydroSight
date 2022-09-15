@@ -1,5 +1,17 @@
 function HydroSight()
 
+    % Check Matlab is 2018a or later. 
+    if ~isdeployed
+        v=version();
+        ind = strfind(v,'.');
+        v_major = str2double(v(1:(ind(1)-1)));
+        v_minor = str2double(v((ind(1)+1):(ind(2)-1)));
+        if v_major<9 && v_minor<4 %ie 2018a;
+            errordlg('HydroSight requires Matlab 2018a or later.','Please update Matlab');
+            return;
+        end
+    end
+
     % Add Paths
 %    addpath(pwd);
     addpath(genpath([pwd, filesep, 'algorithms']));
@@ -32,9 +44,9 @@ function HydroSight()
                     'Toolbox missing: gui-layout-toolbox', 'error');
 
         else
-            if size(ME.stack,1)>0
-                functionName = ME.stack(1,1).name;
-                functionLine = num2str(ME.stack(1,1).line);
+            if size(ME.stack,1)>1
+                functionName = ME.stack(end-1,1).name;
+                functionLine = num2str(ME.stack(end-1,1).line);
             else
                 functionName='';
                 functionLine ='';
@@ -53,5 +65,26 @@ function HydroSight()
         end
     end
 
+    % Check if the required toolboxes are installed.
+    if ~isdeployed
+        v = ver;
+        [installedToolboxes{1:length(v)}] = deal(v.Name);
+
+        if ~any(strcmp(installedToolboxes, 'Statistics and Machine Learning Toolbox'))
+            warndlg({'Statistics and Machine Learning Toolbox is required.', ...
+                'This toolbox is required for the most model algorithms.'},'Statistics Toolbox not installed','modal')
+        end
+
+        if ~any(strcmp(installedToolboxes, 'Parallel Computing Toolbox'))
+            warndlg({'Parallel Computing Toolbox is suggested.', ...
+                'This toolbox is used to reduce the calibration time for the most models.'},'Parallel Toolbox not installed','modal')
+        end
+
+        if ~any(strcmp(installedToolboxes, 'Curve Fitting Toolbox'))
+            warndlg({'Curve Fitting Toolbox is required.', ...
+                'This toolbox is required for the outlier detection algorithm.'},'Curve Fitting Toolbox not installed','modal')
+        end
+
+    end
 
 end
