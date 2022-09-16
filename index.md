@@ -45,7 +45,7 @@ _HydroSight_ has been generously supported by the following organisations:
 - [Power and Water Corporation, N. T., Aust.](http://www.powerwater.com.au/)
 
 ### References:
-- Peterson, T. J. and Fulton, S. (in-press), Joint estimation of gross recharge, groundwater usage and hydraulic properties within HydroSight. Groundwater. Accepted Author Manuscript. https://doi.org/10.1111/gwat.12946
+- Peterson, T. J. and Fulton, S. (2019), Joint estimation of gross recharge, groundwater usage and hydraulic properties within HydroSight. Groundwater. Accepted Author Manuscript. https://doi.org/10.1111/gwat.12946
 
 - Peterson T. J and Western A. W., (2014), Nonlinear Groundwater time-series modeling of unconfined groundwater head, Water Resources Research, DOI: 10.1002/2013WR014800 [PDF copy](https://github.com/peterson-tim-j/Groundwater-Statistics-Toolbox/files/98498/Peterson.and.Western.2014.Nonlinear.time-series.modeling.of.head.pdf)
 
