@@ -1,7 +1,3 @@
-<img align="left" width="160" height="160" src="https://github.com/peterson-tim-j/HydroSight/blob/master/GUI/icons/icon_webpage.png">  
-
-# _HydroSight_: _Open-source data-driven hydrogeological insights_
-
 [![GitHub release](https://img.shields.io/github/release/peterson-tim-j/HydroSight)](https://github.com/peterson-tim-j/HydroSight/releases/) [![Github All Releases](https://img.shields.io/github/downloads/peterson-tim-j/HydroSight/total.svg?style=flat)]()   [![GitHub license](https://img.shields.io/github/license/peterson-tim-j/HydroSight)](https://github.com/peterson-tim-j/HydroSight/blob/master/LICENSE) [![GitHub forks](https://img.shields.io/github/forks/peterson-tim-j/HydroSight)](https://github.com/peterson-tim-j/HydroSight/network) [![GitHub stars](https://img.shields.io/github/stars/peterson-tim-j/HydroSight)](https://github.com/peterson-tim-j/HydroSight/stargazers)
 
 _HydroSight_ is a highly flexible statistical toolbox for quantitative hydrogeological insights. It comprises of a powerful groundwater hydrograph time-series modelling and simulation framework plus a data quality analysis module. Multiple models can be built for one bore, allowing statistical identification of the dominant processes, or 100's of bores can be modelled to quantify aquifer heterogeneity. This flexibility allows many novel applications such as:
