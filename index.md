@@ -1,3 +1,9 @@
+<img align="left" width="160" height="160" src="https://github.com/peterson-tim-j/HydroSight/blob/master/GUI/icons/icon_webpage.png">  
+
+# _HydroSight_: _Open-source data-driven hydrogeological insights_
+
+[![GitHub release](https://img.shields.io/github/release/peterson-tim-j/HydroSight)](https://github.com/peterson-tim-j/HydroSight/releases/) [![Github All Releases](https://img.shields.io/github/downloads/peterson-tim-j/HydroSight/total.svg?style=flat)]()   [![GitHub license](https://img.shields.io/github/license/peterson-tim-j/HydroSight)](https://github.com/peterson-tim-j/HydroSight/blob/master/LICENSE) [![GitHub forks](https://img.shields.io/github/forks/peterson-tim-j/HydroSight)](https://github.com/peterson-tim-j/HydroSight/network) [![GitHub stars](https://img.shields.io/github/stars/peterson-tim-j/HydroSight)](https://github.com/peterson-tim-j/HydroSight/stargazers)
+
 _HydroSight_ is a highly flexible statistical toolbox for quantitative hydrogeological insights. It comprises of a powerful groundwater hydrograph time-series modelling and simulation framework plus a data quality analysis module. Multiple models can be built for one bore, allowing statistical identification of the dominant processes, or 100's of bores can be modelled to quantify aquifer heterogeneity. This flexibility allows many novel applications such as:
 
 1. Separations of the impacts from pumping and drought over time.
@@ -10,15 +16,14 @@ The toolbox can be used from a highly flexible and stand-alone graphical user in
 
 ### What's New
 The next release of the stand alone application is out! It contains some exciting new features:
-- Examination of calibrated model fluxes, eg monthly free drainage.
-- Modelling with infrequently metered pumping rates.
-- probabilistic calibration (using DREAM) and parameter estimation.
-- [Google Groups discussion](https://groups.google.com/forum/#!forum/hydrosight). Join now to share ideas, project and issues. 
+- Extend examination of calibrated and simulation model fluxes, eg rations such as monthly free drainage / precip.
+- Details documentation of model construction and calibration status.
+- Outlier detection analysis is significantly faster to run on 100s of bores.
+- "Cite Project" menu item added to allow efficient referencing.
+- Many bug and annoyances fixed making it more efficient to build and examine models.
 
 ### How many use _HydroSight_? 
-The number of downloads per releases are availabe at [Git Hub Release Statistics](https://somsubhra.github.io/github-release-stats/?username=peterson-tim-j&repository=HydroSight&page=1&per_page=5). As of February 2021, there had been 810 downloads.
-
-The number of users downloading the source code is however not provided by GitHub, bit GitHub does summarise the [project web traffic](https://github.com/peterson-tim-j/HydroSight/graphs/traffic).
+The number of downloads per releases are availabe at [Git Hub Release Statistics](https://somsubhra.github.io/github-release-stats/?username=peterson-tim-j&repository=HydroSight&page=1&per_page=5). As of August 2022, there had been >1,200 downloads. Also, 17 users have forked this project to make their only modifications.
 
 ### Getting Started
 To begin using the stand-alone application, simply download and install the above Windows 64bit executable  (available [here](https://github.com/peterson-tim-j/HydroSight/releases)). 
