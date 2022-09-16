@@ -1,4 +1,6 @@
 title: HydroSight
+logo: blob/master/GUI/icons/icon_webpage.png
+show_downloads: true
 description: Open-source data-driven hydrogeological insights
 google_analytics: UA-72650036-1
 show_downloads: true
@@ -6,7 +8,3 @@ theme: jekyll-theme-slate
 
 gems:
   - jekyll-mentions
-  
-# Image to show in the navigation bar - works best with a square image
-# Remove this parameter if you don't want an image in the navbar
-![HydroSight logo](https://github.com/peterson-tim-j/HydroSight/blob/master/GUI/icons/icon_webpage.png?raw=true)
