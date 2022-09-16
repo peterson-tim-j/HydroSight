@@ -6655,15 +6655,33 @@ classdef HydroSight_GUI < handle
                 % Filter for the required bore.
                 filt =  strcmp(tbl{:,1},data{i,6});
                 headData = tbl(filt,2:end);
-                headData = sortrows(headData{:,:}, 1:(size(headData,2)-1),'ascend');          
+
+                % Check all columns are numeric.
+                for j=1:size(headData,2)
+                    if any(~isnumeric(headData{:,j}))
+                        this.tab_ModelConstruction.Table.Data{i, end} = '<html><font color = "#FF0000">Head data file error - non-numeric data.</font></html>';
+                        nModelsBuiltFailed = nModelsBuiltFailed + 1;
+                        break;
+                    end
+                end                
                 
-                % Check theer is some obs data
+                % Check if there are any empty rows
+                if any(ismissing(headData),'all')
+                    this.tab_ModelConstruction.Table.Data{i, end} = '<html><font color = "#FF0000">Head data file error - missing value(s).</font></html>';
+                    nModelsBuiltFailed = nModelsBuiltFailed + 1;
+                    continue;
+                end   
+
+                % Check there is some obs data
                 if size(headData,1)<=1
                     this.tab_ModelConstruction.Table.Data{i, end} = '<html><font color = "#FF0000">Head data file error - <=1 observation for bore ID.</font></html>';
                     nModelsBuiltFailed = nModelsBuiltFailed + 1;
                     continue;
-                end
-                
+                end                  
+
+                % Convert to double and sort in case not in order.
+                headData = sortrows(headData{:,:}, 1:(size(headData,2)-1),'ascend');          
+                           
                 %----------------------------------------------------------
                 
                 % Import forcing data
@@ -6693,6 +6711,26 @@ classdef HydroSight_GUI < handle
                    nModelsBuiltFailed = nModelsBuiltFailed + 1;
                    continue;                    
                 end
+
+                % Check all columns are numeric.
+                for j=1:size(forcingData,2)
+                    if any(~isnumeric(forcingData{:,j}))
+                        this.tab_ModelConstruction.Table.Data{i, end} = '<html><font color = "#FF0000">Forcing file file error - non-numeric data.</font></html>';
+                        nModelsBuiltFailed = nModelsBuiltFailed + 1;
+                        break;
+                    end
+                end
+
+                % Check if there are any empty rows
+                if any(ismissing(forcingData),'all')
+                    this.tab_ModelConstruction.Table.Data{i, end} = '<html><font color = "#FF0000">Head data file error - missing value(s).</font></html>';
+                    nModelsBuiltFailed = nModelsBuiltFailed + 1;
+                    continue;
+                end
+
+                % Sort in case not in order.
+                forcingData = sortrows(forcingData, 1:3,'ascend');
+
                 %----------------------------------------------------------
                 
                 

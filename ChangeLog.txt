@@ -242,3 +242,9 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 * Bug fixed in cmaes.m casuing non-reproducible solutions when the same random seed is used. Problem was caused by random sampling within a parallel for-loop used when bounds exceeded. This for-loop is no longer parallelised.
 * Bug fixed in spuci.m casuing non-reproducible solutions when the same random seed is used. Problem was caused by random sampling within the parallel for-loops for the complex evolutions and the initial sampling of the population.
 * Bug fixed in climateTransform_soilMoistureModels() and climateTransform_soilMoistureModels_2layer() causing the simulation of land cover change (i.e. using two parallel soil stores) to fail. 
+
+16 September 2022
+* Bug fixed causing hydrosight icon to not be displayed when model)TFN_gui errors/warnings are thrown.
+* Input data (forcing and coordinates) checks for missing table values added to model_TFN_gui(). This was done to fix issue #21.
+* Input data checks (forcing and head) for missing table values added also added to HydroSight_GUI.onBuildModels(). Forcing data is also now sorted chronologically.
+

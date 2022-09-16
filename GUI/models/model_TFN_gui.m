@@ -142,17 +142,7 @@ classdef model_TFN_gui < model_gui_abstract
                 'Tag','Forcing Transform', ...
                 'TooltipString',toolTip_forcing);
             
-            set( this.forcingTranforms.vbox, 'ColumnSizes', -1, 'RowSizes', [20 -1] );
-
-%             % Find java sorting object in table
-%             jscrollpane = findjobj(this.forcingTranforms.tbl);
-%             jtable = jscrollpane.getViewport.getView;
-% 
-%             % Turn the JIDE sorting on
-%             jtable.setSortable(true);
-%             jtable.setAutoResort(true);
-%             jtable.setMultiColumnSortable(true);
-%             jtable.setPreserveSelectionsAfterSorting(true);            
+            set( this.forcingTranforms.vbox, 'ColumnSizes', -1, 'RowSizes', [20 -1] );     
                                     
             % Build the derived  forcing transformation settings items
             this.derivedForcingTranforms.vbox = uiextras.Grid('Parent', this.modelComponants,'Padding', 3, 'Spacing', 3);
@@ -165,17 +155,7 @@ classdef model_TFN_gui < model_gui_abstract
                 'Tag','Derived Forcing Transform', ...
                 'TooltipString', toolTip_forcingDerived);
             
-            set( this.derivedForcingTranforms.vbox, 'ColumnSizes', -1, 'RowSizes', [20 -1] );            
-
-%             % Find java sorting object in table
-%             jscrollpane = findjobj(this.derivedForcingTranforms.tbl);
-%             jtable = jscrollpane.getViewport.getView;
-% 
-%             % Turn the JIDE sorting on
-%             jtable.setSortable(true);
-%             jtable.setAutoResort(true);
-%             jtable.setMultiColumnSortable(true);
-%             jtable.setPreserveSelectionsAfterSorting(true);            
+            set( this.derivedForcingTranforms.vbox, 'ColumnSizes', -1, 'RowSizes', [20 -1] );                        
                         
             % Build the weighting function settings items
             this.weightingFunctions.vbox = uiextras.Grid('Parent', this.modelComponants,'Padding', 3, 'Spacing', 3);
@@ -465,6 +445,16 @@ classdef model_TFN_gui < model_gui_abstract
                 end                    
              end
 
+             % Check if there are any empty rows
+             for i=1:size(tbl,2)
+                if any(ismissing(tbl{:,i}))
+                    h = warndlg(['Column ',num2str(i), ' within the following forcing data file contains row(s) with missing values:',fname],'File error');
+                    setIcon(this, h);
+                    clear tbl;
+                    return;
+                end                    
+             end
+                        
              % Set the column names.
              this.forcingData.colnames = tbl.Properties.VariableNames;
              this.forcingData.data = tbl;
@@ -505,6 +495,16 @@ classdef model_TFN_gui < model_gui_abstract
                 return;
              end
 
+             % Check if there are any empty rows
+             for i=1:size(tbl,2)
+                if any(ismissing(tbl{:,i}))
+                    h = warndlg(['Column ',num2str(i), ' within the following site coordinates file contains row(s) with missing values:',fname],'File error');
+                    setIcon(this, h);
+                    clear tbl;
+                    return;
+                end                    
+             end
+                                     
              % Check if the Bore ID is listed in the coordinates file
              if ~isempty(this.boreID) && ~any(strcmp(tbl{:,1},this.boreID))
                  h = warndlg(['The following bore is not listed in the coordinates files: ',this.boreID],'File error');
@@ -2255,7 +2255,7 @@ classdef model_TFN_gui < model_gui_abstract
          end
 
          function setIcon(this, h)
-            if isa(h, 'matlab.ui.Figure') && isa(this.figure_icon,'javax.swing.ImageIcon')
+            if isa(h, 'matlab.ui.Figure') && isa(this.Figure_icon,'javax.swing.ImageIcon')
                 try
                     warning ('off','MATLAB:ui:javaframe:PropertyToBeRemoved');
                     javaFrame    = get(h,'JavaFrame'); %#ok<JAVFM> 
