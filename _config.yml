@@ -1,6 +1,5 @@
 title: HydroSight
-logo: https://github.com/peterson-tim-j/HydroSight/blob/master/GUI/icons/icon_webpage.png
-show_downloads: true
+image: https://github.com/peterson-tim-j/HydroSight/blob/master/GUI/icons/icon_webpage.png
 description: Open-source data-driven hydrogeological insights
 google_analytics: UA-72650036-1
 show_downloads: true
