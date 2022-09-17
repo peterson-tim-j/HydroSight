@@ -4,7 +4,7 @@
  
 [![GitHub release](https://img.shields.io/github/release/peterson-tim-j/HydroSight)](https://github.com/peterson-tim-j/HydroSight/releases/) [![Github All Releases](https://img.shields.io/github/downloads/peterson-tim-j/HydroSight/total.svg?style=flat)]()   [![GitHub license](https://img.shields.io/github/license/peterson-tim-j/HydroSight)](https://github.com/peterson-tim-j/HydroSight/blob/master/LICENSE) [![GitHub forks](https://img.shields.io/github/forks/peterson-tim-j/HydroSight)](https://github.com/peterson-tim-j/HydroSight/network) [![GitHub stars](https://img.shields.io/github/stars/peterson-tim-j/HydroSight)](https://github.com/peterson-tim-j/HydroSight/stargazers)
 
-HydroSight is statistical toolbox for data-driven insights from groundwater monitoring data. Many hundreds of bores can easily be easily analysed, without any programming, to quantify:
+HydroSight is statistical toolbox for data-driven insights into groundwater dynamics and aquifer properties. Many hundreds of bores can be easily analysed, all without any programming, to quantify:
 
 * drivers of groundwater trends, e.g. climate and pumping ([Shapoori et al., 2015a](https://github.com/peterson-tim-j/HydroSight/blob/master/documentation/html/papers/Shapoori_2015A.pdf)) and landuse change ([Peterson and Western, 2014](https://doi.org/10.1029/2017WR021838)).
 * recharge over time [Peterson et al., 2019](https://doi.org/10.1111/gwat.12946)).
