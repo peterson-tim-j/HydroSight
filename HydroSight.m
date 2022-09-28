@@ -1,4 +1,9 @@
+%function [f, status] = HydroSight()
 function HydroSight()
+
+    % Initialise status as error and an empty figure handle.
+%     f= [];
+%     status = -1;
 
     % Check Matlab is 2018a or later. 
     if ~isdeployed
@@ -19,19 +24,14 @@ function HydroSight()
     addpath(genpath([pwd, filesep, 'Examples']));
     addpath(genpath([pwd, filesep, 'GUI']));
     
-%     addpath(genpath(pwd));
-%     
-%     % Remove paths to .git folders
-%     if ~isdeployed
-%         rmpath(genpath( fullfile( pwd, '.git')));
-%     end toat 
-%     
     % Load GUI
     try
         % Use GUI Layout Toolbox if it exists.
         if ~isdeployed && ~isempty(ver('layout'))           
             rmpath(genpath(fullfile( pwd, 'GUI','GUI Layout Toolbox 2.3.4')));
         end
+        %f = HydroSight_GUI();
+        %status = 0;
         HydroSight_GUI();
     catch ME
         % Check the toolbox for GUIs exists

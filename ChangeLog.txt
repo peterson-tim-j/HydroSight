@@ -248,3 +248,7 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 * Input data (forcing and coordinates) checks for missing table values added to model_TFN_gui(). This was done to fix issue #21.
 * Input data checks (forcing and head) for missing table values added also added to HydroSight_GUI.onBuildModels(). Forcing data is also now sorted chronologically.
 
+29 Sept 2022
+* Fatal bug causing GUI to crash (#59) was found to be casued by .mat data files being corrupted when downloaded from GitHub. This push tries to fix the problem by using git lfs, which allows large files to be pushed to github.
+* Further to bug #59, all .mat files were re-saved. No data was changed within the files.
+* Minor chnages to HydroSight_GUI.m and HydroSight.m in preperation for the addition of unit testing.

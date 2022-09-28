@@ -6560,9 +6560,8 @@ classdef HydroSight_GUI < handle
                     '   - Data analysis algorithm failures: ', num2str(sum(nAnalysisFailed)), char newline, ...
                     '   - Bore IDs not starting with a letter: ', num2str(nBoreIDLabelError)], ...                    
                     'Results summary');
+            set(h,'Tag','Data prep msgbox summary');
             setIcon(this, h);
-                           
-            
         end
         
         function onBuildModels(this, ~, ~)
@@ -9440,25 +9439,30 @@ classdef HydroSight_GUI < handle
         end
 
         % Load example models
-        function onExamples(this, ~, eventdata)
+        function onExamples(this, ~, eventdata, folderName)
             
-            % Check if all of the GUI tables are empty. If not, warn the
-            % user the opening the example will delete the existing data.
-            if ~isempty(this.tab_Project.project_name.String) || ...
-            ~isempty(this.tab_Project.project_description.String) || ...
-            (size(this.tab_ModelCalibration.Table.Data,1)~=0 && any(~any(cellfun( @(x) isempty(x), this.tab_ModelConstruction.Table.Data(:,1:9))))) || ...
-            (size(this.tab_ModelCalibration.Table.Data,1)~=0 && any(~any(cellfun( @(x) isempty(x), this.tab_ModelCalibration.Table.Data)))) || ...
-            (size(this.tab_ModelSimulation.Table.Data,1)~=0 && any(~any(cellfun( @(x) isempty(x), this.tab_ModelSimulation.Table.Data))))
-                response = questdlg_timer(this.figure_icon,30,{'Opening an example project will close the current project.','','Do you want to continue?'}, ...
-                 'Close the current project?','Yes','No','No');
-             
-                if isempty(response) || strcmp(response,'No')
-                    return;
+            % When foldername is specified (by HydroSightTest()) then the rquest for 
+            % user inputs is avoided. This is done to allow automated for unit testing.
+            if nargin==4
+                this.project_fileName = folderName;
+            else
+                % Check if all of the GUI tables are empty. If not, warn the
+                % user the opening the example will delete the existing data.
+                if ~isempty(this.tab_Project.project_name.String) || ...
+                        ~isempty(this.tab_Project.project_description.String) || ...
+                        (size(this.tab_ModelCalibration.Table.Data,1)~=0 && any(~any(cellfun( @(x) isempty(x), this.tab_ModelConstruction.Table.Data(:,1:9))))) || ...
+                        (size(this.tab_ModelCalibration.Table.Data,1)~=0 && any(~any(cellfun( @(x) isempty(x), this.tab_ModelCalibration.Table.Data)))) || ...
+                        (size(this.tab_ModelSimulation.Table.Data,1)~=0 && any(~any(cellfun( @(x) isempty(x), this.tab_ModelSimulation.Table.Data))))
+                    response = questdlg_timer(this.figure_icon,30,{'Opening an example project will close the current project.','','Do you want to continue?'}, ...
+                        'Close the current project?','Yes','No','No');
+
+                    if isempty(response) || strcmp(response,'No')
+                        return;
+                    end
                 end
-            end
-            
-            % Add message explaing the model examples.
-            h= msgbox({'The example models provide an overview of some of the features of the', ...
+
+                % Add message explaing the model examples.
+                h= msgbox({'The example models provide an overview of some of the features of the', ...
                     'toolbox plus example input data files.', ...
                     '', ...
                     'To open an example, you will first be asked to specify a folder in which', ...
@@ -9468,23 +9472,24 @@ classdef HydroSight_GUI < handle
                     'time-series models. You can use these models to undertake', ...
                     'simulations, or alternatively you can rebuild and calibrate, or edit,', ...
                     'the models.'},'Opening Example Models ...','help') ;
-            setIcon(this, h);
-            uiwait(h);
-                
-            % Ask user the locations where the input data is to be saved.          
-            if isnumeric(this.project_fileName)
-                this.project_fileName='';
+                setIcon(this, h);
+                uiwait(h);
+
+                % Ask user the locations where the input data is to be saved.
+                if isnumeric(this.project_fileName)
+                    this.project_fileName='';
+                end
+                if ~isempty(this.project_fileName)
+                    folderName = fileparts(this.project_fileName);
+                else
+                    folderName = fileparts(pwd);
+                end
+                folderName = uigetdir(folderName ,'Select folder in which to save the example .csv files.');
+                if isempty(folderName) || (isnumeric(folderName) && folderName==0)
+                    return;
+                end
+                this.project_fileName = folderName;
             end
-            if ~isempty(this.project_fileName)
-                folderName = fileparts(this.project_fileName);
-            else
-                folderName = fileparts(pwd); 
-            end
-            folderName = uigetdir(folderName ,'Select folder in which to save the example .csv files.');    
-            if isempty(folderName) || (isnumeric(folderName) && folderName==0)
-                return;
-            end
-            this.project_fileName = folderName;
             
             % Change cursor
             set(this.Figure, 'pointer', 'watch');      
@@ -9662,14 +9667,16 @@ classdef HydroSight_GUI < handle
             
             % Convert Simulation model labels from a variable name to the full
             % label (ie without _ chars etc)
-            model_label = this.tab_ModelSimulation.Table.Data(:,2);
-            for i=1:length(model_label)
-                if isfield(this.models,model_label{i}) && ...
-                        isprop(this.models.(model_label{i}),'model_label')
-                    model_label{i} = this.models.(model_label{i}).model_label;
+            if ~isempty(this.tab_ModelSimulation.Table.Data)
+                model_label = this.tab_ModelSimulation.Table.Data(:,2);
+                for i=1:length(model_label)
+                    if isfield(this.models,model_label{i}) && ...
+                            isprop(this.models.(model_label{i}),'model_label')
+                        model_label{i} = this.models.(model_label{i}).model_label;
+                    end
                 end
+                this.tab_ModelSimulation.Table.Data(:,2) = model_label;
             end
-            this.tab_ModelSimulation.Table.Data(:,2) = model_label;
 
             % Disable file menu items
             for i=1:size(this.figure_Menu.Children,1)
