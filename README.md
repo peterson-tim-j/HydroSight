@@ -2,7 +2,7 @@
 
 # _HydroSight_: _Open-source data-driven hydrogeological insights_
  
-[![GitHub release](https://img.shields.io/github/release/peterson-tim-j/HydroSight)](https://github.com/peterson-tim-j/HydroSight/releases/) [![Github All Releases](https://img.shields.io/github/downloads/peterson-tim-j/HydroSight/total.svg?style=flat)]()   [![GitHub license](https://img.shields.io/github/license/peterson-tim-j/HydroSight)](https://github.com/peterson-tim-j/HydroSight/blob/master/LICENSE) [![GitHub forks](https://img.shields.io/github/forks/peterson-tim-j/HydroSight)](https://github.com/peterson-tim-j/HydroSight/network) [![GitHub stars](https://img.shields.io/github/stars/peterson-tim-j/HydroSight)](https://github.com/peterson-tim-j/HydroSight/stargazers)
+[![GitHub release](https://img.shields.io/github/release/peterson-tim-j/HydroSight)](https://github.com/peterson-tim-j/HydroSight/releases/) [![View HydroSight on File Exchange](https://www.mathworks.com/matlabcentral/images/matlab-file-exchange.svg)](https://au.mathworks.com/matlabcentral/fileexchange/48546-hydrosight) [![Github All Releases](https://img.shields.io/github/downloads/peterson-tim-j/HydroSight/total.svg?style=flat)]()   [![GitHub license](https://img.shields.io/github/license/peterson-tim-j/HydroSight)](https://github.com/peterson-tim-j/HydroSight/blob/master/LICENSE) [![GitHub forks](https://img.shields.io/github/forks/peterson-tim-j/HydroSight)](https://github.com/peterson-tim-j/HydroSight/network) [![GitHub stars](https://img.shields.io/github/stars/peterson-tim-j/HydroSight)](https://github.com/peterson-tim-j/HydroSight/stargazers)
 
 HydroSight is statistical toolbox for data-driven insights into groundwater dynamics and aquifer properties. Many hundreds of bores can be easily analysed, all without any programming, to quantify:
 
@@ -14,11 +14,12 @@ HydroSight is statistical toolbox for data-driven insights into groundwater dyna
 * simulate groundwater level under different climate or, say, pumping scenarios.
 * hydrograph monitoring errors and outliers ([Peterson et al., 2018](https://doi.org/10.1007/s10040-017-1660-7)).
 
-## Installation
+## Installation Options
 
-_HydroSight_ is operating system independent and has been tested on Windows 10+ and Linux (Ubuntu 20.04 LTS). Here are a installation options:
+_HydroSight_ is operating system independent and has been tested on Windows 10+ and Linux (Ubuntu 20.04 LTS). There are four installation options:
 1. Stand-alone app within Windows. The latest .exe is [available here](https://github.com/peterson-tim-j/HydroSight/releases).
-1. Load _Hydrosight_ from within Matlab after downloading the latest source code [here](https://github.com/peterson-tim-j/HydroSight/releases).
+1. Install _Hydrosight_ Matlab source code by (i) downloading the [source code](https://github.com/peterson-tim-j/HydroSight/releases), (ii) unzipping the downloaded file, (ii) setting the Matlab _Current Folder_ to where the file was unzipped and (iv) entering ``HydroSight`` into the Matlab _Command Window_.
+1. Install _Hydrosight_ from within Matlab using the _Add-Ons_ menu item and searching for _HydroSight_. From the _Add_ button select _Add to Matlab_. Once installed, enter ``HydroSight`` into the Matlab _Command Window_. 
 1. Compile your own stand-alone app from within Matlab by (i) downloading the [source code](https://github.com/peterson-tim-j/HydroSight/releases) and (ii) running the command: ``makeStandaloneHydroSight()``
 
 For futher details see the [installation wiki page](https://github.com/peterson-tim-j/HydroSight/wiki).
