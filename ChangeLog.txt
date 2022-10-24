@@ -252,3 +252,6 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 * Fatal bug causing GUI to crash (#59) was found to be casued by .mat data files being corrupted when downloaded from GitHub. This push tries to fix the problem by using git lfs, which allows large files to be pushed to github.
 * Further to bug #59, all .mat files were re-saved. No data was changed within the files.
 * Minor chnages to HydroSight_GUI.m and HydroSight.m in preperation for the addition of unit testing.
+
+24 Oct 2022
+* Bug fixed in plotting Pearson's weighting functions arising when the using DREAM and peak weight is near zero.

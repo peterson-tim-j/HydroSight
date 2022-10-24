@@ -452,7 +452,7 @@ classdef responseFunction_Pearsons < responseFunction_abstract
                 hold(axisHandle,'off');                
                 
                 ind = find(abs(derivedData_prctiles(:,4)) > max(abs(derivedData_prctiles(:,4)))*0.1,1,'last');
-                if isempty(ind)
+                if isempty(ind) || ind==1
                     ind = length(t);
                 end                
                 xlim(axisHandle, [1, t(ind)]);
