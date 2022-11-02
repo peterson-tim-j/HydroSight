@@ -194,7 +194,7 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
             options = { 'SMSC'          ,   2, 'Calib.';...
                         'SMSC_trees'    ,   2, 'Fixed';...
                         'treeArea_frac' , 0.5, 'Fixed'; ...
-                        'S_initialfrac' , 0.5, 'Fixed'  ; ...
+                        'S_initialfrac' , 0.1, 'Fixed'  ; ...
                         'k_infilt'      , inf,'Fixed'   ; ...
                         'k_sat'         ,   1, 'Calib.'   ; ...
                         'bypass_frac'   ,   0, 'Fixed'    ; ...
@@ -447,7 +447,7 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                     elseif strcmp(all_parameter_names{i}, 'interflow_frac')
                         obj.(all_parameter_names{i}) = 0;                        
                     elseif strcmp(all_parameter_names{i}, 'S_initialfrac')
-                        obj.(all_parameter_names{i}) = 0.5;  
+                        obj.(all_parameter_names{i}) = 0.1;  
                     elseif strcmp(all_parameter_names{i}, 'eps')
                         obj.(all_parameter_names{i}) = 0;
                     else
@@ -1072,7 +1072,7 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
 
                 % Set the initial soil moisture.
                 if isempty(S_initialfrac)
-                    S_initial = 0.5.*SMSC;
+                    S_initial = 0.1.*SMSC;
                 else
                     S_initial = S_initialfrac * SMSC;
                 end
@@ -1116,7 +1116,7 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                 % Run soil model again if tree cover is to be simulated
                 if  isfield(obj.settings,'simulateLandCover') && obj.settings.simulateLandCover
                     if isempty(S_initialfrac)
-                        S_initial = 0.5.*SMSC_trees;
+                        S_initial = 0.1.*SMSC_trees;
                     else
                         S_initial = S_initialfrac * SMSC_trees;
                     end
