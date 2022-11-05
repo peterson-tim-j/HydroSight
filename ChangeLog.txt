@@ -255,3 +255,13 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 
 24 Oct 2022
 * Bug fixed in plotting Pearson's weighting functions arising when the using DREAM and peak weight is near zero.
+
+25 Oct 2022
+* Error handled caused by insufficient RAM when plotting forcing data derived from RAM calibration. Error handled by displaying RAM requirements to user and disabling calibration forcing data tab.
+* Question dialog time out reduced from 30 to 15 seconds. This was done to speed up unit testing.
+* HydroSight_GUI properties not required for unit testing changed to Access=private. Model remain public.
+* initialiseGUI() added to HydroSight_GUI to ensure consistent initialisation on onNew() and loading projects. This was added to resolve a bug exposed from unit testing causing (i) model_TFN model options to throw an error following loading of a 2md example and (ii) construction, calibration and simulation GUI RHS panels not beign reset following loading of a new project.
+* Tag property set to various dialogs within HydroSight_GUI. This was done to allow their programatic closure during unit testing.
+
+2-5 Nov 2011
+* Default initial soil moisture reduced from 0.5 to 0.1. This reduced the impact of initial soil moisture when forcing record is short.
