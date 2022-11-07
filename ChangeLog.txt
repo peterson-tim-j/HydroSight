@@ -263,5 +263,8 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 * initialiseGUI() added to HydroSight_GUI to ensure consistent initialisation on onNew() and loading projects. This was added to resolve a bug exposed from unit testing causing (i) model_TFN model options to throw an error following loading of a 2md example and (ii) construction, calibration and simulation GUI RHS panels not beign reset following loading of a new project.
 * Tag property set to various dialogs within HydroSight_GUI. This was done to allow their programatic closure during unit testing.
 
-2-5 Nov 2011
+2-5 Nov 2022
 * Default initial soil moisture reduced from 0.5 to 0.1. This reduced the impact of initial soil moisture when forcing record is short.
+
+8 Nov 2022
+* Default initial soil moisture changed from a fixed value to a multiplier of the steady state solution. That is, for the given parameters, the steady state solution is calculated and then the soilMoistureModel parameter S_initialfrac and S_initialfrac_deep can scale this initial value (default is 1 i.e. no scaling). This change was made to minimise the impact of the initial soil moisture, which was often found to be unrealistic. Importantly, models calibrated prior to this change will need to be recalibrated (unfortunately, no way of being backward compatible could be found, sorry).

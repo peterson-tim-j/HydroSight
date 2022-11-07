@@ -97,7 +97,7 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
 %       SMSC_trees    - log10(Trees top layer soil moisture capacity as water depth).
 %       SMSC_deep_trees- log10(Trees bottom layer soil moisture capacity as water depth).
 %       SMSC_trees    - log10(Soil moisture capacity as water depth).
-%       S_initialfrac - Initial soil moisture fraction (0-1).
+%       S_initialfrac_deep - Initial soil moisture scaler (0-inf) to steady state deep S.
 %       k_infilt      - log10(Soil infiltration capacity as water depth).
 %       k_sat         - log10(Maximum vertical infiltration rate).
 %       bypass_frac   - Fraction of runoff from shallow layer to bypass drainage (0-1).
@@ -191,10 +191,12 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
             end
                 
             variable_names_deep = { ...
-                'infiltration_deep';            'drainage_deep'         ;'evap_soil_deep';       'evap_soil_total';     'runoff_deep';       'runoff_total';            'SMS_deep'; ...
-                'infiltration_deep_tree';    'drainage_deep_tree'    ;'evap_soil_deep_tree';  'evap_soil_total_tree';   'runoff_deep_tree'; 'runoff_total_tree'; 	'SMS_deep_tree'; ...
-                'infiltration_deep_nontree';    'drainage_deep_nontree' ;'evap_soil_deep_nontree';'evap_soil_total_nontree';'runoff_deep_nontree'; 'runoff_total_nontree';    'SMS_deep_nontree'; ...
-                'mass_balance_error_deep'; 'mass_balance_error_total'};
+                'infiltration_deep';         'drainage_deep'         ;'evap_soil_deep';        'evap_soil_total';        'evap_gw_potential_deep';         'evap_gw_potential_total';   'runoff_deep';        'runoff_total';         'SMS_deep'; 'SMS_deep_pcnt'; ...
+                'infiltration_deep_tree';    'drainage_deep_tree'    ;'evap_soil_deep_tree';   'evap_soil_total_tree';   'evap_gw_potential_deep_tree';    'evap_gw_potential_total_tree';    'runoff_deep_tree';   'runoff_total_tree'; 	 'SMS_deep_tree'; 'SMS_deep_tree_pcnt'; ...
+                'infiltration_deep_nontree'; 'drainage_deep_nontree' ;'evap_soil_deep_nontree';'evap_soil_total_nontree';'evap_gw_potential_deep_nontree'; 'evap_gw_potential_total_nontree'; 'runoff_deep_nontree';'runoff_total_nontree'; 'SMS_deep_nontree'; 'SMS_deep_nontree_pcnt'; ...
+                'mass_balance_error_deep'; 'mass_balance_error_deep_tree'; 'mass_balance_error_deep_nontree'; ...
+                'mass_balance_error_total';'mass_balance_error_total_tree'; 'mass_balance_error_total_nontree'};
+
                 
             variable_names = [variable_names; variable_names_deep];
             variable_names = sort(unique(variable_names));
@@ -205,7 +207,7 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
             options = { 'SMSC'           ,    2, 'Calib.';...
                         'SMSC_trees'    ,   2, 'Fixed';...
                         'treeArea_frac' , 0.5, 'Fixed'; ...
-                        'S_initialfrac' , 0.1, 'Fixed'  ; ...
+                        'S_initialfrac' , 1, 'Fixed'  ; ...
                         'k_infilt'      , inf,'Fixed'   ; ...
                         'k_sat'         , 1, 'Calib.'   ; ...
                         'bypass_frac'   , 0, 'Fixed'    ; ...
@@ -215,7 +217,7 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
                         'eps'           ,   0,  'Fixed'; ...
                         'SMSC_deep'     ,  2, 'Calib.'   ;
                         'SMSC_deep_trees',   2, 'Fixed';...
-                        'S_initialfrac_deep', 0.1,'Fixed'; ...
+                        'S_initialfrac_deep', 1,'Fixed'; ...
                         'k_sat_deep'     , 1, 'Calib.'   ;
                         'beta_deep'     ,  0.5, 'Calib.'};
 
@@ -227,7 +229,7 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
             toolTip = sprintf([ 'SMSC         : log10(Soil moisture capacity).\n', ...
                                 'SMSC_trees   : log10(Tree SMSC).\n', ...
                                 'treeArea_frac: Tree fraction scalar.\n', ...                                
-                                'S_initialfrac: Initial soil moisture frac.\n', ...
+                                'S_initialfrac: Initial soil moisture scaler.\n', ...
                                 'k_infilt     : log10(Max. infilt. capacity).\n', ...
                                 'k_sat        : log10(Max. drainage rate).\n', ...
                                 'bypass_frac  : Frac. runoff to bypass drainage.\n', ...
@@ -238,7 +240,7 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
                                 'eps          : Threshold SMSC frac. for runoff.\n', ...
                                 'SMSC_deep    : log10(Deep SMSC).\n', ...
                                 'SMSC_deep_trees: log10(Deep tree SMSC).\n', ...
-                                'S_initialfrac_deep: Initial deep soil moisture frac.\n', ...
+                                'S_initialfrac_deep: Initial deep soil moisture scaler\n', ...
                                 'k_sat_deep   : log10(Deep max. drainage rate).\n', ...
                                 'beta_deep    : log10(Deep power term for dainage).']);
             
@@ -260,7 +262,7 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
                                 'SMSC         : log10(Soil moisture capacity as water depth).', ...
                                 'SMSC_trees    : log10(Tree soil moisture capacity as water depth).', ...
                                 'treeArea_frac : Scaler applied to the tree fraction input data.', ...                                                                
-                                'S_initialfrac: Initial soil moisture fraction (0-1).', ...
+                                'S_initialfrac: Initial soil moisture scaler of steady state soln (0-10).', ...
                                 'k_infilt     : log10(Soil infiltration capacity as water depth).', ...
                                 'k_sat        : log10(Maximum vertical infiltration rate).', ...
                                 'bypass_frac  : Fraction of runoff to bypass drainage.', ...
@@ -271,7 +273,7 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
                                 '               Input an empty value and "fixed" to for it to equal SMSC.', ...
                                 'SMSC_deep_tree : log10(Tree deep layer soil moisture capacity as water depth).', ... 
                                 '               Input an empty value and "fixed" to for it to SMSC_tree', ...
-                                'S_initialfrac_deep: Initial deep soil moisture fraction (0-1).\n', ...      
+                                'S_initialfrac_deep: Initial soil moisture scaler of steady state soln (0-10).', ...      
                                 '               Input an empty value and "fixed" to for it to S_initialfrac', ...                                
                                 'k_sat_deep   : log10(Deep layer maximum vertical infiltration rate).', ...
                                 '               Input an empty value and "fixed" to for it to equal k_sat.', ...
@@ -461,7 +463,7 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
                         obj.(all_parameter_names{i}) = -inf;                        
                         
                     elseif strcmp(all_parameter_names{i}, 'S_initialfrac_deep')
-                        obj.(all_parameter_names{i}) = 0.1;  
+                        obj.(all_parameter_names{i}) = 1;  
                         
                     else
                         obj.(all_parameter_names{i}) = 0;
@@ -487,7 +489,7 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
             if isnan(obj.k_sat_deep) && obj.settings.activeParameters.k_sat_deep
                 error('"k_sat_deep" can only be initialsied to Nan if it is "Fixed".');
             end                                    
-            if isnan(obj.S_initialfrac_deep) && obj.settings.activeParameters.S_initialfrac_deep
+            if isnan(obj.S_initialfrac_deep) 
                 error('"S_initialfrac_deep" can only be initialsied to Nan if it is "Fixed".');
             end                
             if isnan(obj.SMSC_deep_trees) && obj.settings.activeParameters.SMSC_deep_trees
@@ -527,6 +529,12 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
                 params_upperLimit(ind,1) = log10(2000);
             end           
             
+            if obj.settings.activeParameters.S_initialfrac_deep
+                ind = cellfun(@(x)(strcmp(x,'S_initialfrac_deep')),param_names);
+                params_lowerLimit(ind,1) = 0;                                    
+                params_upperLimit(ind,1) = 10;                                    
+            end    
+
             % Upper and lower bounds of k_sat_deep.
             if obj.settings.activeParameters.k_sat_deep
                 ind = cellfun(@(x)(strcmp(x,'k_sat_deep')),param_names);
@@ -581,6 +589,12 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
                 params_upperLimit(ind,1) = log10(1000);
             end           
             
+            if obj.settings.activeParameters.S_initialfrac_deep
+                ind = cellfun(@(x)(strcmp(x,'S_initialfrac_deep')),param_names);
+                params_lowerLimit(ind,1) = 0;                                    
+                params_upperLimit(ind,1) = 2;                                    
+            end    
+
             % Upper and lower bounds of k_sat_deep.
             if obj.settings.activeParameters.k_sat_deep
                 ind = cellfun(@(x)(strcmp(x,'k_sat_deep')),param_names);
@@ -693,19 +707,18 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
                     beta_deep = 10^(obj.beta);
                 else
                     beta_deep = 10^(obj.beta_deep);
-                end                
-               
-                % Set deep initial soil moisture.
+                end    
                 if isnan(obj.S_initialfrac_deep)
-                    S_deep_initial = obj.S_initialfrac.*SMSC_deep;
+                    S_initialfrac = obj.S_initialfrac;
                 else
-                    S_deep_initial = obj.S_initialfrac_deep.*SMSC_deep;
-                end                   
-                
+                    S_initialfrac = obj.S_initialfrac_deep;
+                end                    
+                gamma = 10.^obj.gamma;
+               
                 % Ensure all infiltration to the deep layer infiltrates 
                 eps = 0;
                 alpha = 0;
-
+                
                 % Call MEX function for DEEP soil moisture model.
                 %-------------------
                 % Get required fluxes from the shallow layer.
@@ -727,9 +740,15 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
                 % Calc potential ET for deep layer
                 PET = PET - evap_soil;
 
+                % Set the initial soil moisture as the steady state soln
+                % and then multiply by the scaling fraction (S_initialfrac_deep)
+                fun = @(S) mean(drainage)*((SMSC_deep-S)/(SMSC_deep*(1-eps)))^alpha - k_sat_deep*(S/SMSC_deep)^beta_deep - mean(PET)*(S/SMSC_deep)^gamma;
+                S_deep_initial=fzero(fun,[0, SMSC_deep]);
+                S_deep_initial = min(max(0, S_deep_initial.* S_initialfrac), SMSC_deep);
+                
                 % Call MEX soil model
                 obj.variables.SMS_deep = forcingTransform_soilMoisture(S_deep_initial, drainage, PET, SMSC_deep, k_sat_deep, ...
-                    alpha, beta_deep, 10.^obj.gamma, eps);
+                    alpha, beta_deep, gamma, eps);
 
                 % Run soil model again if tree cover is to be simulated
                 if  isfield(obj.settings,'simulateLandCover') && obj.settings.simulateLandCover
@@ -738,12 +757,6 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
                         SMSC_deep_trees = 10^(obj.SMSC_trees);
                     else
                         SMSC_deep_trees = obj.SMSC_deep_trees;
-                    end
-
-                    if isempty(obj.S_initialfrac_deep)
-                        S_deep_initial = obj.S_initialfrac.*SMSC_deep_trees;
-                    else
-                        S_deep_initial = obj.S_initialfrac_deep * SMSC_deep_trees;
                     end
 
                     % Get required fluxes from the shallow layer.                    
@@ -756,6 +769,12 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
 
                     % Calc potential ET for deep layer
                     PET = PET - evap_soil;
+
+                    % Set the initial soil moisture as the steady state soln
+                    % and then multiply by the scaling fraction (S_initialfrac)
+                    fun = @(S) mean(drainage)*((SMSC_deep_trees-S)/(SMSC_deep_trees*(1-eps)))^alpha - k_sat_deep*(S/SMSC_deep_trees)^beta_deep - mean(PET)*(S/SMSC_deep_trees)^gamma;
+                    S_deep_initial=fzero(fun,[0, SMSC_deep_trees]);
+                    S_deep_initial = min(max(0, S_deep_initial.* S_initialfrac), SMSC_deep_trees);
 
                     % Call MEX function for DEEP soil moisture model.
                     obj.variables.SMS_deep_trees = forcingTransform_soilMoisture(S_deep_initial, drainage, PET, SMSC_deep_trees, ...
@@ -850,11 +869,11 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
             
             % Define list of fluxes able to be calc. within the 2-layer
             % class def.
-            variableName_2layerOptions = { 
-                'infiltration_deep';         'drainage_deep'         ;'evap_soil_deep';        'evap_soil_total';        'runoff_deep';        'runoff_total';         'SMS_deep'; ...
-                'infiltration_deep_tree';    'drainage_deep_tree'    ;'evap_soil_deep_tree';   'evap_soil_total_tree';   'runoff_deep_tree';   'runoff_total_tree'; 	 'SMS_deep_tree'; ...
-                'infiltration_deep_nontree'; 'drainage_deep_nontree' ;'evap_soil_deep_nontree';'evap_soil_total_nontree';'runoff_deep_nontree';'runoff_total_nontree'; 'SMS_deep_nontree'; ...
-                'mass_balance_error_deep'; 'mass_balance_error_deep_tree'; 'mass_balance_error_deep_nontree'; 
+            variableName_2layerOptions = { ...
+                'infiltration_deep';         'drainage_deep'         ;'evap_soil_deep';        'evap_soil_total';        'evap_gw_potential_deep';         'evap_gw_potential_total';   'runoff_deep';        'runoff_total';         'SMS_deep'; 'SMS_deep_pcnt'; ...
+                'infiltration_deep_tree';    'drainage_deep_tree'    ;'evap_soil_deep_tree';   'evap_soil_total_tree';   'evap_gw_potential_deep_tree';    'evap_gw_potential_total_tree';    'runoff_deep_tree';   'runoff_total_tree'; 	 'SMS_deep_tree'; 'SMS_deep_tree_pcnt'; ...
+                'infiltration_deep_nontree'; 'drainage_deep_nontree' ;'evap_soil_deep_nontree';'evap_soil_total_nontree';'evap_gw_potential_deep_nontree'; 'evap_gw_potential_total_nontree'; 'runoff_deep_nontree';'runoff_total_nontree'; 'SMS_deep_nontree'; 'SMS_deep_nontree_pcnt'; ...
+                'mass_balance_error_deep'; 'mass_balance_error_deep_tree'; 'mass_balance_error_deep_nontree'; ...
                 'mass_balance_error_total';'mass_balance_error_total_tree'; 'mass_balance_error_total_nontree'};
 
             % Get fluxes for top layer.
@@ -972,9 +991,16 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
                                     isDailyIntegralFlux(i) = false;
                                 end
 
-                            case {'evap_gw_potential', 'evap_gw_potential_tree', 'evap_gw_potential_nontree'}
+                            case {'evap_gw_potential_total', 'evap_gw_potential_total_tree', 'evap_gw_potential_total_nontree'}
+                                % Expand input forcing data to have the required number of substeps.
+                                PET = getSubDailyForcing(obj,obj.variables.evap);
+                                PET = subDailyVector2Matrix(obj, PET, true);
+
+                                % Get soil ET
                                 fluxes = getTransformedForcing(obj, strcat('evap_soil_total',variabName_suffix), false);
-                                evap = getSubDailyForcing(obj,obj.variables.evap) - fluxes.(strcat('evap_soil_total',variabName_suffix));
+
+                                % Calc groundwater PET
+                                evap = PET - fluxes.(strcat('evap_soil_total',variabName_suffix));
 
                                 if doSubstepIntegration
                                     forcingData.(variableName{i}) = dailyIntegration(obj, evap);
@@ -984,6 +1010,25 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
                                     isDailyIntegralFlux(i) = false;
                                 end
 
+                            case {'evap_gw_potential_deep', 'evap_gw_potential_deep_tree', 'evap_gw_potential_deep_nontree'}
+                                % Expand input forcing data to have the required number of substeps.
+                                PET = getSubDailyForcing(obj,obj.variables.evap);
+                                PET = subDailyVector2Matrix(obj, PET, true);
+
+                                % Get soil ET
+                                fluxes = getTransformedForcing(obj, strcat('evap_soil_deep',variabName_suffix), false);
+
+                                % Calc groundwater PET
+                                evap = PET - fluxes.(strcat('evap_soil_deep',variabName_suffix));
+
+                                if doSubstepIntegration
+                                    forcingData.(variableName{i}) = dailyIntegration(obj, evap);
+                                    isDailyIntegralFlux(i) = true;
+                                else
+                                    forcingData.(variableName{i}) = evap;
+                                    isDailyIntegralFlux(i) = false;
+                                end
+                                
                             case {'runoff_deep', 'runoff_deep_tree', 'runoff_deep_nontree'}
                                 %Calculate the influxes into and out of the deep layer.
                                 if doSubstepIntegration
@@ -999,7 +1044,7 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
                                 %layers and sum
                                 if doSubstepIntegration
                                     fluxes = getTransformedForcing(obj, strcat({'runoff', 'runoff_deep'},variabName_suffix), true);
-                                    forcingData.forcingData.(variableName{i}) = fluxes.(strcat('runoff',variabName_suffix))  + fluxes.(strcat('runoff_deep',variabName_suffix));
+                                    forcingData.(variableName{i}) = fluxes.(strcat('runoff',variabName_suffix))  + fluxes.(strcat('runoff_deep',variabName_suffix));
                                     isDailyIntegralFlux(i) = true;
                                 else
                                     error('Runoff can only be calculated at a daily timestep.')
@@ -1012,6 +1057,14 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
                                 end
                                 isDailyIntegralFlux(i) = false;
 
+                            case {'SMS_deep_pcnt', 'SMS_deep_tree_pcnt', 'SMS_deep_nontree_pcnt'}
+                                if doSubstepIntegration
+                                    forcingData.(variableName{i}) = 100.*SMS_deep(:,1)./SMSC_deep;   % Returns value at the start of each day.
+                                else
+                                    forcingData.(variableName{i}) = 100.*SMS_deep./SMSC_deep;
+                                end
+                                isDailyIntegralFlux(i) = false;
+                                
                             case {'mass_balance_error_deep', 'mass_balance_error_deep_tree', 'mass_balance_error_deep_nontree'}
                                 % Calculate fluxes at daily or subdaily time
                                 % step and then calc. mass balance error
@@ -1067,7 +1120,7 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
             param_names(size(param_names,1)+1:size(param_names,1)+5) = {
                            'SMSC_deep: back transformed soil moisture deep layer storage capacity (in rainfall units)'; ...                  
                            'SMSC_deep_trees: back transformed soil moisture deep layer storage capacity in trees unit (in rainfall units)'; ...
-                           'S_initialfrac_deep: fractional initial deep layer soil moisture (-)'; ... 
+                           'S_initialfrac_deep: initial deep layer soil moisture scaler (-)'; ... 
                            'k_sat_deep : back transformed deep layer maximum vertical conductivity (in rainfall units/day)'; ...
                            'beta_deep : back transformed power term for dainage rate of deep layer (eg approx. Brook-Corey pore index power term)'};    
         

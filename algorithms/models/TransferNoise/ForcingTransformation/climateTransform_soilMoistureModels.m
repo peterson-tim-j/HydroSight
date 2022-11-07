@@ -41,7 +41,9 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
 %                 which soil water evaporation occurs with filling of the 
 %                 soil layer.
 %       eps      - ratio of S_min/SMSC. If eps=0, S_min=zero
-%       S_initialfrac - the initial soil moisture.
+%       bypass_frac   - Fraction of runoff to bypass drainage (0-1).
+%       interflow_frac- Fraction of free drainage going to interflow (0-1).
+%       S_initialfrac - Initial soil moisture scaler (0-10) to steady state S.
 %
 %	The soil moisture model can also be used to simulate the impacts from
 %	different vegetation; for example, trees and pastures. This is achieved
@@ -71,14 +73,10 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
 %
 %       SMSC          - log10(Soil moisture capacity as water depth).
 %       SMSC_trees    - log10(Soil moisture capacity as water depth).
-%       S_initialfrac - Initial soil moisture fraction (0-1).
 %       k_infilt      - log10(Soil infiltration capacity as water depth).
 %       k_sat         - log10(Maximum vertical infiltration rate).
-%       bypass_frac   - Fraction of runoff to bypass drainage (0-1).
-%       interflow_frac- Fraction of free drainage going to interflow (0-1).
 %       beta          - log10(Power term for dainage rate).
 %       gamma         - log10(Power term for soil evap. rate).
-%       eps           - ratio of S_min/SMSC. If eps=0, S_min=zero
 %
 %   The soil moisture model is an adaption of VIC Model (Wood et al. 1992)
 %   by Kavetski et al. (2006). It is a soil moisture model that is without
@@ -183,9 +181,9 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
         
         function [variable_names] = outputForcingdata_options(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates)
             variable_names = {'effectivePrecip'; 
-                              'drainage';       'infiltration_fracCapacity';         'infiltration';         'evap_soil';        'evap_gw_potential';        'runoff';      'interflow';         'SMS'; ...
-                              'drainage_tree';  'infiltration_fracCapacity_tree';    'infiltration_tree';    'evap_soil_tree';   'evap_gw_potential_tree';   'runoff_tree';  'interflow_tree';   'SMS_tree'; ...
-                              'drainage_nontree';'infiltration_fracCapacity_nontree';'infiltration_nontree'; 'evap_soil_nontree';'evap_gw_potential_nontree';'runoff_nontree';'interflow_nontree';   'SMS_nontree'; ...
+                              'drainage';       'infiltration_fracCapacity';         'infiltration';         'evap_soil';        'evap_gw_potential';        'runoff';      'interflow';         'SMS'; 'SMS_pcnt'; ...
+                              'drainage_tree';  'infiltration_fracCapacity_tree';    'infiltration_tree';    'evap_soil_tree';   'evap_gw_potential_tree';   'runoff_tree';  'interflow_tree';   'SMS_tree'; 'SMS_tree_pcnt';  ...
+                              'drainage_nontree';'infiltration_fracCapacity_nontree';'infiltration_nontree'; 'evap_soil_nontree';'evap_gw_potential_nontree';'runoff_nontree';'interflow_nontree';   'SMS_nontree'; 'SMS_nontree_pcnt';  ...
                               'mass_balance_error'; 'mass_balance_error_nontree'; 'mass_balance_error_tree'};
         end
         
@@ -194,7 +192,7 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
             options = { 'SMSC'          ,   2, 'Calib.';...
                         'SMSC_trees'    ,   2, 'Fixed';...
                         'treeArea_frac' , 0.5, 'Fixed'; ...
-                        'S_initialfrac' , 0.1, 'Fixed'  ; ...
+                        'S_initialfrac' ,   1, 'Fixed'  ; ...
                         'k_infilt'      , inf,'Fixed'   ; ...
                         'k_sat'         ,   1, 'Calib.'   ; ...
                         'bypass_frac'   ,   0, 'Fixed'    ; ...
@@ -213,7 +211,7 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
             toolTip = sprintf([ 'SMSC         : log10(Soil moisture capacity).\n', ...
                                 'SMSC_trees   : log10(Tree SMSC).\n', ...
                                 'treeArea_frac: Tree fraction scalar.\n', ...                                
-                                'S_initialfrac: Initial soil moisture frac.\n', ...
+                                'S_initialfrac: Initial soil moisture scaler.\n', ...
                                 'k_infilt     : log10(Max. infilt. capacity).\n', ...
                                 'k_sat        : log10(Max. drainage rate).\n', ...
                                 'bypass_frac  : Frac. runoff to bypass drainage.\n', ...
@@ -240,7 +238,7 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                                 'SMSC          : log10(Soil moisture capacity as water depth).', ...
                                 'SMSC_trees    : log10(Tree soil moisture capacity as water depth).', ...
                                 'treeArea_frac : Scaler applied to the tree fraction input data.', ...                                
-                                'S_initialfrac : Initial soil moisture fraction (0-1).', ...
+                                'S_initialfrac : Initial soil moisture scaler (0-10) to steady state soln.', ...
                                 'k_infilt      : log10(Soil infiltration capacity as water depth).', ...
                                 'k_sat         : log10(Maximum vertical infiltration rate).', ...
                                 'bypass_frac   : Fraction of runoff to bypass drainage.', ...
@@ -447,7 +445,7 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                     elseif strcmp(all_parameter_names{i}, 'interflow_frac')
                         obj.(all_parameter_names{i}) = 0;                        
                     elseif strcmp(all_parameter_names{i}, 'S_initialfrac')
-                        obj.(all_parameter_names{i}) = 0.1;  
+                        obj.(all_parameter_names{i}) = 1;  
                     elseif strcmp(all_parameter_names{i}, 'eps')
                         obj.(all_parameter_names{i}) = 0;
                     else
@@ -767,7 +765,7 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
             if obj.settings.activeParameters.S_initialfrac
                 ind = cellfun(@(x)(strcmp(x,'S_initialfrac')),param_names);
                 params_lowerLimit(ind,1) = 0;                                    
-                params_upperLimit(ind,1) = 1;                                    
+                params_upperLimit(ind,1) = 10;                                    
             end    
                    
             if obj.settings.activeParameters.gamma
@@ -849,7 +847,7 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
             if obj.settings.activeParameters.S_initialfrac
                 ind = cellfun(@(x)(strcmp(x,'S_initialfrac')),param_names);
                 params_lowerLimit(ind,1) = 0;
-                params_upperLimit(ind,1) = 1;
+                params_upperLimit(ind,1) = 2;
             end  
 
             if obj.settings.activeParameters.bypass_frac
@@ -1069,13 +1067,6 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                     tree_col = obj.settings.forcingData_cols{filt,2};
                     obj.variables.treeFrac = obj.settings.forcingData(filt_time, tree_col );                    
                 end                               
-
-                % Set the initial soil moisture.
-                if isempty(S_initialfrac)
-                    S_initial = 0.1.*SMSC;
-                else
-                    S_initial = S_initialfrac * SMSC;
-                end
                 
                 % Get subset size
                 nSubSteps = getNumDailySubsteps(obj);
@@ -1110,17 +1101,26 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                 effectivePrecip = getSubDailyForcing(obj,flux.effectivePrecip);
                 evap = getSubDailyForcing(obj,obj.variables.evap);
                 
+
+                % Set the initial soil moisture as the steady state soln
+                % and then multiply by the scaling fraction (S_initialfrac)
+                fun = @(S) mean(effectivePrecip)*((SMSC-S)/(SMSC*(1-eps)))^alpha - k_sat*(S/SMSC)^beta - mean(evap)*(S/SMSC)^gamma;
+                S_initial=fzero(fun,[0, SMSC]);
+                S_initial = min(max(0, S_initial.* S_initialfrac), SMSC);
+
                 % Run the soil models using the sub-steps.
                 obj.variables.SMS = forcingTransform_soilMoisture(S_initial, effectivePrecip, evap, SMSC, k_sat, alpha, beta, gamma, eps);
                
                 % Run soil model again if tree cover is to be simulated
                 if  isfield(obj.settings,'simulateLandCover') && obj.settings.simulateLandCover
-                    if isempty(S_initialfrac)
-                        S_initial = 0.1.*SMSC_trees;
-                    else
-                        S_initial = S_initialfrac * SMSC_trees;
-                    end
 
+                    % Set the initial soil moisture as the steady state soln
+                    % and then multiply by the scaling fraction (S_initialfrac)
+                    fun = @(S) mean(effectivePrecip)*((SMSC_trees-S)/(SMSC_trees*(1-eps)))^alpha - k_sat*(S/SMSC_trees)^beta - mean(evap)*(S/SMSC_trees)^gamma;
+                    S_initial=fzero(fun,[0, SMSC_trees]);
+                    S_initial = min(max(0, S_initial.* S_initialfrac), SMSC_trees);
+                    
+                    % Run the soil models using the sub-steps.
                     obj.variables.SMS_trees = forcingTransform_soilMoisture(S_initial, effectivePrecip, evap, SMSC_trees, k_sat, alpha, beta, gamma, eps);
                 end
 
@@ -1416,6 +1416,13 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                                     forcingData.(variableName{i}) = SMS;
                                 end
                                 isDailyIntegralFlux(i) = false;
+                            case {'SMS_pcnt', 'SMS_tree_pcnt', 'SMS_nontree_pcnt'}
+                                if doSubstepIntegration
+                                    forcingData.(variableName{i}) = 100.*SMS(:,1)./SMSC;   % Returns value at the start of each day.
+                                else
+                                    forcingData.(variableName{i}) = 100.*SMS./SMSC;
+                                end
+                                isDailyIntegralFlux(i) = false;
 
                             case {'mass_balance_error', 'mass_balance_error_tree', 'mass_balance_error_nontree'}
                                 % Calculate fluxes at daily or subdaily time
@@ -1457,7 +1464,7 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
             param_names = {'SMSC: back transformed soil moisture storage capacity (in rainfall units)'; ...                  
                            'SMSC_trees: back transformed soil moisture storage capacity in trees unit (in rainfall units)'; ...
                            'treeArea_frac: fractional area of the tree units (-)'; ...
-                           'S_initialfrac: fractional initial soil moisture (-)'; ... 
+                           'S_initialfrac: initial soil moisture scaler (-)'; ... 
                            'k_infilt : back transformed maximum soil infiltration rate (in rainfall units)'; ...
                            'k_sat : back transformed maximum vertical conductivity (in rainfall units/day)'; ...
                            'bypass_frac : fraction of runoff that goes to bypass drainage (-)'; ...
