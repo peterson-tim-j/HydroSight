@@ -66,7 +66,6 @@ classdef model_TFN_gui < model_gui_abstract
                                             'responseFunction_FerrisKnowles', ...
                                             'responseFunction_FerrisKnowlesJacobs', ...
                                             'responseFunction_Hantush', ...
-                                            'responseFunction_JacobsCorrection', ...
                                             'responseFunction_Pearsons', ...
                                             'responseFunction_PearsonsNegative'};
             end
@@ -404,8 +403,21 @@ classdef model_TFN_gui < model_gui_abstract
             this.modelOptions.grid.Widths = zeros(size(this.modelOptions.grid.Heights));
         end
         
-        function initialise(this) %#ok<MANU> 
-            % Do nothing. Requested for abstract.
+        function initialise(this)
+            % Reset GUI table data
+            this.weightingFunctions.tbl.Data = cell(0, 5);
+            this.derivedWeightingFunctions.tbl.Data = cell(0, 6);
+            this.forcingTranforms.tbl.Data = cell(0, 4);
+            this.derivedForcingTranforms.tbl.Data = cell(0, 5);
+
+            % Reset interval variables
+            this.boreID = '';
+            this.siteData = []; 
+            this.forcingData.colnames = {};
+            this.forcingData.data = [];
+
+            % Hide user options
+            this.modelOptions.grid.Widths = zeros(size(this.modelOptions.grid.Widths));
         end
         
         function setForcingData(this, fname)
@@ -1044,7 +1056,7 @@ classdef model_TFN_gui < model_gui_abstract
         function tableSelection(this, hObject, eventdata)
             icol=[];
             irow=[];
-            if isprop(eventdata, 'Indices')
+            if isprop(eventdata, 'Indices') || isfield(eventdata, 'Indices')
                 if ~isempty(eventdata.Indices)
                     icol=eventdata.Indices(:,2);
                     irow=eventdata.Indices(:,1);  
@@ -1860,7 +1872,7 @@ classdef model_TFN_gui < model_gui_abstract
         function tableEdit(this, hObject, eventdata)
             icol=[];
             irow=[];
-            if isprop(eventdata, 'Indices')
+            if isprop(eventdata, 'Indices') || isfield(eventdata, 'Indices')
                 if ~isempty(eventdata.Indices)
                     icol=eventdata.Indices(:,2);
                     irow=eventdata.Indices(:,1);  
