@@ -1365,7 +1365,7 @@ classdef HydroSightModel < handle
                         if isfield(SchemeSetting,'TolX') && isfinite(SchemeSetting.TolX)
                             TolX = SchemeSetting.TolX;
                         end                        
-                        if isfield(SchemeSetting,'tolFun') && isfinite(SchemeSetting.tolFun)
+                        if isfield(SchemeSetting,'TolFun') && isfinite(SchemeSetting.TolFun)
                             TolFun = SchemeSetting.TolFun;
                         end
                         if isfield(SchemeSetting,'Restarts') && isfinite(SchemeSetting.Restarts)
@@ -1508,6 +1508,12 @@ classdef HydroSightModel < handle
                         if isfield(SchemeSetting,'steps') && isfinite(SchemeSetting.steps)
                             steps = SchemeSetting.steps;
                         end       
+                        if isfield(SchemeSetting,'r2_threshold') && isfinite(SchemeSetting.r2_threshold)
+                            r2_threshold = SchemeSetting.r2_threshold;
+                        end       
+                        if isfield(SchemeSetting,'iseed') && isfinite(SchemeSetting.iseed)
+                            iseed = SchemeSetting.iseed;
+                        end                               
                     end
                     
                     % Build the complete calibSchemeSettings structural
@@ -1522,6 +1528,8 @@ classdef HydroSightModel < handle
                     calibSchemeSettings.outlier = outlier;
                     calibSchemeSettings.pJumpRate_one = pJumpRate_one;
                     calibSchemeSettings.steps = steps;
+                    calibSchemeSettings.r2_threshold = r2_threshold;
+                    calibSchemeSettings.iseed = iseed;
                                                                               
                 otherwise
                     error('The requested calibration scheme is unknown.');
@@ -1677,8 +1685,8 @@ classdef HydroSightModel < handle
                     disp( '      - Calibration scheme: Covariance Matrix Adaptation Evolution Strategy (CMA-ES)');
                     disp(['      - Number of initial CMA-ES parameter sets  = ',num2str(PopSize)]);                      
                     disp(['      - Maximum number of model evaluations (maxFunEvals) = ',num2str(MaxFunEvals)]);
-                    disp(['      - Absolute change in the objective function for convergency (tolFun) = ',num2str(TolFun)]);
-                    disp(['      - Largest absolute change in the parameters for convergency (tolX) = ',num2str(TolX)]);
+                    disp(['      - Absolute change in the objective function for convergency (TolFun) = ',num2str(TolFun)]);
+                    disp(['      - Largest absolute change in the parameters for convergency (TolX) = ',num2str(TolX)]);
                     disp(['      - Number CMA-ES calibration restarts (Restarts) = ',num2str(Restarts)]);
                     disp(['      - Standard deviation for the initial parameter sampling, as fraction of plausible parameter bounds (Sigma) = ',num2str(Sigma)]);
                     disp(['      - Random seed number (only for repetetive testing purposes) = ',num2str(Seed)]);
@@ -1702,12 +1710,14 @@ classdef HydroSightModel < handle
                     disp(['      - Min. converged generations per param (Tmin) = ',num2str(Tmin)]);    
                     disp(['      - Max. generations per chain (T) = ',num2str(T)]);
                     disp(['      - Number of Markov chains per model parameter (N_per_param) = ',num2str(N_per_param)]);  
+                    disp(['      - r2 convergence criteria (r2) = ',num2str(r2_threshold)]);
                     disp(['      - Number of crossover values (nCR) = ',num2str(nCR)]);  
                     disp(['      - Number chain pairs for proposal (delta) = ',num2str(delta)]);  
                     disp(['      - Random error for ergodicity (lambda) = ',num2str(lambda)]);  
                     disp(['      - Randomization (zeta) = ',num2str(zeta)]);  
                     disp(['      - Test function name for detecting outlier chains (outlier) = ',outlier]);  
                     disp(['      - Probability of jumprate of 1 (pJumpRate_one) = ',num2str(pJumpRate_one)]);  
+                    disp(['      - Random seed = ',num2str(iseed)]);
                                         
              end           
              if any(strcmp(calibrationSchemeName,{'CMA ES','CMA_ES','CMAES','CMA-ES'})) || ...
