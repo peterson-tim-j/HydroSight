@@ -356,6 +356,13 @@ if ~isempty(i)
 end
 opts.SaveFilename = deblank(opts.SaveFilename); % remove trailing white spaces
 
+% initialize random number generator
+if ischar(opts.Seed)
+    rng(eval(opts.Seed));     % random number generator state
+else
+    rng( opts.Seed);
+end
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  
 counteval = 0; countevalNaN = 0; 
 countiter_priorRestarts = 0;
@@ -656,12 +663,6 @@ else % flgresume
     fitness.histsel(1)=NaN; 
   end
     
-  % initialize random number generator
-  if ischar(opts.Seed)
-    rng(eval(opts.Seed));     % random number generator state
-  else
-    rng( opts.Seed);
-  end
   %qqq
 %  load(opts.SaveFilename, 'startseed');
 %  randn('state', startseed);
@@ -901,228 +902,45 @@ while isempty(stopflag)
                  (BD * randn(N,noiseReevals))]; 
         end
       end
-
-      % You may handle constraints here. You may either resample
-      % arz(:,k) and/or multiply it with a factor between -1 and 1
-      % (the latter will decrease the overall step size) and
-      % recalculate arx accordingly. Do not change arx or arz in any
-      % other way.
-      % The code below was written for the Groundwater Time Series
-      % mdoelling developed by Peterson& Western [2014].
-      invalidParamSets = find(any(~feval('calibrationValidParameters', arx, varargin{:}),1));
-      invalidParamSets_final = false(1,size(arx,2));
-      if ~isempty(invalidParamSets)>0
-          arz_tmp = zeros(size(arz,1), length(invalidParamSets));
-          arx_tmp = zeros(size(arx,1), length(invalidParamSets));
-          invalidParamSets_final_tmp = false(1, length(invalidParamSets));
-          if ~exist('noiseEpsilon','var');
-              noiseEpsilon = [];
-          end
-          for k=1:length(invalidParamSets)
-              nResamples=0;
-              maxResamples=1000;
-              while (1)
-                % Resample parameter set, k            
-                if invalidParamSets(k) <= lambda  % regular samples (not the re-evaluation-samples)
-                    arz_tmp(:,k) = randn(N,1); % (re)sample
-
-                    if flgDiagonalOnly  
-                        arx_tmp(:,k) = xmean + sigma * diagD .* arz_tmp(:,k);              % Eq. (1)
-                    else
-                        arx_tmp(:,k) = xmean + sigma * (BD * arz_tmp(:,k));                % Eq. (1)
-                    end
-                else % re-evaluation solution with index > lambda
-                    if flgDiagonalOnly  
-                        arx_tmp(:,k) = arx(:,invalidParamSets(k)-lambda) + (noiseEpsilon * sigma) * diagD .* randn(N,1);
-                    else
-                        arx_tmp(:,k) = arx(:,invalidParamSets(k)-lambda) + (noiseEpsilon * sigma) * (BD * randn(N,1));
-                    end
-                end
-                nResamples = nResamples + 1;   
-
-                % Assess if parameter set k is valid
-                isValidParameter = feval('calibrationValidParameters', arx_tmp(:,k), varargin{:});
-                if ~any(~isValidParameter)
-                    invalidParamSets_final_tmp(k)=false;
-                    break;
-                elseif nResamples>maxResamples
-                    break;
-                else
-                    invalidParamSets_final_tmp(k)=true;
-                end            
-              end
-          end
-          
-          for k=1:length(invalidParamSets)
-              arz(:,invalidParamSets(k)) = arz_tmp(:,k);
-              arx(:,invalidParamSets(k)) = arx_tmp(:,k);
-              invalidParamSets_final(invalidParamSets(k)) = invalidParamSets_final_tmp(k);
-          end
-          clear arz_tmp arx_tmp invalidParamSets_final_tmp
-      end
   
+      % Create parameter set that's within bounds.
       if ~bnd.isactive
         arxvalid = arx;
       else
         arxvalid = xintobounds(arx, lbounds, ubounds);
       end
-      % You may handle constraints here.  You may copy and alter
-      % (columns of) arxvalid(:,k) only for the evaluation of the
-      % fitness function. arx and arxvalid should not be changed.
-      if any(~invalidParamSets_final)
-        fitness.raw(~invalidParamSets_final) = feval(fitfun, arxvalid(:,~invalidParamSets_final), varargin{:}); 
+
+      % Assess if valid params (according to the bounds) are also valid
+      % accordinf to the model. TJP Nov 2022.
+      isValidParameter = all(feval('calibrationValidParameters', arxvalid, varargin{:}),1);
+      fitness.raw(~isValidParameter) = Inf;
+
+      % Calc. obj func for the valid parameter sets.
+      if any(isValidParameter)
+        fitness.raw(isValidParameter) = feval(fitfun, arxvalid(:,isValidParameter), varargin{:}); 
       end
       
       countevalNaN = countevalNaN + sum(isnan(fitness.raw));
       counteval = counteval + sum(~isnan(fitness.raw)); 
   end
-
-  % non-parallel evaluation and remaining NaN-values
-  % set also the reevaluated solution to NaN
-  fitness.raw(lambda + find(isnan(fitness.raw(1:noiseReevals)))) = NaN;  
-  for k=find(isnan(fitness.raw)) 
-      
-    % fitness.raw(k) = NaN; 
-    tries = flgEvalParallel;  % in parallel case this is the first re-trial
-    % Resample, until fitness is not NaN
-    % NOTE: Vectorised sampling of parameter sets and the parrallel
-    % evaluation of viable parameter sets was added by Tim Peterson.
-    % These modiciations were for the Groundwater Time Series
-    % mdoelling developed by Peterson& Western [2014].    
-    while isnan(fitness.raw(k))
-        
-        % The code below was written for the Groundwater Time Series
-        % mdoelling developed by Peterson& Western [2014].        
-        
-        nResamples=1000;
-        nModelReevaluations = 10;
-        % Resample parameter set, k            
-        if k <= lambda  % regular samples (not the re-evaluation-samples)
-            arz_tmp = randn(N,nResamples); % (re)sample
-
-            if flgDiagonalOnly  
-                arx_tmp = bsxfun(@plus, xmean , bsxfun(@times, sigma * diagD, arz_tmp));              % Eq. (1)
-            else
-                arx_tmp = zeros(size(arz_tmp));
-                parfor el=1:nResamples
-                    arx_tmp(:,el) = xmean + sigma * (BD * arz_tmp(:,el));                % Eq. (1)
-                end
-                
-            end
-        else % re-evaluation solution with index > lambda
-            if flgDiagonalOnly  
-                arx_tmp = bsxfun(@plus, arx(:,k-lambda) , bsxfun(@times, (noiseEpsilon * sigma) * diagD , randn(N,nResamples)));
-            else                
-                arx_tmp = zeros(size(arz_tmp));
-                parfor el=1:nResamples
-                    arx_tmp(:,el) = arx(:,k-lambda) + (noiseEpsilon * sigma) * (BD * randn(N,1));
-                end                
-            end
-        end
-
-        % Assess if any parameter set is valid. if there is at least one valid
-        % parameter set, then get the first such set.
-        isValidParameter = feval('calibrationValidParameters', arx_tmp, varargin{:});        
-        isValidParameterSet = ~any(~isValidParameter,1);
-        if any(isValidParameterSet)
-            invalidParamSets_final_tmp=false;
-            iResamples = find(isValidParameterSet,nModelReevaluations,'first');
-            arx_tmp = arx_tmp(:,iResamples);
-            if k <= lambda
-                arz_tmp = arz_tmp(:,iResamples);
-            end
-        else
-            invalidParamSets_final_tmp=true;
-        end                    
-
-        
-%       if k <= lambda  % regular samples (not the re-evaluation-samples)
-%         arz(:,k) = randn(N,1); % (re)sample
-% 
-%         if flgDiagonalOnly  
-%           arx(:,k) = xmean + sigma * diagD .* arz(:,k);              % Eq. (1)
-%         else
-%           arx(:,k) = xmean + sigma * (BD * arz(:,k));                % Eq. (1)
-%         end
-%       else % re-evaluation solution with index > lambda
-%         if flgDiagonalOnly  
-%           arx(:,k) = arx(:,k-lambda) + (noiseEpsilon * sigma) * diagD .* randn(N,1);
-%         else
-%           arx(:,k) = arx(:,k-lambda) + (noiseEpsilon * sigma) * (BD * randn(N,1));
-%         end
-%       end
-%      
-%       % You may handle constraints here. You may either resample
-%       % arz(:,k) and/or multiply it with a factor between -1 and 1
-%       % (the latter will decrease the overall step size) and
-%       % recalculate arx accordingly. Do not change arx or arz in any
-%       % other way.
-%       if ~bnd.isactive
-%         arxvalid(:,k) = arx(:,k);
-%       else
-%         arxvalid(:,k) = xintobounds(arx(:,k), lbounds, ubounds);
-%       end
-
-      % You may handle constraints here. You may either resample
-      % arz(:,k) and/or multiply it with a factor between -1 and 1
-      % (the latter will decrease the overall step size) and
-      % recalculate arx accordingly. Do not change arx or arz in any
-      % other way.
-      if ~bnd.isactive
-        arxvalid_tmp = arx_tmp;
-      else
-        arxvalid_tmp = xintobounds(arx_tmp, lbounds, ubounds);
-      end
-      
-      % You may handle constraints here.  You may copy and alter
-      % (columns of) arxvalid(:,k) only for the evaluation of the
-      % fitness function. arx should not be changed.
-      % If check for valid parameters inserted and use of temporary variabes
-      % by Tim Peterson
-      if ~invalidParamSets_final_tmp
-        fitness_tmp = feval(fitfun, arxvalid_tmp, varargin{:}); 
-      else
-          fitness_tmp =[];
-      end
-      tries = tries + 1;
-      if all(isnan(fitness_tmp))
-        countevalNaN = countevalNaN + 1;
-      else
-        % Following by Tim Peterson.
-        % Find the minimum evaluation.   
-        iResamples = find(fitness_tmp==min(fitness_tmp),1,'first');
-        
-        % Assign parameter sets etc to non-temp variables.
-        arx(:,k) = arx_tmp(:,iResamples);
-        if k <= lambda
-            arz(:,k) = arz_tmp(:,iResamples);
-        end
-        arxvalid(:,k) = arxvalid_tmp(:,iResamples);
-        fitness.raw(k) = fitness_tmp(iResamples);          
-      end
-      
-      if mod(tries, 100) == 0
-        warning([num2str(tries) ...
-        ' NaN objective function values at evaluation ' ...
-        num2str(counteval)]);
-      end
-    end
-    counteval = counteval + 1; % retries due to NaN are not counted
-  end
-
   fitness.sel = fitness.raw; 
 
   % ----- handle boundaries -----
   if 1 < 3 && bnd.isactive
-    % Get delta fitness values
-    val = myprctile(fitness.raw, [25 75]);
+    % Get delta fitness values EXCLUDING non-finite values (TJP 2022)
+    indFiniteVals = isfinite(fitness.raw);
+    if ~any(indFiniteVals)
+        indFiniteVals = 1:length(fitness.raw);
+    end
+    val = myprctile(fitness.raw(indFiniteVals), [25 75]);
     % more precise would be exp(mean(log(diagC)))
     val = (val(2) - val(1)) / N / mean(diagC) / sigma^2;
     %val = (myprctile(fitness.raw, 75) - myprctile(fitness.raw, 25)) ...
     %    / N / mean(diagC) / sigma^2;
     % Catch non-sensible values 
     if ~isfinite(val)
-      warning('Non-finite fitness range');
+      %warning('Non-finite fitness range');
+      disp(['     Non-finite objective function at iteration ',num2str(countiter)]);
       val = max(bnd.dfithist);  
     elseif val == 0 % happens if all points are out of bounds
       val = min(bnd.dfithist(bnd.dfithist>0));  % seems not to make sense, given all solutions are out of bounds

@@ -283,3 +283,4 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 * Bug fixed in responseFunction_FerrisKnowlesJacobs.m causing it to crash.
 * Added derivedweighting_PearsonsPumping.m, which allows Pearsons climate weighting function to use pumping estimates of storativity (S) as the 'A' scaling parameter for the weights. This often produces more plausible estimates of S.
 * Abstract classdef items removed from list of available weighting functions within model_TFN_gui. derivedweighting_PearsonsPumping also added to the list.
+* CMAES bounds simplified to not resample if objective function returns an inf. 
