@@ -31,8 +31,8 @@ classdef responseFunction_JacobsCorrection < handle
         
         % Return fixed upper and lower bounds to the parameters.
         function [params_upperLimit, params_lowerLimit] = getParameters_physicalLimit(obj)
-            params_upperLimit = inf;
-            params_lowerLimit = log10(eps());
+            params_upperLimit = log10(1000);
+            params_lowerLimit = log10(1);
         end        
         
         % Return fixed upper and lower plausible parameter ranges. 
@@ -40,8 +40,8 @@ classdef responseFunction_JacobsCorrection < handle
         % for the calibration. These parameter ranges are only used in the 
         % calibration if the user does not input parameter ranges.
         function [params_upperLimit, params_lowerLimit] = getParameters_plausibleLimit(obj)
-            params_upperLimit = log10(100);
-            params_lowerLimit = log10(sqrt(eps()))-5;
+            params_upperLimit = log10(50);
+            params_lowerLimit = log10(10);
         end        
                 
         function isValidParameter = getParameterValidity(obj, params, param_names)
@@ -58,8 +58,8 @@ classdef responseFunction_JacobsCorrection < handle
 
             % Check parameters are within bounds and T>0 and 0<S<1.
             isValidParameter = SatThickness>0 & ...
-            params >= params_lowerLimit(:,ones(1,size(params,2))) & ...
-            params <= params_upperLimit(:,ones(1,size(params,2)));            
+            params >= params_lowerLimit(3,ones(1,size(params,2))) & ...
+            params <= params_upperLimit(3,ones(1,size(params,2)));            
         end        
         
         % Transform the estimate of the response function * the forcing.

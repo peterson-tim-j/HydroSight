@@ -88,8 +88,8 @@ classdef responseFunction_Hantush < responseFunction_FerrisKnowles
         % Return fixed upper and lower bounds to the parameters.
         function [params_upperLimit, params_lowerLimit] = getParameters_physicalLimit(obj)
             [params_upperLimit, params_lowerLimit] = getParameters_physicalLimit@responseFunction_FerrisKnowles(obj);
-            params_upperLimit(3,1) = inf;
-            params_lowerLimit(3,1) = -inf;
+            params_upperLimit(3,1) = 10;
+            params_lowerLimit(3,1) = log10(eps());
         end        
         
         % Return fixed upper and lower plausible parameter ranges. 
@@ -98,8 +98,8 @@ classdef responseFunction_Hantush < responseFunction_FerrisKnowles
         % calibration if the user does not input parameter ranges.
         function [params_upperLimit, params_lowerLimit] = getParameters_plausibleLimit(obj)
             [params_upperLimit, params_lowerLimit] = getParameters_plausibleLimit@responseFunction_FerrisKnowles(obj);
-            params_upperLimit(3,1) = 10;
-            params_lowerLimit(3,1) = -10;                        
+            params_upperLimit(3,1) = 5;
+            params_lowerLimit(3,1) = log10(sqrt(eps()));                        
         end        
         
         % Calculate impulse-response function.

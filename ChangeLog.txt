@@ -279,3 +279,4 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 * Steady state solution soil mositure extended to include the eps threshold for runoff (is as per forcingTransform_soilMoisture.c).
 * Default initial soil changed from 0.5 to 1 within climateTransform_soilMoistureModels_v2.m and climateTransform_soilMoistureModels_2layer_v2.m
 * Check of the Budyko AET within climateTransform_soilMoistureModels_v2.m and climateTransform_soilMoistureModels_2layer_v2.m rewriite tbe be more efficient.
+* Jacobs correction and Hantush parameter bounds reduced to a realistic range.
