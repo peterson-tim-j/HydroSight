@@ -135,6 +135,8 @@ if ~isfield(DREAMPar,'restart') || strcmp(DREAMPar.restart,'no')
     % Initialize the main variables used in DREAM
     [DREAMPar,Par_info,Meas_info,chain,output,log_L,Table_gamma,iloc,iteration,...
         gen] = DREAM_setup(DREAMPar,Par_info,Meas_info);
+    % Set random seed
+    rng(DREAMPar.iseed);     % random number generator state %TJP
     % Check for setup errors
     [stop,fid] = DREAM_check(DREAMPar,Par_info,Meas_info);
     % Return to main program
@@ -272,8 +274,7 @@ for t = T_start : DREAMPar.T
         %-----------
         % Extract the R_statistic values and dilter for those
         % where R_statistic<1.2 for all parameters in the set.
-        r_stat_threshold = 1.2;
-        r_stat_acceptable = all(output.R_stat(1: end, 2: DREAMPar.d + 1)<r_stat_threshold,2);
+        r_stat_acceptable = all(output.R_stat(1: end, 2: DREAMPar.d + 1)<DREAMPar.r2_threshold,2);
 
         % Find the threshold generations where R-stat criteria is first met.
         convergedParamSamplesThreshold = min(output.R_stat(r_stat_acceptable,1));
