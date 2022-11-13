@@ -1104,7 +1104,7 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
 
                 % Set the initial soil moisture as the steady state soln
                 % and then multiply by the scaling fraction (S_initialfrac)
-                fun = @(S) mean(effectivePrecip)*((SMSC-S)/(SMSC*(1-eps)))^alpha - k_sat*(S/SMSC)^beta - mean(evap)*(S/SMSC)^gamma;
+                fun = @(S) mean(effectivePrecip)*min(1,((SMSC-S)/(SMSC*(1-eps)))^alpha) - k_sat*(S/SMSC)^beta - mean(evap)*(S/SMSC)^gamma;
                 S_initial=fzero(fun,[0, SMSC]);
                 S_initial = min(max(0, S_initial.* S_initialfrac), SMSC);
 

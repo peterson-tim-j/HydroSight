@@ -742,7 +742,7 @@ classdef climateTransform_soilMoistureModels_2layer < climateTransform_soilMoist
 
                 % Set the initial soil moisture as the steady state soln
                 % and then multiply by the scaling fraction (S_initialfrac_deep)
-                fun = @(S) mean(drainage)*((SMSC_deep-S)/(SMSC_deep*(1-eps)))^alpha - k_sat_deep*(S/SMSC_deep)^beta_deep - mean(PET)*(S/SMSC_deep)^gamma;
+                fun = @(S) mean(drainage)*min(1,((SMSC_deep-S)/(SMSC_deep*(1-eps)))^alpha) - k_sat_deep*(S/SMSC_deep)^beta_deep - mean(PET)*(S/SMSC_deep)^gamma;
                 S_deep_initial=fzero(fun,[0, SMSC_deep]);
                 S_deep_initial = min(max(0, S_deep_initial.* S_initialfrac), SMSC_deep);
                 

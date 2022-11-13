@@ -269,3 +269,13 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 8 Nov 2022
 * Default initial soil moisture changed from a fixed value to a multiplier of the steady state solution. That is, for the given parameters, the steady state solution is calculated and then the soilMoistureModel parameter S_initialfrac and S_initialfrac_deep can scale this initial value (default is 1 i.e. no scaling). This change was made to minimise the impact of the initial soil moisture, which was often found to be unrealistic. Importantly, models calibrated prior to this change will need to be recalibrated (unfortunately, no way of being backward compatible could be found, sorry).
 * Updated example of landuse change because (i) prior to 1970 the PET was annually uniform and hence dubious and (ii) recalibration was required using the steady state estimate of soil moisture, noting that the use of a fixed initial soil moisture fraction (eg 10% of 50%) produced a soil moisture time series with an implausible decline over the first year+. 
+
+10 Nov 2022
+* Bug fixed in HydroSIght_GUI() when a built model bore ID is chnaged (build status was not reset).
+* CMA-ES random sead moved to be set prior to outer restart while loop. This eliminates any similarity in the randomness between >1 restarts, and hence should improve calibration. 
+* 'responseFunction_JacobsCorrection' option removed from GUI model_TFN weighting options because it is not a weighting function, but rather an internal function for accounting for a change in unsat. thickness.
+
+13 Nov 2022
+* Steady state solution soil mositure extended to include the eps threshold for runoff (is as per forcingTransform_soilMoisture.c).
+* Default initial soil changed from 0.5 to 1 within climateTransform_soilMoistureModels_v2.m and climateTransform_soilMoistureModels_2layer_v2.m
+* Check of the Budyko AET within climateTransform_soilMoistureModels_v2.m and climateTransform_soilMoistureModels_2layer_v2.m rewriite tbe be more efficient.

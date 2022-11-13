@@ -46,7 +46,7 @@ classdef climateTransform_soilMoistureModels_v2 < climateTransform_soilMoistureM
             options = { 'SMSC'          ,   2, 'Calib.';...
                         'SMSC_trees'    ,   2, 'Fixed';...
                         'treeArea_frac' , 0.5, 'Fixed'; ...
-                        'S_initialfrac' , 0.1, 'Fixed'  ; ...
+                        'S_initialfrac' , 1, 'Fixed'  ; ...
                         'k_infilt'      , inf,'Fixed'   ; ...
                         'k_sat'         ,   0.5, 'Calib.'   ; ...
                         'bypass_frac'   ,   0, 'Fixed'    ; ...
@@ -64,7 +64,7 @@ classdef climateTransform_soilMoistureModels_v2 < climateTransform_soilMoistureM
             toolTip = sprintf([ 'SMSC         : log10(Soil moisture capacity).\n', ...
                                 'SMSC_trees   : log10(Tree SMSC).\n', ...
                                 'treeArea_frac: Tree fraction scalar.\n', ...                                
-                                'S_initialfrac: Initial soil moisture frac.\n', ...
+                                'S_initialfrac: Initial soil moisture scaler.\n', ...
                                 'k_infilt     : log10(Max. infilt. capacity).\n', ...
                                 'k_sat        : log10(Max. drainage rate).\n', ...
                                 'bypass_frac  : Frac. runoff to bypass drainage.\n', ...
@@ -93,7 +93,7 @@ classdef climateTransform_soilMoistureModels_v2 < climateTransform_soilMoistureM
                                 'SMSC          : log10(Soil moisture capacity as water depth).', ...
                                 'SMSC_trees    : log10(Tree soil moisture capacity as water depth).', ...
                                 'treeArea_frac : Scaler applied to the tree fraction input data.', ...                                
-                                'S_initialfrac : Initial soil moisture fraction (0-1).', ...
+                                'S_initialfrac : Initial soil moisture scaler (0-10) to steady state soln.', ...
                                 'k_infilt      : log10(Soil infiltration capacity as water depth).', ...
                                 'k_sat         : log10(Maximum vertical infiltration rate).', ...
                                 'bypass_frac   : Fraction of runoff to bypass drainage.', ...
@@ -243,58 +243,66 @@ classdef climateTransform_soilMoistureModels_v2 < climateTransform_soilMoistureM
 % Date:
 %   26 Sept 2014   
 
+
             % Get physical bounds.
             [params_upperLimit, params_lowerLimit] = getParameters_physicalLimit(obj);
 
-            % Get the filetred P and potential ET is already stored in the
-            % model object.
-            if isfield(obj.variables,'precip') && isfield(obj.variables,'evap')
-                P = obj.variables.precip;
-                PET = obj.variables.evap;
-                t = obj.variables.t;
-            else
-                filt = strcmp(obj.settings.forcingData_cols(:,1),'precip');
-                precip_col = obj.settings.forcingData_cols{filt,2};
-                P = obj.settings.forcingData(:, precip_col );
-
-                filt = strcmp(obj.settings.forcingData_cols(:,1),'et');
-                evap_col = obj.settings.forcingData_cols{filt,2};
-                PET = obj.settings.forcingData(:, evap_col );                
-                
-                t = obj.settings.forcingData(:, 1);
-            end
-
-            % Calculate mean aridity index
-            P = mean(P);
-            PET = mean(PET);
-            PET_on_P = PET/P;
-            
-            % Calculate Budyko samples of E/P using prior sampled values of 
-            % omega at PET_on_P.
-            AET_on_P = 1 + PET_on_P -(1+PET_on_P.^obj.settings.Budyko_omega).^(1./obj.settings.Budyko_omega);
-            
-            % Calculate the 1st and 99th percentiles
-            AET_on_P = prctile(AET_on_P, [10 90],1);
-            
             % Initialise output
-            isValidParameter = true(size(params));
+            isValidParameter = false(size(params));
             
-            % Calculate the soil moisture estimate of actual ET.
-            for i=1:size(params,2)
-                setParameters(obj, params(:,i));
-                setTransformedForcing(obj, t, true);
-                AET = mean(getTransformedForcing(obj, 'evap_soil').evap_soil,1);
-
-                % Ceck if the AET is within the Budyko bounds
-                if AET/P < AET_on_P(1) || AET/P > AET_on_P(2)
-                    isValidParameter(:,i) = false;
-                end
-            end
-            setParameters(obj, params);
-
             % Check parameters are within bounds.
-            isValidParameter = isValidParameter & params >= params_lowerLimit(:,ones(1,size(params,2))) & ...
-    		params <= params_upperLimit(:,ones(1,size(params,2)));   
+            insideBoundsInd = find(all(params >= params_lowerLimit(:,ones(1,size(params,2))) & params <= params_upperLimit(:,ones(1,size(params,2))),1));
+
+            % Check the soil moisture estimate of actual ET.
+            if any(insideBoundsInd)
+
+                % Get the filetred P and potential ET is already stored in the
+                % model object.
+                if isfield(obj.variables,'precip') && isfield(obj.variables,'evap')
+                    P = obj.variables.precip;
+                    PET = obj.variables.evap;
+                    t = obj.variables.t;
+                else
+                    filt = strcmp(obj.settings.forcingData_cols(:,1),'precip');
+                    precip_col = obj.settings.forcingData_cols{filt,2};
+                    P = obj.settings.forcingData(:, precip_col );
+
+                    filt = strcmp(obj.settings.forcingData_cols(:,1),'et');
+                    evap_col = obj.settings.forcingData_cols{filt,2};
+                    PET = obj.settings.forcingData(:, evap_col );
+
+                    t = obj.settings.forcingData(:, 1);
+                end
+
+                % Calculate mean aridity index
+                P = mean(P);
+                PET = mean(PET);
+                PET_on_P = PET/P;
+
+                % Calculate Budyko samples of E/P using prior sampled values of
+                % omega at PET_on_P.
+                AET_on_P = 1 + PET_on_P -(1+PET_on_P.^obj.settings.Budyko_omega).^(1./obj.settings.Budyko_omega);
+
+                % Calculate the 1st and 99th percentiles
+                AET_on_P = prctile(AET_on_P, [10 90],1);
+                AET_on_P_lower = AET_on_P(1);
+                AET_on_P_upper = AET_on_P(2);                
+
+                % Calculate the soil moisture estimate of actual ET.
+                parfor i=insideBoundsInd
+                    isValidParameter(:,i) = true;
+                    setParameters(obj, params(:,i));
+                    setTransformedForcing(obj, t, true);
+                    AET = mean(getTransformedForcing(obj, 'evap_soil').evap_soil,1);
+
+                    % Ceck if the AET is within the Budyko bounds
+                    if AET/P < AET_on_P_lower || AET/P > AET_on_P_upper
+                        isValidParameter(:,i) = false;
+                    end
+                end
+                setParameters(obj, params);
+
+            end
         end             
     end
     
