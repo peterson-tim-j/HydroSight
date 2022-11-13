@@ -409,10 +409,8 @@ classdef responseFunction_Pearsons < responseFunction_abstract
             
         end
 
-        function derivedData_types = getDerivedDataTypes(obj)
-           
-            derivedData_types = 'weighting';
-            
+        function derivedData_types = getDerivedDataTypes(obj)           
+            derivedData_types = 'weighting';            
         end
         
         % Return the theta values for the GUI 
