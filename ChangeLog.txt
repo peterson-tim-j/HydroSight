@@ -287,3 +287,4 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 * CMAES tolfun (when set within GUI) now working.
 * DREAM settings extended to include random seed and r2_threshold value.
 * Minor GUI tweaks: dialog timeout reduced from 30 to 15 sec, initialiseGUI() added to allow consistent initialisation, tag fields added to dialogs to allow closure during testing, control of new DREAM settings added to GUI.
+* Updated example of pumping and climate to (i) show new feature of using S for climate estimates and (ii) to account for new steady state estimation of the initial soil moisture.
