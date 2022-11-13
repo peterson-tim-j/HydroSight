@@ -57,8 +57,8 @@ classdef  responseFunction_FerrisKnowlesJacobs < responseFunction_FerrisKnowles 
         end        
         
         function isValidParameter = getParameterValidity(obj, params, param_names)                        
-            [isValidParameter] = getParameterValidity@responseFunction_FerrisKnowles(obj, params(1:2,:), param_names{1:2});
-            [isValidParameter(3,:)] = getParameterValidity@responseFunction_JacobsCorrection(obj, params(3,:), param_names{3});                     
+            [isValidParameter] = getParameterValidity@responseFunction_FerrisKnowles(obj, params(1:2,:), param_names(1:2));
+            [isValidParameter(3,:)] = getParameterValidity@responseFunction_JacobsCorrection(obj, params(3,:), param_names(3));                     
         end
         
         % Return fixed upper and lower bounds to the parameters.
@@ -88,11 +88,15 @@ classdef  responseFunction_FerrisKnowlesJacobs < responseFunction_FerrisKnowles 
         % Extract the estimates of aquifer properties from the values of
         % alpha, beta and zeta.
         function [params, param_names] = getDerivedParameters(obj)            
+            % Get saturated thickness
+            satThickness = 10.^obj.zeta;
+
+            % Transform T to Ksat
             [params, param_names] = getDerivedParameters@responseFunction_FerrisKnowles(obj);
-            Ksat = T./10.^obj.zeta;   
+            Ksat = params(1,:)./satThickness ;   
             
-            params = [params(1,:); params(2,:); Ksat];
-            param_names = {param_names{1}; param_names{2}; 'Ksat : Lateral conductivity'};
+            params = [params(1,:); params(2,:); satThickness; Ksat];
+            param_names = {param_names{1}; param_names{2}; 'SatThick : Unconfined saturated thickness'; 'Ksat : Lateral conductivity'};
         end
         
         function delete(obj)
