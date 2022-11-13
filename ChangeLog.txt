@@ -285,3 +285,4 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 * Abstract classdef items removed from list of available weighting functions within model_TFN_gui. derivedweighting_PearsonsPumping also added to the list.
 * CMAES bounds simplified to not resample if objective function returns an inf. 
 * DREAM settings extended to include random seed and r2_threshold value.
+* Minor GUI tweaks: dialog timeout reduced from 30 to 15 sec, initialiseGUI() added to allow consistent initialisation, tag fields added to dialogs to allow closure during testing, control of new DREAM settings added to GUI.

@@ -1,13 +1,14 @@
 classdef HydroSight_GUI < handle  
-    %HydroSight_GUI Summary of this class goes here
+    %HydroSight_GUI Build and controls HydroSight GUI
     %   Detailed explanation goes here
     
-    %class properties - access is private so nothing else can access these
-    %variables. Useful in different sitionations
-    properties        
-        % Model types supported
-        modelTypes = {'model_TFN', 'ExpSmooth'};
-        
+    % class properties - Public properties are those where is accees is
+    % required for unit testing (ie callbacks and input of data) and the
+    % models (for user access via the .mat project file). Private are those
+    % only required for intyernal control of GUI.
+    properties(Access=public)
+        %doingUnitTesting = false;
+
         % GUI properies for the overall figure.
         Figure;        
         figure_Menu
@@ -25,8 +26,12 @@ classdef HydroSight_GUI < handle
         tab_ModelSimulation;
         
         % Store model data
-        models=[];
-        
+        models=[];        
+    end
+    properties(Access=private)        
+        % Model types supported
+        modelTypes = {'model_TFN', 'ExpSmooth'};
+                
         % Store a record of the model lables (as row names in a tavle) and
         % if the models are calibrated.
         model_labels=[];
@@ -508,9 +513,9 @@ classdef HydroSight_GUI < handle
                         this.tab_ModelConstruction.modelTypes.(this.modelTypes{i}).hbox = uiextras.HBox('Parent',this.tab_ModelConstruction.modelOptions.vbox,'Padding', 3, 'Spacing', 3);
                         this.tab_ModelConstruction.modelTypes.(this.modelTypes{i}).buttons = uiextras.VButtonBox('Parent',this.tab_ModelConstruction.modelTypes.(this.modelTypes{i}).hbox,'Padding', 3, 'Spacing', 3);
                         uicontrol('Parent',this.tab_ModelConstruction.modelTypes.(this.modelTypes{i}).buttons,'String','<','FontSize',14,'FontWeight','bold', 'ForegroundColor',[0.07, 0.62 1], ...
-                            'Callback', @this.onApplyModelOptions, 'TooltipString','Copy model option to current model.');
+                            'Callback', @this.onApplyModelOptions, 'TooltipString','Copy model options to current model.');
                         uicontrol('Parent',this.tab_ModelConstruction.modelTypes.(this.modelTypes{i}).buttons,'String','<<','FontSize',14,'FontWeight','bold', 'ForegroundColor',[0.07, 0.62 1], ...
-                            'Callback', @this.onApplyModelOptions_selectedBores, 'TooltipString','Copy model option to selected models (of the current model type).');
+                            'Callback', @this.onApplyModelOptions_selectedBores, 'TooltipString','Copy model options to selected models (of the current model type).');
                         this.tab_ModelConstruction.modelTypes.(this.modelTypes{i}).obj = model_TFN_gui( this.tab_ModelConstruction.modelTypes.model_TFN.hbox);
                         this.tab_ModelConstruction.modelTypes.(this.modelTypes{i}).hbox.Widths=[40 -1];
                         includeModelOption(i) = true;
@@ -1166,7 +1171,7 @@ classdef HydroSight_GUI < handle
                
             % Tell the user what is going to be done.
             if ~isempty(this.modelsOnHDD)
-                response = questdlg_timer(this.figure_icon,30,{'Moving the models to the RAM will shift all built, calibrated and '; ...
+                response = questdlg_timer(this.figure_icon,15,{'Moving the models to the RAM will shift all built, calibrated and '; ...
                                    'simulated models from the hard-drive of the project file to the RAM.'; ...
                                    ''; ...
                                    'This allows significantly fewer models to be analysed within one '; ...
@@ -1180,7 +1185,7 @@ classdef HydroSight_GUI < handle
                                    'To move the models to RAM, click OK.'},'Move the project models to RAM ...','OK','Cancel','Cancel');                
                
             else
-                response = questdlg_timer(this.figure_icon,30,{'Moving the models to the HDD will shift all built, calibrated and '; ...
+                response = questdlg_timer(this.figure_icon,15,{'Moving the models to the HDD will shift all built, calibrated and '; ...
                                    'simulated models from the RAM to the project file on the hard disk.'; ...
                                    ''; ...
                                    'This allows significantly more models to be analysed within one '; ...
@@ -1316,7 +1321,7 @@ classdef HydroSight_GUI < handle
             (size(this.tab_ModelCalibration.Table.Data,1)~=0 && any(~any(cellfun( @(x) isempty(x), this.tab_ModelCalibration.Table.Data)))) || ...
             (size(this.tab_ModelSimulation.Table.Data,1)~=0 && any(~any(cellfun( @(x) isempty(x), this.tab_ModelSimulation.Table.Data))))
 
-                response = questdlg_timer(this.figure_icon,30,{'Started a new project will close the current project.','','Do you want to continue?'}, ...
+                response = questdlg_timer(this.figure_icon,15,{'Started a new project will close the current project.','','Do you want to continue?'}, ...
                  'Close the current project?','Yes','No','No');
              
                 if isempty(response) || strcmp(response,'No')
@@ -1325,46 +1330,9 @@ classdef HydroSight_GUI < handle
                 end
             end              
             
-            % Initialise project data
+            % Initialise whole GUI and variables
             set(this.Figure, 'pointer', 'watch');
-            drawnow update;              
-            this.project_fileName ='';
-            this.model_labels=[];
-            this.models=[];              
-            this.tab_Project.project_name.String = '';
-            this.tab_Project.project_description.String = '';
-            this.tab_DataPrep.Table.Data = {};
-            this.tab_DataPrep.Table.RowName = {}; 
-            this.tab_ModelConstruction.Table.Data = { [],[],[],[],[],[],[],[], [],'<html><font color = "#FF0000">Not built.</font></html>'};
-            this.tab_ModelConstruction.Table.RowName = {}; 
-            this.tab_ModelCalibration.Table.Data = {};
-            this.tab_ModelCalibration.Table.RowName = {};
-            this.tab_ModelSimulation.Table.Data = {};
-            this.tab_ModelSimulation.Table.RowName = {};
-            this.dataPrep = [];
-            this.copiedData={};
-            this.HPCoffload={};
-            this.modelsOnHDD='';
-
-            % Set project name/title
-            vernum = getHydroSightVersion();
-            set(this.Figure,'Name',['HydroSight ', vernum]);
-            drawnow update;
-                
-            % Enable file menu items
-            for i=1:size(this.figure_Menu.Children,1)
-                if strcmp(get(this.figure_Menu.Children(i),'Label'), 'Save Project')
-                    set(this.figure_Menu.Children(i),'Enable','on');
-                elseif strcmp(get(this.figure_Menu.Children(i),'Label'), 'Move models from RAM to HDD...') || ...
-                strcmp(get(this.figure_Menu.Children(i),'Label'), 'Move models from HDD to RAM...')
-                    if this.modelsOnHDD
-                        set(this.figure_Menu.Children(i),'Label', 'Move models from HDD to RAM...');
-                    else
-                        set(this.figure_Menu.Children(i),'Label', 'Move models from RAM to HDD...');
-                    end
-                    set(this.figure_Menu.Children(i),'Enable','on');
-                end       
-            end
+            initialiseGUI(this);
 
             set(this.Figure, 'pointer', 'arrow');
             drawnow update;                               
@@ -1381,7 +1349,7 @@ classdef HydroSight_GUI < handle
             (size(this.tab_ModelCalibration.Table.Data,1)~=0 && any(~any(cellfun( @(x) isempty(x), this.tab_ModelCalibration.Table.Data)))) || ...
             (size(this.tab_ModelSimulation.Table.Data,1)~=0 && any(~any(cellfun( @(x) isempty(x), this.tab_ModelSimulation.Table.Data))))
 
-                response = questdlg_timer(this.figure_icon,30,{'Opening a new project will close the current project.','','Do you want to continue?'}, ...
+                response = questdlg_timer(this.figure_icon,15,{'Opening a new project will close the current project.','','Do you want to continue?'}, ...
                  'Close the current project?','Yes','No','No');
                 
                 if isempty(response) || strcmp(response,'No')
@@ -1410,13 +1378,16 @@ classdef HydroSight_GUI < handle
             % Show folder selection dialog
             [fName,pName] = uigetfile({'*.mat'},'Select project to open.');    
 
-            if fName~=0                
-                % Assign the file name 
-                this.project_fileName = fullfile(pName,fName);
-                
+            if fName~=0
                 % Change cursor
-                set(this.Figure, 'pointer', 'watch');                
+                set(this.Figure, 'pointer', 'watch');
                 drawnow update;
+
+                % Initialise whole GUI and variables
+                initialiseGUI(this);
+
+                % Assign the file name 
+                this.project_fileName = fullfile(pName,fName);               
                 
                 % Analyse the variables in the file
                 %----------------------------------------------------------
@@ -1708,6 +1679,7 @@ classdef HydroSight_GUI < handle
                     end       
                 end
 
+                % TODO Initialise GUI
             end
             set(this.Figure, 'pointer', 'arrow');
             drawnow update;                    
@@ -1851,8 +1823,11 @@ classdef HydroSight_GUI < handle
         end
         
         % Save as current model        
-        function onSaveAs(this,~,~)
+        function status = onSaveAs(this,~,~, fName, pName)
             
+            % Initialise output as error
+            status = -1;
+
             % set current folder to the project folder (if set)
             currentProjectFolder='';
             if ~isempty(this.project_fileName)                                
@@ -1870,7 +1845,9 @@ classdef HydroSight_GUI < handle
                 end
             end
             
-            [fName,pName] = uiputfile({'*.mat'},'Save models as ...');    
+            if nargin <4
+                [fName,pName] = uiputfile({'*.mat'},'Save models as ...');
+            end
             if fName~=0
                 
                 % Get the current project folder. If the project folder has
@@ -1954,6 +1931,8 @@ classdef HydroSight_GUI < handle
             set(this.Figure, 'pointer', 'arrow');
             drawnow update;
             
+            % Return successful saving
+            status = 0;
         end
         
         % Save model        
@@ -2020,9 +1999,12 @@ classdef HydroSight_GUI < handle
         end    
         
         % This function runs when the app is closed        
-        function onExit(this,hObject,eventdata)    
+        function onExit(this,hObject,eventdata, defaultResponse)    
             
-            response = questdlg_timer(this.figure_icon,30,'Do you want to save the project before exiting?','Save project?','Yes','No','Cancel','Cancel');
+            if nargin<4
+                defaultResponse = 'Cancel';
+            end
+            response = questdlg_timer(this.figure_icon,15,'Do you want to save the project before exiting?','Save project?','Yes','No','Cancel',defaultResponse);
             
             if isempty(response) || strcmp(response ,'Cancel')
                 set(this.Figure, 'pointer', 'arrow');
@@ -2066,7 +2048,7 @@ classdef HydroSight_GUI < handle
                     msg = [strcat(oldBoreID, ' has already been analysed.'), ...
                         'If you now change the inputs, the results will be deleted.', char newline,  ...
                         'Do you want to continue with the changes to inputs?'];
-                    response = questdlg_timer(this.figure_icon,30,msg,'Overwrite existing analysis?','Yes','No','No');
+                    response = questdlg_timer(this.figure_icon,15,msg,'Overwrite existing analysis?','Yes','No','No');
                     
                     if isempty(response) || strcmp(response,'No')
                         data{irow, icol} = eventdata.PreviousData;
@@ -2927,12 +2909,14 @@ classdef HydroSight_GUI < handle
                         try 
                             % Convert bore ID to cell array
                             boreIDs = textscan(data{irow,6},'%s','Delimiter',',');
-                            boreIDs = boreIDs{1};                            
-                            
+
+                            % Set Bore ID before setting forcing or coordinates data 
+                            setBoreID(this.tab_ModelConstruction.modelTypes.(modelType).obj, boreIDs{1} );
+
+                            % Set forcing and coordinates data.
                             setForcingData(this.tab_ModelConstruction.modelTypes.(modelType).obj, fname);
                             fname = fullfile(dirname,data{irow,5});
-                            setCoordinatesData(this.tab_ModelConstruction.modelTypes.(modelType).obj, fname);
-                            setBoreID(this.tab_ModelConstruction.modelTypes.(modelType).obj, boreIDs );
+                            setCoordinatesData(this.tab_ModelConstruction.modelTypes.(modelType).obj, fname);                            
                             
                             % If the model options are empty, then add a
                             % default empty cell, else set the existing
@@ -3106,8 +3090,15 @@ classdef HydroSight_GUI < handle
                                  return;
                              end
 
+                             % Update data from model construction table
+                             data=get(this.tab_ModelConstruction.Table,'Data');
+
                              % Update GUI table
-                            data{index_selected,6} = siteIDs;
+                             data{index_selected,6} = siteIDs;
+
+                             % Set bore ID
+                             set(this.tab_ModelConstruction.Table,'Data', data);
+
                          elseif strcmp(hObject.Tag,'selected')
                              % Get list of selected bores.
                              selectedBores = data(:,1);
@@ -3124,17 +3115,23 @@ classdef HydroSight_GUI < handle
                                     % Check if the model is build.
                                     modelLabel = data{i,2};
                                     status =  checkEdit2Model(this, modelLabel, '', doBuildCheck, doCalibrationCheck, doSimulationCheck);
+                                    
+                                    % Update data from model construction table
+                                    data=get(this.tab_ModelConstruction.Table,'Data');
+                                    
                                     if status~=0
                                         % Update GUI table if the user says
                                         % OK to do so
                                         data{i,6} = siteIDs;
+
+                                        % Set bore ID 
+                                        set(this.tab_ModelConstruction.Table,'Data', data);
                                     end
                                 end
                              end                             
                          end
 
-                         % Set bore ID 
-                         set(this.tab_ModelConstruction.Table,'Data', data); 
+                         
                 end
             catch
                 return;
@@ -3889,9 +3886,32 @@ classdef HydroSight_GUI < handle
 
                                 % Set flag to store derived data
                                 updateStoredForcingData = true;
-                            catch
+                            catch ME
                                 % reassign parameter sets
                                 setParameters(tmpModel.model,paramValues, paramsNames);
+
+                                % Disable tab if there is no data
+                                this.tab_ModelCalibration.resultsTabs.TabEnables{tab_ind} = 'off';
+
+                                % Display error if caused by lack of RAM 
+                                if strcmp(ME.identifier, 'MATLAB:array:SizeLimitExceeded')
+                                    reqMat = ceil(nparamSets*nVariables*nTimePoints*4/10^9);
+                                    maxMat = memory();
+                                    maxMat = floor(maxMat.MaxPossibleArrayBytes/10^9);
+                                    h = warndlg(['Forcing data could not be shown because of insufficient RAM.', char newline, ...
+                                                 'It requires ~', num2str(reqMat), 'GB and the maximum available is ~', num2str(maxMat), 'GB.', char newline, char newline,...
+                                                 'To resolve this issue try the following:', char newline, ...                                                 
+                                                 '   1. Reduce the length of the input climate data, ' char newline, ...
+                                                 '   2. Reduce the minimum number of DREAM samples (Tmin), or', char newline, ...
+                                                 '   3. Avoid using DREAM calibration.'],'Insufficient RAM');
+                                    setIcon(this, h);
+                                else
+                                    h = warndlg(['Forcing data could not be shown because of an unhandled error.', char newline, ...
+                                                 'The error message is:' char newline, ...
+                                                 ME.message],'Unhandled error');
+                                    setIcon(this, h);
+                                end
+
                             end
                         end
 
@@ -6035,7 +6055,7 @@ classdef HydroSight_GUI < handle
                         % Change cursor and show message
                         set(this.Figure, 'pointer', 'arrow');   
                         drawnow update;                                
-                        response = questdlg_timer(this.figure_icon,30,msg,'Overwrite existing model?','Yes','No','No');
+                        response = questdlg_timer(this.figure_icon,15,msg,'Overwrite existing model?','Yes','No','No');
                         
                         % Check if 'cancel, else delete the model object
                         if isempty(response) || strcmp(response,'No')
@@ -6075,7 +6095,7 @@ classdef HydroSight_GUI < handle
                 % Change cursor
                 set(this.Figure, 'pointer', 'arrow');   
                 drawnow update                
-            catch
+            catch 
                 % Change cursor
                 set(this.Figure, 'pointer', 'arrow');   
                 drawnow update                
@@ -6152,7 +6172,7 @@ classdef HydroSight_GUI < handle
                                                'Do you want to continue with the changes to the model construction?'};
                                     end                            
 
-                                    response = questdlg_timer(this.figure_icon,30,msg,'Overwrite existing model?','Yes','Yes - all models','No','No');
+                                    response = questdlg_timer(this.figure_icon,15,msg,'Overwrite existing model?','Yes','Yes - all models','No','No');
                                     
                                     % Check if 'cancel, else delete the model object
                                     if isempty(response) || strcmp(response,'No')
@@ -6212,10 +6232,7 @@ classdef HydroSight_GUI < handle
 
         end
 
-        function onAnalyseBores(this, ~, ~)
-           
-            % Hide the results window.
-            this.tab_DataPrep.modelOptions.resultsOptions.box.Heights = [0 0];
+        function onAnalyseBores(this, ~, ~)           
                             
             % Hide plot icons
             plotToolbarState(this,'off');            
@@ -6901,6 +6918,7 @@ classdef HydroSight_GUI < handle
             
             % Report Summary
             h = msgbox(['The model was successfully built for ',num2str(nModelsBuilt), ' models and failed for ',num2str(nModelsBuiltFailed), ' models.'], 'Models built');
+            set(h,'Tag','Model construction msgbox summary');
             setIcon(this, h);
                         
         end
@@ -7091,7 +7109,7 @@ classdef HydroSight_GUI < handle
             % Add large box for calib. iterations            
             uipanel('Parent',innerVbox_bottom, 'Tag','Model calibration - progress plots panel');            
             
-            set(outerVbox, 'Sizes', [420 -1]);
+            set(outerVbox, 'Sizes', [460 -1]);
             set(innerVbox_top, 'Sizes', [30 -1 30 50]);
             set(innerVbox_bottom, 'Sizes', -1);
            
@@ -7142,25 +7160,29 @@ classdef HydroSight_GUI < handle
             DREAM_tabVbox= uiextras.Grid('Parent',DREAM_tab ,'Padding', 6, 'Spacing', 6);
             uicontrol(DREAM_tabVbox,'Style','text','String','Number of Markov chains per parameter (N_per_param):','HorizontalAlignment','left', 'Units','normalized');                  
             uicontrol(DREAM_tabVbox,'Style','text','String','Min. number of converged generations per parameter (Tmin):','HorizontalAlignment','left', 'Units','normalized');                  
-            uicontrol(DREAM_tabVbox,'Style','text','String','Max. number of model generations per chain (T):','HorizontalAlignment','left', 'Units','normalized');                  
+            uicontrol(DREAM_tabVbox,'Style','text','String','Max. number of model generations per chain (T):','HorizontalAlignment','left', 'Units','normalized');
+            uicontrol(DREAM_tabVbox,'Style','text','String','r2 convergence criteria (less than denotes converged iteration):','HorizontalAlignment','left', 'Units','normalized');            
             uicontrol(DREAM_tabVbox,'Style','text','String','Number of crossover values (nCR):','HorizontalAlignment','left', 'Units','normalized');                        
             uicontrol(DREAM_tabVbox,'Style','text','String','Number chain pairs for proposal (delta):','HorizontalAlignment','left', 'Units','normalized');            
             uicontrol(DREAM_tabVbox,'Style','text','String','Random error for ergodicity (lambda):','HorizontalAlignment','left', 'Units','normalized');            
             uicontrol(DREAM_tabVbox,'Style','text','String','Randomization (zeta):','HorizontalAlignment','left', 'Units','normalized');                        
             uicontrol(DREAM_tabVbox,'Style','text','String','Test function name for detecting outlier chains (outlier):','HorizontalAlignment','left', 'Units','normalized');                        
-            uicontrol(DREAM_tabVbox,'Style','text','String','Probability of jumprate of 1 (pJumpRate_one):','HorizontalAlignment','left', 'Units','normalized');            
-            
+            uicontrol(DREAM_tabVbox,'Style','text','String','Probability of jumprate of 1 (pJumpRate_one):','HorizontalAlignment','left', 'Units','normalized');                        
+            uicontrol(DREAM_tabVbox,'Style','text','String','Random seed number:','HorizontalAlignment','left', 'Units','normalized');            
+
             uicontrol(DREAM_tabVbox,'Style','edit','string','2','Max',1, 'Tag','DREAM N','HorizontalAlignment','right');
-            uicontrol(DREAM_tabVbox,'Style','edit','string','1500','Max',1, 'Tag','DREAM Tmin','HorizontalAlignment','right');
+            uicontrol(DREAM_tabVbox,'Style','edit','string','1500','Max',1, 'Tag','DREAM Tmin','HorizontalAlignment','right');            
             uicontrol(DREAM_tabVbox,'Style','edit','string','20000','Max',1, 'Tag','DREAM T','HorizontalAlignment','right');
+            uicontrol(DREAM_tabVbox,'Style','edit','string','1.2','Max',1, 'Tag','DREAM r2_threshold','HorizontalAlignment','right');
             uicontrol(DREAM_tabVbox,'Style','edit','string','3','Max',1, 'Tag','DREAM nCR','HorizontalAlignment','right');
             uicontrol(DREAM_tabVbox,'Style','edit','string','3','Max',1, 'Tag','DREAM delta','HorizontalAlignment','right');
             uicontrol(DREAM_tabVbox,'Style','edit','string','0.05','Max',1, 'Tag','DREAM lambda','HorizontalAlignment','right');
             uicontrol(DREAM_tabVbox,'Style','edit','string','0.05','Max',1, 'Tag','DREAM zeta','HorizontalAlignment','right');
             uicontrol(DREAM_tabVbox,'Style','edit','string','iqr','Max',1, 'Tag','DREAM outlier','HorizontalAlignment','right');
-            uicontrol(DREAM_tabVbox,'Style','edit','string','0.2','Max',1, 'Tag','DREAM pJumpRate_one','HorizontalAlignment','right');
+            uicontrol(DREAM_tabVbox,'Style','edit','string','0.2','Max',1, 'Tag','DREAM pJumpRate_one','HorizontalAlignment','right');            
+            uicontrol(DREAM_tabVbox,'Style','edit','string',num2str(floor(rand(1)*1e6)),'Max',1, 'Tag','DREAM iseed','HorizontalAlignment','right');
             
-            set(DREAM_tabVbox, 'ColumnSizes', [-1 100], 'RowSizes', repmat(20,1,9));            
+            set(DREAM_tabVbox, 'ColumnSizes', [-1 100], 'RowSizes', repmat(20,1,11));            
             
 %             % Fill in MultiModel panel   
 %             % MODEL STILL IN DEVELOPMENT
@@ -8143,6 +8165,9 @@ classdef HydroSight_GUI < handle
                                 % remove calibration results.
                                 tmpModel.calibrationResults = [];
 
+                                % Add flag to denote the calibration is not complete.
+                                tmpModel.calibrationResults.isCalibrated = false;
+
                                 % Record that the calib results were overwritten
                                 nCalibBoresDeleted = nCalibBoresDeleted + 1;
                             end
@@ -8406,7 +8431,7 @@ classdef HydroSight_GUI < handle
                     % (ie logical data reporting on the analysis
                     % undertaken) or just the data not assessed an errerous
                     % or an outlier.
-                    response = questdlg_timer(this.figure_icon,30,'Do you want to export the analysis results or just the observations not assessed as being erroneous or outliers?', ...
+                    response = questdlg_timer(this.figure_icon,15,'Do you want to export the analysis results or just the observations not assessed as being erroneous or outliers?', ...
                         'Data to export?','Export Analysis Results','Export non-erroneous obs.','Cancel','Cancel');
                     
                     if isempty(response) || strcmp(response,'Cancel')
@@ -8540,7 +8565,7 @@ classdef HydroSight_GUI < handle
                     end                    
 
                     % Ask the user if they want to export the time-series results or the model parameters or the derived parameters.
-                    response = questdlg_timer(this.figure_icon,30,'Do you want to export the time-series results, or the model and derived parameters?', ...
+                    response = questdlg_timer(this.figure_icon,15,'Do you want to export the time-series results, or the model and derived parameters?', ...
                         'Export options.','Time-series results','Model & derived parameters','Cancel','Cancel');                    
 
                     if isempty(response) || strcmp(response, 'Cancel')
@@ -8713,7 +8738,7 @@ classdef HydroSight_GUI < handle
                       
                     % Ask the user if they want to export one file per bore (with decomposition)
                     % or all results in one file.
-                    response = questdlg_timer(this.figure_icon,30,{'Do you want to export all simulations into one file, or as one file per simulation?','', ...
+                    response = questdlg_timer(this.figure_icon,15,{'Do you want to export all simulations into one file, or as one file per simulation?','', ...
                         'NOTE: The forcing decomposition results will only be exported using the multi-file option.'}, ...
                         'Export options.','One File','Multiple Files','Cancel','Cancel');
                     
@@ -9443,9 +9468,7 @@ classdef HydroSight_GUI < handle
             
             % When foldername is specified (by HydroSightTest()) then the rquest for 
             % user inputs is avoided. This is done to allow automated for unit testing.
-            if nargin==4
-                this.project_fileName = folderName;
-            else
+            if nargin < 4
                 % Check if all of the GUI tables are empty. If not, warn the
                 % user the opening the example will delete the existing data.
                 if ~isempty(this.tab_Project.project_name.String) || ...
@@ -9453,7 +9476,7 @@ classdef HydroSight_GUI < handle
                         (size(this.tab_ModelCalibration.Table.Data,1)~=0 && any(~any(cellfun( @(x) isempty(x), this.tab_ModelConstruction.Table.Data(:,1:9))))) || ...
                         (size(this.tab_ModelCalibration.Table.Data,1)~=0 && any(~any(cellfun( @(x) isempty(x), this.tab_ModelCalibration.Table.Data)))) || ...
                         (size(this.tab_ModelSimulation.Table.Data,1)~=0 && any(~any(cellfun( @(x) isempty(x), this.tab_ModelSimulation.Table.Data))))
-                    response = questdlg_timer(this.figure_icon,30,{'Opening an example project will close the current project.','','Do you want to continue?'}, ...
+                    response = questdlg_timer(this.figure_icon,15,{'Opening an example project will close the current project.','','Do you want to continue?'}, ...
                         'Close the current project?','Yes','No','No');
 
                     if isempty(response) || strcmp(response,'No')
@@ -9487,14 +9510,19 @@ classdef HydroSight_GUI < handle
                 folderName = uigetdir(folderName ,'Select folder in which to save the example .csv files.');
                 if isempty(folderName) || (isnumeric(folderName) && folderName==0)
                     return;
-                end
-                this.project_fileName = folderName;
+                end                
             end
             
             % Change cursor
             set(this.Figure, 'pointer', 'watch');      
             drawnow update;
+
+            % Initialise whole GUI and variables
+            initialiseGUI(this);
             
+            % Set project folder
+            this.project_fileName = folderName;
+
             % Build .csv file names and add to the GUI construction table.
             disp('Saving .csv files ...');
             forcingFileName = fullfile(folderName,'forcing.csv');
@@ -10480,7 +10508,7 @@ classdef HydroSight_GUI < handle
                 set(this.Figure, 'pointer', 'arrow');
                 drawnow update
                 
-                response = questdlg_timer(this.figure_icon,30,'Do you want to save the project after each model is calibrated?', ...
+                response = questdlg_timer(this.figure_icon,15,'Do you want to save the project after each model is calibrated?', ...
                     'Auto-save models?','Yes','No','Cancel','Yes');
                 if isempty(response) || strcmp(response,'Cancel')
                     return;
@@ -10516,7 +10544,7 @@ classdef HydroSight_GUI < handle
             drawnow update
             
             % Open parrallel engine for calibration
-            if ~strcmp(hObject.Tag,'Start calibration - useHPC')
+            if ~any(strcmp(hObject.Tag,{'Start calibration - useHPC', 'Start calibration - noparpool'}))
                 try
                     %nCores=str2double(getenv('NUMBER_OF_PROCESSORS'));
                     parpool('local');
@@ -10824,6 +10852,7 @@ classdef HydroSight_GUI < handle
             else
                 % Report Summary
                 h = msgbox(['The model was successfully calibrated for ',num2str(nModelsCalib), ' models and failed for ',num2str(nModelsCalibFailed), ' models.'], 'Calibration summary');
+                set(h,'Tag','Model calibration msgbox summary');
                 setIcon(this, h);
             end        
         end
@@ -11056,7 +11085,7 @@ classdef HydroSight_GUI < handle
                     end
                 end
                 if ~isempty(msg)
-                    response = questdlg_timer(this.figure_icon,30,msg,msgTitle,'Yes','No','No');
+                    response = questdlg_timer(this.figure_icon,15,msg,msgTitle,'Yes','No','No');
                 else
                     status = -1;
                     return                    
@@ -11145,6 +11174,7 @@ classdef HydroSight_GUI < handle
                     ind = cellfun( @(x) strcmp(x,modelLabel), modelLabels_constTable);
                     this.tab_ModelConstruction.Table.Data{ind,end} = '<html><font color = "#FF0000">Not built.</font></html>';
                 end
+                drawnow update
             end
         end
 
@@ -11157,6 +11187,69 @@ classdef HydroSight_GUI < handle
                 catch
                     % do nothing
                 end
+            end
+        end
+
+        function initialiseGUI(this)
+            % Intialise main GUI              
+            this.project_fileName ='';
+            this.model_labels=[];
+            this.models=[];              
+            this.tab_Project.project_name.String = '';
+            this.tab_Project.project_description.String = '';
+            this.tab_DataPrep.Table.Data = {false, '', '',0, 0, 0, '01/01/1900',true, true, true, true, 10, 120, 4, 1,...
+                '<html><font color = "#FF0000">Not analysed.</font></html>', ...
+                ['<html><font color = "#808080">','(NA)','</font></html>'], ...
+                ['<html><font color = "#808080">','(NA)','</font></html>']};
+            this.tab_DataPrep.Table.RowName = {}; 
+            this.tab_ModelConstruction.Table.Data = { [],[],[],[],[],[],[],[], [],'<html><font color = "#FF0000">Not built.</font></html>'};
+            this.tab_ModelConstruction.Table.RowName = {}; 
+            this.tab_ModelCalibration.Table.Data = {};
+            this.tab_ModelCalibration.Table.RowName = {};
+            this.tab_ModelSimulation.Table.Data = {};
+            this.tab_ModelSimulation.Table.RowName = {};
+            this.dataPrep = [];
+            this.copiedData={};
+            this.HPCoffload={};
+            this.modelsOnHDD='';
+
+            %Initialise forcing data stored variables
+            this.tab_ModelCalibration.resultsOptions.forcingData.modelLabel = '';
+            this.tab_ModelCalibration.resultsOptions.forcingData.data_input = [];
+            this.tab_ModelCalibration.resultsOptions.forcingData.data_derived = [];
+            this.tab_ModelCalibration.resultsOptions.forcingData.colnames_input = {};
+            this.tab_ModelCalibration.resultsOptions.forcingData.colnames_derived = {};
+            this.tab_ModelCalibration.resultsOptions.forcingData.filt=[];
+
+            % Hide all right hand side options windows.
+            %this.tab_DataPrep.modelOptions.resultsOptions.box.Heights = zeros(size(this.tab_DataPrep.modelOptions.resultsOptions.box.Heights));
+            this.tab_ModelConstruction.modelOptions.vbox.Heights = zeros(size(this.tab_ModelConstruction.modelOptions.vbox.Heights));
+            %this.tab_ModelSimulation.resultsOptions.box.Heights = zeros(size(this.tab_ModelSimulation.resultsOptions.box.Heights));
+            this.tab_ModelCalibration.resultsTabs.TabEnables = repmat({'off'},length(this.tab_ModelCalibration.resultsTabs.TabEnables),1);
+            this.tab_ModelSimulation.resultsTabs.TabEnables = repmat({'off'},length(this.tab_ModelSimulation.resultsTabs.TabEnables),1);
+
+            % Set project name/title
+            vernum = getHydroSightVersion();
+            set(this.Figure,'Name',['HydroSight ', vernum]);            
+                
+            % Enable file menu items
+            for i=1:size(this.figure_Menu.Children,1)
+                if strcmp(get(this.figure_Menu.Children(i),'Label'), 'Save Project')
+                    set(this.figure_Menu.Children(i),'Enable','on');
+                elseif strcmp(get(this.figure_Menu.Children(i),'Label'), 'Move models from RAM to HDD...') || ...
+                strcmp(get(this.figure_Menu.Children(i),'Label'), 'Move models from HDD to RAM...')
+                    if this.modelsOnHDD
+                        set(this.figure_Menu.Children(i),'Label', 'Move models from HDD to RAM...');
+                    else
+                        set(this.figure_Menu.Children(i),'Label', 'Move models from RAM to HDD...');
+                    end
+                    set(this.figure_Menu.Children(i),'Enable','on');
+                end       
+            end
+                       
+            % Initialise model options GUI
+            for i=1:length(this.modelTypes)
+                initialise(this.tab_ModelConstruction.modelTypes.(this.modelTypes{i}).obj);
             end
         end
     end
