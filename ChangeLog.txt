@@ -281,3 +281,4 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 * Check of the Budyko AET within climateTransform_soilMoistureModels_v2.m and climateTransform_soilMoistureModels_2layer_v2.m rewriite tbe be more efficient.
 * Jacobs correction and Hantush parameter bounds reduced to a realistic range.
 * Bug fixed in responseFunction_FerrisKnowlesJacobs.m causing it to crash.
+* Added derivedweighting_PearsonsPumping.m, which allows Pearsons climate weighting function to use pumping estimates of storativity (S) as the 'A' scaling parameter for the weights. This often produces more plausible estimates of S.
