@@ -1,10 +1,9 @@
 %function [f, status] = HydroSight()
-function HydroSight()
+function varargout = HydroSight(doingTesting)
 
-    % Initialise status as error and an empty figure handle.
-%     f= [];
-%     status = -1;
-
+    if nargin==0
+        doingTesting=false;
+    end
     % Check Matlab is 2018a or later. 
     if ~isdeployed
         v=version();
@@ -30,9 +29,11 @@ function HydroSight()
         if ~isdeployed && ~isempty(ver('layout'))           
             rmpath(genpath(fullfile( pwd, 'GUI','GUI Layout Toolbox 2.3.4')));
         end
-        %f = HydroSight_GUI();
-        %status = 0;
-        HydroSight_GUI();
+        f = HydroSight_GUI();
+        if doingTesting
+            varargout = {f};
+        end
+
     catch ME
         % Check the toolbox for GUIs exists
         if ~isdeployed && isempty(ver('layout')) 
@@ -62,6 +63,9 @@ function HydroSight()
                     ['Line Number:', functionLine]}, ...
                     'Unknown error', 'error');
             
+        end
+        if doingTesting
+            varargout = {};
         end
     end
 

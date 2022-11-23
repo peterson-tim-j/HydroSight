@@ -716,7 +716,7 @@ classdef HydroSight_GUI < handle
             uicontrol(resultsvboxOptions,'Style','text','String','Time step metric:','HorizontalAlignment','left' );
             uicontrol(resultsvboxOptions,'Style','popupmenu', ...
                 'String',{'sum','mean','st. dev.','variance','skew','min','5th %ile','10th %ile','25th %ile','50th %ile','75th %ile','90th %ile','95th %ile', 'max', ...
-                'inter-quantile range', 'No. zero days', 'No. <0 days', 'No. >0 day'}, ...
+                'inter-quantile range', 'No. zero days', 'No. <0 days', 'No. >0 days'}, ...
                 'Value',1, 'Callback', @this.modelCalibration_onUpdateForcingData, ...
                 'TooltipString', ['<html>Select calculation to apply when aggregating the daily data.  <br>', ...
                 'Note, all plots will use the resulting data.'],'HorizontalAlignment','right','Tag','Forcing plot calc type');    
@@ -748,18 +748,18 @@ classdef HydroSight_GUI < handle
             resultsvboxOptions = uiextras.Grid('Parent', resultsvbox,'Padding', 3, 'Spacing', 3);
             uicontrol(resultsvboxOptions,'Style','text','String','Plot type:' );
             uicontrol(resultsvboxOptions,'Style','popupmenu', 'String',{'line','scatter','bar','histogram','cdf','box-plot (daily metric)', ...
-                'box-plot (monthly metric)','box-plot (quarterly metric)','box-plot (annually metric)'}, 'Value',1,'HorizontalAlignment','right', ...
+                'box-plot (monthly metric)','box-plot (quarterly metric)','box-plot (annual metric)'}, 'Value',1,'HorizontalAlignment','right', ...
                 'Callback',@this.modelCalibration_onUpdateForcingPlotType,'Tag','Forcing plot type');    
             uicontrol(resultsvboxOptions,'Style','text','String','x-axis:' );
-            uicontrol(resultsvboxOptions,'Style','popupmenu', 'String',{'Date', '(none)'}, 'Value',1,'HorizontalAlignment','right','Tag','Forcing plot x-axis');    
+            uicontrol(resultsvboxOptions,'Style','popupmenu', 'String',{'(none)', 'Date'}, 'Value',2,'HorizontalAlignment','right','Tag','Forcing plot x-axis');    
             uicontrol(resultsvboxOptions,'Style','text','String',char(247), 'FontSize',14);
-            uicontrol(resultsvboxOptions,'Style','popupmenu', 'String',{'Date', '(none)'}, 'Value',2,'HorizontalAlignment','right','Tag','Forcing plot x-axis denom');    
+            uicontrol(resultsvboxOptions,'Style','popupmenu', 'String',{'(none)', 'Date'}, 'Value',1,'HorizontalAlignment','right','Tag','Forcing plot x-axis denom');    
             uicontrol(resultsvboxOptions,'Style','text','String','y-axis:' );
-            uicontrol(resultsvboxOptions,'Style','popupmenu', 'String',{'Date', '(none)'}, 'Value',1,'HorizontalAlignment','right','Tag','Forcing plot y-axis');                
+            uicontrol(resultsvboxOptions,'Style','popupmenu', 'String',{'(none)', 'Date'}, 'Value',2,'HorizontalAlignment','right','Tag','Forcing plot y-axis');                
             uicontrol(resultsvboxOptions,'Style','text','String',char(247), 'FontSize',14);
-            uicontrol(resultsvboxOptions,'Style','popupmenu', 'String',{'Date', '(none)'}, 'Value',2,'HorizontalAlignment','right','Tag','Forcing plot y-axis denom');                
+            uicontrol(resultsvboxOptions,'Style','popupmenu', 'String',{'(none)', 'Date'}, 'Value',1,'HorizontalAlignment','right','Tag','Forcing plot y-axis denom');                
             uicontrol(resultsvboxOptions,'Style','pushbutton','String','Build plot','Callback', @this.modelCalibration_onUpdateForcingPlot, ...
-                'Tag','Model Calibration - forcing plot', 'TooltipString', 'Build the forcing plot.','ForegroundColor','blue');            
+                'Tag','Model Calibration - forcing plot', 'TooltipString', 'Build the forcing plot.','ForegroundColor','blue', 'Tag','Forcing plot build plot');            
             set(resultsvboxOptions, 'ColumnSizes', [-1 -2 -1 -2 10 -2 -1 -2 10 -2 -2], 'RowSizes', 25 );           
             
             uiextras.Panel('Parent', resultsvbox,'BackgroundColor',[1 1 1], 'Tag','Model Calibration - forcing plot panel');             
@@ -966,7 +966,7 @@ classdef HydroSight_GUI < handle
             uicontrol(resultsvboxOptions,'Style','text','String','Time step metric:','HorizontalAlignment','left' );
             uicontrol(resultsvboxOptions,'Style','popupmenu', ...
                 'String',{'sum','mean','st. dev.','variance','skew','min','5th %ile','10th %ile','25th %ile','50th %ile','75th %ile','90th %ile','95th %ile', 'max', ...
-                'inter-quantile range', 'No. zero days', 'No. <0 days', 'No. >0 day'}, ...
+                'inter-quantile range', 'No. zero days', 'No. <0 days', 'No. >0 days'}, ...
                 'Value',1, 'Callback', @this.modelSimulation_onUpdateForcingData, ...
                 'TooltipString', ['<html>Select calculation to apply when aggregating the daily data.  <br>', ...
                 'Note, all plots will use the resulting data.'],'HorizontalAlignment','right', 'Tag','Forcing plot calc type');    
@@ -998,16 +998,16 @@ classdef HydroSight_GUI < handle
             resultsvboxOptions = uiextras.Grid('Parent', resultsvbox,'Padding', 3, 'Spacing', 3);
             uicontrol(resultsvboxOptions,'Style','text','String','Plot type:' );
             uicontrol(resultsvboxOptions,'Style','popupmenu', 'String',{'line','scatter','bar','histogram','cdf','box-plot (daily metric)', ...
-                'box-plot (monthly metric)','box-plot (quarterly metric)','box-plot (annually metric)'}, 'Value',1,'HorizontalAlignment','right', ...
+                'box-plot (monthly metric)','box-plot (quarterly metric)','box-plot (annual metric)'}, 'Value',1,'HorizontalAlignment','right', ...
                 'Callback',@this.modelSimulation_onUpdateForcingPlotType, 'Tag','Forcing plot type');    
             uicontrol(resultsvboxOptions,'Style','text','String','x-axis:' );
-            uicontrol(resultsvboxOptions,'Style','popupmenu', 'String',{'Date', '(none)'}, 'Value',1,'HorizontalAlignment','right','Tag','Forcing plot x-axis');    
+            uicontrol(resultsvboxOptions,'Style','popupmenu', 'String',{'(none)', 'Date'}, 'Value',2,'HorizontalAlignment','right','Tag','Forcing plot x-axis');    
             uicontrol(resultsvboxOptions,'Style','text','String',char(247), 'FontSize',14);
-            uicontrol(resultsvboxOptions,'Style','popupmenu', 'String',{'Date', '(none)'}, 'Value',2,'HorizontalAlignment','right','Tag','Forcing plot x-axis denom');
+            uicontrol(resultsvboxOptions,'Style','popupmenu', 'String',{'(none)', 'Date'}, 'Value',1,'HorizontalAlignment','right','Tag','Forcing plot x-axis denom');
             uicontrol(resultsvboxOptions,'Style','text','String','y-axis:' );
-            uicontrol(resultsvboxOptions,'Style','popupmenu', 'String',{'Date', '(none)'}, 'Value',1,'HorizontalAlignment','right','Tag','Forcing plot y-axis');       
+            uicontrol(resultsvboxOptions,'Style','popupmenu', 'String',{'(none)', 'Date'}, 'Value',2,'HorizontalAlignment','right','Tag','Forcing plot y-axis');       
             uicontrol(resultsvboxOptions,'Style','text','String',char(247), 'FontSize',14);
-            uicontrol(resultsvboxOptions,'Style','popupmenu', 'String',{'Date', '(none)'}, 'Value',2,'HorizontalAlignment','right','Tag','Forcing plot y-axis denom');                
+            uicontrol(resultsvboxOptions,'Style','popupmenu', 'String',{'(none)', 'Date'}, 'Value',1,'HorizontalAlignment','right','Tag','Forcing plot y-axis denom');                
             uicontrol(resultsvboxOptions,'Style','pushbutton','String','Build plot','Callback', @this.modelSimulation_onUpdateForcingPlot, ...
                 'Tag','Model Calibration - forcing plot', 'TooltipString', 'Build the forcing plot.','ForegroundColor','blue');            
             set(resultsvboxOptions, 'ColumnSizes', [-1 -2 -1 -2 10 -2 -1 -2 10 -2 -2], 'RowSizes', 25 );          
@@ -4397,23 +4397,17 @@ classdef HydroSight_GUI < handle
             % Get time step value
             obj = findobj(this.(thisPanelName).resultsOptions.forcingPanel, 'Tag','Forcing plot calc timestep');
             timestepID = obj.Value;
-%             timestepID = this.(thisPanelName).resultsOptions.forcingPanel.Contents.Contents(1).Contents(2).Value;
             
             % Get the calculate for the time step aggregation
             obj = findobj(this.(thisPanelName).resultsOptions.forcingPanel, 'Tag','Forcing plot calc type');
             calcID = obj.Value;
-            calcString = obj.String(calcID);            
-%             calcID = this.(thisPanelName).resultsOptions.forcingPanel.Contents.Contents(1).Contents(4).Value;
-%             calcString = this.(thisPanelName).resultsOptions.forcingPanel.Contents.Contents(1).Contents(4).String;
-%             calcString = calcString{calcID};
+            calcString = obj.String{calcID};            
             
             % check the start and end dates
             obj = findobj(this.(thisPanelName).resultsOptions.forcingPanel, 'Tag','Forcing plot calc start date');
             sdate = obj.String;
             obj = findobj(this.(thisPanelName).resultsOptions.forcingPanel, 'Tag','Forcing plot calc end date');
             edate = obj.String;            
-%             sdate = this.(thisPanelName).resultsOptions.forcingPanel.Contents.Contents(1).Contents(6).String;
-%             edate = this.(thisPanelName).resultsOptions.forcingPanel.Contents.Contents(1).Contents(8).String;
             try
                 if isempty(sdate)
                     sdate = datetime('01/01/0001','InputFormat','dd/MM/yyyy');
@@ -4505,7 +4499,7 @@ classdef HydroSight_GUI < handle
                 case 6
                     fhandle = @min;
                 case {7,8,9,10,11,12,13}
-                    p = str2double(calcString(1:length(calcString)-7));
+                    p = str2double(strrep(calcString,'th %ile',''));
                     fhandle = @(x) prctile(x,p);
                 case 14
                     fhandle = @max;
@@ -4596,15 +4590,68 @@ classdef HydroSight_GUI < handle
             % Add to the table
             this.(thisPanelName).resultsOptions.forcingPanel.Children.Children(3).Data = tableData;
             this.(thisPanelName).resultsOptions.forcingPanel.Children.Children(3).ColumnName = forcingData_colnames;
-
             
-            % Get the plotting type
-            obj = findobj(this.(thisPanelName).resultsOptions.forcingPanel ,'Tag','Forcing plot type');
+            % Disable calcs other than sum of using a daily time step
+            objCalcType = findobj(this.(thisPanelName).resultsOptions.forcingPanel, 'Tag','Forcing plot calc type');
+            objCalcType.Enable = 'on';
+            if timestepID==1    %daily
+                objCalcType.Value = 1;
+                objCalcType.Enable = 'off';
+            end
+
+            % Update the types of box plots available for this time step
+            % i.e. the box plot time step must be smaller than the timestep
+            % for the data table. Calc cype also diabled if daily. Box
+            % plots are not available for DREAM MCMC results.
+            obj = findobj(this.(thisPanelName).resultsOptions.forcingPanel, 'Tag','Forcing plot type');            
+            plotTypeOptons = {'line','scatter','bar','histogram','cdf','box-plot (daily metric)', ...
+                'box-plot (monthly metric)','box-plot (quarterly metric)','box-plot (annual metric)'};
+            calcTypeString = objCalcType.String(objCalcType.Value);
+            calcTypeString = calcTypeString{1};            
+            if tableData_derived_ndims==3
+                plotTypeOptons = plotTypeOptons(1:5);
+            else
+                switch timestepID
+                    case 1  %daily
+                        plotTypeOptons = plotTypeOptons(1:5);
+                        objCalcType.Value = 1;
+                        objCalcType.Enable = 'off';
+                    case {2, 3}  % weekly or monthly
+                        if strcmp(calcTypeString,'sum')
+                            plotTypeOptons = plotTypeOptons(1:6);
+                        else
+                            plotTypeOptons = plotTypeOptons(1:5);
+                        end
+                    case 4  % quarterly
+                        if strcmp(calcTypeString,'sum')
+                            plotTypeOptons = plotTypeOptons(1:7);
+                        else
+                            plotTypeOptons = [plotTypeOptons(1:5), plotTypeOptons(7)];
+                        end
+                    case 5  % annually
+                        if strcmp(calcTypeString,'sum')
+                            plotTypeOptons = plotTypeOptons(1:8);
+                        else
+                            plotTypeOptons = [plotTypeOptons(1:5), plotTypeOptons(7:8)];
+                        end
+                    case 6  % all data
+                        if strcmp(calcTypeString,'sum')
+                            plotTypeOptons = plotTypeOptons(1:9);
+                        else
+                            plotTypeOptons = [plotTypeOptons(1:5), plotTypeOptons(7:9)];
+                        end
+                    otherwise
+                        error('Unknown forcing data time ste.')
+                end
+            end
+            if obj.Value > length(plotTypeOptons)
+                obj.Value = 1;
+            end            
+            obj.String = plotTypeOptons;
+
+            % Get the plotting type again
             plotType_val = obj.Value;
             plotType = obj.String{plotType_val};
-%             plotType_val = this.(thisPanelName).resultsOptions.forcingPanel.Contents.Contents(3).Contents(2).Value;
-%             plotType = this.(thisPanelName).resultsOptions.forcingPanel.Contents.Contents(3).Contents(2).String;
-%             plotType = plotType{plotType_val};            
             
             % Setup each dropdown with variable names.
             Tage4AxisObj = {'Forcing plot x-axis', 'Forcing plot y-axis', 'Forcing plot x-axis denom', 'Forcing plot y-axis denom'};
@@ -4616,13 +4663,14 @@ classdef HydroSight_GUI < handle
                 forcingData_value_axis_prior = obj.Value(1);
 
                 % Update the drop-down axis options
-                if any(strfind(plotType,'box-plot'))
-                    forcingData_colnames_axis = {'Date','(none)'};
+                if any(strfind(plotType,'box-plot')) && strcmp(Tage4AxisObj{i},'Forcing plot x-axis')
+                    forcingData_colnames_axis = {'(none)', 'Date'};
+                elseif any(strfind(plotType,'box-plot')) && strcmp(Tage4AxisObj{i},'Forcing plot x-axis denom')
+                    forcingData_colnames_axis = {'(none)'};
                 else
-                    %ind = strfind(forcingData_colnames,'th%ile');
-                    %forcingData_colnames(k>0)=forcingData_colnames(k>0){1:k-3};
-                    forcingData_colnames_axis = ['Date', forcingData_colnames_yaxis(6:end),'(none)'];
+                    forcingData_colnames_axis = ['(none)', 'Date', forcingData_colnames_yaxis(6:end)];
                 end
+                obj.Value = 1;
                 obj.String = forcingData_colnames_axis;
 
                 % Update the selected axis item. To do this, the
@@ -4633,12 +4681,11 @@ classdef HydroSight_GUI < handle
                         obj.Value = ind;
                     else
                         obj.Value = 1;
-                    end
-                else
-                    obj.Value = 1;
+                    end                
                 end
-            end   
 
+            end   
+            
             % Update forcing plot
             onUpdateForcingPlot(this, thisPanelName)
             
@@ -4672,30 +4719,41 @@ classdef HydroSight_GUI < handle
               
               
             % Get the plotting type
-            plotType_val = this.(thisPanelName).resultsOptions.forcingPanel.Contents.Contents(3).Contents(2).Value;
-            plotType = this.(thisPanelName).resultsOptions.forcingPanel.Contents.Contents(3).Contents(2).String;
+            obj = findobj(this.(thisPanelName).resultsOptions.forcingPanel, 'Tag','Forcing plot type');
+            plotType_val = obj.Value;
+            plotType = obj.String;
             plotType = plotType{plotType_val};
+
+            % Get axis dropdown objects
+            obj_xaxis = findobj(this.(thisPanelName).resultsOptions.forcingPanel ,'Tag','Forcing plot x-axis');
+            obj_yaxis = findobj(this.(thisPanelName).resultsOptions.forcingPanel ,'Tag','Forcing plot y-axis');
+            obj_xaxis_denom = findobj(this.(thisPanelName).resultsOptions.forcingPanel ,'Tag','Forcing plot x-axis denom');
+            obj_yaxis_denom = findobj(this.(thisPanelName).resultsOptions.forcingPanel ,'Tag','Forcing plot y-axis denom');
             
             % Update the drop-down x and y axis options
             if any(strfind(plotType,'box-plot'))
-                this.(thisPanelName).resultsOptions.forcingPanel.Contents.Contents(3).Contents(4).Value = 1;
-                forcingData_colnames_xaxis = {'Date','(none)'};
+                obj_xaxis.Value = 2;
+                obj_xaxis_denom.Value = 1;
+                forcingData_colnames_xaxis = {'(none)', 'Date'};   
+                forcingData_colnames_xaxis_denom = {'(none)'};   
             else
-                forcingData_colnames_xaxis = {'Date', forcingData_colnames{6:end},'(none)'};
+                forcingData_colnames_xaxis = {'(none)', 'Date', forcingData_colnames{6:end}};
+                forcingData_colnames_xaxis_denom = forcingData_colnames_xaxis;
             end
-            forcingData_colnames_yaxis = {'Date', forcingData_colnames{6:end},'(none)'};
+            forcingData_colnames_yaxis = {'(none)', 'Date', forcingData_colnames{6:end}};
             
-            
-            this.(thisPanelName).resultsOptions.forcingPanel.Contents.Contents(3).Contents(4).String = forcingData_colnames_xaxis ;
-            this.(thisPanelName).resultsOptions.forcingPanel.Contents.Contents(3).Contents(6).String = forcingData_colnames_yaxis;
-            
+            % Set dropdown strings
+            obj_xaxis.String = forcingData_colnames_xaxis;
+            obj_yaxis.String = forcingData_colnames_yaxis;
+            obj_xaxis_denom.String = forcingData_colnames_xaxis_denom;
+            obj_yaxis_denom.String = forcingData_colnames_yaxis;
         end
         
         function onUpdateForcingPlot(this, thisPanelName)
             
             % Change cursor
             set(this.Figure, 'pointer', 'watch');      
-            drawnow update;
+            %drawnow update;
                         
             % Turn on plot icons
             plotToolbarState(this,'on');
@@ -4707,19 +4765,21 @@ classdef HydroSight_GUI < handle
             
             % Get the user plotting settings
             obj = findobj(this.(thisPanelName).resultsOptions.forcingPanel ,'Tag','Forcing plot type');
-            plotType_val = obj.Value;
+            plotType_str = obj.String{obj.Value};
 
             obj = findobj(this.(thisPanelName).resultsOptions.forcingPanel,'Tag','Forcing plot x-axis');
             xaxis_options = obj.String;
             xaxis_val = min(obj.Value, length(xaxis_options));
+            xaxis_str = obj.String{xaxis_val};
 
             obj = findobj(this.(thisPanelName).resultsOptions.forcingPanel,'Tag','Forcing plot x-axis denom');
             xaxis_options_denom = obj.String;
-            xaxis_val_denom = min(obj.Value, length(xaxis_options_denom));
+            xaxis_val_denom = min(obj.Value, length(xaxis_options_denom));            
 
             obj = findobj(this.(thisPanelName).resultsOptions.forcingPanel,'Tag','Forcing plot y-axis');
             yaxis_options = obj.String;
-            yaxis_val = min(obj.Value, length(xaxis_options));
+            yaxis_val = min(obj.Value, length(yaxis_options));
+            yaxis_str = obj.String{yaxis_val};
 
             obj = findobj(this.(thisPanelName).resultsOptions.forcingPanel,'Tag','Forcing plot y-axis denom');
             yaxis_options_denom = obj.String;
@@ -4736,17 +4796,17 @@ classdef HydroSight_GUI < handle
             
             %Check if a box plot is to be created
             plotType_isBoxPlot = false;
-            if plotType_val>=6 && plotType_val<=9
+            if contains(plotType_str,'box-plot')
                 plotType_isBoxPlot = true;
             end
             
             % Get axis data
             xdataHasErrorVals =  false;
             ydataHasErrorVals =  false;
-            if xaxis_val==1
+            if strcmp(xaxis_str,'Date')
                 xdata = forcingDates;
                 xdataLabel = 'Date';
-            elseif xaxis_val~=length(xaxis_options)
+            elseif ~strcmp(xaxis_str,'(none)')
                 
                % Get the data type to plot
                xdataLabel = xaxis_options{xaxis_val};
@@ -4801,10 +4861,10 @@ classdef HydroSight_GUI < handle
                xdataLabel = '(none)';
             end
 
-            if yaxis_val==1
+            if strcmp(yaxis_str,'Date')
                 ydata = forcingDates;
                 ydataLabel = 'Date';
-            elseif yaxis_val~=length(yaxis_options)
+            elseif ~strcmp(yaxis_str,'(none)')
                % Get the data type to plot
                ydataLabel = yaxis_options{yaxis_val};
                 
@@ -4869,8 +4929,8 @@ classdef HydroSight_GUI < handle
             obj = uipanel('Parent', obj,'BackgroundColor',[1,1,1]);
             axisHandle = axes( 'Parent', obj);
 
-            % Exit of no data to plot (and not plotting a distrbution)
-            if isempty(ydata) && plotType_val<4
+            % Exit if no data to plot (and not plotting a distrbution)
+            if isempty(ydata) && any(strcmp(plotType_str,{'line','scatter','bar'}))
                 % Change cursor
                 set(this.Figure, 'pointer', 'arrow');      
                 drawnow update;       
@@ -4889,10 +4949,10 @@ classdef HydroSight_GUI < handle
             end            
             
                         
-            switch plotType_val
-                case {1,2}     
+            switch plotType_str
+                case {'line','scatter'}     
                     plotSymbol = 'b.-';
-                    if plotType_val==2
+                    if strcmp(plotType_str,'scatter')
                         plotSymbol = 'b.';
                     end
                     if xdataHasErrorVals && ydataHasErrorVals
@@ -4965,7 +5025,7 @@ classdef HydroSight_GUI < handle
                     xlabel(axisHandle,xdataLabel);  
                     ylabel(axisHandle,ydataLabel);             
                     
-                case 3
+                case 'bar'
                     if strcmp(xdataLabel,'(none)') || strcmp(ydataLabel,'(none)')
                         errordlg('A bar plot requires both x-axis and y-axis inputs.','Axis selection error...');
                         
@@ -5031,8 +5091,8 @@ classdef HydroSight_GUI < handle
                         dateaxis_local(axisHandle,'y');
                     end
                     axis(axisHandle,'tight');
-                case 4                    
-                    if strcmp(ydataLabel,'(none)')
+                case 'histogram'                    
+                    if contains(ydataLabel,'(none)')
                         if xdataHasErrorVals
                             xdata=xdata(:,4);
                         end
@@ -5090,7 +5150,7 @@ classdef HydroSight_GUI < handle
                             legend(axisHandle, 'Distribution of median','Location', 'northeastoutside');
                         end                        
                     end
-                case 5
+                case 'cdf'
                     % Convert date is to be plotted
                     if xdata_isdate
                         xdata=datenum(xdata);
@@ -5100,7 +5160,7 @@ classdef HydroSight_GUI < handle
                     end
 
                     % Make CDF plot
-                    if strcmp(ydataLabel,'(none)')
+                    if contains(ydataLabel,'(none)')
                         if xdataHasErrorVals
                             [f, xtmp] = ecdf(xdata(:,1));                            
                             plot(axisHandle, xtmp, f,'linestyle',':','color',[0.8 0.8 0.8]);                            
@@ -5160,7 +5220,7 @@ classdef HydroSight_GUI < handle
                     if ydata_isdate
                         dateaxis_local(axisHandle,'y');
                     end                       
-                case {6,7,8,9}      % Box plots at daily sum, monthly sum, 1/4 sum, annual sum
+                case {'box-plot (daily metric)','box-plot (monthly metric)','box-plot (quarterly metric)','box-plot (annual metric)'}      % Box plots at daily sum, monthly sum, 1/4 sum, annual sum
                     
                     if ydataHasErrorVals || xdataHasErrorVals
                         errordlg('HydroSight cannot create box plots of ensemble data (ie as derived from DREAM calibation).', 'Feature unavailable ...')
@@ -5202,7 +5262,7 @@ classdef HydroSight_GUI < handle
                     tableData = tableData(filt,:);
                     
                     % re-extract ydata
-                    ydata = tableData(:,yaxis_val+4);
+                    ydata = tableData(:,yaxis_val-2+5);
     
                     % Calculate time steps                    
                     tableData = [tableData(:,1:5),ydata];                           
@@ -5227,29 +5287,35 @@ classdef HydroSight_GUI < handle
                         case 6
                             fhandle = @min;
                         case {7,8,9,10,11,12,13}
-                            p = str2double(calcString(1:length(calcString)-7));
+                            p = str2double(strrep(calcString,'th %ile',''));
                             fhandle = @(x) prctile(x,p);
                         case 14
                             fhandle = @max;
                         case 15
-                            fhandle = @iqr;                    
+                            fhandle = @iqr;           
+                        case 16
+                            fhandle = @(x) sum(x==0);
+                        case 17
+                            fhandle = @(x) sum(x<0);
+                        case 18
+                            fhandle = @(x) sum(x>0);
                         otherwise
                             error('Equation for the aggregation of daily data is unkown.');
                     end
 
                     
                     % Sum the data to the required sum time step
-                    switch plotType_val
-                        case 6  %daily
+                    switch plotType_str
+                        case 'box-plot (daily metric)'
                             ind = transpose(1:size(tableData,1));
                             ydataLabel = [ydataLabel, ' (daily rate)'];
-                        case 7  % monthly
+                        case 'box-plot (monthly metric)'
                             [~,~,ind] = unique(tableData(:,[1,3]),'rows');
                             ydataLabel = [ydataLabel, ' (monthly ',calcString,')'];
-                        case 8  % quarterly
+                        case 'box-plot (quarterly metric)'
                             [~,~,ind] = unique(tableData(:,[1,2]),'rows');   
                             ydataLabel = [ydataLabel, ' (quarterly ',calcString,')'];
-                        case 9  % annually
+                        case 'box-plot (annual metric)'
                             [~,~,ind] = unique(tableData(:,1),'rows');                        
                             ydataLabel = [ydataLabel, ' (annual ',calcString,')'];
                         otherwise
@@ -5300,7 +5366,7 @@ classdef HydroSight_GUI < handle
                     end                                        
 
                     % Build box plot
-                    if plotType_val==6
+                    if strcmp(plotType_str, 'box-plot (daily metric)')
                         boxplot(axisHandle,tableData(:,end), ind,'notch','on','ExtremeMode','clip','Jitter',0.75,'symbol','.');                    
                     else
                         boxplot(axisHandle,tableData(:,end), ind,'notch','off','ExtremeMode','clip','Jitter',0.75,'symbol','.');                    
@@ -5308,9 +5374,9 @@ classdef HydroSight_GUI < handle
                     
                     %Add x tick labels
                     if timestepID<6
-                        tableData_year = accumarray(ind,tableData(:,1),[],@max);
-                        tableData_month = accumarray(ind,tableData(:,3),[],@max);            
-                        tableData_day = accumarray(ind,tableData(:,5),[],@(x) x(end));
+                        tableData_year = double(accumarray(ind,tableData(:,1),[],@max));
+                        tableData_month = double(accumarray(ind,tableData(:,3),[],@max));            
+                        tableData_day = double(accumarray(ind,tableData(:,5),[],@(x) x(end)));
                         t = unique(datenum(tableData_year, tableData_month, tableData_day));
                         xdataTickLabels = datestr(t,xdataTickLabels);
                         set(axisHandle, 'XTickLabel',xdataTickLabels);
@@ -7109,7 +7175,7 @@ classdef HydroSight_GUI < handle
             % Add large box for calib. iterations            
             uipanel('Parent',innerVbox_bottom, 'Tag','Model calibration - progress plots panel');            
             
-            set(outerVbox, 'Sizes', [460 -1]);
+            set(outerVbox, 'Sizes', [510 -1]);
             set(innerVbox_top, 'Sizes', [30 -1 30 50]);
             set(innerVbox_bottom, 'Sizes', -1);
            
@@ -7158,6 +7224,8 @@ classdef HydroSight_GUI < handle
             
             % Fill in DREAM panel   
             DREAM_tabVbox= uiextras.Grid('Parent',DREAM_tab ,'Padding', 6, 'Spacing', 6);
+            uicontrol(DREAM_tabVbox,'Style','text','String','Initial sampling method (prior):','HorizontalAlignment','left', 'Units','normalized');
+            uicontrol(DREAM_tabVbox,'Style','text','String','Initial sampling stand. dev. for prior=="normal" (sigma):','HorizontalAlignment','left', 'Units','normalized');
             uicontrol(DREAM_tabVbox,'Style','text','String','Number of Markov chains per parameter (N_per_param):','HorizontalAlignment','left', 'Units','normalized');                  
             uicontrol(DREAM_tabVbox,'Style','text','String','Min. number of converged generations per parameter (Tmin):','HorizontalAlignment','left', 'Units','normalized');                  
             uicontrol(DREAM_tabVbox,'Style','text','String','Max. number of model generations per chain (T):','HorizontalAlignment','left', 'Units','normalized');
@@ -7170,6 +7238,8 @@ classdef HydroSight_GUI < handle
             uicontrol(DREAM_tabVbox,'Style','text','String','Probability of jumprate of 1 (pJumpRate_one):','HorizontalAlignment','left', 'Units','normalized');                        
             uicontrol(DREAM_tabVbox,'Style','text','String','Random seed number:','HorizontalAlignment','left', 'Units','normalized');            
 
+            uicontrol(DREAM_tabVbox,'Style','popupmenu','string',{'uniform','latin','normal'},'Value',2,'Max',1, 'Tag','DREAM prior','HorizontalAlignment','right');
+            uicontrol(DREAM_tabVbox,'Style','edit','string','0.5','Max',1, 'Tag','DREAM sigma','HorizontalAlignment','right');
             uicontrol(DREAM_tabVbox,'Style','edit','string','2','Max',1, 'Tag','DREAM N','HorizontalAlignment','right');
             uicontrol(DREAM_tabVbox,'Style','edit','string','1500','Max',1, 'Tag','DREAM Tmin','HorizontalAlignment','right');            
             uicontrol(DREAM_tabVbox,'Style','edit','string','20000','Max',1, 'Tag','DREAM T','HorizontalAlignment','right');
@@ -7182,7 +7252,7 @@ classdef HydroSight_GUI < handle
             uicontrol(DREAM_tabVbox,'Style','edit','string','0.2','Max',1, 'Tag','DREAM pJumpRate_one','HorizontalAlignment','right');            
             uicontrol(DREAM_tabVbox,'Style','edit','string',num2str(floor(rand(1)*1e6)),'Max',1, 'Tag','DREAM iseed','HorizontalAlignment','right');
             
-            set(DREAM_tabVbox, 'ColumnSizes', [-1 100], 'RowSizes', repmat(20,1,11));            
+            set(DREAM_tabVbox, 'ColumnSizes', [-1 100], 'RowSizes', repmat(20,1,13));            
             
 %             % Fill in MultiModel panel   
 %             % MODEL STILL IN DEVELOPMENT
@@ -7548,6 +7618,7 @@ classdef HydroSight_GUI < handle
             
             % Report Summary
             h = msgbox(['The simulations were successful for ',num2str(nModelsSim), ' models and failed for ',num2str(nModelsSimFailed), ' models.'], 'Model simulaions');
+            set(h,'Tag','Model simulation msgbox summary')
             setIcon(this, h);
 
         end
@@ -9526,6 +9597,7 @@ classdef HydroSight_GUI < handle
             % Build .csv file names and add to the GUI construction table.
             disp('Saving .csv files ...');
             forcingFileName = fullfile(folderName,'forcing.csv');
+            forcingSimulationFileName = fullfile(folderName,'forcingSimulation.csv');
             coordsFileName = fullfile(folderName,'coordinates.csv');
             headFileName = fullfile(folderName,'obsHead.csv');
                         
@@ -9536,21 +9608,25 @@ classdef HydroSight_GUI < handle
                     exampleData = load('BourkesFlat_data.mat');
                     writeHeadObsData = true;
                     writeForcingData = true;
+                    writeForcingSimulation = true;
                     writeCoordsData = true;
                 case 'TFN - Pumping'
                     exampleData = load('Clydebank_data.mat');
                     writeHeadObsData = true;
                     writeForcingData = true;
+                    writeForcingSimulation = false;
                     writeCoordsData = true;  
                 case 'TFN - Incomplete pumping record'
                     exampleData = load('Warrion_data.mat');
                     writeHeadObsData = true;
                     writeForcingData = true;
+                    writeForcingSimulation = false;
                     writeCoordsData = true;                      
                 case 'Outlier - Telemetered'
                     exampleData = load('OutlierDetection_data.mat');                    
                     writeHeadObsData = true;
                     writeForcingData = false;
+                    writeForcingSimulation = false;
                     writeCoordsData = false;                    
                 otherwise
                     set(this.Figure, 'pointer', 'arrow');   
@@ -9575,6 +9651,13 @@ classdef HydroSight_GUI < handle
                 setIcon(this, h);
                 return;                
             end            
+            if writeForcingSimulation && ~isfield(exampleData,'forcingSimulation')
+                set(this.Figure, 'pointer', 'arrow');
+                drawnow update;
+                h = warndlg('The example data for the model does not exist. It must contain simulation forcing data.','Example Model Data Error ...');
+                setIcon(this, h);
+                return;
+            end            
             if writeCoordsData &&  ~isfield(exampleData,'coordinates')
                 set(this.Figure, 'pointer', 'arrow');   
                 drawnow update;
@@ -9591,6 +9674,9 @@ classdef HydroSight_GUI < handle
             if writeForcingData
                 writetable(exampleData.forcing,forcingFileName);
             end
+            if writeForcingSimulation
+                writetable(exampleData.forcingSimulation,forcingSimulationFileName);
+            end            
             if writeCoordsData
                 writetable(exampleData.coordinates,coordsFileName);
             end
@@ -10689,6 +10775,12 @@ classdef HydroSight_GUI < handle
                         calibMethodSetting.ngs = max(ngs_min, min(ngs_max, ngs_per_param*nparams));
 
                     case 'DREAM'
+                        obj = findobj(this.tab_ModelCalibration.GUI, 'Tag','DREAM prior');
+                        calibMethodSetting.prior = obj.String{obj.Value};
+
+                        obj = findobj(this.tab_ModelCalibration.GUI, 'Tag','DREAM sigma');
+                        calibMethodSetting.sigma = str2double(obj.String);
+                        
                         obj = findobj(this.tab_ModelCalibration.GUI, 'Tag','DREAM N');
                         calibMethodSetting.N_per_param = str2double(obj.String);
 
@@ -10714,7 +10806,10 @@ classdef HydroSight_GUI < handle
                         calibMethodSetting.outlier = str2double(obj.String);
 
                         obj = findobj(this.tab_ModelCalibration.GUI, 'Tag','DREAM pJumpRate_one');
-                        calibMethodSetting.pJumpRate_one = str2double(obj.String);                            
+                        calibMethodSetting.pJumpRate_one = str2double(obj.String);      
+
+                        obj = findobj(this.tab_ModelCalibration.GUI, 'Tag','DREAM iseed');
+                        calibMethodSetting.iseed = str2double(obj.String);  
                 end
                         
                 % Start calib.

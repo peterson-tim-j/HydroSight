@@ -1470,6 +1470,10 @@ classdef HydroSightModel < handle
                     outlier = 'iqr';
                     pJumpRate_one = 0.2;
                     steps = 100;
+                    prior = 'latin';
+                    sigma = [];
+                    r2_threshold = 1.2;
+                    iseed = floor(mod(now,1)*1000000);
                     
                     if isnumeric(SchemeSetting) 
                         if SchemeSetting<1 || floor(SchemeSetting)~=ceil(SchemeSetting) 
@@ -1507,10 +1511,16 @@ classdef HydroSightModel < handle
                         end       
                         if isfield(SchemeSetting,'steps') && isfinite(SchemeSetting.steps)
                             steps = SchemeSetting.steps;
-                        end       
+                        end            
+                        if isfield(SchemeSetting,'prior') && ischar(SchemeSetting.prior) && ~isempty(SchemeSetting.prior)
+                            prior = SchemeSetting.prior;
+                        end
+                        if isfield(SchemeSetting,'sigma') && isfinite(SchemeSetting.sigma)
+                            sigma = SchemeSetting.sigma;
+                        end                        
                         if isfield(SchemeSetting,'r2_threshold') && isfinite(SchemeSetting.r2_threshold)
                             r2_threshold = SchemeSetting.r2_threshold;
-                        end       
+                        end                        
                         if isfield(SchemeSetting,'iseed') && isfinite(SchemeSetting.iseed)
                             iseed = SchemeSetting.iseed;
                         end                               
@@ -1529,6 +1539,8 @@ classdef HydroSightModel < handle
                     calibSchemeSettings.pJumpRate_one = pJumpRate_one;
                     calibSchemeSettings.steps = steps;
                     calibSchemeSettings.r2_threshold = r2_threshold;
+                    calibSchemeSettings.prior = prior;
+                    calibSchemeSettings.sigma = sigma;
                     calibSchemeSettings.iseed = iseed;
                                                                               
                 otherwise
@@ -1706,7 +1718,12 @@ classdef HydroSightModel < handle
                 case 'DREAM'
                     disp( char(13) );
                     disp('Global calibration scheme is to be undertaken using the following settings');
-                    disp( '      - Calibration scheme: DiffeRential Evolution Adaptive Metropolis algorithm (DREAM)');                    
+                    disp( '      - Calibration scheme: DiffeRential Evolution Adaptive Metropolis algorithm (DREAM)');                 
+                    disp(['      - Initial parameter sampling method (prior) = ',prior]);    
+                    if strcmp(prior,'normal')
+                        disp(['      - Initial sampleing st. dev scaler (sigma) = ',num2str(sigma)]);    
+                    end
+                    disp(['      - Initial parameter sampling method (prior) = ',prior]);    
                     disp(['      - Min. converged generations per param (Tmin) = ',num2str(Tmin)]);    
                     disp(['      - Max. generations per chain (T) = ',num2str(T)]);
                     disp(['      - Number of Markov chains per model parameter (N_per_param) = ',num2str(N_per_param)]);  
@@ -1773,7 +1790,6 @@ classdef HydroSightModel < handle
                     params_lowerPhysBound(filt) = params_lowerBound(filt);
                     filt = isinf(params_upperPhysBound);
                     params_upperPhysBound(filt) = params_upperBound(filt);
-
                     insigma = Sigma*(params_upperPhysBound - params_lowerPhysBound);
 
                     % Do calibration
@@ -1921,7 +1937,7 @@ classdef HydroSightModel < handle
                     %                           MODEL SPECIFIC VALUES 
                     % -------------------------------------------------------------------------                    
                     calibSchemeSettings.d = nparams;             % Dimensionality target distribution
-                    calibSchemeSettings.N = max(ceil(calibSchemeSettings.N_per_param * nparams), 2*calibSchemeSettings.delta+1);   % Number of Markov chains                    
+                    calibSchemeSettings.N = ceil(calibSchemeSettings.N_per_param * nparams);   % Number of Markov chains                    
                     calibSchemeSettings.T = ceil(calibSchemeSettings.T);  % Max. Number of generations
                     calibSchemeSettings.Tmin = ceil(calibSchemeSettings.Tmin);  % Min of generations for convergence
                     calibSchemeSettings.lik=2;                   % Choice of likelihood function
@@ -1941,12 +1957,27 @@ classdef HydroSightModel < handle
                         calibSchemeSettings.parallel = 'no';
                     end
                     % Set parameter bounds
-                    Par_info.prior ='latin';
+                    Par_info.prior = calibSchemeSettings.prior;
                     Par_info.min = params_lowerPhysBound'; 
                     Par_info.max = params_upperPhysBound'; 
                     Par_info.min_initial = params_lowerBound'; % If 'latin', min parameter values
                     Par_info.max_initial = params_upperBound'; % If 'latin', max parameter values   
                     Par_info.boundhandling ='reflect';% Explicit boundary handling
+
+                    if strcmp(Par_info.prior,'normal')
+                        % Set mean of the initial notrmal sample dist to
+                        % the initial parameter set.
+                        Par_info.mu = params';
+
+                        % Set the initial normal covariance matric as a idenity matric scaled by the 
+                        % finite parameter bounds and the user set sigma value. If a phyical bound
+                        % is |inf| the the plausible bound is used.
+                        filt = isinf(params_lowerBound);
+                        params_lowerPhysBound(filt) = params_lowerBound(filt);
+                        filt = isinf(params_upperPhysBound);
+                        params_upperPhysBound(filt) = params_upperBound(filt);
+                        Par_info.cov = sigma.^2 * diag( params_upperPhysBound - params_lowerPhysBound);
+                    end
 
                     % Do calibration 
                     doParamTranspose = false;
@@ -2020,12 +2051,18 @@ classdef HydroSightModel < handle
                     obj.calibrationResults.exitStatus = exitStatus;
                     
                     % Filt out any inf likiloof values (just in case)
-                    filt = ~isinf(log_L);
+                    filt = isfinite(log_L);
                     if any(~filt)
-                        exitStatus = [exitStatus, ' WARNING: ', num2str(sum(~filt)), ' parameter sets with liklihood value of inf were removed.'];
-                        params = params(:,filt);                    
-                        log_L = log_L(filt);
-                    end                 
+                        exitStatus = [exitStatus, ' WARNING: ', num2str(sum(~filt)), ' non-finite parameter sets were removed.'];
+                        params = params(:,~filt);                    
+                        log_L = log_L(~filt);
+                    end  
+
+                    if sum(filt)==0                        
+                        exitStatus = [exitStatus, ' No converged parameter sets.'];
+                        ME = MException('HydroSightModel:CalibrationFailure',exitStatus);
+                        throw(ME);
+                    end
                     
                 otherwise
                     error('The requested calibration scheme is unknown.');
@@ -2481,17 +2518,17 @@ classdef HydroSightModel < handle
                 ecdf(h, obj.calibrationResults.data.modelledHead_residuals(:,1)');
 
                 if hasModelledDistn
-                    ecdf_x = nan(size(obj.calibrationResults.data.modelledHead_residuals)+[1,0]);
-                    for i=1:size(obj.calibrationResults.data.modelledHead_residuals,2)
-                        try
-                            [ecdf_y, ecdf_x(:,i)] = ecdf(obj.calibrationResults.data.modelledHead_residuals(:,i));
-                        catch 
-                            % do nothing
-                        end
-                    end
-                    filt = any(isnan(ecdf_x),1);
-                    ecdf_x = prctile(ecdf_x(:,~filt), [5, 95],2);
-                    hold(h,'on')
+                    % Calculate the percentiles for each parameter
+                    % set. Note percentiles are used instead of ecdf
+                    % because the latter uses different x-axis values for
+                    % each parameter set if there are NAN values.
+                    ecdf_x = sort(obj.calibrationResults.data.modelledHead_residuals, 1,"ascend");
+                    ecdf_x = [ecdf_x(1,:); ecdf_x];
+                    N = size(obj.calibrationResults.data.modelledHead_residuals,1);
+                    ecdf_y = [0; transpose(1:N)./N];
+                    ecdf_x = prctile(ecdf_x, [5, 95],2);                    
+
+                    hold(h,'on');
                     plot(h, ecdf_x(:,1),ecdf_y,'--b');
                     plot(h, ecdf_x(:,2),ecdf_y,'-.b');
                     hold(h,'off');
@@ -2525,16 +2562,16 @@ classdef HydroSightModel < handle
                     ecdf(h, obj.evaluationResults.data.modelledHead_residuals(:,1)');
 
                     if hasModelledDistn
-                        ecdf_x = nan(size(obj.evaluationResults.data.modelledHead_residuals)+[1,0]);
-                        for i=1:size(obj.evaluationResults.data.modelledHead_residuals,2)
-                            try
-                                [ecdf_y, ecdf_x(:,i)] = ecdf(obj.evaluationResults.data.modelledHead_residuals(:,i));
-                            catch
-                                % do nothing
-                            end
-                        end
-                        filt = any(isnan(ecdf_x),1);
-                        ecdf_x = prctile(ecdf_x(:,~filt), [5, 95],2);
+                        % Calculate the percentiles for each parameter
+                        % set. Note percentiles are used instead of ecdf
+                        % because the latter uses different x-axis values for
+                        % each parameter set if there are NAN values.
+                        ecdf_x = sort(obj.calibrationResults.data.modelledHead_residuals, 1,"ascend");
+                        ecdf_x = [ecdf_x(1,:); ecdf_x];
+                        N = size(obj.calibrationResults.data.modelledHead_residuals,1);
+                        ecdf_y = [0; transpose(1:N)./N];
+                        ecdf_x = prctile(ecdf_x, [5, 95],2);
+
                         hold(h,'on')
                         plot(h, ecdf_x(:,1),ecdf_y,'--b');
                         plot(h, ecdf_x(:,2),ecdf_y,'-.b');
@@ -2912,7 +2949,11 @@ classdef HydroSightModel < handle
                     % Calcule sume of squared errors
                     objectiveFunctionValue =  objectiveFunction( params, time_points, obj.model, getLikelihood );
                 catch
-                    objectiveFunctionValue = inf;
+                    if getLikelihood
+                        objectiveFunctionValue = -inf;
+                    else
+                        objectiveFunctionValue = inf;
+                    end
                 end
             else
                 objectiveFunctionValue = inf(1,size(params,2));
@@ -2923,7 +2964,12 @@ classdef HydroSightModel < handle
                         % Calcule sume of squared errors
                         objectiveFunctionValue(i) =  objectiveFunction( params(:,i), time_points, modeltmp, getLikelihood );
                     catch
-                        objectiveFunctionValue(i) = inf;
+                        if getLikelihood
+                            objectiveFunctionValue(i) = -inf;
+                        else
+                            objectiveFunctionValue(i) = inf;
+                        end
+
                     end
                 end
             end

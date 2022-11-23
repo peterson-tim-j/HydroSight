@@ -41,7 +41,8 @@ if isfield(Par_info,'boundhandling')
 end
 
 % Now evaluate the model ( = pdf ) and return fx
-[fx] = Evaluate_model(x,DREAMPar,Meas_info,f_handle, varargin{:});
+%[fx] = Evaluate_model(x,DREAMPar,Meas_info,f_handle, varargin{:});
+fx = f_handle(x', varargin{:});   % For for calling HydroSight model - TJP
 
 % Calculate the log-likelihood and log-prior of x (fx)
 [log_L_x,log_PR_x] = Calc_density(x,fx,DREAMPar,Par_info,Meas_info);

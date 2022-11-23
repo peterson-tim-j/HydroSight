@@ -25,7 +25,8 @@ name = {'nCR','delta','steps','lambda','zeta','outlier','p_unit_gamma','adapt_pC
 for j = 1 : numel(name)
     if ~isfield(DREAMPar,name(j))
         % Set variable of DREAMPar to "No"
-        evalstr = strcat('DREAMPar.',char(name(j)),'=',value(j),';'); eval(char(evalstr));
+        evalstr = strcat('DREAMPar.',char(name(j)),'=',value(j),';'); 
+        eval(char(evalstr));
     end
 end
 
@@ -35,17 +36,21 @@ default = {'ABC','parallel','IO','modout','restart','save'};
 for j = 1 : numel(default)
     if ~isfield(DREAMPar,default(j))
         % Set variable of DREAMPar to "No"
-        evalstr = strcat('DREAMPar.',char(default(j)),'=''no''',';'); eval(evalstr);
+        evalstr = strcat('DREAMPar.',char(default(j)),'=''no''',';'); 
+        eval(evalstr);
     end
 end
 
 % Matrix DREAMPar.R: Store for each chain (as row) the index of all other chains available for DE
-for i = 1:DREAMPar.N, DREAMPar.R(i,1:DREAMPar.N-1) = setdiff(1:DREAMPar.N,i); end
+for i = 1:DREAMPar.N
+    DREAMPar.R(i,1:DREAMPar.N-1) = setdiff(1:DREAMPar.N,i); 
+end
 
 % Check whether parameter ranges have been defined or not
 if ~isfield(Par_info,'min')
     % Specify very large initial parameter ranges (minimum and maximum values)
-    Par_info.min = -Inf * ones ( 1 , DREAMPar.d ); Par_info.max = Inf * ones ( 1 , DREAMPar.d );
+    Par_info.min = -Inf * ones ( 1 , DREAMPar.d ); 
+    Par_info.max = Inf * ones ( 1 , DREAMPar.d );
 end
 
 % Initialize output information -- Outlier chains

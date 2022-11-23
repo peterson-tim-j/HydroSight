@@ -135,18 +135,37 @@ if ~isfield(DREAMPar,'restart') || strcmp(DREAMPar.restart,'no')
     % Initialize the main variables used in DREAM
     [DREAMPar,Par_info,Meas_info,chain,output,log_L,Table_gamma,iloc,iteration,...
         gen] = DREAM_setup(DREAMPar,Par_info,Meas_info);
+
     % Set random seed
     rng(DREAMPar.iseed);     % random number generator state %TJP
+
     % Check for setup errors
     [stop,fid] = DREAM_check(DREAMPar,Par_info,Meas_info);
+
     % Return to main program
-    if strcmp(stop,'yes'); return; end
+    if strcmp(stop,'yes')
+        return; 
+    end
+
     % Create computing environment (depending whether multi-core is used)
-    [DREAMPar,f_handle] = DREAM_calc_setup(DREAMPar,Func_name);
+    %[DREAMPar,f_handle] = DREAM_calc_setup(DREAMPar,Func_name);
+
+    % Setup function handle and default number of cores. Note, if parpool has been 
+    % opened then >1 core will be  used within parfor loops indifferent of
+    % the number of cores defined here. TJP 2022
+    if isa(Func_name,'function_handle')
+        f_handle = Func_name;
+    else
+        f_handle = eval(['@(x)',char(Func_name),'(x)']);
+    end
+    DREAMPar.CPU = 1;
+
     % Now check how the measurement sigma is arranged (estimated or defined)
     Meas_info = Check_sigma(Meas_info); T_start = 2;
+
     % Create the initial states of each of the chains (initial population)
     [chain,output,X,fx,CR,pCR,lCR,delta_tot,log_L] = DREAM_initialize(DREAMPar,Par_info,Meas_info,f_handle,chain,output,log_L, varargin{:});
+
 elseif strcmp(DREAMPar.restart,'yes')
     % Print to screen restart run
     disp('Restart run');

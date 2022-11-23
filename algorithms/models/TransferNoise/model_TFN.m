@@ -1175,8 +1175,8 @@ classdef model_TFN < model_abstract
                 modelnames = fieldnames(obj.parameters);
                 for i=1:length(modelnames)
                     if isobject(obj.parameters.(modelnames{i}))
-                        if any(strcmp(methods(obj.parameters.(modelnames{i})),'setTransformedForcing')) && ...
-                        any(strcmp(methods(obj.parameters.(modelnames{i})),'getTransformedForcing'))
+                        if ismethod(obj.parameters.(modelnames{i}),'setTransformedForcing') && ...
+                           ismethod(obj.parameters.(modelnames{i}),'getTransformedForcing')
                             % Get the list of all possible forcing data outputs.                                
                             % In doing so, handle situations where older
                             % HydroSight models did not have the bore ID or
@@ -1190,8 +1190,12 @@ classdef model_TFN < model_abstract
                                 siteCoordinates=table();
                             else
                                 siteCoordinates=obj.inputData.siteCoordinates;
+                            end         
+                            if ismethod(obj.parameters.(modelnames{i}), 'outputForcingdata_activeOptions')
+                                variable_names = outputForcingdata_activeOptions(obj.parameters.(modelnames{i}), bore_ID, obj.inputData.forcingData, obj.inputData.forcingData_colnames, siteCoordinates);
+                            else
+                                variable_names = feval([modelnames{i},'.outputForcingdata_options'],bore_ID , obj.inputData.forcingData, obj.inputData.forcingData_colnames, siteCoordinates);
                             end                            
-                            variable_names = feval([modelnames{i},'.outputForcingdata_options'],bore_ID , obj.inputData.forcingData, obj.inputData.forcingData_colnames, siteCoordinates);
 
                             % Set the forcing
                             setTransformedForcing(obj.parameters.(modelnames{i}),t, false);

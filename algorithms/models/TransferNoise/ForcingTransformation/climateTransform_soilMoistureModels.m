@@ -1126,7 +1126,19 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
 
             end
         end
-        
+       
+        function variable_names = outputForcingdata_activeOptions(obj, bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates)
+            % get list of all possible forcing varioable names
+            variable_names = obj.outputForcingdata_options(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates);
+
+            % Check if land cover chnage is being modelled.
+            % If not, remove variable with '_tree', _non_tree'
+            if ~isfield(obj.settings,'simulateLandCover') || (isfield(obj.settings,'simulateLandCover') && ~obj.settings.simulateLandCover)
+                filt = contains(variable_names, '_tree') | contains(variable_names, '_nontree');
+                variable_names = variable_names(~filt);
+            end
+        end
+
 %% Return the transformed forcing data
         function [forcingData, isDailyIntegralFlux] = getTransformedForcing(obj, variableName, doSubstepIntegration) 
 % getTransformedForcing returns the required flux from the soil model.

@@ -1,2 +1,10 @@
 # Ignore matlab backup files
 *.asv
+
+# Ignore folder with compiled HydroSight
+HydroSight_installer/
+*.asv
+
+# DREAM outpuit files
+warning_file.txt
+DREAM_diagnostics.txt
