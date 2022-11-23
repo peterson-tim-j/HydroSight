@@ -8,3 +8,4 @@ HydroSight_installer/
 # DREAM outpuit files
 warning_file.txt
 DREAM_diagnostics.txt
+GUI/models/model_TFN_gui.asv
