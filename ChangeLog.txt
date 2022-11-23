@@ -296,3 +296,4 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 * Bugs fixed in plotting forcing data box-plots.
 * DREAM calibration CDF plot code re-wrote.
 * Minor changes made to HydroSight_GUI.m to allow unit testing to close popup windows.
+* Version number updated to 1.4.1.0

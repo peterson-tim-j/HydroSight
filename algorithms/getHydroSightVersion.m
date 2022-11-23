@@ -1,6 +1,6 @@
 function [versionNumber,versionDate] = getHydroSightVersion()
 %getVersion Get verion number of HydroSight
 
-        versionNumber = '1.4.0.2';
-        versionDate= '29 September 2022';
+        versionNumber = '1.4.1.0';
+        versionDate= '23 November 2022';
 end
