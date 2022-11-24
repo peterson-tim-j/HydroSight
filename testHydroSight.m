@@ -19,7 +19,7 @@ import matlab.unittest.plugins.CodeCoveragePlugin
 runner = testrunner("textoutput");
 
 % Get coverage report
-runner.addPlugin(CodeCoveragePlugin.forFolder({'GUI','algorithms','dataPreparationAnalysis'},'IncludeSubfolders',true));
+runner.addPlugin(CodeCoveragePlugin.forFolder({'GUI','algorithms'},'IncludeSubfolders',true));
 results = runner.run(suite);
 
 % Rest file paths.
