@@ -189,44 +189,44 @@ classdef HydroSight_GUI < handle
             end
                 
             
-            % Add tool bar          
-            if isBefore2018b
-                hToolbutton = findall(hToolbar,'tag','Plottools.PlottoolsOn');                        
-                hToolbutton.Visible = 'off';
-                hToolbutton.UserData = 'Plot';	
-                hToolbutton.Separator = 'off';
-                hToolbutton = findall(hToolbar,'tag','Plottools.PlottoolsOff');            
-                hToolbutton.Visible = 'off';
-                hToolbutton.UserData = 'Never';	
-                hToolbutton.Separator = 'off';
-                hToolbutton = findall(hToolbar,'tag','Exploration.Brushing');            
-                hToolbutton.Visible = 'off';
-                hToolbutton.UserData = 'Plot';
-                hToolbutton.Separator = 'off';
-                hToolbutton = findall(hToolbar,'tag','Exploration.DataCursor');            
-                hToolbutton.Visible = 'off';
-                hToolbutton.UserData = 'Plot';
-                hToolbutton.Separator = 'off';
-                hToolbutton = findall(hToolbar,'tag','Exploration.Rotate');            
-                hToolbutton.Visible = 'off';
-                hToolbutton.UserData = 'Never';
-                hToolbutton.Separator = 'off';
-                hToolbutton = findall(hToolbar,'tag','Exploration.Pan');            
-                hToolbutton.Visible = 'off';
-                hToolbutton.UserData = 'Plot';
-                hToolbutton.Separator = 'off';
-                hToolbutton = findall(hToolbar,'tag','Exploration.ZoomOut');            
-                hToolbutton.Visible = 'off';
-                hToolbutton.UserData = 'Plot';
-                hToolbutton.Separator = 'off';
-                hToolbutton = findall(hToolbar,'tag','Exploration.ZoomIn');            
-                hToolbutton.Visible = 'off';
-                hToolbutton.UserData = 'Plot';
-                hToolbutton.Separator = 'off';
-                uipushtool(hToolbar,'cdata',iconData.implay, 'tooltip','Export displayed plot to PNG file ...', ...
-                    'ClickedCallback',@this.onExportPlot, ...
-                    'tag','Export.plot', 'Visible','off');
-            end
+%             % Add tool bar          
+%             if isBefore2018b
+%                 hToolbutton = findall(hToolbar,'tag','Plottools.PlottoolsOn');                        
+%                 hToolbutton.Visible = 'off';
+%                 hToolbutton.UserData = 'Plot';	
+%                 hToolbutton.Separator = 'off';
+%                 hToolbutton = findall(hToolbar,'tag','Plottools.PlottoolsOff');            
+%                 hToolbutton.Visible = 'off';
+%                 hToolbutton.UserData = 'Never';	
+%                 hToolbutton.Separator = 'off';
+%                 hToolbutton = findall(hToolbar,'tag','Exploration.Brushing');            
+%                 hToolbutton.Visible = 'off';
+%                 hToolbutton.UserData = 'Plot';
+%                 hToolbutton.Separator = 'off';
+%                 hToolbutton = findall(hToolbar,'tag','Exploration.DataCursor');            
+%                 hToolbutton.Visible = 'off';
+%                 hToolbutton.UserData = 'Plot';
+%                 hToolbutton.Separator = 'off';
+%                 hToolbutton = findall(hToolbar,'tag','Exploration.Rotate');            
+%                 hToolbutton.Visible = 'off';
+%                 hToolbutton.UserData = 'Never';
+%                 hToolbutton.Separator = 'off';
+%                 hToolbutton = findall(hToolbar,'tag','Exploration.Pan');            
+%                 hToolbutton.Visible = 'off';
+%                 hToolbutton.UserData = 'Plot';
+%                 hToolbutton.Separator = 'off';
+%                 hToolbutton = findall(hToolbar,'tag','Exploration.ZoomOut');            
+%                 hToolbutton.Visible = 'off';
+%                 hToolbutton.UserData = 'Plot';
+%                 hToolbutton.Separator = 'off';
+%                 hToolbutton = findall(hToolbar,'tag','Exploration.ZoomIn');            
+%                 hToolbutton.Visible = 'off';
+%                 hToolbutton.UserData = 'Plot';
+%                 hToolbutton.Separator = 'off';
+%                 uipushtool(hToolbar,'cdata',iconData.implay, 'tooltip','Export displayed plot to PNG file ...', ...
+%                     'ClickedCallback',@this.onExportPlot, ...
+%                     'tag','Export.plot', 'Visible','off');
+%             end
 
             hToolbutton = findall(hToolbar,'tag','Standard.NewFigure');            
             hToolbutton.Visible = 'on';
@@ -9421,118 +9421,118 @@ classdef HydroSight_GUI < handle
             end            
         end
         
-        function onExportPlot(this, ~, ~)
-            set(this.Figure, 'pointer', 'watch');
-            switch this.figure_Layout.Selection
-                case {1,3}
-                    errordlg('No plot is displayed within the current tab.');
-                    return;
-                case 2      % Data prep.
-                    pos = get(this.tab_DataPrep.modelOptions.resultsOptions.box.Children(2),'Position'); 
-                    legendObj = this.tab_DataPrep.modelOptions.resultsOptions.plots.Legend;
-                    
-                    f=figure('Visible','off');
-                    copyobj(this.tab_DataPrep.modelOptions.resultsOptions.plots,f);
-                    
-                    % Format figure                    
-                    set(f, 'Color', 'w');
-                    set(f, 'PaperType', 'A4');
-                    set(f, 'PaperOrientation', 'landscape');
-                    set(f, 'Position', pos);
-                case 4      % Model Calib.
-                    f=figure('Visible','off');
-                    switch this.tab_ModelCalibration.resultsTabs.SelectedChild
-                        case 1
-                            pos = get(this.tab_ModelCalibration.resultsOptions.calibPanel.Children.Children(1).Children(1),'Position');
-                            if length(this.tab_ModelCalibration.resultsOptions.calibPanel.Children.Children(1).Children(1))==1
-                                legendObj = [];
-                                copyobj(this.tab_ModelCalibration.resultsOptions.calibPanel.Children.Children(1).Children(1).Children,f);
-                            else
-                                copyobj(this.tab_ModelCalibration.resultsOptions.calibPanel.Children.Children(1).Children(1).Children(2),f);
-                                legendObj = this.tab_ModelCalibration.resultsOptions.calibPanel.Children.Children(1).Children(1).Children(1);
-                            end
-                        case 2
-                            pos = get(this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(4),'Position');
-                            if length(this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(4))==1
-                                copyobj(this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(4).Children,f);
-                                legendObj = [];
-                            else
-                                copyobj(this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(4).Children(end),f);
-                                legendObj = this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(4).Children(end-1);                                
-                            end
-                        case 3
-                            pos = get(this.tab_ModelCalibration.resultsOptions.paramsPanel.Children.Children(1),'Position');
-                            copyobj(this.tab_ModelCalibration.resultsOptions.paramsPanel.Children.Children(1).Children,f);                             
-                            legendObj = [];
-                        case 4
-                            pos = get(this.tab_ModelCalibration.resultsOptions.derivedParamsPanel.Children.Children(1),'Position');
-                            copyobj(this.tab_ModelCalibration.resultsOptions.derivedParamsPanel.Children.Children(1).Children,f);                             
-                            legendObj = [];
-                            
-                        case 5
-                            pos = get(this.tab_ModelCalibration.resultsOptions.modelSpecificsPanel.Children.Children(1),'Position');
-                            copyobj(this.tab_ModelCalibration.resultsOptions.modelSpecificsPanel.Children.Children(1).Children,f);                             
-                            legendObj = [];                            
-                    end
-
-                    % Format figure
-                    set(f, 'Color', 'w');
-                    set(f, 'PaperType', 'A4');
-                    set(f, 'PaperOrientation', 'landscape');
-                    set(f, 'Position', pos);
-                    
-                case 5      % Model Simulation.    
-                    f=figure('Visible','off');
-                    nplots = length(this.tab_ModelSimulation.resultsOptions.plots.panel.Children);
-                    pos = get(this.tab_ModelSimulation.resultsOptions.plots.panel,'Position');
-                    copyobj(this.tab_ModelSimulation.resultsOptions.plots.panel.Children(1:nplots),f);  
-                    legendObj = [];
-                    
-                    % Format each axes
-                    ax =  findall(f,'type','axes');
-                    for i=1:nplots
-                        set(ax(i), 'Color', 'w');
-                    end
-                    
-                    % Format figure
-                    set(f, 'Color', 'w');
-                    set(f, 'PaperType', 'A4');
-                    set(f, 'PaperOrientation', 'landscape');
-                    set(f, 'Position', pos);                    
-                otherwise
-                    return;
-            end
-                        
-            % set current folder to the project folder (if set)
-            set(this.Figure, 'pointer', 'arrow');
-            if ~isempty(this.project_fileName)                                
-                try    
-                    if isfolder(this.project_fileName)
-                        currentProjectFolder = this.project_fileName;
-                    else
-                        currentProjectFolder = fileparts(this.project_fileName);
-                    end 
-                    
-                    currentProjectFolder = [currentProjectFolder,filesep];
-                    cd(currentProjectFolder);
-                catch
-                    % do nothing
-                end
-            end
-            fName = uiputfile({'*.png'},'Save plot PNG image as ...','plot.png');    
-            if fName~=0    
-                set(this.Figure, 'pointer', 'watch');
-                
-                % Export image
-                if ~isempty(legendObj)
-                    legend(gca,legendObj.String,'Location',legendObj.Location)
-                end
-                export_fig(f, fName);
-            end
-            close(f);
-            set(this.Figure, 'pointer', 'arrow');
-            
-        end
+%         function onExportPlot(this, ~, ~)
+%             set(this.Figure, 'pointer', 'watch');
+%             switch this.figure_Layout.Selection
+%                 case {1,3}
+%                     errordlg('No plot is displayed within the current tab.');
+%                     return;
+%                 case 2      % Data prep.
+%                     pos = get(this.tab_DataPrep.modelOptions.resultsOptions.box.Children(2),'Position'); 
+%                     legendObj = this.tab_DataPrep.modelOptions.resultsOptions.plots.Legend;
+%                     
+%                     f=figure('Visible','off');
+%                     copyobj(this.tab_DataPrep.modelOptions.resultsOptions.plots,f);
+%                     
+%                     % Format figure                    
+%                     set(f, 'Color', 'w');
+%                     set(f, 'PaperType', 'A4');
+%                     set(f, 'PaperOrientation', 'landscape');
+%                     set(f, 'Position', pos);
+%                 case 4      % Model Calib.
+%                     f=figure('Visible','off');
+%                     switch this.tab_ModelCalibration.resultsTabs.SelectedChild
+%                         case 1
+%                             pos = get(this.tab_ModelCalibration.resultsOptions.calibPanel.Children.Children(1).Children(1),'Position');
+%                             if length(this.tab_ModelCalibration.resultsOptions.calibPanel.Children.Children(1).Children(1))==1
+%                                 legendObj = [];
+%                                 copyobj(this.tab_ModelCalibration.resultsOptions.calibPanel.Children.Children(1).Children(1).Children,f);
+%                             else
+%                                 copyobj(this.tab_ModelCalibration.resultsOptions.calibPanel.Children.Children(1).Children(1).Children(2),f);
+%                                 legendObj = this.tab_ModelCalibration.resultsOptions.calibPanel.Children.Children(1).Children(1).Children(1);
+%                             end
+%                         case 2
+%                             pos = get(this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(4),'Position');
+%                             if length(this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(4))==1
+%                                 copyobj(this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(4).Children,f);
+%                                 legendObj = [];
+%                             else
+%                                 copyobj(this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(4).Children(end),f);
+%                                 legendObj = this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(4).Children(end-1);                                
+%                             end
+%                         case 3
+%                             pos = get(this.tab_ModelCalibration.resultsOptions.paramsPanel.Children.Children(1),'Position');
+%                             copyobj(this.tab_ModelCalibration.resultsOptions.paramsPanel.Children.Children(1).Children,f);                             
+%                             legendObj = [];
+%                         case 4
+%                             pos = get(this.tab_ModelCalibration.resultsOptions.derivedParamsPanel.Children.Children(1),'Position');
+%                             copyobj(this.tab_ModelCalibration.resultsOptions.derivedParamsPanel.Children.Children(1).Children,f);                             
+%                             legendObj = [];
+%                             
+%                         case 5
+%                             pos = get(this.tab_ModelCalibration.resultsOptions.modelSpecificsPanel.Children.Children(1),'Position');
+%                             copyobj(this.tab_ModelCalibration.resultsOptions.modelSpecificsPanel.Children.Children(1).Children,f);                             
+%                             legendObj = [];                            
+%                     end
+% 
+%                     % Format figure
+%                     set(f, 'Color', 'w');
+%                     set(f, 'PaperType', 'A4');
+%                     set(f, 'PaperOrientation', 'landscape');
+%                     set(f, 'Position', pos);
+%                     
+%                 case 5      % Model Simulation.    
+%                     f=figure('Visible','off');
+%                     nplots = length(this.tab_ModelSimulation.resultsOptions.plots.panel.Children);
+%                     pos = get(this.tab_ModelSimulation.resultsOptions.plots.panel,'Position');
+%                     copyobj(this.tab_ModelSimulation.resultsOptions.plots.panel.Children(1:nplots),f);  
+%                     legendObj = [];
+%                     
+%                     % Format each axes
+%                     ax =  findall(f,'type','axes');
+%                     for i=1:nplots
+%                         set(ax(i), 'Color', 'w');
+%                     end
+%                     
+%                     % Format figure
+%                     set(f, 'Color', 'w');
+%                     set(f, 'PaperType', 'A4');
+%                     set(f, 'PaperOrientation', 'landscape');
+%                     set(f, 'Position', pos);                    
+%                 otherwise
+%                     return;
+%             end
+%                         
+%             % set current folder to the project folder (if set)
+%             set(this.Figure, 'pointer', 'arrow');
+%             if ~isempty(this.project_fileName)                                
+%                 try    
+%                     if isfolder(this.project_fileName)
+%                         currentProjectFolder = this.project_fileName;
+%                     else
+%                         currentProjectFolder = fileparts(this.project_fileName);
+%                     end 
+%                     
+%                     currentProjectFolder = [currentProjectFolder,filesep];
+%                     cd(currentProjectFolder);
+%                 catch
+%                     % do nothing
+%                 end
+%             end
+%             fName = uiputfile({'*.png'},'Save plot PNG image as ...','plot.png');    
+%             if fName~=0    
+%                 set(this.Figure, 'pointer', 'watch');
+%                 
+%                 % Export image
+%                 if ~isempty(legendObj)
+%                     legend(gca,legendObj.String,'Location',legendObj.Location)
+%                 end
+%                 export_fig(f, fName);
+%             end
+%             close(f);
+%             set(this.Figure, 'pointer', 'arrow');
+%             
+%         end
 
         % Load example models
         function onExamples(this, ~, eventdata, folderName)
