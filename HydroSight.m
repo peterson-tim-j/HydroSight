@@ -17,12 +17,9 @@ function varargout = HydroSight(doingTesting)
     end
 
     % Add Paths
-%    addpath(pwd);
     addpath(genpath([pwd, filesep, 'algorithms']));
-    addpath(genpath([pwd, filesep, 'dataPreparationAnalysis']));
-    addpath(genpath([pwd, filesep, 'Examples']));
     addpath(genpath([pwd, filesep, 'GUI']));
-    
+        
     % Load GUI
     try
         % Use GUI Layout Toolbox if it exists.
