@@ -2039,7 +2039,7 @@ classdef HydroSightModel < handle
                     % Get the parameters (and associated likelihood value) that meet the convergence criteria.
                     convergedParamSamplesThreshold = floor(convergedParamSamplesThreshold/calibSchemeSettings.N);
                     params = params(convergedParamSamplesThreshold:end,:,:);
-                    params = genparset(params);
+                    params = GenParSet(params);
 
                     % Sort the parameter sets from highest (ie best) to worst. This is done so
                     % that the best solution in column 1.
