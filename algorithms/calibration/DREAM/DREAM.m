@@ -147,9 +147,6 @@ if isempty(Meas_info), Meas_info.Y = []; end
         return; 
     end
 
-    % Create computing environment (depending whether multi-core is used)
-    %[DREAMPar,f_handle] = DREAM_calc_setup(DREAMPar,Func_name);
-
     % Setup function handle and default number of cores. Note, if parpool has been 
     % opened then >1 core will be  used within parfor loops indifferent of
     % the number of cores defined here. TJP 2022
