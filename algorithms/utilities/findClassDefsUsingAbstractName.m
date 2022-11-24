@@ -1,8 +1,6 @@
 function [classNames] = findClassDefsUsingAbstractName( abstractName, model_file_name)
 
-    % Set some file names to ignore. This is undertaken because
-    % requiredFilesAndProducts() (using matlab 2014b) appears to give inconsistent
-    % results and for to reduce GUI start up time.
+    % Set some file names to ignore. 
     fnames_ignore = {'model_TFN' ...
                      'example_TFN_model' ...
                      'HydroSight' ...
@@ -70,11 +68,7 @@ function [classNames] = findClassDefsUsingAbstractName( abstractName, model_file
         all_m_Files{i} = name;
     end
     
-    isFileFromAbstract = false(size(allFoldersFiles));
-    
-    % Determine which version of depfun to use. Post Matlab 2014b, depfun
-    % was removed.
-    useDepFun = year(version('-date'))<=2014;
+    isFileFromAbstract = false(size(allFoldersFiles));   
     
     % Loop through each file name and assess if the file is dependent on
     % the specified abstract
@@ -83,12 +77,8 @@ function [classNames] = findClassDefsUsingAbstractName( abstractName, model_file
         if ~any(cellfun(@(x) ~isempty(x), strfind( fnames_ignore , all_m_Files{i})))            
 
            % Get list of dependent function                              
-           if useDepFun
-               depfunlist = depfun(all_m_Files(i),'-quiet');               
-           else
-               depfunlist = matlab.codetools.requiredFilesAndProducts(all_m_Files(i));
-               depfunlist = depfunlist';                
-           end
+           depfunlist = matlab.codetools.requiredFilesAndProducts(all_m_Files(i));
+           depfunlist = depfunlist';
 
            % Find if there is dependence upon the required abstract name
            if any(cellfun(@(x) ~isempty(x), strfind( depfunlist, abstractName)))
