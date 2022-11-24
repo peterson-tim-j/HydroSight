@@ -35,7 +35,7 @@ classdef calibrateNewModel < loadExampleModels
                 % Get likelihood form of solution from example calibration
                 getLikelihood = true;
                 doParamTranspose = false;
-                [params_initial, time_points] = calibration_initialise(obj.model, obj.model.variables.t_start, obj.model.variables.t_end);
+                [~, time_points] = calibration_initialise(obj.model, obj.model.variables.t_start, obj.model.variables.t_end);
                 testCase.expectedObjFunc = calibrationObjectiveFunction(testCase.expectedParameterValues, obj, time_points, doParamTranspose, getLikelihood);
             else
                 % Get solution from example calibration 
