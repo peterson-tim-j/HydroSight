@@ -10652,6 +10652,9 @@ classdef HydroSight_GUI < handle
             waitBarPlot = findobj(this.tab_ModelCalibration.GUI, 'Tag','Calib_wait_bar');
             waitBarPlot.YData=0;                                                                       
 
+            % Get initial directoty
+            initial_pwd = pwd();
+
             %% Start calibration                             
             % Loop  through the list of selected bore and apply the model
             % options.
@@ -10826,6 +10829,10 @@ classdef HydroSight_GUI < handle
                         HPCmodelData{nHPCmodels,5} = calibMethodSetting;                        %#ok<AGROW> 
                         this.tab_ModelCalibration.Table.Data{i,9} = '<html><font color = "#FFA500">Calib. on HPC... </font></html>';
                     else
+                        % Change to project folder so that calib files can
+                        % be written there.
+                        cd(fileparts(this.project_fileName));
+
                         display(['CALIBRATING MODEL: ',calibLabel]);
                         calibrateModel( tmpModel, this, calibStartDate, calibEndDate, calibMethod,  calibMethodSetting);
 
@@ -10926,6 +10933,9 @@ classdef HydroSight_GUI < handle
             obj.Enable = 'off';            
             obj = findobj(this.tab_ModelCalibration.GUI, 'Tag','Skip calibration');
             obj.Enable = 'off';             
+            
+            % Return to initial folder
+            cd(initial_pwd);
             
             % Change cursor to arrow
             set(this.Figure, 'pointer', 'arrow');

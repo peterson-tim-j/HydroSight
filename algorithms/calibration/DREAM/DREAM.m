@@ -1,4 +1,4 @@
-function [chain,output,fx,log_L] = DREAM(Func_name,func_name_validParams, DREAMPar,Par_info,Meas_info, GUIobj, varargin)
+function [chain,output,fx,log_L] = DREAM(Func_name,func_name_validParams, DREAMPar,Par_info,Meas_info, GUIobj, fname_suffix, varargin)
 % ----------------------------------------------------------------------------------------------%
 %                                                                                               %
 % DDDDDDDDDDDDDDD    RRRRRRRRRRRRRR     EEEEEEEEEEEEEEEE       AAAAA       MMM             MMM  %
@@ -140,7 +140,7 @@ if isempty(Meas_info), Meas_info.Y = []; end
     rng(DREAMPar.iseed);     % random number generator state %TJP
 
     % Check for setup errors
-    [stop,fid] = DREAM_check(DREAMPar,Par_info,Meas_info);
+    [stop,fid_1,fid_2] = DREAM_check(DREAMPar,Par_info,Meas_info, fname_suffix);
 
     % Return to main program
     if strcmp(stop,'yes')
@@ -248,7 +248,7 @@ for t = T_start : DREAMPar.T
             end
         else
             % See whether there are any outlier chains, and remove them to current best value of X
-            [X,log_L(1:t,2:DREAMPar.N+1),output.outlier] = Remove_outlier(X,log_L(1:t,2:DREAMPar.N+1),output.outlier,DREAMPar,fid);
+            [X,log_L(1:t,2:DREAMPar.N+1),output.outlier] = Remove_outlier(X,log_L(1:t,2:DREAMPar.N+1),output.outlier,DREAMPar,fid_2);
         end
         
         % Store diagnostic information -- Probability of individual crossover values
@@ -317,7 +317,7 @@ end
 output.RunTime = toc;
 
 % Variables have been pre-allocated --> need to remove zeros at end
-[chain,output,fx] = DREAM_end(DREAMPar,Meas_info,chain,output,iteration,iloc,fid);
+[chain,output] = DREAM_end(DREAMPar,Meas_info,chain,output,iteration,iloc,fid_1,fid_2);
 
 % Close the waitbar
 %if usejava('desktop')

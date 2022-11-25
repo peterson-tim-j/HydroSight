@@ -1979,9 +1979,12 @@ classdef HydroSightModel < handle
                         Par_info.cov = sigma.^2 * diag( params_upperPhysBound - params_lowerPhysBound);
                     end
 
+                    % set file path for DREAM warning and diagnostic files
+                    fname_suffix = fullfile(pwd, obj.model_label);
+
                     % Do calibration 
                     doParamTranspose = false;
-                    [params,output] = DREAM(@calibrationObjectiveFunction,@calibrationValidParameters,calibSchemeSettings,Par_info,[], guiObj, obj, time_points, doParamTranspose,useLikelihood);
+                    [params,output] = DREAM(@calibrationObjectiveFunction,@calibrationValidParameters,calibSchemeSettings,Par_info,[], guiObj, fname_suffix, obj, time_points, doParamTranspose,useLikelihood);
                           
                     % Extract the R_statistic values and dilter for those
                     % where R_statistic<1.2 for all parameters in the set.
