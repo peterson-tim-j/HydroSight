@@ -2,7 +2,7 @@ name: Test HydroSight on GitHub-Hosted Runner
 on:
   push:
     branches:
-    - main
+    - master
     - release/*
 jobs:
   my-job:
