@@ -12,6 +12,11 @@ ps.Pool.AutoCreate = false;
 addpath('testing');
 currentPath = pwd();
 
+% Install GUI layout if not installed
+if isempty(ver('layout'))  
+    installedToolbox = matlab.addons.toolbox.installToolbox(fullfile(currentPath,'testing','GUI Layout Toolbox 2.3.5.mltbx'),true);
+end
+
 % Run tests
 suite = testsuite({'runOutlierDetection','buildExampleModels','simulateExampleModels','calibrateNewModel'});
 %suite = testsuite({'calibrateNewModel'});
