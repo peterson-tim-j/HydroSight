@@ -6,8 +6,6 @@ function makeStandaloneHydroSight()
 
     % Add Paths
     addpath(genpath([pwd, filesep, 'algorithms']));
-    addpath(genpath([pwd, filesep, 'dataPreparationAnalysis']));
-    addpath(genpath([pwd, filesep, 'Examples']));
     addpath(genpath([pwd, filesep, 'GUI']));    
 
     % Check compiler is installed.
@@ -39,7 +37,9 @@ function makeStandaloneHydroSight()
     allFiles = {};
     for i=1:size(parentFolders,1)
         if strcmp(parentFolders(i).name,'.') || strcmp(parentFolders(i).name,'..') ... 
-        || strcmp(parentFolders(i).name,'documentation') || strcmp(parentFolders(i).name,'.git')
+        || strcmp(parentFolders(i).name,'documentation') || strcmp(parentFolders(i).name,'.git') ...
+        || strcmp(parentFolders(i).name,'testing') || strcmp(parentFolders(i).name,'resources') ...
+        || strcmp(parentFolders(i).name,'.github') || strcmp(parentFolders(i).name,'HydroSight_installer')
             continue
         end
         cd(parentFolders(i).name);
@@ -47,12 +47,22 @@ function makeStandaloneHydroSight()
         files([files.isdir]) = [];  %remove directories
         for j=1:size(files,1)
             [~,~,ext] = fileparts(files(j).name);
-            if strcmp(ext,'.m') || strcmp(ext,'.mexa64') || strcmp(ext,'.mexw64') || strcmp(ext,'.mat') || strcmp(ext,'.png')
-                allFiles = [allFiles; fullfile(files(j).folder, files(j).name)]; %#ok<AGROW> 
+            if ispc
+                if strcmp(ext,'.m') || strcmp(ext,'.mexw64') || strcmp(ext,'.mat') 
+                    allFiles = [allFiles; fullfile(files(j).folder, files(j).name)]; %#ok<AGROW>
+                end
+            else
+                if strcmp(ext,'.m') || strcmp(ext,'.mexa64') || strcmp(ext,'.mat')
+                    allFiles = [allFiles; fullfile(files(j).folder, files(j).name)]; %#ok<AGROW>
+                end
             end
         end
         cd ..
     end
+
+    % Remove folder with examples
+    ind = contains(allFiles, fullfile('HydroSight','algorithms','models','TransferNoise','Example_model'));
+    allFiles = allFiles(~ind);
 
     % Create folder for files
     fname = 'HydroSight_installer';
@@ -85,6 +95,7 @@ function makeStandaloneHydroSight()
     opts.ExecutableVersion = versionNumber;
     opts.ExecutableSplashScreen = fullfile('GUI', 'icons','splash.png');
     opts.ExecutableIcon  = fullfile('GUI', 'icons','icon.png');
+    opts.AutoDetectDataFiles = 'off';    
     
     % Build executable
     if ispc
