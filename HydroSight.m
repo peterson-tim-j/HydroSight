@@ -34,12 +34,19 @@ function varargout = HydroSight(doingTesting)
     catch ME
         % Check the toolbox for GUIs exists
         if ~isdeployed && isempty(ver('layout')) 
-            msgbox({'The GUI cannot be opened. This may be because the GUI Layout Toolbox is ', ...
+            msgstr = {'The GUI cannot be opened. This may be because the GUI Layout Toolbox is ', ...
                     'not installed within Matlab. Please download it using the URL below and', ...
                     'then install it and re-start HydroSight.', ...
                     '', ...
-                    'https://www.mathworks.com/matlabcentral/fileexchange/47982-gui-layout-toolbox'}, ...
-                    'Toolbox missing: gui-layout-toolbox', 'error');
+                    'https://www.mathworks.com/matlabcentral/fileexchange/47982-gui-layout-toolbox'};
+
+            if ~ispc && mclIsNoDisplaySet
+                for i=1:length(msgstr)
+                    disp(msgstr{i});
+                end
+            else
+                msgbox(msgstr, 'Toolbox missing: gui-layout-toolbox', 'error');
+            end
 
         else
             if size(ME.stack,1)>1
@@ -49,7 +56,9 @@ function varargout = HydroSight(doingTesting)
                 functionName='';
                 functionLine ='';
             end
-            msgbox({'An unexpected error occured. To help with fixing the issue please', ...
+
+            % Output message
+            msgstr = {'An unexpected error occured. To help with fixing the issue please', ...
                     'copy the error message below and submit a bug report to:', ...
                     'https://github.com/peterson-tim-j/HydroSight/issues', ...
                     '', ...
@@ -57,8 +66,15 @@ function varargout = HydroSight(doingTesting)
                     '', ...
                     ['Function:', functionName], ...
                     '', ...
-                    ['Line Number:', functionLine]}, ...
-                    'Unknown error', 'error');
+                    ['Line Number:', functionLine]};
+            if ~ispc && mclIsNoDisplaySet
+                for i=1:length(msgstr)
+                    disp(msgstr{i});
+                end
+            else
+                msgbox(msgstr, 'Unknown error', 'error');
+            end
+           
             
         end
         if doingTesting
