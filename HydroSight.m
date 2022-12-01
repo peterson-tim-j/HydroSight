@@ -74,7 +74,7 @@ function varargout = HydroSight(doingTesting)
         if ~any(strcmp(installedToolboxes, 'Statistics and Machine Learning Toolbox'))
             msgstr = {'Statistics and Machine Learning Toolbox is required.', ...
                 'This toolbox is required for the most model algorithms.'};
-            if mclIsNoDisplaySet % added to check if doing testing with nodisplay etc
+            if ~ispc && mclIsNoDisplaySet % added to check if doing testing with nodisplay etc
                 disp(msgstr{1});
                 disp(msgstr{2});
             else
@@ -85,7 +85,7 @@ function varargout = HydroSight(doingTesting)
         if ~any(strcmp(installedToolboxes, 'Parallel Computing Toolbox'))
             msgstr = {'Parallel Computing Toolbox is recommended.', ...
                 'This toolbox is used to reduce the calibration time for the most models.'};
-            if mclIsNoDisplaySet % added to check if doing testing with nodisplay etc
+            if ~ispc && mclIsNoDisplaySet % added to check if doing testing with nodisplay etc
                 disp(msgstr{1});
                 disp(msgstr{2});
             else
@@ -96,7 +96,7 @@ function varargout = HydroSight(doingTesting)
         if ~any(strcmp(installedToolboxes, 'Curve Fitting Toolbox'))
             msgstr = {'Curve Fitting Toolbox is recommended.', ...
                 'Outlier detection algorithm will used regression, rather than splines, the estimate the initial slope.'};
-            if mclIsNoDisplaySet % added to check if doing testing with nodisplay etc
+            if ~ispc && mclIsNoDisplaySet % added to check if doing testing with nodisplay etc
                 disp(msgstr{1});
                 disp(msgstr{2});
             else

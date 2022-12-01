@@ -74,7 +74,7 @@ classdef HydroSight_GUI < handle
             [vernum,verdate]=getHydroSightVersion();
 
             % Show splash (suppress if deployed or if nodisplay startup used)
-            if ~mclIsNoDisplaySet && (~isdeployed || ~ispc) 
+            if (~ispc && ~mclIsNoDisplaySet) || (~isdeployed || ~ispc) 
                splashObj = SplashScreen( 'HydroSightSpalsh', fullfile('icons','splash.png'));               
                addText( splashObj, 190, 394, ['Version ',vernum,' (',verdate,')'], 'FontSize',12,'Color',[1,1,1],'FontName','ArielBold','Shadow','off');
                pause(2);
@@ -1066,7 +1066,7 @@ classdef HydroSight_GUI < handle
             %----------------------------------------------------                    
             this.figure_Layout.Selection = 1;
             set(this.Figure,'Visible','on');
-            if ~mclIsNoDisplaySet && (~isdeployed || ~ispc) 
+            if (~ispc && ~mclIsNoDisplaySet) && (~isdeployed || ~ispc) 
                delete(splashObj);
             end                
         end
