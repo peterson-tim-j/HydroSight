@@ -72,20 +72,37 @@ function varargout = HydroSight(doingTesting)
         [installedToolboxes{1:length(v)}] = deal(v.Name);
 
         if ~any(strcmp(installedToolboxes, 'Statistics and Machine Learning Toolbox'))
-            warndlg({'Statistics and Machine Learning Toolbox is required.', ...
-                'This toolbox is required for the most model algorithms.'},'Statistics Toolbox not installed','modal')
+            msgstr = {'Statistics and Machine Learning Toolbox is required.', ...
+                'This toolbox is required for the most model algorithms.'};
+            if mclIsNoDisplaySet % added to check if doing testing with nodisplay etc
+                disp(msgstr{1});
+                disp(msgstr{2});
+            else
+                warndlg(msgstr,'Statistics Toolbox not installed','modal')
+            end
         end
 
         if ~any(strcmp(installedToolboxes, 'Parallel Computing Toolbox'))
-            warndlg({'Parallel Computing Toolbox is suggested.', ...
-                'This toolbox is used to reduce the calibration time for the most models.'},'Parallel Toolbox not installed','modal')
+            msgstr = {'Parallel Computing Toolbox is recommended.', ...
+                'This toolbox is used to reduce the calibration time for the most models.'};
+            if mclIsNoDisplaySet % added to check if doing testing with nodisplay etc
+                disp(msgstr{1});
+                disp(msgstr{2});
+            else
+                warndlg(msgstr,'Parallel Toolbox not installed','modal');
+            end
         end
 
         if ~any(strcmp(installedToolboxes, 'Curve Fitting Toolbox'))
-            warndlg({'Curve Fitting Toolbox is required.', ...
-                'This toolbox is required for the outlier detection algorithm.'},'Curve Fitting Toolbox not installed','modal')
+            msgstr = {'Curve Fitting Toolbox is recommended.', ...
+                'Outlier detection algorithm will used regression, rather than splines, the estimate the initial slope.'};
+            if mclIsNoDisplaySet % added to check if doing testing with nodisplay etc
+                disp(msgstr{1});
+                disp(msgstr{2});
+            else
+                warndlg(msgstr,'Curve Fitting Toolbox not installed','modal');
+            end
         end
-
     end
 
 end
