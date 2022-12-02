@@ -71,7 +71,8 @@ classdef HydroSight_GUI < handle
             if noDesktop; disp('Starting to creating GUI figure.'); end
 
             % Get icon            
-            try                               
+            try                 
+                if noDesktop; disp('Getting data for GUI icon ...'); end
                 iconData = load("appIcon.mat");
                 this.figure_icon = iconData.iconData;
             catch
@@ -79,10 +80,12 @@ classdef HydroSight_GUI < handle
             end
 
             % Get version number
+            if noDesktop; disp('Getting version number ...'); end
             [vernum,verdate]=getHydroSightVersion();
 
             % Show splash (suppress if deployed or if nodisplay startup used)
             if (~ispc && ~noDesktop) || (~isdeployed || ~ispc) 
+               if noDesktop; disp('Showing splash screen ...'); end 
                splashObj = SplashScreen( 'HydroSightSpalsh', fullfile('icons','splash.png'));               
                addText( splashObj, 190, 394, ['Version ',vernum,' (',verdate,')'], 'FontSize',12,'Color',[1,1,1],'FontName','ArielBold','Shadow','off');
                pause(2);
