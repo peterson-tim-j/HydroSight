@@ -84,7 +84,7 @@ classdef HydroSight_GUI < handle
             [vernum,verdate]=getHydroSightVersion();
 
             % Show splash (suppress if deployed or if nodisplay startup used)
-            if (~ispc && ~noDesktop) || (~isdeployed || ~ispc) 
+            if ~noDesktop && (~isdeployed || ~ispc) 
                if noDesktop; disp('Showing splash screen ...'); end 
                splashObj = SplashScreen( 'HydroSightSpalsh', fullfile('icons','splash.png'));               
                addText( splashObj, 190, 394, ['Version ',vernum,' (',verdate,')'], 'FontSize',12,'Color',[1,1,1],'FontName','ArielBold','Shadow','off');
