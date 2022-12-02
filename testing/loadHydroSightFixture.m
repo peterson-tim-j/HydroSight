@@ -11,13 +11,19 @@ classdef loadHydroSightFixture < ...
         end
         
         function setup(fixture)
+            % Suppress dialog warning if doing testing with -nodisplay
+            if ~ispc && ~usejava('desktop')
+                warning('off','MATLAB:hg:NoDisplayNoFigureSupportSeeReleaseNotes')
+            end
+
+            % Load HydroSight GUI
             fixture.GUI = HydroSight(true);         
             fixture.SetupDescription = sprintf('Loading HydroSight GUI.');
 
             % Check GUI loaded
             fixture.assertInstanceOf(fixture.GUI,'HydroSight_GUI','HydroSight GUI not loaded.');
 
-            %fixture.verifyInstanceOf(fixture.GUI,?HydroSight_GUI,'Loading HydroSight GUI failed.')         
+            % Setup teardown of GUI      
             fixture.addTeardown(@onExit, fixture.GUI,[],[],'No')
             fixture.TeardownDescription = sprintf('Closing HydroSight GUI');
         end
