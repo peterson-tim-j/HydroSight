@@ -62,6 +62,14 @@ classdef HydroSight_GUI < handle
         
         function this = HydroSight_GUI     
 
+            % Test if HydroSight started with -nodisplay.
+            noDesktop = true;
+            if usejava('desktop')
+                noDesktop = false;
+            end
+
+            if noDesktop; disp('Starting to creating GUI figure.'); end
+
             % Get icon            
             try                               
                 iconData = load("appIcon.mat");
@@ -73,12 +81,6 @@ classdef HydroSight_GUI < handle
             % Get version number
             [vernum,verdate]=getHydroSightVersion();
 
-            % Test if HydroSight started with -nodisplay.
-            noDesktop = true;
-            if usejava('desktop')
-                noDesktop = false;
-            end
-
             % Show splash (suppress if deployed or if nodisplay startup used)
             if (~ispc && ~noDesktop) || (~isdeployed || ~ispc) 
                splashObj = SplashScreen( 'HydroSightSpalsh', fullfile('icons','splash.png'));               
@@ -87,6 +89,7 @@ classdef HydroSight_GUI < handle
             end
             
             % Open a window and add some menus
+            if noDesktop; disp('Creating GUI figure ...'); end
             this.Figure = figure( ...
                 'Name', ['HydroSight ', vernum], ...
                 'NumberTitle', 'off', ...
@@ -98,9 +101,11 @@ classdef HydroSight_GUI < handle
                 'DockControls','off');                             
 
             % Change icon
+            if noDesktop; disp('Setting GUI icon ...'); end
             setIcon(this, this.Figure);
 
             % Set window Size
+            if noDesktop; disp('Setting GUI size ...'); end
             windowHeight = this.Figure.Parent.ScreenSize(4);
             windowWidth = this.Figure.Parent.ScreenSize(3);
             figWidth = 0.8*windowWidth;
@@ -109,6 +114,7 @@ classdef HydroSight_GUI < handle
             this.Figure.Visible = 'off';
                                    
             % + File menu
+            if noDesktop; disp('Creating GUI menus ...'); end
             this.figure_Menu = uimenu( this.Figure, 'Label', 'File' );
             uimenu( this.figure_Menu, 'Label', 'New Project', 'Callback', @this.onNew);
             uimenu( this.figure_Menu, 'Label', 'Set Project Folder ...', 'Callback', @this.onSetProjectFolder);
@@ -147,6 +153,7 @@ classdef HydroSight_GUI < handle
             uimenu(this.figure_Help, 'Label', 'Version', 'Tag','doc_Version','Callback', @this.onVersion);
                         
             % Get toolbar object
+            if noDesktop; disp('Creating GUI buttons ...'); end
             hToolbar = findall(this.Figure,'tag','FigureToolBar');
             
             % Hide toolbar button not used (2018B prior and after)
@@ -273,6 +280,7 @@ classdef HydroSight_GUI < handle
             set(0,'ShowHiddenHandles',oldState);
             
             %Create Panels for different windows       
+            if noDesktop; disp('Creating GUI panels ...'); end
             this.figure_Layout = uiextras.TabPanel( 'Parent', this.Figure, 'Padding',5, 'TabSize',127,'FontSize',8);
             this.tab_Project.Panel = uiextras.Panel( 'Parent', this.figure_Layout, 'Padding', 5, 'Tag','ProjectDescription');            
             this.tab_DataPrep.Panel = uiextras.Panel( 'Parent', this.figure_Layout, 'Padding', 5, 'Tag','DataPreparation');
@@ -284,6 +292,7 @@ classdef HydroSight_GUI < handle
            
 %%          Layout Tab1 - Project description
             %------------------------------------------------------------------
+            if noDesktop; disp('Creating GUI project description ...'); end
             % Project title
             hbox1t1 = uiextras.VBoxFlex('Parent', this.tab_Project.Panel,'Padding', 3, 'Spacing', 3);
             uicontrol(hbox1t1,'Style','text','String','Project Title: ','HorizontalAlignment','left', 'Units','normalized');            
@@ -305,6 +314,7 @@ classdef HydroSight_GUI < handle
 
 %%          Layout Tab2 - Data Preparation
             % -----------------------------------------------------------------
+            if noDesktop; disp('Creating GUI outlier detection panel ...'); end
             % Declare panels        
             hbox1t2 = uiextras.HBoxFlex('Parent', this.tab_DataPrep.Panel,'Padding', 3, 'Spacing', 3,'Tag','Outlier detection outer hbox');
             vbox1t2 = uiextras.VBox('Parent',hbox1t2,'Padding', 3, 'Spacing', 3);
@@ -435,7 +445,9 @@ classdef HydroSight_GUI < handle
             
 %%          Layout Tab3 - Model Construction
             %------------------------------------------------------------------
+            if noDesktop; disp('Creating GUI figure ...'); end
             % Declare panels        
+            if noDesktop; disp('Creating GUI model construction panel...'); end
             hbox1t3 = uiextras.HBoxFlex('Parent', this.tab_ModelConstruction.Panel,'Padding', 3, 'Spacing', 3, 'Tag', 'Model Construction outer hbox');
             vbox1t3 = uiextras.VBox('Parent',hbox1t3,'Padding', 3, 'Spacing', 3);
             hbox1t4 = uiextras.HBox('Parent',vbox1t3,'Padding', 3, 'Spacing', 3);
@@ -588,6 +600,7 @@ classdef HydroSight_GUI < handle
             
 %%          Layout Tab4 - Calibrate models
             %------------------------------------------------------------------
+            if noDesktop; disp('Creating GUI calibration panel ...'); end
             hbox1t4 = uiextras.HBoxFlex('Parent', this.tab_ModelCalibration.Panel,'Padding', 3, 'Spacing', 3,'Tag','Model Calibration outer hbox');
             vbox1t4 = uiextras.VBox('Parent',hbox1t4,'Padding', 3, 'Spacing', 3);
             hbox1t5 = uiextras.HBox('Parent',vbox1t4,'Padding', 3, 'Spacing', 3);
@@ -863,6 +876,7 @@ classdef HydroSight_GUI < handle
 
 %%          Layout Tab5 - Model Simulation
             %------------------------------------------------------------------            
+            if noDesktop; disp('Creating GUI simulation panel ...'); end
             hbox1t5 = uiextras.HBoxFlex('Parent', this.tab_ModelSimulation.Panel,'Padding', 3, 'Spacing', 3, 'Tag','Model Simulation outer hbox');
             vbox1t5 = uiextras.VBox('Parent',hbox1t5,'Padding', 3, 'Spacing', 3);
             %vbox2t5 = uiextras.VBox('Parent',hbox1t5,'Padding', 3, 'Spacing', 3);
@@ -1074,7 +1088,8 @@ classdef HydroSight_GUI < handle
             set(this.Figure,'Visible','on');
             if (~ispc && ~noDesktop) && (~isdeployed || ~ispc) 
                delete(splashObj);
-            end                
+            end         
+            if noDesktop; disp('Finished creating GUI figure.'); end
         end
 
         % Show show plotting icons
