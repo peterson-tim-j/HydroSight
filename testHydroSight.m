@@ -8,6 +8,12 @@ function results = testHydroSight(runTests)
 % If runTests==true, then the test suite is also built and run. If so, then
 % result equals a cell array of the TestResult objects.
 %
+
+
+    if nargin==0
+        runTests=true;
+    end
+
     disp('SETTING UP TEST ENVIONMENT');
     disp('--------------------------')
     
@@ -47,14 +53,14 @@ function results = testHydroSight(runTests)
     disp('--------------------------')
     disp(' ')
 
-    if runTests || nargin==0
+    if runTests
         disp('STARTING TESTS');
         disp('--------------------------')
                
         % Setyp tests
         disp('Making test suite ...')
         suite = testsuite({'runOutlierDetection','buildExampleModels','simulateExampleModels','calibrateNewModel'});
-        %suite = testsuite({'calibrateNewModel'});        
+        %suite = testsuite({'runOutlierDetection'});        
         runner = testrunner("textoutput");
 
         % add coverage report
