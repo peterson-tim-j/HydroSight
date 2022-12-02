@@ -11,6 +11,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v3
+        with:
+          lfs: 'true'
       - name: Set up MATLAB
         uses: matlab-actions/setup-matlab@v1
       - name: Set testing environment        
