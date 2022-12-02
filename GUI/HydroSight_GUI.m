@@ -180,9 +180,17 @@ classdef HydroSight_GUI < handle
             
             % load icon data
             if noDesktop; disp('Loading icon data ...'); end
-            iconData = load("iconData.mat");
-            iconData = iconData.iconData;
-            
+            try
+                iconData = load("iconData.mat");
+                iconData = iconData.iconData;
+            catch ME
+                disp(['  Loading data failed:',ME.message]);
+                disp(['  Current folder:',pwd])
+                disp('  Folder contents:');
+                disp(ls);
+                return;
+            end
+
             % Redefine print button
             if noDesktop; disp('Adding print buttons...'); end
             hToolbutton = findall(hToolbar,'tag','Standard.PrintFigure');            
