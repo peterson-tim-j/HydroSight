@@ -156,10 +156,11 @@ classdef HydroSight_GUI < handle
             uimenu(this.figure_Help, 'Label', 'Version', 'Tag','doc_Version','Callback', @this.onVersion);
                         
             % Get toolbar object
-            if noDesktop; disp('Creating GUI buttons ...'); end
+            if noDesktop; disp('Creating GUI FigureToolBar ...'); end
             hToolbar = findall(this.Figure,'tag','FigureToolBar');
             
             % Hide toolbar button not used (2018B prior and after)
+            if noDesktop; disp('Hiding unused buttons ...'); end
             hToolbutton = findall(hToolbar,'tag','Annotation.InsertLegend');            
             hToolbutton.Visible = 'off';
             hToolbutton.UserData = 'Never';
@@ -178,10 +179,12 @@ classdef HydroSight_GUI < handle
             hToolbutton.Separator = 'off';            
             
             % load icon data
+            if noDesktop; disp('Loading icon data ...'); end
             iconData = load("iconData.mat");
             iconData = iconData.iconData;
             
             % Redefine print button
+            if noDesktop; disp('Adding print buttons...'); end
             hToolbutton = findall(hToolbar,'tag','Standard.PrintFigure');            
             set(hToolbutton, 'ClickedCallback',@this.onPrint, 'TooltipString','Open the print preview window for the displayed plot ...');
             hToolbutton.Visible = 'off';
@@ -246,6 +249,7 @@ classdef HydroSight_GUI < handle
 %                     'tag','Export.plot', 'Visible','off');
 %             end
 
+            if noDesktop; disp('Add new buttons...'); end
             hToolbutton = findall(hToolbar,'tag','Standard.NewFigure');            
             hToolbutton.Visible = 'on';
             hToolbutton.UserData = 'Always';	                            
@@ -266,11 +270,13 @@ classdef HydroSight_GUI < handle
             set(0,'ShowHiddenHandles','on')
             
             % Add new button for 'st folder and shift new button to the far left.
+            if noDesktop; disp('Move buttons ...'); end
             uipushtool(hToolbar,'cdata',iconData.folder, 'tooltip','Set the project folder ...','Tag','Standard.SetFolder','ClickedCallback',@this.onSetProjectFolder);
             hToolbutton = findall(hToolbar);            
             set(hToolbar,'Children',hToolbutton([3:length(hToolbutton), 2]));            
                                     
             % Add new button for help.
+            if noDesktop; disp('Add help button...'); end
             uipushtool(hToolbar,'cdata',iconData.help, 'tooltip','Open help for the current tab ...', 'ClickedCallback',@this.onDocumentation);
             clear iconData
 
