@@ -14,9 +14,8 @@ classdef loadHydroSightFixture < ...
             fixture.GUI = HydroSight(true);         
             fixture.SetupDescription = sprintf('Loading HydroSight GUI.');
 
-            % Turn on testing state. This allows HydroSight message boxes
-            % to be programatically closed during testing.
-            %fixture.GUI.doingUnitTesting = true;
+            % Check GUI loaded
+            fixture.assertInstanceOf(fixture.GUI,'HydroSight_GUI','HydroSight GUI not loaded.');
 
             %fixture.verifyInstanceOf(fixture.GUI,?HydroSight_GUI,'Loading HydroSight GUI failed.')         
             fixture.addTeardown(@onExit, fixture.GUI,[],[],'No')
