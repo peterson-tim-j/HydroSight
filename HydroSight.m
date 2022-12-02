@@ -4,6 +4,13 @@ function varargout = HydroSight(doingTesting)
     if nargin==0
         doingTesting=false;
     end
+
+    % Test if HydroSight started with -nodisplay.
+    noDesktop = true;
+    if usejava('desktop')
+        noDesktop = false;
+    end
+    
     % Check Matlab is 2018a or later. 
     if ~isdeployed
         v=version();
@@ -11,7 +18,12 @@ function varargout = HydroSight(doingTesting)
         v_major = str2double(v(1:(ind(1)-1)));
         v_minor = str2double(v((ind(1)+1):(ind(2)-1)));
         if v_major<9 && v_minor<4 %ie 2018a;
-            errordlg('HydroSight requires Matlab 2018a or later.','Please update Matlab');
+            msgstr = 'HydroSight requires Matlab 2018a or later.';
+            if ~ispc && noDesktop
+                disp(msgstr)
+            else
+                errordlg(msgstr,'Please update Matlab');
+            end
             return;
         end
     end
@@ -40,7 +52,7 @@ function varargout = HydroSight(doingTesting)
                     '', ...
                     'https://www.mathworks.com/matlabcentral/fileexchange/47982-gui-layout-toolbox'};
 
-            if ~ispc && mclIsNoDisplaySet
+            if ~ispc && noDesktop
                 for i=1:length(msgstr)
                     disp(msgstr{i});
                 end
@@ -67,7 +79,7 @@ function varargout = HydroSight(doingTesting)
                     ['Function:', functionName], ...
                     '', ...
                     ['Line Number:', functionLine]};
-            if ~ispc && mclIsNoDisplaySet
+            if ~ispc && noDesktop
                 for i=1:length(msgstr)
                     disp(msgstr{i});
                 end
@@ -90,7 +102,7 @@ function varargout = HydroSight(doingTesting)
         if ~any(strcmp(installedToolboxes, 'Statistics and Machine Learning Toolbox'))
             msgstr = {'Statistics and Machine Learning Toolbox is required.', ...
                 'This toolbox is required for the most model algorithms.'};
-            if ~ispc && mclIsNoDisplaySet % added to check if doing testing with nodisplay etc
+            if ~ispc && noDesktop % added to check if doing testing with nodisplay etc
                 disp(msgstr{1});
                 disp(msgstr{2});
             else
@@ -101,7 +113,7 @@ function varargout = HydroSight(doingTesting)
         if ~any(strcmp(installedToolboxes, 'Parallel Computing Toolbox'))
             msgstr = {'Parallel Computing Toolbox is recommended.', ...
                 'This toolbox is used to reduce the calibration time for the most models.'};
-            if ~ispc && mclIsNoDisplaySet % added to check if doing testing with nodisplay etc
+            if ~ispc && noDesktop % added to check if doing testing with nodisplay etc
                 disp(msgstr{1});
                 disp(msgstr{2});
             else
@@ -112,7 +124,7 @@ function varargout = HydroSight(doingTesting)
         if ~any(strcmp(installedToolboxes, 'Curve Fitting Toolbox'))
             msgstr = {'Curve Fitting Toolbox is recommended.', ...
                 'Outlier detection algorithm will used regression, rather than splines, the estimate the initial slope.'};
-            if ~ispc && mclIsNoDisplaySet % added to check if doing testing with nodisplay etc
+            if ~ispc && noDesktop % added to check if doing testing with nodisplay etc
                 disp(msgstr{1});
                 disp(msgstr{2});
             else
