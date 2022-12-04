@@ -10,7 +10,7 @@ classdef (Abstract, SharedTestFixtures = {loadHydroSightFixture()}) ...
         % Load outlier detection example
         function loadExample(testCase, iExampleModel)      
             % Get handle to GUI.
-            GUI = getSharedTestFixtures(testCase).GUI;
+            GUI = getSharedTestFixtures(testCase,'loadHydroSightFixture').GUI;
            
             % Load example
             expSolution = 0;

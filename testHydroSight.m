@@ -9,67 +9,55 @@ function results = testHydroSight(runTests)
 % result equals a cell array of the TestResult objects.
 %
 
+    % Initialise output    
+    results = 0;
 
+    % Check matlab is after 2022a
+    if isMATLABReleaseOlderThan("R2022a")
+        error('HydroSight testing requires Matllab 2022a or later.');
+    end
+
+    % Import testing plugins
     if nargin==0
         runTests=true;
+
+        disp('Import testing plugins ...')
+        import matlab.unittest.TestRunner; %#ok<SIMPT> 
+        import matlab.unittest.plugins.CodeCoveragePlugin; %#ok<SIMPT> 
+        import matlab.unittest.plugins.XMLPlugin; %#ok<SIMPT> 
+        import matlab.unittest.plugins.codecoverage.CoberturaFormat; %#ok<SIMPT> 
     end
 
-    disp('SETTING UP TEST ENVIONMENT');
-    disp('--------------------------')
-    
-    results = 0;
-    
-    try
-        disp('Import testing plugins ...')
-        import matlab.unittest.plugins.CodeCoveragePlugin %#ok<SIMPT> 
-    
-        % Close parallel pool. This is done to ensure code within a parfor is
-        % included in code coverage report
-        disp('Closing parpool...')
-        poolobj = gcp('nocreate');
-        delete(poolobj);
-    
-        % Ensure parpool does not auto-start
-        disp('Ensure parpool is not automatically started ...')
-        ps = parallel.Settings;
-        ps_Auto = ps.Pool.AutoCreate;
-        ps.Pool.AutoCreate = false;
-    
-        % Add paths to unit tests
-        disp('Adding testing to path ...')
-        addpath('testing');
-        currentPath = pwd();
-    
-        % Install GUI layout if not installed
+    % Add paths to unit tests
+    disp('Adding testing to path ...')
+    addpath('testing');
+    currentPath = pwd();
+
+    % Install GUI layout if not installed
+    try            
         if isempty(ver('layout'))
-            disp('Installng GUI Layout toolbox ...')
+            disp('Installing GUI Layout toolbox ...')
             matlab.addons.toolbox.installToolbox(fullfile(currentPath,'testing','GUI Layout Toolbox 2.3.5.mltbx'),true);
         end
-        disp('SETUP COMPLETE.')
     catch ME
         results = -1;
-        disp(['Test setup failed with error: ',ME.message]);
+        disp(['Installation of GUI Layout toolbox failed with error: ',ME.message]);
     end
-    disp('--------------------------')
-    disp(' ')
 
     if runTests
         disp('STARTING TESTS');
         disp('--------------------------')
-               
-        % Setyp tests
-        disp('Making test suite ...')
-        suite = testsuite({'runOutlierDetection','buildExampleModels','simulateExampleModels','calibrateNewModel'});
-        %suite = testsuite({'runOutlierDetection'});        
-        runner = testrunner("textoutput");
-
-        % add coverage report
-        disp('Adding coverage report ...')
-        runner.addPlugin(CodeCoveragePlugin.forFolder({'GUI','algorithms'},'IncludeSubfolders',true));
-
-        disp('Run tests...')
+        suite = testsuite(pwd, 'IncludeSubfolders', true);        
+        
+        runner = TestRunner.withTextOutput();
+        runner.addPlugin(XMLPlugin.producingJUnitFormat('testing/results.xml'));
+        runner.addPlugin(CodeCoveragePlugin.forFolder({'.'}, 'IncludingSubfolders', true, 'Producing', CoberturaFormat('testing/coverage.xml')));
+        
         results = runner.run(suite);
-    
+        display(results);
+        
+        assertSuccess(results);
+
         disp('FINSIHED TESTS');
         disp('--------------------------')
         disp('')
@@ -78,9 +66,5 @@ function results = testHydroSight(runTests)
         disp('Restoring paths ...')
         rmpath(fullfile(currentPath,'testing'));
         cd(currentPath);
-    
-        % Restore parpool settings
-        disp('Restoring parpool settings ...')
-        ps.Pool.AutoCreate = ps_Auto;
     end
 end

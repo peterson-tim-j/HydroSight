@@ -7,7 +7,7 @@ classdef simulateExampleModels < loadExampleModels
         % Test methods
         function doSimulations(testCase)
             % Get handle to GUI.
-            GUI = getSharedTestFixtures(testCase).GUI;
+            GUI = getSharedTestFixtures(testCase,'loadHydroSightFixture').GUI;
 
             % Do simulations
             expectSolution = 0;
@@ -51,7 +51,7 @@ classdef simulateExampleModels < loadExampleModels
   
         function showSimulationStatus(testCase)
             % Get handle to GUI.
-            GUI = getSharedTestFixtures(testCase).GUI;
+            GUI = getSharedTestFixtures(testCase,'loadHydroSightFixture').GUI;
 
             try
                 expSolution=0;
@@ -78,7 +78,7 @@ classdef simulateExampleModels < loadExampleModels
 
 %         function showPostBuildStatus(testCase)
 %             % Get handle to GUI.
-%             GUI = getSharedTestFixtures(testCase).GUI;
+%             GUI = getSharedTestFixtures(testCase,'loadHydroSightFixture').GUI;
 % 
 %             try
 %                 expSolution=0;

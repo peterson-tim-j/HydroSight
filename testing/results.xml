@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<testsuites>
+  <testsuite errors="0" failures="0" name="buildExampleModels[iExampleModel=value1]" skipped="0" tests="5" time="19.7416">
+    <testcase classname="buildExampleModels[iExampleModel=value1]" name="showBoreData" time="14.4833"/>
+    <testcase classname="buildExampleModels[iExampleModel=value1]" name="showModelOptions" time="0.30222"/>
+    <testcase classname="buildExampleModels[iExampleModel=value1]" name="showBuildStatus" time="0.4267"/>
+    <testcase classname="buildExampleModels[iExampleModel=value1]" name="buildModel" time="4.4083"/>
+    <testcase classname="buildExampleModels[iExampleModel=value1]" name="showPostBuildStatus" time="0.12108"/>
+  </testsuite>
+  <testsuite errors="0" failures="0" name="buildExampleModels[iExampleModel=value2]" skipped="0" tests="5" time="3.3561">
+    <testcase classname="buildExampleModels[iExampleModel=value2]" name="showBoreData" time="0.92755"/>
+    <testcase classname="buildExampleModels[iExampleModel=value2]" name="showModelOptions" time="0.12274"/>
+    <testcase classname="buildExampleModels[iExampleModel=value2]" name="showBuildStatus" time="0.047857"/>
+    <testcase classname="buildExampleModels[iExampleModel=value2]" name="buildModel" time="2.2133"/>
+    <testcase classname="buildExampleModels[iExampleModel=value2]" name="showPostBuildStatus" time="0.044659"/>
+  </testsuite>
+  <testsuite errors="0" failures="0" name="buildExampleModels[iExampleModel=value3]" skipped="0" tests="5" time="2.2129">
+    <testcase classname="buildExampleModels[iExampleModel=value3]" name="showBoreData" time="0.62408"/>
+    <testcase classname="buildExampleModels[iExampleModel=value3]" name="showModelOptions" time="0.13206"/>
+    <testcase classname="buildExampleModels[iExampleModel=value3]" name="showBuildStatus" time="0.042886"/>
+    <testcase classname="buildExampleModels[iExampleModel=value3]" name="buildModel" time="1.3715"/>
+    <testcase classname="buildExampleModels[iExampleModel=value3]" name="showPostBuildStatus" time="0.042294"/>
+  </testsuite>
+  <testsuite errors="0" failures="3" name="calibrateNewModel[calibrationMethodSettings=value1,iExampleModel=value1]" skipped="0" tests="3" time="15.2054">
+    <testcase classname="calibrateNewModel[calibrationMethodSettings=value1,iExampleModel=value1]" name="showCalibResults" time="10.0193">
+      <failure type="AssertionFailure">Assertion failed while setting up or tearing down calibrateNewModel[calibrationMethodSettings=value1,iExampleModel=value1].
+As a result, all calibrateNewModel[calibrationMethodSettings=value1,iExampleModel=value1] tests failed and did not run to completion.
+    ----------------
+    Test Diagnostic:
+    ----------------
+    Model calibration failed. isCalibrated==false
+    ---------------------
+    Framework Diagnostic:
+    ---------------------
+    assertTrue failed.
+    --&gt; The value must evaluate to "true".
+    
+    Actual Value:
+      logical
+    
+       0
+    ------------------
+    Stack Information:
+    ------------------
+    In C:\Users\tpet0008\Documents\HydroSight\testing\calibrateNewModel.m (calibrateNewModel.calibrateModel) at 312</failure>
+    </testcase>
+    <testcase classname="calibrateNewModel[calibrationMethodSettings=value1,iExampleModel=value1]" name="showCalibResultsHead" time="0">
+      <failure type="AssertionFailure">Assertion failed while setting up or tearing down calibrateNewModel[calibrationMethodSettings=value1,iExampleModel=value1].
+As a result, all calibrateNewModel[calibrationMethodSettings=value1,iExampleModel=value1] tests failed and did not run to completion.
+    ----------------
+    Test Diagnostic:
+    ----------------
+    Model calibration failed. isCalibrated==false
+    ---------------------
+    Framework Diagnostic:
+    ---------------------
+    assertTrue failed.
+    --&gt; The value must evaluate to "true".
+    
+    Actual Value:
+      logical
+    
+       0
+    ------------------
+    Stack Information:
+    ------------------
+    In C:\Users\tpet0008\Documents\HydroSight\testing\calibrateNewModel.m (calibrateNewModel.calibrateModel) at 312</failure>
+    </testcase>
+    <testcase classname="calibrateNewModel[calibrationMethodSettings=value1,iExampleModel=value1]" name="showCalibResultsForcing" time="5.1862">
+      <failure type="AssertionFailure">Assertion failed while setting up or tearing down calibrateNewModel[calibrationMethodSettings=value1,iExampleModel=value1].
+As a result, all calibrateNewModel[calibrationMethodSettings=value1,iExampleModel=value1] tests failed and did not run to completion.
+    ----------------
+    Test Diagnostic:
+    ----------------
+    Model calibration failed. isCalibrated==false
+    ---------------------
+    Framework Diagnostic:
+    ---------------------
+    assertTrue failed.
+    --&gt; The value must evaluate to "true".
+    
+    Actual Value:
+      logical
+    
+       0
+    ------------------
+    Stack Information:
+    ------------------
+    In C:\Users\tpet0008\Documents\HydroSight\testing\calibrateNewModel.m (calibrateNewModel.calibrateModel) at 312</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

@@ -12,7 +12,7 @@ classdef buildExampleModels < loadExampleModels
         % Test methods
         function showBoreData(testCase)
              % Get handle to GUI.
-             GUI = getSharedTestFixtures(testCase).GUI;
+             GUI = getSharedTestFixtures(testCase,'loadHydroSightFixture').GUI;
 
             try
                 expSolution=0;
@@ -38,7 +38,7 @@ classdef buildExampleModels < loadExampleModels
 
         function showModelOptions(testCase)
             % Get handle to GUI.
-            GUI = getSharedTestFixtures(testCase).GUI;
+            GUI = getSharedTestFixtures(testCase,'loadHydroSightFixture').GUI;
 
             try
                 expSolution=0;
@@ -64,7 +64,7 @@ classdef buildExampleModels < loadExampleModels
 
         function showBuildStatus(testCase)
             % Get handle to GUI.
-            GUI = getSharedTestFixtures(testCase).GUI;
+            GUI = getSharedTestFixtures(testCase,'loadHydroSightFixture').GUI;
 
             try
                 expSolution=0;
@@ -89,7 +89,7 @@ classdef buildExampleModels < loadExampleModels
         end
 
         function buildModel(testCase)
-            GUI = getSharedTestFixtures(testCase).GUI;
+            GUI = getSharedTestFixtures(testCase,'loadHydroSightFixture').GUI;
 
             % Get contect menu obj for 'Select none'
             obj = findobj(GUI.Figure.UIContextMenu,'Label','Select none');
@@ -119,7 +119,7 @@ classdef buildExampleModels < loadExampleModels
 
         function showPostBuildStatus(testCase)
             % Get handle to GUI.
-            GUI = getSharedTestFixtures(testCase).GUI;
+            GUI = getSharedTestFixtures(testCase,'loadHydroSightFixture').GUI;
 
             try
                 expSolution=0;

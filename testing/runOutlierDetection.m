@@ -9,7 +9,7 @@ classdef (SharedTestFixtures = {loadHydroSightFixture()}) ...
         % Load outlier detection example
         function loadExample(testCase)      
             % Get handle to GUI.
-            GUI = getSharedTestFixtures(testCase).GUI;
+            GUI = getSharedTestFixtures(testCase,'loadHydroSightFixture').GUI;
             
             expSolution = 0;
             try
@@ -35,7 +35,7 @@ classdef (SharedTestFixtures = {loadHydroSightFixture()}) ...
         % Test methods
         function doAnalysis(testCase)
             % Get handle to GUI.
-            GUI = getSharedTestFixtures(testCase).GUI;
+            GUI = getSharedTestFixtures(testCase,'loadHydroSightFixture').GUI;
 
             % Run outlier detection
             try
@@ -79,7 +79,7 @@ classdef (SharedTestFixtures = {loadHydroSightFixture()}) ...
 
         function showBoreData(testCase)
             % Get handle to GUI.
-            GUI = getSharedTestFixtures(testCase).GUI;
+            GUI = getSharedTestFixtures(testCase,'loadHydroSightFixture').GUI;
 
             try
                 expSolution=0;
@@ -104,7 +104,7 @@ classdef (SharedTestFixtures = {loadHydroSightFixture()}) ...
 
         function showModelStatus(testCase)
             % Get handle to GUI.
-            GUI = getSharedTestFixtures(testCase).GUI;
+            GUI = getSharedTestFixtures(testCase,'loadHydroSightFixture').GUI;
 
             try
                 expSolution=0;
@@ -129,7 +129,7 @@ classdef (SharedTestFixtures = {loadHydroSightFixture()}) ...
 
         function showModelResults(testCase)
             % Get handle to GUI.
-            GUI = getSharedTestFixtures(testCase).GUI;
+            GUI = getSharedTestFixtures(testCase,'loadHydroSightFixture').GUI;
 
             try
                 expSolution=0;

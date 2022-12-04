@@ -23,7 +23,7 @@ classdef calibrateNewModel < loadExampleModels
     methods(TestClassSetup)
         function getCalibrationExpectedSolution(testCase,calibrationMethodSettings)
             % call callback for new project
-            GUI = getSharedTestFixtures(testCase).GUI;
+            GUI = getSharedTestFixtures(testCase,'loadHydroSightFixture').GUI;
             
             % Get simple model object and test that it is a HydroSight model.
             obj = GUI.models.Control_Catchment_1Layer_no_GW_ET;
@@ -43,7 +43,7 @@ classdef calibrateNewModel < loadExampleModels
             end
         end
         function deleteModels(testCase)            
-            GUI = getSharedTestFixtures(testCase).GUI;
+            GUI = getSharedTestFixtures(testCase,'loadHydroSightFixture').GUI;
             
             % Select all models
             obj = findobj(GUI.Figure.UIContextMenu,'Label','Select all');
@@ -65,7 +65,7 @@ classdef calibrateNewModel < loadExampleModels
 
         function buildModel(testCase)
 
-            GUI = getSharedTestFixtures(testCase).GUI;
+            GUI = getSharedTestFixtures(testCase,'loadHydroSightFixture').GUI;
 
             % Show build model tab
             GUI.figure_Layout.SelectedChild = 3;            
@@ -205,7 +205,7 @@ classdef calibrateNewModel < loadExampleModels
         function setInitialParameterValues(testCase, calibrationMethodSettings)
 
             % Get model object already built
-            GUI = getSharedTestFixtures(testCase).GUI;
+            GUI = getSharedTestFixtures(testCase,'loadHydroSightFixture').GUI;
             obj = GUI.models.(testCase.modelName);
 
             % Perturb parameters from known initial soluttion
@@ -216,7 +216,7 @@ classdef calibrateNewModel < loadExampleModels
             setParameters(obj.model, initialParameterValues, testCase.ParameterNames);
         end
         function saveModel(testCase)
-            GUI = getSharedTestFixtures(testCase).GUI;
+            GUI = getSharedTestFixtures(testCase,'loadHydroSightFixture').GUI;
             testCase.fname = 'simpleModelTesting.mat';
             actSolution = onSaveAs(GUI,[],[], testCase.fname, [testCase.pname,filesep()]);
             expSolution = 0;
@@ -225,7 +225,7 @@ classdef calibrateNewModel < loadExampleModels
 
         function calibrateModel(testCase,  calibrationMethodSettings)            
 
-            GUI = getSharedTestFixtures(testCase).GUI;
+            GUI = getSharedTestFixtures(testCase,'loadHydroSightFixture').GUI;
 
             % Show calib tab
             GUI.figure_Layout.SelectedChild = 4;
@@ -330,7 +330,7 @@ classdef calibrateNewModel < loadExampleModels
     methods(Test)
         function showCalibResults(testCase)
             % Get handle to GUI.
-            GUI = getSharedTestFixtures(testCase).GUI;
+            GUI = getSharedTestFixtures(testCase,'loadHydroSightFixture').GUI;
 
             % Show calib forcing results tab
             GUI.figure_Layout.SelectedChild = 4;
@@ -360,7 +360,7 @@ classdef calibrateNewModel < loadExampleModels
 
         function showCalibResultsHead(testCase)
             % Get handle to GUI.
-            GUI = getSharedTestFixtures(testCase).GUI;
+            GUI = getSharedTestFixtures(testCase,'loadHydroSightFixture').GUI;
 
             % Show calib results tab
             GUI.figure_Layout.SelectedChild = 4;
@@ -384,7 +384,7 @@ classdef calibrateNewModel < loadExampleModels
         
         function showCalibResultsForcing(testCase)
             % Get handle to GUI.
-            GUI = getSharedTestFixtures(testCase).GUI;
+            GUI = getSharedTestFixtures(testCase,'loadHydroSightFixture').GUI;
            
             % Show calib forcing results tab
             GUI.figure_Layout.SelectedChild = 4;
@@ -506,7 +506,7 @@ classdef calibrateNewModel < loadExampleModels
     methods(TestClassTeardown)
         function closeCalibGUI(testCase)
             % Get handle to GUI.
-            GUI = getSharedTestFixtures(testCase).GUI;
+            GUI = getSharedTestFixtures(testCase,'loadHydroSightFixture').GUI;
 
             % Close Calib GUI
             if isfield(GUI.tab_ModelCalibration,'GUI') && ishghandle(GUI.tab_ModelCalibration.GUI)
