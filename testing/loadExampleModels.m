@@ -8,7 +8,10 @@ classdef (Abstract, SharedTestFixtures = {loadHydroSightFixture()}) ...
     end
     methods(TestClassSetup)
         % Load outlier detection example
-        function loadExample(testCase, iExampleModel)      
+        function loadExample(testCase, iExampleModel)    
+            % Give user update on test being run.
+            disp(['TESTING: Loading HydroSight example number ',num2str(iExampleModel),' ...']);
+
             % Get handle to GUI.
             GUI = getSharedTestFixtures(testCase,'loadHydroSightFixture').GUI;
            

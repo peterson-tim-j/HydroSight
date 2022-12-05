@@ -7,7 +7,10 @@ classdef (SharedTestFixtures = {loadHydroSightFixture()}) ...
     end
     methods(TestClassSetup)
         % Load outlier detection example
-        function loadExample(testCase)      
+        function loadExample(testCase)  
+            % Give user update on test being run.
+            disp('TESTING: Loading HydroSight example outlier detection model ...');
+
             % Get handle to GUI.
             GUI = getSharedTestFixtures(testCase,'loadHydroSightFixture').GUI;
             
@@ -34,6 +37,9 @@ classdef (SharedTestFixtures = {loadHydroSightFixture()}) ...
     methods(Test)
         % Test methods
         function doAnalysis(testCase)
+            % Give user update on test being run.
+            disp('TESTING: Running outlier detection analysis ...');
+
             % Get handle to GUI.
             GUI = getSharedTestFixtures(testCase,'loadHydroSightFixture').GUI;
 
@@ -78,6 +84,9 @@ classdef (SharedTestFixtures = {loadHydroSightFixture()}) ...
         end
 
         function showBoreData(testCase)
+            % Give user update on test being run.
+            disp('TESTING: Displaying outlier detection input hydrograph ...');
+
             % Get handle to GUI.
             GUI = getSharedTestFixtures(testCase,'loadHydroSightFixture').GUI;
 
@@ -103,6 +112,9 @@ classdef (SharedTestFixtures = {loadHydroSightFixture()}) ...
         end
 
         function showModelStatus(testCase)
+            % Give user update on test being run.
+            disp('TESTING: Displaying outlier detection model status ...');
+
             % Get handle to GUI.
             GUI = getSharedTestFixtures(testCase,'loadHydroSightFixture').GUI;
 
@@ -128,6 +140,9 @@ classdef (SharedTestFixtures = {loadHydroSightFixture()}) ...
         end
 
         function showModelResults(testCase)
+            % Give user update on test being run.
+            disp('TESTING: Displaying outlier detection hydrograph results ...');
+
             % Get handle to GUI.
             GUI = getSharedTestFixtures(testCase,'loadHydroSightFixture').GUI;
 

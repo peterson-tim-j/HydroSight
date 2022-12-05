@@ -22,6 +22,9 @@ classdef calibrateNewModel < loadExampleModels
 
     methods(TestClassSetup)
         function getCalibrationExpectedSolution(testCase,calibrationMethodSettings)
+            % Give user update on test being run.
+            disp('TESTING: Getting prior calibration solution for example model...');
+
             % call callback for new project
             GUI = getSharedTestFixtures(testCase,'loadHydroSightFixture').GUI;
             
@@ -42,7 +45,11 @@ classdef calibrateNewModel < loadExampleModels
                 testCase.expectedObjFunc = obj.calibrationResults.performance.objectiveFunction;
             end
         end
-        function deleteModels(testCase)            
+
+        function deleteModels(testCase)       
+            % Give user update on test being run.
+            disp('TESTING: Deleting all example models ...');
+            
             GUI = getSharedTestFixtures(testCase,'loadHydroSightFixture').GUI;
             
             % Select all models
@@ -64,6 +71,8 @@ classdef calibrateNewModel < loadExampleModels
         end
 
         function buildModel(testCase)
+            % Give user update on test being run.
+            disp('TESTING: Inputting model construction options and building model ...');
 
             GUI = getSharedTestFixtures(testCase,'loadHydroSightFixture').GUI;
 
@@ -203,6 +212,8 @@ classdef calibrateNewModel < loadExampleModels
         end
 
         function setInitialParameterValues(testCase, calibrationMethodSettings)
+            % Give user update on test being run.
+            disp('TESTING: Setting initial parameters for model calibration ...');
 
             % Get model object already built
             GUI = getSharedTestFixtures(testCase,'loadHydroSightFixture').GUI;
@@ -216,6 +227,9 @@ classdef calibrateNewModel < loadExampleModels
             setParameters(obj.model, initialParameterValues, testCase.ParameterNames);
         end
         function saveModel(testCase)
+            % Give user update on test being run.
+            disp('TESTING: Saving project ...');
+            
             GUI = getSharedTestFixtures(testCase,'loadHydroSightFixture').GUI;
             testCase.fname = 'simpleModelTesting.mat';
             actSolution = onSaveAs(GUI,[],[], testCase.fname, [testCase.pname,filesep()]);
@@ -224,6 +238,8 @@ classdef calibrateNewModel < loadExampleModels
         end          
 
         function calibrateModel(testCase,  calibrationMethodSettings)            
+            % Give user update on test being run.
+            disp(['TESTING: Calibrating the built model using ',calibrationMethodSettings.method,' ...']);
 
             GUI = getSharedTestFixtures(testCase,'loadHydroSightFixture').GUI;
 
@@ -329,6 +345,9 @@ classdef calibrateNewModel < loadExampleModels
 
     methods(Test)
         function showCalibResults(testCase)
+            % Give user update on test being run.
+            disp('TESTING: Showing the calibration status results ...');
+
             % Get handle to GUI.
             GUI = getSharedTestFixtures(testCase,'loadHydroSightFixture').GUI;
 
@@ -359,6 +378,9 @@ classdef calibrateNewModel < loadExampleModels
         end
 
         function showCalibResultsHead(testCase)
+            % Give user update on test being run.
+            disp('TESTING: Showing the calibration results plots ...');
+            
             % Get handle to GUI.
             GUI = getSharedTestFixtures(testCase,'loadHydroSightFixture').GUI;
 
@@ -383,6 +405,9 @@ classdef calibrateNewModel < loadExampleModels
         end      
         
         function showCalibResultsForcing(testCase)
+            % Give user update on test being run.
+            disp('TESTING: Showing the calibration forcing plots ...');
+
             % Get handle to GUI.
             GUI = getSharedTestFixtures(testCase,'loadHydroSightFixture').GUI;
            

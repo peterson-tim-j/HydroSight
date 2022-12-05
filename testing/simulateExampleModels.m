@@ -6,6 +6,9 @@ classdef simulateExampleModels < loadExampleModels
     methods(Test)
         % Test methods
         function doSimulations(testCase)
+            % Give user update on test being run.
+            disp('TESTING: Simulating example models ...');
+
             % Get handle to GUI.
             GUI = getSharedTestFixtures(testCase,'loadHydroSightFixture').GUI;
 
@@ -50,6 +53,10 @@ classdef simulateExampleModels < loadExampleModels
         end
   
         function showSimulationStatus(testCase)
+            % Give user update on test being run.
+            disp('TESTING: Showing model simulation status results ...');
+
+
             % Get handle to GUI.
             GUI = getSharedTestFixtures(testCase,'loadHydroSightFixture').GUI;
 

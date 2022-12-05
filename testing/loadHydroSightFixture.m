@@ -15,12 +15,12 @@ classdef loadHydroSightFixture < ...
             import matlab.unittest.fixtures.SuppressedWarningsFixture
 
             % Suppress dialog warning if doing testing with -nodisplay
-            if ~ispc && ~usejava('desktop')
+            %if ~ispc && ~usejava('desktop')
                 fixture.applyFixture(SuppressedWarningsFixture('MATLAB:hg:NoDisplayNoFigureSupportSeeReleaseNotes'));
-            end
+            %end
 
             % Load HydroSight GUI
-            disp('Building GUI fixture ...')
+            disp('TESTING: Building GUI fixture ...')
             fixture.GUI = HydroSight(true);         
             fixture.SetupDescription = sprintf('Loading HydroSight GUI.');
 
@@ -29,12 +29,12 @@ classdef loadHydroSightFixture < ...
 
             % Close parallel pool. This is done to ensure code within a parfor is
             % included in code coverage report
-            disp('Closing parpool...')
+            disp('TESTING: Closing parpool...')
             poolobj = gcp('nocreate');
             delete(poolobj);
 
             % Ensure parpool does not auto-start
-            disp('Ensure parpool is not automatically started ...')
+            disp('TESTING: Ensure parpool is not automatically started ...')
             ps = parallel.Settings;
             fixture.parpool_defaultSetting = ps.Pool.AutoCreate;
             ps.Pool.AutoCreate = false;
@@ -50,7 +50,7 @@ classdef loadHydroSightFixture < ...
             onExit(fixture.GUI,[],[],'No');
 
             % Restore parpool settings
-            disp('Restoring parpool settings ...')
+            disp('TESTING: Restoring parpool settings ...')
             ps = parallel.Settings;
             ps.Pool.AutoCreate = fixture.parpool_defaultSetting;
         end

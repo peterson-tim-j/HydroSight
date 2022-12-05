@@ -11,6 +11,9 @@ classdef buildExampleModels < loadExampleModels
     methods(Test)
         % Test methods
         function showBoreData(testCase)
+            % Give user update on test being run.
+            disp('TESTING: Showing hydrograph plot for example model...');
+
              % Get handle to GUI.
              GUI = getSharedTestFixtures(testCase,'loadHydroSightFixture').GUI;
 
@@ -37,6 +40,9 @@ classdef buildExampleModels < loadExampleModels
         end
 
         function showModelOptions(testCase)
+            % Give user update on test being run.
+            disp('TESTING: Showing model options for example model...');
+            
             % Get handle to GUI.
             GUI = getSharedTestFixtures(testCase,'loadHydroSightFixture').GUI;
 
@@ -63,6 +69,9 @@ classdef buildExampleModels < loadExampleModels
         end
 
         function showBuildStatus(testCase)
+            % Give user update on test being run.
+            disp('TESTING: Showing model build status for example model...');
+
             % Get handle to GUI.
             GUI = getSharedTestFixtures(testCase,'loadHydroSightFixture').GUI;
 
@@ -89,6 +98,9 @@ classdef buildExampleModels < loadExampleModels
         end
 
         function buildModel(testCase)
+            % Give user update on test being run.
+            disp('TESTING: Building example models ...');
+
             GUI = getSharedTestFixtures(testCase,'loadHydroSightFixture').GUI;
 
             % Get contect menu obj for 'Select none'
@@ -118,6 +130,9 @@ classdef buildExampleModels < loadExampleModels
         end
 
         function showPostBuildStatus(testCase)
+            % Give user update on test being run.
+            disp('TESTING: Showing post-build model status ...');
+
             % Get handle to GUI.
             GUI = getSharedTestFixtures(testCase,'loadHydroSightFixture').GUI;
 
