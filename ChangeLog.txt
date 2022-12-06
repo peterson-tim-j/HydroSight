@@ -297,3 +297,7 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 * DREAM calibration CDF plot code re-wrote.
 * Minor changes made to HydroSight_GUI.m to allow unit testing to close popup windows.
 * Version number updated to 1.4.1.0
+
+7 Dec 2012
+* Unit testing bug fixed (i.e. after saving the project within calibrateNewModel(), path reset to the project folder).
+* Unit testing command window text outputs added at each step. This was done to aid analysis of the results within GitHub Actions.
