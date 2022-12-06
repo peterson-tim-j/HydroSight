@@ -80,7 +80,12 @@ classdef (SharedTestFixtures = {loadHydroSightFixture()}) ...
             nErrors =  str2double(HydroSight_GUI.removeHTMLTags(GUI.tab_DataPrep.Table.Data{testCase.irow,17}));
             nOutliers =  str2double(HydroSight_GUI.removeHTMLTags(GUI.tab_DataPrep.Table.Data{testCase.irow,18}));
             testCase.verifyEqual(nErrors,4, 'Error: Incorrect number of obs. errors idenified.');
-            testCase.verifyEqual(nOutliers,2, 'Error: Incorrect number of outlier obs. idenified.');
+            if license('test','Curve_Fitting_Toolbox')
+                nOutliers_expected = 2;
+            else
+                nOutliers_expected = 1;
+            end
+            testCase.verifyEqual(nOutliers,nOutliers_expected, 'Error: Incorrect number of outlier obs. idenified.');
         end
 
         function showBoreData(testCase)

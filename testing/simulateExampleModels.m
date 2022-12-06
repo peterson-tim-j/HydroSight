@@ -80,6 +80,7 @@ classdef simulateExampleModels < loadExampleModels
                 msgStr = ['Error: Model simulation status failed',ME.message,' at ', ME.stack(1).name, ' on line ',num2str(ME.stack(1).line)];
             end
             testCase.verifyEqual(actSolution,expSolution, msgStr);
+            disp('');
         end
 
 

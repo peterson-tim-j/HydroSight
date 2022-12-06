@@ -45,26 +45,27 @@ function results = testHydroSight(runTests)
     end
 
     if runTests
-        disp('STARTING TESTS');
+        disp('STARTING TESTING');
         disp('--------------------------')
         suite = testsuite(pwd, 'IncludeSubfolders', true);        
         
         runner = TestRunner.withTextOutput();
-        runner.addPlugin(XMLPlugin.producingJUnitFormat('testing/results.xml'));
-        runner.addPlugin(CodeCoveragePlugin.forFolder({'.'}, 'IncludingSubfolders', true, 'Producing', CoberturaFormat('testing/coverage.xml')));
+        runner.addPlugin(XMLPlugin.producingJUnitFormat(fullfile('testing','results.xml')));
+        runner.addPlugin(CodeCoveragePlugin.forFolder({'.'}, 'IncludingSubfolders', true, 'Producing', CoberturaFormat(fullfile('testing','coverage.xml'))));
         
+        disp('TESTING: Running all tests ...');
         results = runner.run(suite);
+        disp('TESTING: Finished running all tests.');
+
+        disp('TESTING: Displaying summary of all test results ...');
         display(results);
         
+        disp('TESTING: Assessing if all tests were passed ...');
         assertSuccess(results);
 
-        disp('FINSIHED TESTS');
+        disp('FINISHED TESTING');
         disp('--------------------------')
         disp('')
         
-        % Rest file paths.
-        disp('Restoring paths ...')
-        rmpath(fullfile(currentPath,'testing'));
-        cd(currentPath);
     end
 end

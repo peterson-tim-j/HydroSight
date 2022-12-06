@@ -229,12 +229,13 @@ classdef calibrateNewModel < loadExampleModels
         function saveModel(testCase)
             % Give user update on test being run.
             disp('TESTING: Saving project ...');
-            
+            currentfolder = pwd();
             GUI = getSharedTestFixtures(testCase,'loadHydroSightFixture').GUI;
             testCase.fname = 'simpleModelTesting.mat';
             actSolution = onSaveAs(GUI,[],[], testCase.fname, [testCase.pname,filesep()]);
             expSolution = 0;
             testCase.assertEqual(actSolution, expSolution, 'Model could not be saved.')
+            cd(currentfolder);
         end          
 
         function calibrateModel(testCase,  calibrationMethodSettings)            
@@ -308,6 +309,14 @@ classdef calibrateNewModel < loadExampleModels
                     obj.String = calibrationMethodSettings.iseed;                    
             end
 
+            % Supress dialog warning messages
+            warningStateChanged = false;
+            warningState = warning('query','MATLAB:hg:NoDisplayNoFigureSupportSeeReleaseNotes');
+            if ~usejava('desktop') && strcmp(warningState.state,'on')
+                warning('off','MATLAB:hg:NoDisplayNoFigureSupportSeeReleaseNotes')
+                warningStateChanged = true;
+            end
+
             % Start Calib.
             obj = findobj(GUI.tab_ModelCalibration.GUI,'Tag','Start calibration');
             hobject.Tag = 'Start calibration - noparpool'; % 'noparpool' ensures parpool not started.
@@ -340,6 +349,11 @@ classdef calibrateNewModel < loadExampleModels
             testCase.verifyEqual(actParameterValues(:,1), testCase.expectedParameterValues, ...
                 ['Model calibration parameters overly differ from expected solution. Method used:',calibrationMethodSettings.method],'RelTol',calibrationMethodSettings.parameterSolutionReTol);
 
+            % Restore dialog warning messages
+            if warningStateChanged
+                warning('on','MATLAB:hg:NoDisplayNoFigureSupportSeeReleaseNotes')
+            end
+            
         end
     end
 
@@ -524,7 +538,8 @@ classdef calibrateNewModel < loadExampleModels
                         break;
                     end
                 end        
-            end     
+            end    
+            disp('');
         end      
     end
 

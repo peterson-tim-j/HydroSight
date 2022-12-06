@@ -156,6 +156,7 @@ classdef buildExampleModels < loadExampleModels
                 msgStr = ['Error: Model post-built status failed',ME.message,' at ', ME.stack(1).name, ' on line ',num2str(ME.stack(1).line)];
             end
             testCase.verifyEqual(actSolution,expSolution, msgStr);
+            disp('');
         end
     end
 end
