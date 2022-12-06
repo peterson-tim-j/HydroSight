@@ -9,3 +9,7 @@ HydroSight_installer/
 warning_file.txt
 DREAM_diagnostics.txt
 GUI/models/model_TFN_gui.asv
+
+# Testing outputs
+testing/results.xml
+testing/coverage.xml
