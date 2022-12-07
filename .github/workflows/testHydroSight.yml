@@ -33,6 +33,6 @@ jobs:
           path: testing/results.xml
           reporter: java-junit
       - name: Make coverage report    
-      - uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v1
         with:
           file: testing/coverage.xml          
