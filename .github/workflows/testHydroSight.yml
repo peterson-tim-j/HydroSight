@@ -33,7 +33,6 @@ jobs:
           path: testing/results.xml
           reporter: java-junit
       - name: Make coverage report    
-        uses: 5monkeys/cobertura-action@master
+      - uses: codecov/codecov-action@v1
         with:
-          path: testing/coverage.xml
-          minimum_coverage: 50
+          file: testing/coverage.xml          
