@@ -26,13 +26,13 @@ jobs:
           test-results-junit: testing/results.xml
           code-coverage-cobertura: testing/coverage.xml
       - name: Make test results report    
-      - uses: dorny/test-reporter@v1.6.0
+        uses: dorny/test-reporter@v1.6.0
         if: success() || failure()    # run this step even if previous step failed
         with:
           path: testing/results.xml
           reporter: java-junit
       - name: Make coverage report    
-      - uses: 5monkeys/cobertura-action@master
+        uses: 5monkeys/cobertura-action@master
         with:
           path: testing/coverage.xml
           minimum_coverage: 50
