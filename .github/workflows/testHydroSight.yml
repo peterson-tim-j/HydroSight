@@ -25,3 +25,8 @@ jobs:
           use-parallel: false # optional 
           test-results-junit: testing/results.xml
           code-coverage-cobertura: testing/coverage.xml
+      - name: Make coverage report    
+      - uses: 5monkeys/cobertura-action@master
+        with:
+          path: testing/coverage.xml
+          minimum_coverage: 50
