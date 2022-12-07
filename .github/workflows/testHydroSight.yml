@@ -29,6 +29,7 @@ jobs:
         uses: dorny/test-reporter@v1.6.0
         if: success() || failure()    # run this step even if previous step failed
         with:
+          name: Test Report
           path: testing/results.xml
           reporter: java-junit
       - name: Make coverage report    
