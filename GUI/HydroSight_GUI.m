@@ -6182,7 +6182,8 @@ classdef HydroSight_GUI < handle
                         this.tab_ModelCalibration.Table.RowName = mat2cell(transpose(1:nrows),ones(1, nrows));                     
 
                         % Delete models from simulations table.
-                        if ~isempty(this.tab_ModelSimulation.Table.Data)
+                        if size(this.tab_ModelSimulation.Table.Data,1)>0 && ...
+                        any(cellfun(@(x) ~isempty(x), this.tab_ModelSimulation.Table.Data))
                             modelLabels_simTable =  this.tab_ModelSimulation.Table.Data(:,2);
                             modelLabels_simTable = HydroSight_GUI.removeHTMLTags(modelLabels_simTable);
                             ind = cellfun( @(x) strcmp(x,modelLabel), modelLabels_simTable);
@@ -6201,7 +6202,7 @@ classdef HydroSight_GUI < handle
                 % Change cursor
                 set(this.Figure, 'pointer', 'arrow');   
                 drawnow update                
-            catch 
+            catch ME
                 % Change cursor
                 set(this.Figure, 'pointer', 'arrow');   
                 drawnow update                
@@ -6328,7 +6329,7 @@ classdef HydroSight_GUI < handle
                 
                 h = msgbox(['The model options were copied to ',num2str(nOptionsCopied), ' "', currentModelType ,'" models.'], 'Model options applied');
                 setIcon(this, h);
-            catch                
+            catch ME
                 % Change cursor
                 set(this.Figure, 'pointer', 'arrow');   
                 drawnow update;                

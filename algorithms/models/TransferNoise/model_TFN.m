@@ -1136,10 +1136,12 @@ classdef model_TFN < model_abstract
             forcingData_requiredColNames = {};
             for i=1:length(modelComponentAll)
                 if isfield(obj.inputData.componentData.(modelComponentAll{i}), 'dataColumn')
-                    forcingData_requiredColNames = [forcingData_requiredColNames; forcingData_colnames(obj.inputData.componentData.(modelComponentAll{i}).dataColumn)]; %#ok<AGROW> 
+                    collNames_new = forcingData_colnames(obj.inputData.componentData.(modelComponentAll{i}).dataColumn);                    
                 else
-                    forcingData_requiredColNames = [forcingData_requiredColNames; obj.inputData.componentData.(modelComponentAll{i}).inputForcing(:,2)]; %#ok<AGROW> 
+                    collNames_new = obj.inputData.componentData.(modelComponentAll{i}).inputForcing(:,2);
                 end
+                collNames_new = reshape(collNames_new, numel(collNames_new),1);
+                forcingData_requiredColNames = [forcingData_requiredColNames; collNames_new]; %#ok<AGROW>
             end
             
             % Create filter for required colnames
