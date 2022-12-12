@@ -304,3 +304,7 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 
 8 Dec 2022
 * Bug fixed causing models with multiple pumping bores to fail during build.
+* Added 'Duplicate Selected Models' to GUI context menu.
+
+13 Dec 2022
+* User feedback improved when files are opened by changing the cursor to a watch. This was required because some users have large head files that are slow to open.

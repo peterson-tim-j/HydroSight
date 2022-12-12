@@ -443,9 +443,10 @@ classdef HydroSight_GUI < handle
             this.Figure.UIContextMenu = uicontextmenu(this.Figure,'Visible','off');
             
             % Add items
-            uimenu(this.Figure.UIContextMenu,'Label','Copy selected row','Callback',@this.rowAddDelete);
-            uimenu(this.Figure.UIContextMenu,'Label','Paste rows','Callback',@this.rowAddDelete,'Separator','on');
-            uimenu(this.Figure.UIContextMenu,'Label','Insert row above selection','Callback',@this.rowAddDelete);
+            uimenu(this.Figure.UIContextMenu,'Label','Duplicate selected rows','Callback',@this.rowAddDelete);
+            uimenu(this.Figure.UIContextMenu,'Label','Copy selected rows','Callback',@this.rowAddDelete);
+            uimenu(this.Figure.UIContextMenu,'Label','Paste rows','Callback',@this.rowAddDelete);
+            uimenu(this.Figure.UIContextMenu,'Label','Insert row above selection','Callback',@this.rowAddDelete,'Separator','on');
             uimenu(this.Figure.UIContextMenu,'Label','Insert row below selection','Callback',@this.rowAddDelete);            
             uimenu(this.Figure.UIContextMenu,'Label','Delete selected rows','Callback',@this.rowAddDelete,'Separator','on');
             uimenu(this.Figure.UIContextMenu,'Label','Select all','Callback',@this.rowSelection);
@@ -594,9 +595,10 @@ classdef HydroSight_GUI < handle
             this.Figure.UIContextMenu = uicontextmenu(this.Figure,'Visible','off');
             
             % Add items
-            uimenu(this.Figure.UIContextMenu,'Label','Copy selected row','Callback',@this.rowAddDelete);
-            uimenu(this.Figure.UIContextMenu,'Label','Paste rows','Callback',@this.rowAddDelete,'Separator','on');
-            uimenu(this.Figure.UIContextMenu,'Label','Insert row above selection','Callback',@this.rowAddDelete);
+            uimenu(this.Figure.UIContextMenu,'Label','Duplicate selected rows','Callback',@this.rowAddDelete);
+            uimenu(this.Figure.UIContextMenu,'Label','Copy selected rows','Callback',@this.rowAddDelete);
+            uimenu(this.Figure.UIContextMenu,'Label','Paste rows','Callback',@this.rowAddDelete);
+            uimenu(this.Figure.UIContextMenu,'Label','Insert row above selection','Callback',@this.rowAddDelete,'Separator','on');
             uimenu(this.Figure.UIContextMenu,'Label','Insert row below selection','Callback',@this.rowAddDelete);            
             uimenu(this.Figure.UIContextMenu,'Label','Delete selected rows','Callback',@this.rowAddDelete);
             uimenu(this.Figure.UIContextMenu,'Label','Select all','Callback',@this.rowSelection,'Separator','on');
@@ -873,7 +875,7 @@ classdef HydroSight_GUI < handle
                         
 %           Add context menu
             this.Figure.UIContextMenu = uicontextmenu(this.Figure,'Visible','off');
-            uimenu(this.Figure.UIContextMenu,'Label','Copy selected row','Callback',@this.rowAddDelete);
+            uimenu(this.Figure.UIContextMenu,'Label','Copy selected rows','Callback',@this.rowAddDelete);
             uimenu(this.Figure.UIContextMenu,'Label','Paste rows','Callback',@this.rowAddDelete);
             uimenu(this.Figure.UIContextMenu,'Label','Select all','Callback',@this.rowSelection,'Separator','on');
             uimenu(this.Figure.UIContextMenu,'Label','Select none','Callback',@this.rowSelection);
@@ -1065,9 +1067,10 @@ classdef HydroSight_GUI < handle
                         
 %           Add context menu
             this.Figure.UIContextMenu = uicontextmenu(this.Figure,'Visible','off');
-            uimenu(this.Figure.UIContextMenu,'Label','Copy selected row','Callback',@this.rowAddDelete);
-            uimenu(this.Figure.UIContextMenu,'Label','Paste rows','Callback',@this.rowAddDelete,'Separator','on');
-            uimenu(this.Figure.UIContextMenu,'Label','Insert row above selection','Callback',@this.rowAddDelete);
+            uimenu(this.Figure.UIContextMenu,'Label','Duplicate selected rows','Callback',@this.rowAddDelete);
+            uimenu(this.Figure.UIContextMenu,'Label','Copy selected rows','Callback',@this.rowAddDelete);
+            uimenu(this.Figure.UIContextMenu,'Label','Paste rows','Callback',@this.rowAddDelete);
+            uimenu(this.Figure.UIContextMenu,'Label','Insert row above selection','Callback',@this.rowAddDelete,'Separator','on');
             uimenu(this.Figure.UIContextMenu,'Label','Insert row below selection','Callback',@this.rowAddDelete);            
             uimenu(this.Figure.UIContextMenu,'Label','Delete selected rows','Callback',@this.rowAddDelete);
             uimenu(this.Figure.UIContextMenu,'Label','Select all','Callback',@this.rowSelection,'Separator','on');
@@ -2161,8 +2164,10 @@ classdef HydroSight_GUI < handle
 
                             % Read in the observed head file.
                             try
+                                set(this.Figure, 'pointer', 'watch');
                                 tbl = readtable(fnameFull);
                             catch
+                                set(this.Figure, 'pointer', 'arrow');
                                 h = warndlg('The observed head file could not be read in. It must a .csv file of 6 columns','File error');
                                 setIcon(this, h);
                                 return;
@@ -2170,6 +2175,7 @@ classdef HydroSight_GUI < handle
 
                             % Check there are the correct number of columns
                             if length(tbl.Properties.VariableNames) < 5 || length(tbl.Properties.VariableNames) >8
+                                set(this.Figure, 'pointer', 'arrow');
                                 h = warndlg({'The observed head file must be in one of the following formats:', ...'
                                     '  -boreID, year, month, day, head', ...
                                     '  -boreID, year, month, day, hour, minute, head', ...
@@ -2180,6 +2186,7 @@ classdef HydroSight_GUI < handle
 
                             % Check columns 2 to 6 are numeric.
                             if any(any(~isnumeric(tbl{:,2:end})))
+                                set(this.Figure, 'pointer', 'arrow');
                                 h = warndlg('Columns 2 to 6 within the observed head file must contain only numeric data.','File error');
                                 setIcon(this, h);
                                 return;
@@ -2194,6 +2201,7 @@ classdef HydroSight_GUI < handle
                                 try
                                     tmp.(boreIDs{i}) = 1;
                                 catch
+                                    set(this.Figure, 'pointer', 'watch');
                                     h = warndlg({'Bore ',boreIDs{i}, 'has an invalid format.','It must not start with a number.','Consider appending a non-numeric prefix,','e.g. "Bore_"'},'Bore ID error');
                                     setIcon(this, h);
                                     return;
@@ -2208,6 +2216,7 @@ classdef HydroSight_GUI < handle
 
                             % Clear stored head data.
                             this.tab_DataPrep.boreID_data = struct();
+                            set(this.Figure, 'pointer', 'arrow');
                         end
                         set(this.tab_DataPrep.modelOptions.vbox, 'Sizes',[0 0]);
                     case 'Bore ID'
@@ -2235,8 +2244,10 @@ classdef HydroSight_GUI < handle
                          
                          % Read in the observed head file.
                          try                            
+                            set(this.Figure, 'pointer', 'watch'); 
                             tbl = readtable(fname);
                          catch
+                            set(this.Figure, 'pointer', 'arrow');
                             h = warndlg('The observed head file could not be read in. It must a .csv file of 6 columns','File error');
                             setIcon(this, h);
                             return;
@@ -2276,6 +2287,7 @@ classdef HydroSight_GUI < handle
                          obj = findobj(this.tab_DataPrep.modelOptions.vbox, 'Tag','Data Preparation - options panels');
                          set(obj,'Sizes',[-1; 0; 0]);
                          set(this.tab_DataPrep.modelOptions.vbox, 'Sizes',[-1 -1]);
+                         set(this.Figure, 'pointer', 'arrow');
 
                     case 'Analysis Status'
                         modelStatus = HydroSight_GUI.removeHTMLTags(data{irow,16});
@@ -2334,8 +2346,10 @@ classdef HydroSight_GUI < handle
 
                         % Read in the observed head file.
                         try
+                            set(this.Figure, 'pointer', 'watch');
                             tbl = readtable(fname);
                         catch
+                            set(this.Figure, 'pointer', 'arrow');
                             h = warndlg('The observed head file could not be read in. It must a .csv file of 6 columns','File error');
                             setIcon(this, h);
                             return;
@@ -2354,6 +2368,7 @@ classdef HydroSight_GUI < handle
                             this.tab_DataPrep.boreID_data.(boreIDs{i}) = single(headData);
                         end
                         headData = double(this.tab_DataPrep.boreID_data.(boreID));
+                        set(this.Figure, 'pointer', 'arrow');
                     end
 
                     % Add head data to the uitable
@@ -2820,8 +2835,10 @@ classdef HydroSight_GUI < handle
 
                      % Read in the observed head file.
                      try
+                        set(this.Figure, 'pointer', 'watch');
                         tbl = readtable(fname);
                      catch
+                        set(this.Figure, 'pointer', 'arrow'); 
                         h = warndlg('The observed head file could not be read in. It must a .csv file of 6 columns','File error');
                         setIcon(this, h);
                         return;
@@ -2829,6 +2846,7 @@ classdef HydroSight_GUI < handle
 
                      % Check there are the correct number of columns
                      if length(tbl.Properties.VariableNames) <5 || length(tbl.Properties.VariableNames) >8
+                        set(this.Figure, 'pointer', 'arrow');
                         h = warndlg({'The observed head file in one of the following structure:', ...
                             '- boreID, year, month, day, head', ...
                             '- boreID, year, month, day, hour, head', ...
@@ -2841,6 +2859,7 @@ classdef HydroSight_GUI < handle
 
                      % Check columns 2 to 6 are numeric.
                      if any(any(~isnumeric(tbl{:,2:length(tbl.Properties.VariableNames)})))
+                        set(this.Figure, 'pointer', 'arrow'); 
                         h = warndlg(['Columns 2 to ',num2str(length(tbl.Properties.VariableNames)),' within the observed head file must contain only numeric data.'],'File error');
                         setIcon(this, h);
                         return;
@@ -2856,6 +2875,7 @@ classdef HydroSight_GUI < handle
                              temp.(boreIDs{i}) = [1,2,3];
                          end
                      catch
+                        set(this.Figure, 'pointer', 'arrow'); 
                         h = warndlg(['The observed head file contains invalid site IDs.',char newline,'IDs must start with a letter and have no spaces.'],'Site ID error');
                         setIcon(this, h);
                         return
@@ -2902,7 +2922,8 @@ classdef HydroSight_GUI < handle
                      end
 
                      % Call plottting function
-                     modelConstruction_onBoreListSelection(this, this.tab_ModelConstruction.boreIDList, []);                   
+                     modelConstruction_onBoreListSelection(this, this.tab_ModelConstruction.boreIDList, []);    
+                     set(this.Figure, 'pointer', 'arrow');
                      
                 case 'Model Type'                        
                      % Get the current model type.
@@ -6202,7 +6223,7 @@ classdef HydroSight_GUI < handle
                 % Change cursor
                 set(this.Figure, 'pointer', 'arrow');   
                 drawnow update                
-            catch ME
+            catch
                 % Change cursor
                 set(this.Figure, 'pointer', 'arrow');   
                 drawnow update                
@@ -6329,7 +6350,7 @@ classdef HydroSight_GUI < handle
                 
                 h = msgbox(['The model options were copied to ',num2str(nOptionsCopied), ' "', currentModelType ,'" models.'], 'Model options applied');
                 setIcon(this, h);
-            catch ME
+            catch 
                 % Change cursor
                 set(this.Figure, 'pointer', 'arrow');   
                 drawnow update;                
@@ -8077,15 +8098,14 @@ classdef HydroSight_GUI < handle
             
             % Read in the table.
             try
+                set(this.Figure, 'pointer', 'watch');
                 tbl = readtable(filename,'Delimiter',',');
             catch
+                set(this.Figure, 'pointer', 'arrow');
                 h = warndlg('The table datafile could not be read in. Please check it is a CSV file with column headings in the first row.','File error');
                 setIcon(this, h);
                 return;
-            end            
-
-            % Change cursor
-            set(this.Figure, 'pointer', 'watch');
+            end                        
             drawnow update;            
             
             % Check the table format and append to the required table
@@ -10003,7 +10023,7 @@ classdef HydroSight_GUI < handle
                         return;
                     end
                 elseif size(tableObj.Data(:,1),1)==0 ...
-                &&  (strcmp(hObject.Label, 'Copy selected row') || strcmp(hObject.Label, 'Delete selected rows'))                
+                &&  (strcmp(hObject.Label, 'Copy selected rows') || strcmp(hObject.Label, 'Delete selected rows'))                
                     return;
                 end               
             end
@@ -10037,19 +10057,30 @@ classdef HydroSight_GUI < handle
             
             % Do the selected action            
             switch hObject.Label
-                case 'Copy selected row'
+                case 'Copy selected rows'
                     this.copiedData.tableName = tableObj.Tag;
                     this.copiedData.data = tableObj.Data(selectedRows,:);
                     
-                case 'Paste rows'    
-                    % Check that name of the table is same as that from the
-                    % copied data. 
-                    if ~strcmp(this.copiedData.tableName, tableObj.Tag)
-                        h = warndlg('The copied row data was sourced from a different table.','Paste error');
-                        setIcon(this, h);
-                        return;
-                    end    
-                    
+                case {'Paste rows', 'Duplicate selected rows'} 
+                    % Copy selected row if duplicating, else check the
+                    % source of the copied data
+                    if strcmp(hObject.Label,'Duplicate selected rows')
+                        this.copiedData.tableName = tableObj.Tag;
+                        this.copiedData.data = tableObj.Data(selectedRows,:);
+                        anySelected = false;
+                    else
+                        if isempty(this.copiedData)
+                            return;
+                        end
+                        % Check that name of the table is same as that from the
+                        % copied data.
+                        if ~strcmp(this.copiedData.tableName, tableObj.Tag)
+                            h = warndlg('The copied row data was sourced from a different table.','Paste error');
+                            setIcon(this, h);
+                            return;
+                        end
+                    end
+
                     % Paste data and update model build status
                     switch this.copiedData.tableName
                         case 'Data Preparation'
@@ -10087,7 +10118,7 @@ classdef HydroSight_GUI < handle
                                 for i=indSelected
                                     
                                     % Get a unique model label. 
-                                    newModelLabel = HydroSight_GUI.createUniqueLabel(tableObj.Data(:,2), this.copiedData.data{1,2}, i);
+                                    newModelLabel = HydroSight_GUI.createUniqueLabel(tableObj.Data(:,2), this.copiedData.data{:,2}, i);
                                     
                                     % Paste data
                                     tableObj.Data{i,2} = newModelLabel;
