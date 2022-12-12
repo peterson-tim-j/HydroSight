@@ -308,3 +308,4 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 
 13 Dec 2022
 * User feedback improved when files are opened by changing the cursor to a watch. This was required because some users have large head files that are slow to open.
+* Outlier detection bore ID selection bug fixed that caused the list of bores for selection to be hidden from the user.

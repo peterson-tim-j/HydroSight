@@ -2502,7 +2502,7 @@ classdef HydroSight_GUI < handle
 
                     % SHow plot icons
                     plotToolbarState(this,'on');
-                else
+                elseif icol~=3 % only hide if not selecting the bore ID
                     obj = findobj(this.tab_DataPrep.modelOptions.vbox, 'Tag','Data Preparation - options panels');
                     set(obj,'Sizes',[0; 0; 0]);
                     set(this.tab_DataPrep.modelOptions.vbox, 'Sizes',[0 0]);
