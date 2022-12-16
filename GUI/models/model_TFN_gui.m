@@ -119,6 +119,9 @@ classdef model_TFN_gui < model_gui_abstract
             % Create grid the model settings            
             this.Figure = uiextras.VBoxFlex('Parent',parent_handle,'Padding', 0, 'Spacing', 0);
             
+            % Get handle to main GUI
+            objHydroSight = ancestor(this.Figure,'figure','toplevel');
+            
             % Get icon
             try
                 iconData = load("appIcon.mat");
@@ -210,7 +213,7 @@ classdef model_TFN_gui < model_gui_abstract
             set(this.modelOptions.options{1,1}.box, 'ColumnSizes', -1, 'RowSizes', [20 -1] );
             
             % Add context menu for Wizard.
-            contextMenu = uicontextmenu(this.Figure.Parent.Parent.Parent.Parent.Parent.Parent,'Visible','on');
+            contextMenu = uicontextmenu(objHydroSight,'Visible','on');
             uimenu(contextMenu,'Label','Copy all rows','Callback',@this.rowAddDelete);
             uimenu(contextMenu,'Label','Paste all rows','Callback',@this.rowAddDelete);
             uimenu(contextMenu,'Label','Wizard ...','Callback',@this.wizard,'Separator','on'); 
@@ -233,7 +236,7 @@ classdef model_TFN_gui < model_gui_abstract
             set(this.modelOptions.options{2,1}.box, 'ColumnSizes', -1, 'RowSizes', [20 -1] );
                
             % Add context menu for Wizard.
-            contextMenu = uicontextmenu(this.Figure.Parent.Parent.Parent.Parent.Parent.Parent,'Visible','on');
+            contextMenu = uicontextmenu(objHydroSight,'Visible','on');
             uimenu(contextMenu,'Label','Copy all rows','Callback',@this.rowAddDelete);
             uimenu(contextMenu,'Label','Paste all rows','Callback',@this.rowAddDelete,'Separator','on');
             uimenu(contextMenu,'Label','Wizard ...','Callback',@this.wizard);                
@@ -253,7 +256,7 @@ classdef model_TFN_gui < model_gui_abstract
                 'String',{},'Value',1,'Tag','Weighting Functions - Input Data','Callback', @this.optionsSelection, 'Visible','on');
             set(this.modelOptions.options{3,1}.box, 'ColumnSizes', -1, 'RowSizes', [20 -1] );
 
-            contextMenu = uicontextmenu(this.Figure.Parent.Parent.Parent.Parent.Parent.Parent,'Visible','on');
+            contextMenu = uicontextmenu(objHydroSight,'Visible','on');
             uimenu(contextMenu,'Label','Wizard ...','Callback',@this.wizard); 
                            
             set(this.modelOptions.options{3,1}.lst,'UIContextMenu',contextMenu);
@@ -360,7 +363,7 @@ classdef model_TFN_gui < model_gui_abstract
             % for the required operation.
             %----------------------------------------
             % Create menu for forcing transforms
-            contextMenu = uicontextmenu(this.Figure.Parent.Parent.Parent.Parent.Parent.Parent,'Visible','on');
+            contextMenu = uicontextmenu(objHydroSight,'Visible','on');
             uimenu(contextMenu,'Label','Copy selected rows','Callback',@this.rowAddDelete);
             uimenu(contextMenu,'Label','Paste rows','Callback',@this.rowAddDelete,'Separator','on');
             uimenu(contextMenu,'Label','Insert row above selection','Callback',@this.rowAddDelete);
@@ -370,7 +373,7 @@ classdef model_TFN_gui < model_gui_abstract
             set(this.forcingTranforms.tbl.UIContextMenu,'UserData', 'this.forcingTranforms.tbl');
             
             % Create menu for weighting functions
-            contextMenu = uicontextmenu(this.Figure.Parent.Parent.Parent.Parent.Parent.Parent,'Visible','on');
+            contextMenu = uicontextmenu(objHydroSight,'Visible','on');
             uimenu(contextMenu,'Label','Copy selected rows','Callback',@this.rowAddDelete);
             uimenu(contextMenu,'Label','Paste rows','Callback',@this.rowAddDelete,'Separator','on');
             uimenu(contextMenu,'Label','Insert row above selection','Callback',@this.rowAddDelete);
@@ -380,7 +383,7 @@ classdef model_TFN_gui < model_gui_abstract
             set(this.weightingFunctions.tbl.UIContextMenu,'UserData', 'this.weightingFunctions.tbl');
             
             % Create menu for derived forcing transforms
-            contextMenu = uicontextmenu(this.Figure.Parent.Parent.Parent.Parent.Parent.Parent,'Visible','on');
+            contextMenu = uicontextmenu(objHydroSight,'Visible','on');
             uimenu(contextMenu,'Label','Copy selected rows','Callback',@this.rowAddDelete);
             uimenu(contextMenu,'Label','Paste rows','Callback',@this.rowAddDelete,'Separator','on');
             uimenu(contextMenu,'Label','Insert row above selection','Callback',@this.rowAddDelete);
@@ -390,7 +393,7 @@ classdef model_TFN_gui < model_gui_abstract
             set(this.derivedForcingTranforms.tbl.UIContextMenu,'UserData', 'this.derivedForcingTranforms.tbl');
 
             % Create menu for derived weighting functions
-            contextMenu = uicontextmenu(this.Figure.Parent.Parent.Parent.Parent.Parent.Parent,'Visible','on');
+            contextMenu = uicontextmenu(objHydroSight,'Visible','on');
             uimenu(contextMenu,'Label','Copy selected rows','Callback',@this.rowAddDelete);
             uimenu(contextMenu,'Label','Paste rows','Callback',@this.rowAddDelete,'Separator','on');
             uimenu(contextMenu,'Label','Insert row above selection','Callback',@this.rowAddDelete);
@@ -1078,6 +1081,12 @@ classdef model_TFN_gui < model_gui_abstract
                 icol = this.currentSelection.col;                                                
             end
 
+            % Get handle to main GUI
+            objHydroSight = ancestor(this.Figure,'figure','toplevel');
+
+            % Get handle to main GUI out tab panel.
+            objOuterTabPanel = findobj(objHydroSight, 'Tag','HydroSight Outer Steps TabPanel');
+
             % Undertake table/list specific operations.
             switch eventdata.Source.Tag
                 case 'Forcing Transform'
@@ -1179,7 +1188,7 @@ classdef model_TFN_gui < model_gui_abstract
                                % Assign context menu if the first column is
                                % named 'Select' and is a tick box.
                                if strcmp(colNames{1},'Select') && strcmp(colFormats{1},'logical')
-                                    contextMenu = uicontextmenu(this.Figure.Parent.Parent.Parent.Parent.Parent,'Visible','on');
+                                    contextMenu = uicontextmenu(objOuterTabPanel,'Visible','on');
                                     uimenu(contextMenu,'Label','Copy selected rows','Callback',@this.rowAddDelete);
                                     uimenu(contextMenu,'Label','Paste rows','Callback',@this.rowAddDelete,'Separator','on');
                                     uimenu(contextMenu,'Label','Insert row above selection','Callback',@this.rowAddDelete);
@@ -1425,7 +1434,7 @@ classdef model_TFN_gui < model_gui_abstract
                                    % Assign context menu if the first column is
                                    % named 'Select' and is a tick box.
                                    if strcmp(modelSettings{i}.colNames{1},'Select') && strcmp(modelSettings{i}.colFormats{1},'logical')
-                                        contextMenu = uicontextmenu(this.Figure.Parent.Parent.Parent.Parent.Parent.Parent,'Visible','on');
+                                        contextMenu = uicontextmenu(objHydroSight,'Visible','on');
                                         uimenu(contextMenu,'Label','Copy selected rows','Callback',@this.rowAddDelete);
                                         uimenu(contextMenu,'Label','Paste rows','Callback',@this.rowAddDelete,'Separator','on');
                                         uimenu(contextMenu,'Label','Insert row above selection','Callback',@this.rowAddDelete);
@@ -1545,7 +1554,7 @@ classdef model_TFN_gui < model_gui_abstract
                                % Assign context menu if the first column is
                                % named 'Select' and is a tick box.
                                if strcmp(colNames{1},'Select') && strcmp(colFormats{1},'logical')
-                                    contextMenu = uicontextmenu(this.Figure.Parent.Parent.Parent.Parent.Parent,'Visible','on');
+                                    contextMenu = uicontextmenu(objOuterTabPanel,'Visible','on');
                                     uimenu(contextMenu,'Label','Copy selected rows','Callback',@this.rowAddDelete);
                                     uimenu(contextMenu,'Label','Paste rows','Callback',@this.rowAddDelete,'Separator','on');
                                     uimenu(contextMenu,'Label','Insert row above selection','Callback',@this.rowAddDelete);
@@ -1748,7 +1757,7 @@ classdef model_TFN_gui < model_gui_abstract
                                % Assign context menu if the first column is
                                % named 'Select' and is a tick box.
                                if strcmp(colNames{1},'Select') && strcmp(colFormats{1},'logical')
-                                    contextMenu = uicontextmenu(this.Figure.Parent.Parent.Parent.Parent.Parent,'Visible','on');
+                                    contextMenu = uicontextmenu(objOuterTabPanel,'Visible','on');
                                     uimenu(contextMenu,'Label','Copy selected rows','Callback',@this.rowAddDelete);
                                     uimenu(contextMenu,'Label','Paste rows','Callback',@this.rowAddDelete,'Separator','on');
                                     uimenu(contextMenu,'Label','Insert row above selection','Callback',@this.rowAddDelete);

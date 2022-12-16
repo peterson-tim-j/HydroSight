@@ -114,7 +114,7 @@ classdef HydroSight_GUI < handle
             figWidth = 0.8*windowWidth;
             figHeight = 0.6*windowHeight;            
             this.Figure.Position = [(windowWidth - figWidth)/2 (windowHeight - figHeight)/2 figWidth figHeight];
-            this.Figure.Visible = 'off';
+            %this.Figure.Visible = 'off';
                                    
             % + File menu
             if noDesktop; disp('Creating GUI menus ...'); end
@@ -296,9 +296,12 @@ classdef HydroSight_GUI < handle
             % Reset hidden state
             set(0,'ShowHiddenHandles',oldState);
             
+            % Add vbox for panels and status bar
+            %vbox_outer = uiextras.VBox('Parent',this.Figure,'Padding', 3, 'Spacing', 3);
+
             %Create Panels for different windows       
             if noDesktop; disp('Creating GUI panels ...'); end
-            this.figure_Layout = uiextras.TabPanel( 'Parent', this.Figure, 'Padding',5, 'TabSize',127,'FontSize',8);
+            this.figure_Layout = uiextras.TabPanel( 'Parent', this.Figure, 'Padding',5, 'TabSize',127,'FontSize',8,'Tag','HydroSight Outer Steps TabPanel');
             this.tab_Project.Panel = uiextras.Panel( 'Parent', this.figure_Layout, 'Padding', 5, 'Tag','ProjectDescription');            
             this.tab_DataPrep.Panel = uiextras.Panel( 'Parent', this.figure_Layout, 'Padding', 5, 'Tag','DataPreparation');
             this.tab_ModelConstruction.Panel = uiextras.Panel( 'Parent', this.figure_Layout, 'Padding', 5, 'Tag','ModelConstruction');
@@ -306,6 +309,12 @@ classdef HydroSight_GUI < handle
             this.tab_ModelSimulation.Panel = uiextras.Panel( 'Parent', this.figure_Layout, 'Padding', 5, 'Tag','ModelSimulation');
             this.figure_Layout.TabNames = {'Project Description', 'Outlier Removal','Model Construction', 'Model Calibration','Model Simulation'};
             this.figure_Layout.SelectedChild = 1;
+
+            % Add Status box
+            %statusBox_panel = uipanel('Parent',vbox_outer,'BorderType','beveledin');
+            %uicontrol(statusBox_panel,'Style','text','String','TESTING','Units','normalized');   
+
+            %set(vbox_outer,'Sizes',[-1, 30]);
            
 %%          Layout Tab1 - Project description
             %------------------------------------------------------------------
