@@ -295,10 +295,7 @@ classdef HydroSight_GUI < handle
             
             % Reset hidden state
             set(0,'ShowHiddenHandles',oldState);
-            
-            % Add vbox for panels and status bar
-            %vbox_outer = uiextras.VBox('Parent',this.Figure,'Padding', 3, 'Spacing', 3);
-
+                       
             %Create Panels for different windows       
             if noDesktop; disp('Creating GUI panels ...'); end
             this.figure_Layout = uiextras.TabPanel( 'Parent', this.Figure, 'Padding',5, 'TabSize',127,'FontSize',8,'Tag','HydroSight Outer Steps TabPanel');
@@ -309,12 +306,6 @@ classdef HydroSight_GUI < handle
             this.tab_ModelSimulation.Panel = uiextras.Panel( 'Parent', this.figure_Layout, 'Padding', 5, 'Tag','ModelSimulation');
             this.figure_Layout.TabNames = {'Project Description', 'Outlier Removal','Model Construction', 'Model Calibration','Model Simulation'};
             this.figure_Layout.SelectedChild = 1;
-
-            % Add Status box
-            %statusBox_panel = uipanel('Parent',vbox_outer,'BorderType','beveledin');
-            %uicontrol(statusBox_panel,'Style','text','String','TESTING','Units','normalized');   
-
-            %set(vbox_outer,'Sizes',[-1, 30]);
            
 %%          Layout Tab1 - Project description
             %------------------------------------------------------------------
@@ -341,11 +332,11 @@ classdef HydroSight_GUI < handle
 %%          Layout Tab2 - Data Preparation
             % -----------------------------------------------------------------
             if noDesktop; disp('Creating GUI outlier detection panel ...'); end
-            % Declare panels        
-            hbox1t2 = uiextras.HBoxFlex('Parent', this.tab_DataPrep.Panel,'Padding', 3, 'Spacing', 3,'Tag','Outlier detection outer hbox');
-            vbox1t2 = uiextras.VBox('Parent',hbox1t2,'Padding', 3, 'Spacing', 3);
-            %hbox3t2 = uiextras.HButtonBox('Parent',vbox1t2,'Padding', 3, 'Spacing', 3);                
-            hbox3t2 = uiextras.HBox('Parent',vbox1t2,'Padding', 3, 'Spacing', 3);
+            % Declare panels     
+            vbox0t2 = uiextras.VBox('Parent', this.tab_DataPrep.Panel,'Padding', 3, 'Spacing', 3);
+            hbox1t2 = uiextras.HBoxFlex('Parent', vbox0t2,'Padding', 0, 'Spacing', 3,'Tag','Outlier detection outer hbox');
+            vbox1t2 = uiextras.VBox('Parent',hbox1t2,'Padding', 0, 'Spacing', 3);              
+            hbox3t2 = uiextras.HBox('Parent',vbox1t2,'Padding', 0, 'Spacing', 3);
             hboxBtn1 = uiextras.HButtonBox('Parent',hbox3t2 ,'Padding', 3, 'Spacing', 3);             
             hboxBtn2 = uiextras.HButtonBox('Parent',hbox3t2 ,'Padding', 3, 'Spacing', 3);              
             
@@ -381,20 +372,24 @@ classdef HydroSight_GUI < handle
                 ['<html><font color = "#808080">','(NA)','</font></html>'], ...
                 ['<html><font color = "#808080">','(NA)','</font></html>']};
             
-            % Add table. Importantly, this is done using createTable, not
-            % uitable. This was required to achieve acceptable perforamnce
-            % for large tables.            
-%             this.tab_DataPrep.Table = createTable(vbox1t2,cnames1t2,data, false, ...
-%                 'ColumnEditable',cedit1t2,'ColumnFormat',cformats1t2,'RowName', rnames1t2, ...
-%                 'CellSelectionCallback', @this.dataPrep_tableSelection,...
-%                 'Tag','Data Preparation', 'TooltipString', toolTipStr);     
-
+            % Add table.
             this.tab_DataPrep.Table = uitable(vbox1t2 , 'ColumnName', cnames1t2,'Data', data, ...
                 'ColumnEditable',cedit1t2,'ColumnFormat',cformats1t2,'RowName', rnames1t2, ...
                 'CellSelectionCallback', @this.dataPrep_tableSelection, ...
                 'CellEditCallback', @this.dataPrep_tableEdit, ...
                 'Tag','Data Preparation', 'TooltipString', toolTipStr);                              
                         
+            % Add status box and resize
+            statusBox_panel = uipanel('Parent',vbox0t2,'BorderType','beveledin');
+            statusBox_txt = uicontrol(statusBox_panel,'Style','text','String','(No bore selected)','Units','normalized', ...
+                'HorizontalAlignment','left','Tooltip','Status of selected bore.', ...
+                'Tag','Statusbar bore analysis');
+            set(vbox0t2, 'Sizes', [-1 18]);
+            statusBox_txt.Position(3:4)=[1, 1];
+            set(statusBox_txt,'Units','pixels');
+            statusBox_txt.Position(1) = statusBox_panel.Position(1)+2;
+            statusBox_txt.Position(2) = 0;
+
             % Add buttons to top left panel               
             uicontrol('Parent',hboxBtn2,'String','Append Table Data','Callback', @this.onImportTable, 'Tag','Data Preparation', 'TooltipString', sprintf('Append a .csv file of table data to the table below. \n Use this feature to efficiently analyse a large number of bores.') );
             uicontrol('Parent',hboxBtn2,'String','Export Table Data','Callback', @this.onExportTable, 'Tag','Data Preparation', 'TooltipString', sprintf('Export a .csv file of the table below.') );
@@ -407,7 +402,7 @@ classdef HydroSight_GUI < handle
             set(hbox3t2,'Sizes',[90 -1])  
             
             % Create vbox for the various model options
-            this.tab_DataPrep.modelOptions.vbox = uiextras.VBoxFlex('Parent',hbox1t2,'Padding', 3, 'Spacing', 3, 'DividerMarkings','off');
+            this.tab_DataPrep.modelOptions.vbox = uiextras.VBoxFlex('Parent',hbox1t2,'Padding', 0, 'Spacing', 3, 'DividerMarkings','off');
             
             % Add model options panel for bore IDs
             dynList = [];
@@ -441,7 +436,7 @@ classdef HydroSight_GUI < handle
             vboxLowerInner1 = uipanel('Parent',vboxLowerOuter,'BackgroundColor',[1 1 1]);
             this.tab_DataPrep.modelOptions.resultsOptions.plots = axes( 'Parent', vboxLowerInner1);
 
-            % Resize the panels            
+            % Resize remaining panels            
             set(vbox1t2, 'Sizes', [30 -1]);
             set(vboxTopOuter, 'Sizes',[0 0 0]);
             set(this.tab_DataPrep.modelOptions.vbox, 'Sizes', [0 0]);            
@@ -475,9 +470,10 @@ classdef HydroSight_GUI < handle
             if noDesktop; disp('Creating GUI figure ...'); end
             % Declare panels        
             if noDesktop; disp('Creating GUI model construction panel...'); end
-            hbox1t3 = uiextras.HBoxFlex('Parent', this.tab_ModelConstruction.Panel,'Padding', 3, 'Spacing', 3, 'Tag', 'Model Construction outer hbox');
-            vbox1t3 = uiextras.VBox('Parent',hbox1t3,'Padding', 3, 'Spacing', 3);
-            hbox1t4 = uiextras.HBox('Parent',vbox1t3,'Padding', 3, 'Spacing', 3);
+            vbox0t3 = uiextras.VBox('Parent', this.tab_ModelConstruction.Panel,'Padding', 3, 'Spacing', 3);
+            hbox1t3 = uiextras.HBoxFlex('Parent', vbox0t3,'Padding', 0, 'Spacing', 3, 'Tag', 'Model Construction outer hbox');
+            vbox1t3 = uiextras.VBox('Parent',hbox1t3,'Padding', 0, 'Spacing', 3);
+            hbox1t4 = uiextras.HBox('Parent',vbox1t3,'Padding', 0, 'Spacing', 3);
             hboxBtn1 = uiextras.HButtonBox('Parent',hbox1t4 ,'Padding', 3, 'Spacing', 3);             
             hboxBtn2 = uiextras.HButtonBox('Parent',hbox1t4 ,'Padding', 3, 'Spacing', 3);             
             
@@ -512,6 +508,17 @@ classdef HydroSight_GUI < handle
                 'Tag','Model Construction', ...
                 'TooltipString', toolTipStr);                        
                         
+            % Add status bar and resize
+            statusBox_panel = uipanel('Parent',vbox0t3,'BorderType','beveledin');
+            statusBox_txt = uicontrol(statusBox_panel,'Style','text','String','(No model selected)','Units','normalized', ...
+                'HorizontalAlignment','left','Tooltip','Status of selected model.', ...
+                'Tag','Statusbar model construction');
+            set(vbox0t3, 'Sizes', [-1 18]);
+            statusBox_txt.Position(3:4)=[1, 1];
+            set(statusBox_txt,'Units','pixels');
+            statusBox_txt.Position(1) = statusBox_panel.Position(1)+2;
+            statusBox_txt.Position(2) = 0;
+
             % Add buttons to top left panel               
             uicontrol('Parent',hboxBtn2,'String','Append Table Data','Callback', @this.onImportTable, 'Tag','Model Construction', 'TooltipString', sprintf('Append a .csv file of table data to the table below. \n Use this feature to efficiently build a large number of models.') );
             uicontrol('Parent',hboxBtn2,'String','Export Table Data','Callback', @this.onExportTable, 'Tag','Model Construction', 'TooltipString', sprintf('Export a .csv file of the table below.') );
@@ -520,14 +527,14 @@ classdef HydroSight_GUI < handle
                 'Callback', {@this.onChangeTableWidth, 'Model Construction outer hbox'} , 'TooltipString', 'Adjust table width');                                                     
             hboxBtn1.ButtonSize(1) = 225;
             hboxBtn2.ButtonSize(1) = 225;
-            set(hbox1t4,'Sizes',[60 -1])
+            set(hbox1t4,'Sizes',[90 -1])
             
             % Create vbox for the various model options
-            this.tab_ModelConstruction.modelOptions.vbox = uiextras.VBoxFlex('Parent',hbox1t3,'Padding', 3, 'Spacing', 3, 'DividerMarkings','off');
+            this.tab_ModelConstruction.modelOptions.vbox = uiextras.VBoxFlex('Parent',hbox1t3,'Padding', 0, 'Spacing', 3, 'DividerMarkings','off');
             
             % Add model options panel for bore IDs
             dynList = [];
-            hbox4t3 = uiextras.HBox('Parent',this.tab_ModelConstruction.modelOptions.vbox, 'Padding', 3, 'Spacing', 3, 'Visible','on');
+            hbox4t3 = uiextras.HBox('Parent',this.tab_ModelConstruction.modelOptions.vbox, 'Padding', 0, 'Spacing', 3, 'Visible','on');
             buttons_boreID = uiextras.VButtonBox('Parent',hbox4t3 ,'Padding', 3, 'Spacing', 3);
             uicontrol('Parent',buttons_boreID,'String','<','FontSize',14,'FontWeight','bold', 'ForegroundColor',[0.07, 0.62 1], ...
                 'Callback', @this.modelConstruction_optionsSelection, 'TooltipString','Copy the Site IDs to current model.','Tag','current');
@@ -542,12 +549,11 @@ classdef HydroSight_GUI < handle
             set(hbox4t3, 'Sizes', [40 -1 ]);
             
             % Add model options panel for decriptions of each model type
-            vbox5t3 = uiextras.VBox('Parent',this.tab_ModelConstruction.modelOptions.vbox, 'Padding', 3, 'Spacing', 3, 'Visible','on');
-            uicontrol( 'Parent', vbox5t3,'Style','text','String',sprintf('%s\n%s%s','Below is a decsription of the selected model type:'), 'Units','normalized');            
+            vbox5t3 = uiextras.VBox('Parent',this.tab_ModelConstruction.modelOptions.vbox, 'Padding', 0, 'Spacing', 3, 'Visible','on');
             this.tab_ModelConstruction.modelDescriptions = uicontrol( 'Parent', vbox5t3,'Style','text','String','(No model type selected.)', 'HorizontalAlignment','left','Units','normalized');                        
-            set(vbox5t3, 'Sizes', [30 -1]);
+            set(vbox5t3, 'Sizes', -1);
             
-            % Resize the panels
+            % Resize remaining panels       
             set(vbox1t3, 'Sizes', [30 -1]);
             set(hbox1t3, 'Sizes', [-2 -1]);
             set(vbox4t3, 'Sizes', [30 -1 -1]);            
@@ -589,11 +595,10 @@ classdef HydroSight_GUI < handle
             this.tab_ModelConstruction.Table.ColumnFormat{8} = this.modelTypes(includeModelOption);
             
             % Add model options panel for model construction status.
-            vbox6t3 = uiextras.VBox('Parent',this.tab_ModelConstruction.modelOptions.vbox, 'Padding', 3, 'Spacing', 3, 'Visible','on');
-            uicontrol( 'Parent', vbox6t3,'Style','text','String',sprintf('%s\n%s%s','Model build status:'),'Units','normalized');
+            vbox6t3 = uiextras.VBox('Parent',this.tab_ModelConstruction.modelOptions.vbox, 'Padding', 0, 'Spacing', 3, 'Visible','on');
             uicontrol('Parent',vbox6t3,'Style','edit','BackgroundColor','w', 'String','','HorizontalAlignment','left','FontSize',10, 'Units','normalized', ...
                 'Tag','Model Construction - status box','Max',100, 'Enable','inactive');
-            set(vbox6t3, 'Sizes', [30 -1]);
+            set(vbox6t3, 'Sizes', -1);
             
             % Hide all modle option vboxes 
             this.tab_ModelConstruction.modelOptions.vbox.Heights = zeros(size(this.tab_ModelConstruction.modelOptions.vbox.Heights));
@@ -629,9 +634,10 @@ classdef HydroSight_GUI < handle
 %%          Layout Tab4 - Calibrate models
             %------------------------------------------------------------------
             if noDesktop; disp('Creating GUI calibration panel ...'); end
-            hbox1t4 = uiextras.HBoxFlex('Parent', this.tab_ModelCalibration.Panel,'Padding', 3, 'Spacing', 3,'Tag','Model Calibration outer hbox');
-            vbox1t4 = uiextras.VBox('Parent',hbox1t4,'Padding', 3, 'Spacing', 3);
-            hbox1t5 = uiextras.HBox('Parent',vbox1t4,'Padding', 3, 'Spacing', 3);
+            vbox0t4 = uiextras.VBox('Parent', this.tab_ModelCalibration.Panel,'Padding', 3, 'Spacing', 3);
+            hbox1t4 = uiextras.HBoxFlex('Parent', vbox0t4,'Padding', 0, 'Spacing', 3,'Tag','Model Calibration outer hbox');
+            vbox1t4 = uiextras.VBox('Parent',hbox1t4,'Padding', 0, 'Spacing', 3);
+            hbox1t5 = uiextras.HBox('Parent',vbox1t4,'Padding', 0, 'Spacing', 3);
             hboxBtn1 = uiextras.HButtonBox('Parent',hbox1t5 ,'Padding', 3, 'Spacing', 3);             
             hboxBtn2 = uiextras.HButtonBox('Parent',hbox1t5 ,'Padding', 3, 'Spacing', 3);                         
             
@@ -667,7 +673,18 @@ classdef HydroSight_GUI < handle
                 'RowName', rnames1t4, 'Tag','Model Calibration', ...
                 'CellSelectionCallback', @this.modelCalibration_tableSelection,...
                 'TooltipString', toolTipStr, ...
-                'Interruptible','off');                            
+                'Interruptible','off');     
+
+            % Add statusbar and resize
+            statusBox_panel = uipanel('Parent',vbox0t4,'BorderType','beveledin');
+            statusBox_txt = uicontrol(statusBox_panel,'Style','text','String','(No model selected)','Units','normalized', ...
+                'HorizontalAlignment','left','Tooltip','Status of selected model.', ...
+                'Tag','Statusbar model calibration');
+            set(vbox0t4, 'Sizes', [-1 18]);
+            statusBox_txt.Position(3:4)=[1, 1];
+            set(statusBox_txt,'Units','pixels');
+            statusBox_txt.Position(1) = statusBox_panel.Position(1)+2;
+            statusBox_txt.Position(2) = 0;
             
             % Add button for calibration
             uicontrol('Parent',hboxBtn2,'String','Import Table Data','Callback', @this.onImportTable, 'Tag','Model Calibration', 'TooltipString', sprintf('Import a .csv file of table data to the table below. \n Only rows with a model label and bore ID matching a row within the table will be imported.') );
@@ -678,16 +695,16 @@ classdef HydroSight_GUI < handle
                 'Callback', {@this.onChangeTableWidth, 'Model Calibration outer hbox'} , 'TooltipString', 'Adjust table width');                                                     
             hboxBtn1.ButtonSize(1) = 225;
             hboxBtn2.ButtonSize(1) = 225;
-            set(hbox1t5,'Sizes',[90 -1])                 
-            
-            % Size boxe
+            set(hbox1t5,'Sizes',[90 -1])       
+
+            % Size remaining panels
             set(vbox1t4, 'Sizes', [30 -1]);
                         
             % Create vbox for the various model options            
-            resultsvbox = uiextras.VBoxFlex('Parent',hbox1t4,'Padding', 3, 'Spacing', 3, 'DividerMarkings','off');
+            resultsvbox = uiextras.VBoxFlex('Parent',hbox1t4,'Padding', 0, 'Spacing', 3, 'DividerMarkings','off');
                         
             % Add tabs for various types of results            
-            this.tab_ModelCalibration.resultsTabs = uiextras.TabPanel( 'Parent',resultsvbox, 'Padding', 5, 'TabSize',120,'FontSize',8);
+            this.tab_ModelCalibration.resultsTabs = uiextras.TabPanel( 'Parent',resultsvbox, 'Padding', 0, 'TabSize',120,'FontSize',8);
             this.tab_ModelCalibration.resultsOptions.statusPanel = uiextras.Panel( 'Parent', this.tab_ModelCalibration.resultsTabs, 'Padding', 5, ...
                 'Tag','CalibrationStatusTab');            
             this.tab_ModelCalibration.resultsOptions.calibPanel = uiextras.Panel( 'Parent', this.tab_ModelCalibration.resultsTabs, 'Padding', 5, ...
@@ -905,7 +922,8 @@ classdef HydroSight_GUI < handle
 %%          Layout Tab5 - Model Simulation
             %------------------------------------------------------------------            
             if noDesktop; disp('Creating GUI simulation panel ...'); end
-            hbox1t5 = uiextras.HBoxFlex('Parent', this.tab_ModelSimulation.Panel,'Padding', 3, 'Spacing', 3, 'Tag','Model Simulation outer hbox');
+            vbox0t5 = uiextras.VBox('Parent', this.tab_ModelSimulation.Panel,'Padding', 3, 'Spacing', 3);
+            hbox1t5 = uiextras.HBoxFlex('Parent', vbox0t5,'Padding', 3, 'Spacing', 3, 'Tag','Model Simulation outer hbox');
             vbox1t5 = uiextras.VBox('Parent',hbox1t5,'Padding', 3, 'Spacing', 3);
             %vbox2t5 = uiextras.VBox('Parent',hbox1t5,'Padding', 3, 'Spacing', 3);
             hbox1t6 = uiextras.HBox('Parent',vbox1t5,'Padding', 3, 'Spacing', 3);
@@ -950,13 +968,24 @@ classdef HydroSight_GUI < handle
                 'RowName', rnames1t5, 'Tag','Model Simulation', ...
                 'CellSelectionCallback', @this.modelSimulation_tableSelection,...
                 'CellEditCallback', @this.modelSimulation_tableEdit,...
-                'TooltipString', toolTipStr);            
+                'TooltipString', toolTipStr);      
+
+            % Add statusbar and resize
+            statusBox_panel = uipanel('Parent',vbox0t5,'BorderType','beveledin');
+            statusBox_txt = uicontrol(statusBox_panel,'Style','text','String','(No model selected)','Units','normalized', ...
+                'HorizontalAlignment','left','Tooltip','Status of selected model.', ...
+                'Tag','Statusbar model simulation');
+            set(vbox0t5, 'Sizes', [-1 18]);
+            statusBox_txt.Position(3:4)=[1, 1];
+            set(statusBox_txt,'Units','pixels');
+            statusBox_txt.Position(1) = statusBox_panel.Position(1)+2;
+            statusBox_txt.Position(2) = 0;
                                  
             % Create vbox for the various model options            
-            resultsvbox = uiextras.VBoxFlex('Parent',hbox1t5,'Padding', 3, 'Spacing', 3, 'DividerMarkings','off');
+            resultsvbox = uiextras.VBoxFlex('Parent',hbox1t5,'Padding', 0, 'Spacing', 3, 'DividerMarkings','off');
                         
             % Add tabs for various types of results            
-            this.tab_ModelSimulation.resultsTabs = uiextras.TabPanel( 'Parent',resultsvbox, 'Padding', 5, 'TabSize',100,'FontSize',8);
+            this.tab_ModelSimulation.resultsTabs = uiextras.TabPanel( 'Parent',resultsvbox, 'Padding', 0, 'TabSize',100,'FontSize',8);
             this.tab_ModelSimulation.resultsOptions.statusPanel = uiextras.Panel( 'Parent', this.tab_ModelSimulation.resultsTabs, 'Padding', 5, ...
                 'Tag','SimulationStatusTab');
             this.tab_ModelSimulation.resultsOptions.simPanel = uiextras.Panel( 'Parent', this.tab_ModelSimulation.resultsTabs, 'Padding', 5, ...
@@ -1069,10 +1098,9 @@ classdef HydroSight_GUI < handle
             this.tab_ModelSimulation.resultsOptions.currentTab = 1;
             this.tab_ModelSimulation.resultsOptions.currentPlot = 7;
             
-            % Set box sizes
-            set(hbox1t5, 'Sizes', [-2 -1]);
+            % Size remaining panels
             set(vbox1t5, 'Sizes', [30 -1]);
-            %set(vbox2t5, 'Sizes', [30 20 0 0]);
+            set(hbox1t5, 'Sizes', [-2 -1]);
                         
 %           Add context menu
             this.Figure.UIContextMenu = uicontextmenu(this.Figure,'Visible','off');
@@ -1670,6 +1698,9 @@ classdef HydroSight_GUI < handle
                     set(this.Figure, 'pointer', 'watch');
                     drawnow update;
                 end                
+                if ~isempty(savedData.tableData.tab_ModelSimulation)
+                    
+                end
                 try
                     this.tab_ModelSimulation.Table.Data = savedData.tableData.tab_ModelSimulation;
                     
@@ -1687,7 +1718,7 @@ classdef HydroSight_GUI < handle
                         end
                     end
                     this.tab_ModelSimulation.Table.Data(:,2) = model_label;
-                catch
+                catch ME
                     set(this.Figure, 'pointer', 'arrow');
                     drawnow update;
                     h = warndlg('Data could not be assigned to the user interface table: Model Simulation','File table error');
@@ -2128,6 +2159,10 @@ classdef HydroSight_GUI < handle
             irow=eventdata.Indices(:,1);            
             data=get(hObject,'Data'); % get the data cell array of the table           
 
+            if isempty(data)
+                return
+            end
+            
             % Fix bug in col 15 bng integer, not logical
             if ~islogical(data{1,15})
                 if data{1,15}==1
@@ -2144,6 +2179,27 @@ classdef HydroSight_GUI < handle
                 % Record the current row and column numbers
                 this.tab_DataPrep.currentRow = irow;
                 this.tab_DataPrep.currentCol = icol;
+
+                % Set status bar
+                obj = findobj(this.tab_DataPrep.Panel,'Tag','Statusbar bore analysis');
+                fname = data{irow,2};
+                boreID = data{irow,3};
+                modelStatus = HydroSight_GUI.removeHTMLTags(data{irow,16});
+                if ~isempty(boreID)
+                    statusbarStr = boreID;
+                else
+                    statusbarStr = '(No bore ID)';
+                end
+                if ~isempty(fname)
+                    statusbarStr = [statusbarStr, ', ',fname];
+                end
+                statusbarStr = [statusbarStr, ', ',modelStatus];
+                if any(strcmp(modelStatus,{'Analysed.','Bore analysed.'}))
+                    nErrs = HydroSight_GUI.removeHTMLTags(data{irow,end-1});
+                    nOutliers = HydroSight_GUI.removeHTMLTags(data{irow,end});
+                    statusbarStr = [statusbarStr, ', Num. Errors:',num2str(nErrs), ', Num. Outliers:',num2str(nOutliers)];
+                end
+                obj.String = statusbarStr;                
             
                 % Remove HTML tags from the column name
                 columnName = HydroSight_GUI.removeHTMLTags(eventdata.Source.ColumnName{icol});             
@@ -2748,7 +2804,29 @@ classdef HydroSight_GUI < handle
             this.tab_ModelConstruction.currentCol = icol;
                         
             % Get the data cell array of the table            
-            data=get(hObject,'Data');                  
+            data=get(hObject,'Data');    
+
+            % Set status bar
+            obj = findobj(this.tab_ModelConstruction.Panel,'Tag','Statusbar model construction');
+            modelLabel = data{irow,2};
+            fname = data{irow,3};
+            boreID = data{irow,6};
+            modelStatus = HydroSight_GUI.removeHTMLTags(data{irow,end});
+            if ~isempty(modelLabel)
+                statusbarStr = modelLabel;
+            else
+                statusbarStr = '(No model label)';
+            end
+            if ~isempty(boreID)
+                statusbarStr = [statusbarStr, ', ',boreID];
+            else
+                statusbarStr = [statusbarStr, ', ','(No bore ID)'];
+            end
+            if ~isempty(fname)
+                statusbarStr = [statusbarStr, ', ',fname];
+            end
+            statusbarStr = [statusbarStr, ', ',modelStatus];
+            obj.String = statusbarStr;
             
             % Warn if the selected column would change a model that's
             % already build.
@@ -3023,10 +3101,13 @@ classdef HydroSight_GUI < handle
                     modelStatus = HydroSight_GUI.removeHTMLTags(data{irow,end});
 
                     % Get the model label.
-                    modelLabel = HydroSight_GUI.modelLabel2FieldName(data{irow,2});
+                    modelLabel = '';
+                    if ~isempty(data{irow,2})
+                        modelLabel = HydroSight_GUI.modelLabel2FieldName(data{irow,2});
+                    end
 
                     % Build text for summary of results.
-                    if isfield(this.models,modelLabel)
+                    if ~isempty(modelLabel) && isfield(this.models,modelLabel)
                         % Get the model object.
                         [model, errmsg] = getModel(this, modelLabel);
 
@@ -3110,7 +3191,7 @@ classdef HydroSight_GUI < handle
                     % Find object
                     obj = findobj(this.tab_ModelConstruction.modelOptions.vbox,'Tag','Model Construction - status box');
 
-                    % Add ststus to box
+                    % Add status to box
                     set(obj,'String',modelStatus);
 
                     % Show the text box.
@@ -3118,8 +3199,7 @@ classdef HydroSight_GUI < handle
                 otherwise
                      % Hide the panels.
                      this.tab_ModelConstruction.modelOptions.vbox.Heights = [0; 0 ; 0; 0; 0];
-            end
-
+             end
         end
             
         function modelConstruction_optionsSelection(this, hObject, ~)
@@ -3411,6 +3491,16 @@ classdef HydroSight_GUI < handle
             % Record the current row and column numbers
             this.tab_ModelCalibration.currentRow = irow;
             this.tab_ModelCalibration.currentCol = icol;
+
+            % Set status bar
+            obj = findobj(this.tab_ModelCalibration.Panel,'Tag','Statusbar model calibration');
+            modelLabel = HydroSight_GUI.removeHTMLTags(data{irow,2});
+            boreID = HydroSight_GUI.removeHTMLTags(data{irow,3});
+            calibMethod = data{irow,8};
+            modelStatus = HydroSight_GUI.removeHTMLTags(data{irow,9});
+            calibCoE = HydroSight_GUI.removeHTMLTags(data{irow,10});
+            calibAIC = HydroSight_GUI.removeHTMLTags(data{irow,12});
+            obj.String = [modelLabel,', ', boreID,', ',calibMethod,', ',modelStatus,', CoE: ', calibCoE,', AICc: ', calibAIC];
 
             % Remove HTML tags from the column name
             columnName  = HydroSight_GUI.removeHTMLTags(eventdata.Source.ColumnName{icol});
@@ -5747,7 +5837,32 @@ classdef HydroSight_GUI < handle
             
             % Get table data
             data=get(hObject,'Data');
-            
+
+            % Set status bar
+            obj = findobj(this.tab_ModelSimulation.Panel,'Tag','Statusbar model simulation');            
+            if isempty(data{irow,2})
+                modelLabel = '(No model label)';
+            else
+                modelLabel = HydroSight_GUI.removeHTMLTags(data{irow,2});
+            end            
+            if isempty(data{irow,3})
+                boreID = '(No bore ID)';
+            else
+                boreID = HydroSight_GUI.removeHTMLTags(data{irow,3});
+            end                        
+            if isempty(data{irow,6})
+                simLabel ='(No sim. label)';
+            else
+                simLabel = data{irow,6};
+            end             
+            if isempty(data{irow,10})
+                simTimestep ='Obs. head dates';
+            else
+                simTimestep = data{irow,10};          
+            end                           
+            modelStatus = HydroSight_GUI.removeHTMLTags(data{irow,end});
+            obj.String = [modelLabel,', ', boreID,', ',simLabel,', Time step: ',simTimestep,', ', modelStatus];
+                        
             % Warn the user if the simulation is already complete and the
             % inputs are to change - requiring the model simulation to to be reset.
             if ~isempty(hObject.Data)
@@ -11437,6 +11552,26 @@ classdef HydroSight_GUI < handle
             for i=1:length(this.modelTypes)
                 initialise(this.tab_ModelConstruction.modelTypes.(this.modelTypes{i}).obj);
             end
+
+            % Initialise status bars
+            obj = findobj(this.tab_DataPrep.Panel,'Tag','Statusbar bore analysis');
+            obj.String = '(No bore selected)';
+            obj = findobj(this.tab_ModelConstruction.Panel,'Tag','Statusbar model construction');
+            obj.String = '(No model selected)';
+            obj = findobj(this.tab_ModelCalibration.Panel,'Tag','Statusbar model calibration');
+            obj.String = '(No model selected)';
+            obj = findobj(this.tab_ModelSimulation.Panel,'Tag','Statusbar model simulation');
+            obj.String = '(No model selected)';
+
+            % Initialise indexes for selected row and colum  from each table
+            this.tab_DataPrep.currentRow = [];
+            this.tab_DataPrep.currentCol = [];
+            this.tab_ModelConstruction.currentRow = [];
+            this.tab_ModelConstruction.currentCol = [];                        
+            this.tab_ModelCalibration.currentRow = [];
+            this.tab_ModelCalibration.currentCol = [];            
+            this.tab_ModelSimulation.currentRow = [];
+            this.tab_ModelSimulation.currentCol = [];            
         end
     end
     
