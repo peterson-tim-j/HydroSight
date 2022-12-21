@@ -191,21 +191,9 @@ classdef HydroSight_GUI < handle
                 return;
             end
 
-            % Redefine print button
-            if noDesktop; disp('Adding print buttons...'); end
-            hToolbutton = findall(hToolbar,'tag','Standard.PrintFigure');            
-            set(hToolbutton, 'ClickedCallback',@this.onPrint, 'TooltipString','Open the print preview window for the displayed plot ...');
-            hToolbutton.Visible = 'off';
-            hToolbutton.UserData = 'Plot';
-            hToolbutton.Separator = 'off';
-                        
-            % Check if version is 2018b or later. From this point the
-            % plot toolbar buttons moved into the plot.
-            v=version();
-            ind = strfind(v,'.');
-            v_major = str2double(v(1:(ind(1)-1)));
-            v_minor = str2double(v((ind(1)+1):(ind(2)-1)));
-            isBefore2018b = v_major<10 & v_minor<5; %ie is version <9.5;           
+            % Hide print button
+             hToolbutton = findall(hToolbar,'tag','Standard.PrintFigure');            
+             hToolbutton.Visible = 'off';
             
             % Hide property inspector
             try 
@@ -216,46 +204,6 @@ classdef HydroSight_GUI < handle
             catch
                 % do nothing
             end
-                
-            
-%             % Add tool bar          
-%             if isBefore2018b
-%                 hToolbutton = findall(hToolbar,'tag','Plottools.PlottoolsOn');                        
-%                 hToolbutton.Visible = 'off';
-%                 hToolbutton.UserData = 'Plot';	
-%                 hToolbutton.Separator = 'off';
-%                 hToolbutton = findall(hToolbar,'tag','Plottools.PlottoolsOff');            
-%                 hToolbutton.Visible = 'off';
-%                 hToolbutton.UserData = 'Never';	
-%                 hToolbutton.Separator = 'off';
-%                 hToolbutton = findall(hToolbar,'tag','Exploration.Brushing');            
-%                 hToolbutton.Visible = 'off';
-%                 hToolbutton.UserData = 'Plot';
-%                 hToolbutton.Separator = 'off';
-%                 hToolbutton = findall(hToolbar,'tag','Exploration.DataCursor');            
-%                 hToolbutton.Visible = 'off';
-%                 hToolbutton.UserData = 'Plot';
-%                 hToolbutton.Separator = 'off';
-%                 hToolbutton = findall(hToolbar,'tag','Exploration.Rotate');            
-%                 hToolbutton.Visible = 'off';
-%                 hToolbutton.UserData = 'Never';
-%                 hToolbutton.Separator = 'off';
-%                 hToolbutton = findall(hToolbar,'tag','Exploration.Pan');            
-%                 hToolbutton.Visible = 'off';
-%                 hToolbutton.UserData = 'Plot';
-%                 hToolbutton.Separator = 'off';
-%                 hToolbutton = findall(hToolbar,'tag','Exploration.ZoomOut');            
-%                 hToolbutton.Visible = 'off';
-%                 hToolbutton.UserData = 'Plot';
-%                 hToolbutton.Separator = 'off';
-%                 hToolbutton = findall(hToolbar,'tag','Exploration.ZoomIn');            
-%                 hToolbutton.Visible = 'off';
-%                 hToolbutton.UserData = 'Plot';
-%                 hToolbutton.Separator = 'off';
-%                 uipushtool(hToolbar,'cdata',iconData.implay, 'tooltip','Export displayed plot to PNG file ...', ...
-%                     'ClickedCallback',@this.onExportPlot, ...
-%                     'tag','Export.plot', 'Visible','off');
-%             end
 
             if noDesktop; disp('Add new buttons...'); end
             hToolbutton = findall(hToolbar,'tag','Standard.NewFigure');            
@@ -287,11 +235,6 @@ classdef HydroSight_GUI < handle
             if noDesktop; disp('Add help button...'); end
             uipushtool(hToolbar,'cdata',iconData.help, 'tooltip','Open help for the current tab ...', 'ClickedCallback',@this.onDocumentation);
             clear iconData
-
-            % Add separator.
-            if isBefore2018b
-                hToolbar.Children(13).Separator = 'on';
-            end
             
             % Reset hidden state
             set(0,'ShowHiddenHandles',oldState);
@@ -530,17 +473,17 @@ classdef HydroSight_GUI < handle
             set(hbox1t4,'Sizes',[90 -1])
             
             % Create vbox for the various model options
-            this.tab_ModelConstruction.modelOptions.vbox = uiextras.VBoxFlex('Parent',hbox1t3,'Padding', 0, 'Spacing', 3, 'DividerMarkings','off');
+            this.tab_ModelConstruction.modelOptions.vbox = uiextras.VBoxFlex('Parent',hbox1t3,'Padding', 0, 'Spacing', 0, 'DividerMarkings','off');
             
             % Add model options panel for bore IDs
             dynList = [];
-            hbox4t3 = uiextras.HBox('Parent',this.tab_ModelConstruction.modelOptions.vbox, 'Padding', 0, 'Spacing', 3, 'Visible','on');
-            buttons_boreID = uiextras.VButtonBox('Parent',hbox4t3 ,'Padding', 3, 'Spacing', 3);
+            hbox4t3 = uiextras.HBox('Parent',this.tab_ModelConstruction.modelOptions.vbox, 'Padding', 0, 'Spacing', 0, 'Visible','on');
+            buttons_boreID = uiextras.VButtonBox('Parent',hbox4t3 ,'Padding', 0, 'Spacing', 3);
             uicontrol('Parent',buttons_boreID,'String','<','FontSize',14,'FontWeight','bold', 'ForegroundColor',[0.07, 0.62 1], ...
                 'Callback', @this.modelConstruction_optionsSelection, 'TooltipString','Copy the Site IDs to current model.','Tag','current');
             uicontrol('Parent',buttons_boreID,'String','<<','FontSize',14,'FontWeight','bold', 'ForegroundColor',[0.07, 0.62 1], ...
                 'Callback', @this.modelConstruction_optionsSelection, 'TooltipString','Copy the Site IDs to all selected models.','Tag','selected');            
-            vbox4t3 = uiextras.VBox('Parent',hbox4t3 , 'Padding', 3, 'Spacing', 3, 'Visible','on');
+            vbox4t3 = uiextras.VBox('Parent',hbox4t3 , 'Padding', 0, 'Spacing', 3, 'Visible','on');
             uicontrol( 'Parent', vbox4t3,'Style','text','String',sprintf('%s\n%s%s','Please select the Site ID(s) for the model:'), 'Units','normalized');            
             this.tab_ModelConstruction.boreIDList = uicontrol('Parent',vbox4t3,'Style','list','BackgroundColor','w', ...
                 'String',dynList(:),'Value',1, 'Units','normalized', 'min',0,'max',2,'Tag','Model Construction - bore ID list', ...
@@ -549,7 +492,7 @@ classdef HydroSight_GUI < handle
             set(hbox4t3, 'Sizes', [40 -1 ]);
             
             % Add model options panel for decriptions of each model type
-            vbox5t3 = uiextras.VBox('Parent',this.tab_ModelConstruction.modelOptions.vbox, 'Padding', 0, 'Spacing', 3, 'Visible','on');
+            vbox5t3 = uiextras.VBox('Parent',this.tab_ModelConstruction.modelOptions.vbox, 'Padding', 0, 'Spacing', 0, 'Visible','on');
             this.tab_ModelConstruction.modelDescriptions = uicontrol( 'Parent', vbox5t3,'Style','text','String','(No model type selected.)', 'HorizontalAlignment','left','Units','normalized');                        
             set(vbox5t3, 'Sizes', -1);
             
@@ -563,7 +506,7 @@ classdef HydroSight_GUI < handle
             for i=1:length(this.modelTypes)
                 switch this.modelTypes{i}
                     case 'model_TFN'
-                        this.tab_ModelConstruction.modelTypes.(this.modelTypes{i}).hbox = uiextras.HBox('Parent',this.tab_ModelConstruction.modelOptions.vbox,'Padding', 3, 'Spacing', 3);
+                        this.tab_ModelConstruction.modelTypes.(this.modelTypes{i}).hbox = uiextras.HBox('Parent',this.tab_ModelConstruction.modelOptions.vbox,'Padding', 0, 'Spacing', 0);
                         this.tab_ModelConstruction.modelTypes.(this.modelTypes{i}).buttons = uiextras.VButtonBox('Parent',this.tab_ModelConstruction.modelTypes.(this.modelTypes{i}).hbox,'Padding', 3, 'Spacing', 3);
                         uicontrol('Parent',this.tab_ModelConstruction.modelTypes.(this.modelTypes{i}).buttons,'String','<','FontSize',14,'FontWeight','bold', 'ForegroundColor',[0.07, 0.62 1], ...
                             'Callback', @this.onApplyModelOptions, 'TooltipString','Copy model options to current model.');
@@ -573,7 +516,7 @@ classdef HydroSight_GUI < handle
                         this.tab_ModelConstruction.modelTypes.(this.modelTypes{i}).hbox.Widths=[40 -1];
                         includeModelOption(i) = true;
                     case 'ExpSmooth'  
-                        this.tab_ModelConstruction.modelTypes.ExpSmooth.hbox = uiextras.HBox('Parent',this.tab_ModelConstruction.modelOptions.vbox,'Padding', 3, 'Spacing', 3);                        
+                        this.tab_ModelConstruction.modelTypes.ExpSmooth.hbox = uiextras.HBox('Parent',this.tab_ModelConstruction.modelOptions.vbox,'Padding', 0, 'Spacing', 0);                        
                         uicontrol( 'Parent', this.tab_ModelConstruction.modelTypes.ExpSmooth.hbox,'Style','text', ...
                         'String','The exponential smoothing model does not have any model option.','HorizontalAlignment','center', 'Units','normalized');            
                     
@@ -595,11 +538,12 @@ classdef HydroSight_GUI < handle
             this.tab_ModelConstruction.Table.ColumnFormat{8} = this.modelTypes(includeModelOption);
             
             % Add model options panel for model construction status.
-            vbox6t3 = uiextras.VBox('Parent',this.tab_ModelConstruction.modelOptions.vbox, 'Padding', 0, 'Spacing', 3, 'Visible','on');
+            vbox6t3 = uiextras.VBox('Parent',this.tab_ModelConstruction.modelOptions.vbox, 'Padding', 0, 'Spacing', 0, 'Visible','on');
+            uicontrol( 'Parent', vbox6t3,'Style','text','String',sprintf('%s\n%s%s','Model build status:'),'Units','normalized');
             uicontrol('Parent',vbox6t3,'Style','edit','BackgroundColor','w', 'String','','HorizontalAlignment','left','FontSize',10, 'Units','normalized', ...
                 'Tag','Model Construction - status box','Max',100, 'Enable','inactive');
-            set(vbox6t3, 'Sizes', -1);
-            
+            set(vbox6t3, 'Sizes', [30 -1]);
+
             % Hide all modle option vboxes 
             this.tab_ModelConstruction.modelOptions.vbox.Heights = zeros(size(this.tab_ModelConstruction.modelOptions.vbox.Heights));
 
@@ -1148,43 +1092,6 @@ classdef HydroSight_GUI < handle
             end         
             if noDesktop; disp('Finished creating GUI figure.'); end
         end
-
-        % Show show plotting icons
-        function plotToolbarState(this,iconState)
-            % Check if version is 2018b or later. From this point the
-            % plot toolbar buttons moved into the plot.
-            % Check if version is 2018b or later. From this point the
-            % plot toolbar buttons moved into the plot.
-            v=version();
-            ind = strfind(v,'.');
-            v_major = str2double(v(1:(ind(1)-1)));
-            v_minor = str2double(v((ind(1)+1):(ind(2)-1)));
-            isBefore2018b = v_major<10 & v_minor<5; %ie is version <9.5;           
-
-            if isBefore2018b 
-                hToolbar = findall(this.Figure,'tag','FigureToolBar');
-                hToolbutton = findall(hToolbar,'tag','Exploration.Brushing');            
-                hToolbutton.Visible = 'off';
-                hToolbutton = findall(hToolbar,'tag','Exploration.DataCursor');            
-                hToolbutton.Visible = iconState;
-                hToolbutton = findall(hToolbar,'tag','Exploration.Rotate');            
-                hToolbutton.Visible = 'off';
-                hToolbutton = findall(hToolbar,'tag','Exploration.Pan');            
-                hToolbutton.Visible = iconState;
-                hToolbutton = findall(hToolbar,'tag','Exploration.ZoomOut');            
-                hToolbutton.Visible = iconState;
-                hToolbutton = findall(hToolbar,'tag','Exploration.ZoomIn');            
-                hToolbutton.Visible = iconState;
-                hToolbutton = findall(hToolbar,'tag','Standard.PrintFigure');            
-                hToolbutton.Visible = iconState;
-                hToolbutton = findall(this.Figure,'tag','Export.plot');            
-                hToolbutton.Visible = iconState;
-                hToolbutton = findall(hToolbar,'tag','Standard.EditPlot');            
-                hToolbutton.Visible = 'off';            
-                hToolbutton = findall(hToolbar,'tag','Plottools.PlottoolsOn');            
-                hToolbutton.Visible = 'off';                          
-            end
-        end        
         
         % Set project folder
         function onSetProjectFolder(this,~,~)
@@ -1718,7 +1625,7 @@ classdef HydroSight_GUI < handle
                         end
                     end
                     this.tab_ModelSimulation.Table.Data(:,2) = model_label;
-                catch ME
+                catch
                     set(this.Figure, 'pointer', 'arrow');
                     drawnow update;
                     h = warndlg('Data could not be assigned to the user interface table: Model Simulation','File table error');
@@ -2162,7 +2069,7 @@ classdef HydroSight_GUI < handle
             if isempty(data)
                 return
             end
-            
+
             % Fix bug in col 15 bng integer, not logical
             if ~islogical(data{1,15})
                 if data{1,15}==1
@@ -2477,7 +2384,7 @@ classdef HydroSight_GUI < handle
                     set(this.tab_DataPrep.modelOptions.vbox, 'Sizes',[-1 -1]);
 
                     % SHow plot icons
-                    plotToolbarState(this,'on');
+%                     plotToolbarState(this,'on');
 
                 elseif ~isempty(this.dataPrep) && ~isempty(boreID) && ...
                         isfield(this.dataPrep,boreID) && ~isempty(this.dataPrep.(boreID)) && ...
@@ -2566,7 +2473,7 @@ classdef HydroSight_GUI < handle
                     set(this.tab_DataPrep.modelOptions.vbox, 'Sizes',[-1 -1]);
 
                     % SHow plot icons
-                    plotToolbarState(this,'on');
+%                     plotToolbarState(this,'on');
                 elseif icol~=3 % only hide if not selecting the bore ID
                     obj = findobj(this.tab_DataPrep.modelOptions.vbox, 'Tag','Data Preparation - options panels');
                     set(obj,'Sizes',[0; 0; 0]);
@@ -2777,7 +2684,7 @@ classdef HydroSight_GUI < handle
         function modelConstruction_tableSelection(this, hObject, eventdata)
             
             % Hide plotting toolbars
-            plotToolbarState(this, 'off');
+%             plotToolbarState(this, 'off');
             
             % Get table indexes
             icol=eventdata.Indices(:,2);
@@ -3291,7 +3198,7 @@ classdef HydroSight_GUI < handle
         function modelConstruction_tableEdit(this, hObject, eventdata)
             
             % Hide plotting toolbars
-            plotToolbarState(this, 'off');            
+%             plotToolbarState(this, 'off');            
             
             icol=eventdata.Indices(:,2);
             irow=eventdata.Indices(:,1);                        
@@ -4142,7 +4049,7 @@ classdef HydroSight_GUI < handle
             % Exit if model not found.
             if isempty(tmpModel)    
                 % Turn off plot icons
-                plotToolbarState(this,'off');  
+%                 plotToolbarState(this,'off');  
                 
                 % Change cursor
                 set(this.Figure, 'pointer', 'arrow');   
@@ -4251,7 +4158,7 @@ classdef HydroSight_GUI < handle
             end
            
             % Turn on plot icons
-            plotToolbarState(this,'on');            
+%             plotToolbarState(this,'on');            
 
             % Chane cursor
             set(this.Figure, 'pointer', 'arrow');   
@@ -4916,7 +4823,7 @@ classdef HydroSight_GUI < handle
             %drawnow update;
                         
             % Turn on plot icons
-            plotToolbarState(this,'on');
+%             plotToolbarState(this,'on');
             
             % Get the calculate for the time step aggregation
             obj = findobj(this.(thisPanelName).resultsOptions.forcingPanel, 'Tag','Forcing plot calc type');
@@ -5817,7 +5724,7 @@ classdef HydroSight_GUI < handle
         function modelSimulation_tableSelection(this, hObject, eventdata)
             
             % Hide plotting toolbar
-            plotToolbarState(this,'off');
+%             plotToolbarState(this,'off');
                        
             % Get GUI table indexes            
             icol=eventdata.Indices(:,2);
@@ -6192,7 +6099,7 @@ classdef HydroSight_GUI < handle
                 end
                 
                 % Update plot
-                plotToolbarState(this,'on');
+%                 plotToolbarState(this,'on');
                 modelSimulation_onUpdatePlotSetting(this, hObject, eventdata, tmpModel, simLabel);
                 this.tab_ModelSimulation.resultsTabs.TabEnables{2} = 'on';
                
@@ -6487,7 +6394,7 @@ classdef HydroSight_GUI < handle
         function onAnalyseBores(this, ~, ~)           
                             
             % Hide plot icons
-            plotToolbarState(this,'off');            
+%             plotToolbarState(this,'off');            
             
             % Get table data
             data = this.tab_DataPrep.Table.Data;
@@ -6836,7 +6743,7 @@ classdef HydroSight_GUI < handle
         function onBuildModels(this, ~, ~)
 
             % Hide plotting toolbars
-            plotToolbarState(this, 'off');            
+%             plotToolbarState(this, 'off');            
             
             % Change cursor to arrow
             set(this.Figure, 'pointer', 'watch');
@@ -9569,155 +9476,7 @@ classdef HydroSight_GUI < handle
         
         function onLicenseDisclaimer(this, ~, ~) %#ok<INUSD> 
            web('https://github.com/peterson-tim-j/HydroSight/wiki/Disclaimer-and-Licenses','-browser');
-        end                       
-        
-        function onPrint(this, ~, ~)
-            switch this.figure_Layout.Selection
-                case {1,3}
-                    errordlg('No plot is displayed within the current tab.');
-                    return;
-                case 2      % Data prep.
-                    f=figure('Visible','off');
-                    copyobj(this.tab_DataPrep.modelOptions.resultsOptions.plots,f);
-                    printpreview(f);
-                    close(f);                    
-                case 4      % Model Calib.
-                    f=figure('Visible','off');
-                    switch this.tab_ModelCalibration.resultsTabs.SelectedChild
-                        case 1
-                            copyobj(this.tab_ModelCalibration.resultsOptions.calibPanel.Children.Children(1).Children.Children(2),f);
-                        case 2
-                            copyobj(this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(4).Children(end),f);
-                        case 3
-                            copyobj(this.tab_ModelCalibration.resultsOptions.paramsPanel.Children.Children(1).Children,f);                             
-                        case 4
-                            
-                    end
-                    printpreview(f);
-                    close(f);
-                case 5      % Model Simulation.    
-                    f=figure('Visible','off');
-                    nplots = length(this.tab_ModelSimulation.resultsOptions.plots.panel.Children);
-                    copyobj(this.tab_ModelSimulation.resultsOptions.plots.panel.Children(1:nplots),f);
-                    printpreview(f);
-                    close(f);                    
-                otherwise
-                    return;
-            end            
-        end
-        
-%         function onExportPlot(this, ~, ~)
-%             set(this.Figure, 'pointer', 'watch');
-%             switch this.figure_Layout.Selection
-%                 case {1,3}
-%                     errordlg('No plot is displayed within the current tab.');
-%                     return;
-%                 case 2      % Data prep.
-%                     pos = get(this.tab_DataPrep.modelOptions.resultsOptions.box.Children(2),'Position'); 
-%                     legendObj = this.tab_DataPrep.modelOptions.resultsOptions.plots.Legend;
-%                     
-%                     f=figure('Visible','off');
-%                     copyobj(this.tab_DataPrep.modelOptions.resultsOptions.plots,f);
-%                     
-%                     % Format figure                    
-%                     set(f, 'Color', 'w');
-%                     set(f, 'PaperType', 'A4');
-%                     set(f, 'PaperOrientation', 'landscape');
-%                     set(f, 'Position', pos);
-%                 case 4      % Model Calib.
-%                     f=figure('Visible','off');
-%                     switch this.tab_ModelCalibration.resultsTabs.SelectedChild
-%                         case 1
-%                             pos = get(this.tab_ModelCalibration.resultsOptions.calibPanel.Children.Children(1).Children(1),'Position');
-%                             if length(this.tab_ModelCalibration.resultsOptions.calibPanel.Children.Children(1).Children(1))==1
-%                                 legendObj = [];
-%                                 copyobj(this.tab_ModelCalibration.resultsOptions.calibPanel.Children.Children(1).Children(1).Children,f);
-%                             else
-%                                 copyobj(this.tab_ModelCalibration.resultsOptions.calibPanel.Children.Children(1).Children(1).Children(2),f);
-%                                 legendObj = this.tab_ModelCalibration.resultsOptions.calibPanel.Children.Children(1).Children(1).Children(1);
-%                             end
-%                         case 2
-%                             pos = get(this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(4),'Position');
-%                             if length(this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(4))==1
-%                                 copyobj(this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(4).Children,f);
-%                                 legendObj = [];
-%                             else
-%                                 copyobj(this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(4).Children(end),f);
-%                                 legendObj = this.tab_ModelCalibration.resultsOptions.forcingPanel.Contents.Contents(4).Children(end-1);                                
-%                             end
-%                         case 3
-%                             pos = get(this.tab_ModelCalibration.resultsOptions.paramsPanel.Children.Children(1),'Position');
-%                             copyobj(this.tab_ModelCalibration.resultsOptions.paramsPanel.Children.Children(1).Children,f);                             
-%                             legendObj = [];
-%                         case 4
-%                             pos = get(this.tab_ModelCalibration.resultsOptions.derivedParamsPanel.Children.Children(1),'Position');
-%                             copyobj(this.tab_ModelCalibration.resultsOptions.derivedParamsPanel.Children.Children(1).Children,f);                             
-%                             legendObj = [];
-%                             
-%                         case 5
-%                             pos = get(this.tab_ModelCalibration.resultsOptions.modelSpecificsPanel.Children.Children(1),'Position');
-%                             copyobj(this.tab_ModelCalibration.resultsOptions.modelSpecificsPanel.Children.Children(1).Children,f);                             
-%                             legendObj = [];                            
-%                     end
-% 
-%                     % Format figure
-%                     set(f, 'Color', 'w');
-%                     set(f, 'PaperType', 'A4');
-%                     set(f, 'PaperOrientation', 'landscape');
-%                     set(f, 'Position', pos);
-%                     
-%                 case 5      % Model Simulation.    
-%                     f=figure('Visible','off');
-%                     nplots = length(this.tab_ModelSimulation.resultsOptions.plots.panel.Children);
-%                     pos = get(this.tab_ModelSimulation.resultsOptions.plots.panel,'Position');
-%                     copyobj(this.tab_ModelSimulation.resultsOptions.plots.panel.Children(1:nplots),f);  
-%                     legendObj = [];
-%                     
-%                     % Format each axes
-%                     ax =  findall(f,'type','axes');
-%                     for i=1:nplots
-%                         set(ax(i), 'Color', 'w');
-%                     end
-%                     
-%                     % Format figure
-%                     set(f, 'Color', 'w');
-%                     set(f, 'PaperType', 'A4');
-%                     set(f, 'PaperOrientation', 'landscape');
-%                     set(f, 'Position', pos);                    
-%                 otherwise
-%                     return;
-%             end
-%                         
-%             % set current folder to the project folder (if set)
-%             set(this.Figure, 'pointer', 'arrow');
-%             if ~isempty(this.project_fileName)                                
-%                 try    
-%                     if isfolder(this.project_fileName)
-%                         currentProjectFolder = this.project_fileName;
-%                     else
-%                         currentProjectFolder = fileparts(this.project_fileName);
-%                     end 
-%                     
-%                     currentProjectFolder = [currentProjectFolder,filesep];
-%                     cd(currentProjectFolder);
-%                 catch
-%                     % do nothing
-%                 end
-%             end
-%             fName = uiputfile({'*.png'},'Save plot PNG image as ...','plot.png');    
-%             if fName~=0    
-%                 set(this.Figure, 'pointer', 'watch');
-%                 
-%                 % Export image
-%                 if ~isempty(legendObj)
-%                     legend(gca,legendObj.String,'Location',legendObj.Location)
-%                 end
-%                 export_fig(f, fName);
-%             end
-%             close(f);
-%             set(this.Figure, 'pointer', 'arrow');
-%             
-%         end
+        end                              
 
         % Load example models
         function onExamples(this, ~, eventdata, folderName)
@@ -10032,7 +9791,7 @@ classdef HydroSight_GUI < handle
             % Exit if model not found.
             if isempty(tmpModel)
                 % Turn off plot icons
-                plotToolbarState(this,'off');
+%                 plotToolbarState(this,'off');
 
                 % Change cursor
                 set(this.Figure, 'pointer', 'arrow');
@@ -10102,7 +9861,7 @@ classdef HydroSight_GUI < handle
                     obj.Value = plotID;
 
                     % Update plot
-                    plotToolbarState(this,'on');
+%                     plotToolbarState(this,'on');
                     modelSimulation_onUpdatePlotSetting(this, hObject, eventdata, tmpModel, simLabel);
                     this.tab_ModelSimulation.resultsTabs.TabEnables{2} = 'on';
 

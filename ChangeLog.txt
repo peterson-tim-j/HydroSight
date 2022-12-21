@@ -312,3 +312,5 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 
 21 Dec 2022
 * Status bar added to all GUI LHS tabs. This was added to avoid the need to scroll left to identify the label of the currently displayed model (ie on RHS).
+* Removed redundent code for <=2018 Matlab exporting of figures.
+* Model construction model status tab shifted down to align nicely with LHS panel top.
