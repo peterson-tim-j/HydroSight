@@ -2717,7 +2717,7 @@ classdef HydroSight_GUI < handle
             modelLabel = data{irow,2};
             fname = data{irow,3};
             boreID = data{irow,6};
-            modelStatus = HydroSight_GUI.removeHTMLTags(data{irow,end});
+            modelStatus = 'Not built.';
             if ~isempty(modelLabel)
                 statusbarStr = modelLabel;
             else
@@ -2731,6 +2731,10 @@ classdef HydroSight_GUI < handle
             if ~isempty(fname)
                 statusbarStr = [statusbarStr, ', ',fname];
             end
+            if ~isempty(data{irow,end})
+                modelStatus = HydroSight_GUI.removeHTMLTags(data{irow,end});                
+            end
+            statusbarStr = [statusbarStr, ', ',modelStatus];
             statusbarStr = [statusbarStr, ', ',modelStatus];
             obj.String = statusbarStr;
             
