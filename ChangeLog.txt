@@ -289,7 +289,7 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 * Minor GUI tweaks: dialog timeout reduced from 30 to 15 sec, initialiseGUI() added to allow consistent initialisation, tag fields added to dialogs to allow closure during testing, control of new DREAM settings added to GUI.
 * Updated example of pumping and climate to (i) show new feature of using S for climate estimates and (ii) to account for new steady state estimation of the initial soil moisture.
 
-23 Nov 2023
+23 Nov 2022
 * Landcover change example extended to include forcing data .csv file for simulations.
 * DREAM calibration performance improved by the addition of options for the initial sampling method and the initial standard deviation for the sampling. This allows a model to be calibrated using CMA-ES or SP-UCI and then the DREAM can be used to sample around the previously idenified solution.
 * Unit testing added. It includes the following tests: all example models built and simulated, outlier detection, soil moisture TFN model built and calibrated using all calibration schemes, display of calibration results and forcing plots. To run the tests, using the following command within matlab: testHydroSight().
@@ -314,3 +314,13 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 * Status bar added to all GUI LHS tabs. This was added to avoid the need to scroll left to identify the label of the currently displayed model (ie on RHS).
 * Removed redundent code for <=2018 Matlab exporting of figures.
 * Model construction model status tab shifted down to align nicely with LHS panel top.
+
+11 Mar 2023
+* Bug fixed in table export and import that caused the dates to no longer have the left two digits of the year.
+* Snow melt model added to one and two layer soil models. 
+* Minor version number increase.
+
+17 March 2023
+* Bug fixed in the dropdown list of model labels within simulation tab. It occured when the simulation table is empty.
+* Bug fixed in the use of new simulation forcing data when pumping downscaling (pumpingRate_SAestimation.m).
+* Outlines removed from grey fill (for plotting of heads) to better show dynamcis.

@@ -8,15 +8,18 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     /* Declare input model parameters and the number of sub-daily timesteps*/
     const double  S0 = mxGetScalar( prhs[0] ), 
-                  S_cap = mxGetScalar( prhs[3] ),
-                  Ksat = mxGetScalar( prhs[4] ),
-                  alpha = mxGetScalar( prhs[5] ),
-                  beta = mxGetScalar( prhs[6] ),
-                  gamma = mxGetScalar( prhs[7] ),
-				  eps = mxGetScalar( prhs[8] );        
+                  S_cap = mxGetScalar( prhs[4] ),
+                  Ksat = mxGetScalar( prhs[5] ),
+                  alpha = mxGetScalar( prhs[6] ),
+                  beta = mxGetScalar( prhs[7] ),
+                  gamma = mxGetScalar( prhs[8] ),
+				  eps = mxGetScalar( prhs[9] ), 
+                  DDF = mxGetScalar( prhs[10] ),
+                  melt_threshold = mxGetScalar( prhs[11] );
 
     /* Declare input data */
-    const double *precip= mxGetPr( prhs[1] ), *et= mxGetPr( prhs[2] );
+    double *precip= mxGetPr( prhs[1] );
+    const double *et= mxGetPr( prhs[2] ), *temp= mxGetPr( prhs[3] );
      
     /* Declare output data */    
     double *soilMoisture;
@@ -24,13 +27,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     /* Declare ODE variables */
     double soilMoisture_frac, 
            dSdt_precip, d2Sdt2_precip, dSdt_et, dSdt_drain,
-           dSdt, dSdt_iprevDay;
+           dSdt, dSdt_iprevDay, melt, snow, snow_prev;
             
     /* Declare general ODE solver variables */    
     double f_delta, f, df, relerr, abserr, funcerr;
     const double dt=1.0;
     const unsigned int nDays = (int)mxGetM(prhs[1] );
-    unsigned int iDay;
+    unsigned int iDay, hasSnow;
     unsigned short its, useNewtonsMethod=1, noPrecip = 1;
     unsigned int nIterations = 0, nIterations_bisect = 0;
 
@@ -49,6 +52,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     plhs[0] = mxCreateDoubleMatrix(nDays,1,mxREAL);         
     soilMoisture = mxGetPr(plhs[0]);
 
+    hasSnow = 0;
+    if (isfinite(DDF) && isfinite(melt_threshold)) {
+        hasSnow = 1;
+        snow_prev = 0;
+    } 
     
     /*Cycle though all days within ClimateData to approximate the soil 
     moisture ode via fixed time-step explicit solver. */    
@@ -58,6 +66,20 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         /* mexPrintf("%s%d\n", "... Solving SMS for iDay=", iDay);
          **/
         
+        /* Update snow and melt data */
+        if (hasSnow==1) {
+            if (temp[iDay] <= melt_threshold) {
+                melt = 0.0;
+                snow = snow_prev + precip[iDay];
+                precip[iDay] = 0.0;
+            } else {
+                melt = DDF*(temp[iDay] - melt_threshold);
+                snow = MAX(snow_prev - melt,0.0);
+                precip[iDay] = precip[iDay] + MIN(snow_prev, melt);
+            }
+            snow_prev = snow;
+        }
+
         if (precip[iDay]>0.0) 
             noPrecip =  0;
         else

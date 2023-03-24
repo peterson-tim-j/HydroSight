@@ -864,7 +864,7 @@ classdef HydroSightModel < handle
                    YFill = [obj.simulationResults{simInd,1}.head(:,2)'+obj.simulationResults{simInd,1}.noise(:,3)', ...
                            fliplr(obj.simulationResults{simInd,1}.head(:,2)'-obj.simulationResults{simInd,1}.noise(:,2)')];       
                    
-                   fill(XFill, YFill,[0.8 0.8 0.8],'Parent',h);
+                   fill(XFill, YFill,[0.8 0.8 0.8],'Parent',h, 'LineStyle','none');
                    clear XFill YFill
                    hold(h,'on');
                end
@@ -876,18 +876,18 @@ classdef HydroSightModel < handle
                    YFill = [obj.simulationResults{simInd,1}.head(:,4)', ...
                        fliplr(obj.simulationResults{simInd,1}.head(:,3)')];
                    
-                   fill(XFill, YFill,[0.6 0.6 0.6],'Parent',h);
+                   fill(XFill, YFill,[0.6 0.6 0.6],'Parent',h, 'LineStyle','none');
                    clear XFill YFill
                    hold(h,'on');
                end
                
                % Plot modelled deterministic componant.
-               plot(h, obj.simulationResults{simInd,1}.head(:,1), obj.simulationResults{simInd,1}.head(:,2),'-b' );
+               plot(h, obj.simulationResults{simInd,1}.head(:,1), obj.simulationResults{simInd,1}.head(:,2),'-b', 'LineWidth',0.05 );
                hold(h,'on');
                
                % Plot observed head
                head = getObservedHead(obj);
-               plot(h, head(:,1), head(:,2),'.-k' );
+               plot(h, head(:,1), head(:,2),'.-k', 'LineWidth',0.025,'MarkerSize',2 );
                   
                % Set axis labels,  title and x axis limits
                datetick(h, 'x','yy');
@@ -944,7 +944,7 @@ classdef HydroSightModel < handle
                        YFill = [obj.simulationResults{simInd,1}.head(:,3*(ii+1)+1)', ...
                                 fliplr(obj.simulationResults{simInd,1}.head(:, 3*(ii+1))')];
 
-                       fill(XFill, YFill,[0.6 0.6 0.6],'Parent',h);
+                       fill(XFill, YFill,[0.6 0.6 0.6],'Parent',h, 'LineStyle','none');
                        clear XFill YFill               
                        hold(h,'on');                    
                        plot(h, obj.simulationResults{simInd,1}.head(:,1), obj.simulationResults{simInd,1}.head(:,3*(ii+1)-1),'-b' );
@@ -1833,13 +1833,13 @@ classdef HydroSightModel < handle
 
                         obj.calibrationResults.exitFlag = exitFlag;
                         obj.calibrationResults.exitStatus = exitStatus;                        
-                    elseif any( strcmp(exitflag, 'tolx')) && ~any( strcmp(exitflag, 'tolfun'))
+                    elseif any( strcmp(exitflag, 'tolx')) && ~any( strcmp(exitflag, 'tolfun')) && ~any( strcmp(exitflag, 'tolhistfun'))
                         exitFlag=1;
                         exitStatus = ['Only parameter convergence (not obj. function convergence) achieved in ', num2str(numFunctionEvals),' function evaluations.'];
 
                         obj.calibrationResults.exitFlag = exitFlag;
                         obj.calibrationResults.exitStatus = exitStatus;                        
-                    elseif ~any( strcmp(exitflag, 'tolx')) && any( strcmp(exitflag, 'tolfun'))
+                    elseif ~any( strcmp(exitflag, 'tolx')) && (any( strcmp(exitflag, 'tolfun')) || any( strcmp(exitflag, 'tolhistfun')))
                         exitFlag=1;
                         exitStatus = ['Only objective function convergence achieved (not param. convergence) in ', num2str(numFunctionEvals),' function evaluations.'];
 
@@ -1862,7 +1862,7 @@ classdef HydroSightModel < handle
 
                         obj.calibrationResults.exitFlag = exitFlag;
                         obj.calibrationResults.exitStatus = exitStatus;                        
-                    elseif any( strcmp(exitflag, 'tolx')) && any( strcmp(exitflag, 'tolfun'))
+                    elseif any( strcmp(exitflag, 'tolx')) && (any( strcmp(exitflag, 'tolfun')) || any( strcmp(exitflag, 'tolhistfun')))
                         exitFlag=2;
                         exitStatus = ['Parameter and objective function convergence achieved in ', num2str(numFunctionEvals),' function evaluations.'];
 
@@ -2390,7 +2390,7 @@ classdef HydroSightModel < handle
                        YFill = [obj.calibrationResults.data.modelledNoiseBounds(:,3)', ...
                                 fliplr(obj.calibrationResults.data.modelledNoiseBounds(:,2)')];
                    end
-                   fill(XFill, YFill,[0.8 0.8 0.8],'Parent',h);
+                   fill(XFill, YFill,[0.8 0.8 0.8],'Parent',h, 'LineStyle','none');
                    clear XFill YFill               
                    hold(h,'on');
                 end
@@ -2411,7 +2411,7 @@ classdef HydroSightModel < handle
                        YFill = [obj.calibrationResults.data.modelledHead(:,4)', ...
                                 fliplr(obj.calibrationResults.data.modelledHead(:,3)')];
                    end
-                   fill(XFill, YFill,[0.6 0.6 0.6],'Parent',h);
+                   fill(XFill, YFill,[0.6 0.6 0.6],'Parent',h, 'LineStyle','none');
                    clear XFill YFill               
                    hold(h,'on');                    
                 end
@@ -2951,7 +2951,7 @@ classdef HydroSightModel < handle
                 try
                     % Calcule sume of squared errors
                     objectiveFunctionValue =  objectiveFunction( params, time_points, obj.model, getLikelihood );
-                catch
+                catch ME
                     if getLikelihood
                         objectiveFunctionValue = -inf;
                     else

@@ -1,4 +1,4 @@
-classdef climateTransform_soilMoistureModels < forcingTransform_abstract 
+classdef climateTransform_Threshold < forcingTransform_abstract 
 % Class definition for soil moisture transformation of climate forcing.
 %
 % Description        
@@ -154,21 +154,8 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
     properties(GetAccess=public, SetAccess=protected)
                         
         % Model Parameters
-        %----------------------------------------------------------------
-        SMSC            % Soil moisture capacity parameter (as water depth)
-        SMSC_trees      % Trees soil moisture capacity parameter (as water depth)       
-        treeArea_frac   % Scaler for the tree fraction data (optional)
-        S_initialfrac   % Initial soil moisture 
-        k_infilt        % Maximum infiltration rate.
-        k_sat           % Maximum vertical conductivity.
-        bypass_frac     % Fraction of runoff that goes to bypass drainage
-        interflow_frac  % Fraction of free drainage going to interflow (0-1).        
-        alpha           % Power term for infiltration.        
-        beta            % Power term for dainage rate (eg Brook-Corey pore index power term)
-        gamma           % Power term for soil evaporation rate.  
-        eps             % Scaler defining S_min/SMSC ratio. S_min is the minimum soil moisture threshold for having runoff produced. If eps=0, runoff and infiltration terms are as Kavestki 2006. 
-        DDF             % Snow melt degree-Day \factor [L\C\T}.
-        melt_threshold  % Temperature threshold for snow melt [C].
+        %----------------------------------------------------------------        
+        threshold  % Temperature threshold for snow melt [C].
         %----------------------------------------------------------------        
     end
 
@@ -179,85 +166,39 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
 % user of the available model types. 
     methods(Static)
         function [variable_names, isOptionalInput] = inputForcingData_required(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates)
-            variable_names = {'precip';'et';'TreeFraction';'temperature'};
-            isOptionalInput = [false; false; true; true];
+            variable_names = {'climateVariable'};
+            isOptionalInput = false;
         end
         
         function [variable_names] = outputForcingdata_options(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates)
-            variable_names = {'effectivePrecip'; 
-                              'drainage';       'infiltration_fracCapacity';         'infiltration';         'evap_soil';        'evap_gw_potential';        'runoff';      'interflow';         'SMS'; 'SMS_pcnt'; 'snow'; 'melt'; 'liquidWater'; ...
-                              'drainage_tree';  'infiltration_fracCapacity_tree';    'infiltration_tree';    'evap_soil_tree';   'evap_gw_potential_tree';   'runoff_tree';  'interflow_tree';   'SMS_tree'; 'SMS_tree_pcnt'; 'snow_tree'; 'melt_tree'; 'liquidWater_tree'; ...
-                              'drainage_nontree';'infiltration_fracCapacity_nontree';'infiltration_nontree'; 'evap_soil_nontree';'evap_gw_potential_nontree';'runoff_nontree';'interflow_nontree';   'SMS_nontree'; 'SMS_nontree_pcnt'; 'snow_nontree'; 'melt_nontree'; 'liquidWater_nontree';...
-                              'mass_balance_error'; 'mass_balance_error_nontree'; 'mass_balance_error_tree'};
+            variable_names = {'aboveThreshold'; 'belowThreshold'};
         end
         
         function [options, colNames, colFormats, colEdits, toolTip] = modelOptions()
            
-            options = { 'SMSC'          ,   2, 'Calib.';...
-                        'SMSC_trees'    ,   2, 'Fixed';...
-                        'treeArea_frac' , 0.5, 'Fixed'; ...
-                        'S_initialfrac' ,   1, 'Fixed'  ; ...
-                        'k_infilt'      , inf,'Fixed'   ; ...
-                        'k_sat'         ,   1, 'Calib.'   ; ...
-                        'bypass_frac'   ,   0, 'Fixed'    ; ...
-                        'interflow_frac',   0, 'Fixed'    ; ...
-                        'alpha'         ,   1, 'Fixed'    ; ...
-                        'beta'          , 0.5,'Calib.' ; ...
-                        'gamma'         ,   0,  'Fixed' ; ...
-                        'eps'           ,   0,  'Fixed'; ...
-                        'DDF', inf, 'Fixed'; ...
-                        'melt_threshold', inf, 'Fixed'};
+            options = { 'threshold'     ,   0, 'Calib.'};
 
-
-        
             colNames = {'Parameter', 'Initial Value','Fixed or Calibrated?'};
             colFormats = {'char', 'char', {'Calib.' 'Fixed'}};
             colEdits = logical([0 1 1]);
 
-            toolTip = sprintf([ 'SMSC         : log10(Soil moisture capacity).\n', ...
-                                'SMSC_trees   : log10(Tree SMSC).\n', ...
-                                'treeArea_frac: Tree fraction scalar.\n', ...                                
-                                'S_initialfrac: Initial soil moisture scaler.\n', ...
-                                'k_infilt     : log10(Max. infilt. capacity).\n', ...
-                                'k_sat        : log10(Max. drainage rate).\n', ...
-                                'bypass_frac  : Frac. runoff to bypass drainage.\n', ...
-                                'interflow_frac: Frac. drainage to interflow.\n', ...
-                                'alpha        : Power term for infilt. rate.\n', ...
-                                'beta         : log10(Power term for dainage).\n', ...
-                                'gamma        : log10(Power term for soil evap.).\n', ...
-                                'eps          : Threshold SMSC frac. for runoff.\n', ...
-                                'DDF          : Snow melt degree-day factor.\n', ...
-                                'melt_threshold: Temp. threshold for snow melt.']);                               
+            toolTip = sprintf('threshold    : Threshold value.');                               
 
         end
         
         function modelDescription = modelDescription()
-           modelDescription = {'Name: climateTransform_soilMoistureModels', ...
+           modelDescription = {'Name: climateTransform_Threshold', ...
                                '', ...
                                'Purpose: nonlinear transformation of rainfall and areal potential evaporation to a range of forcing data (eg free-drainage) ', ...
                                'using a highly flexible single layer soil moisture model. Two types of land cover can be simulated using two parrallel soil models.', ...
                                '', ...                               
-                               'Number of parameters: 1 to 8', ...
+                               'Number of parameters: 0', ...
                                '', ...                               
                                'Options: each model parameter (excluding the soil moisture capacity) can be set to a fixed value (ie not calibrated) or calibrated.', ...
                                'Also, the input forcing data field "TreeFraction" is optional and only required if the soil model is to simulate land cover change.', ...
                                '', ...                               
                                'Comments: Below is a summary of the model parameters:' , ...
-                                'SMSC          : log10(Soil moisture capacity as water depth).', ...
-                                'SMSC_trees    : log10(Tree soil moisture capacity as water depth).', ...
-                                'treeArea_frac : Scaler applied to the tree fraction input data.', ...                                
-                                'S_initialfrac : Initial soil moisture scaler (0-10) to steady state soln.', ...
-                                'k_infilt      : log10(Soil infiltration capacity as water depth).', ...
-                                'k_sat         : log10(Maximum vertical infiltration rate).', ...
-                                'bypass_frac   : Fraction of runoff to bypass drainage.', ...
-                                'interflow_frac: Fraction of free drainage going to interflow (0-1).', ...
-                                'alpha         : Power term for infiltration rate.', ...
-                                'beta          : log10(Power term for dainage rate).', ...
-                                'gamma         : log10(Power term for soil evap. rate).', ...
-                                'eps           : Fraction of SMSC, below which all precip. infiltrates.',...
-                                '', ...               
-                               'References: ', ...
-                               '1. Peterson & Western (2014), Nonlinear time-series modeling of unconfined groundwater head, Water Resour. Res., 50, 8330-8355'};
+                                'threshold     : threshold climate value.'};
         end        
            
     end
@@ -265,7 +206,7 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
     
     methods       
 %% Construct the model
-        function obj = climateTransform_soilMoistureModels(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates, forcingData_reqCols, modelOptions)            
+        function obj = climateTransform_Threshold(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates, forcingData_reqCols, modelOptions)            
 % climateTransform_soilMoistureModels constructs the soil model object.
 %
 % Syntax:
@@ -348,159 +289,12 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
 % Date:
 %   11 April 2012   
 
-            % Check the MEX 'C' code for the soil moisture model is
-            % compiled for the current operating system.                                                
-            if exist(['forcingTransform_soilMoisture.',mexext()],'file')~=3
-                errorMessage = ['Missing compiled soil moisture "forcingTransform_soilMoisture.',mexext(),'"'];
-                error(errorMessage);
-            end            
-            
-            % Check there are at least two columns in the model options.
-            ncols_modelOptions = size(modelOptions,2);
-            if ncols_modelOptions < 2 || ncols_modelOptions > 3
-                errorMessage = ['The soil moisture model options must be at least two columns, where:' char(13), ...
-                                '  - column 1 is the parameter name.', char(13), ...
-                                '  - column 2 is the parameter value.', char(13), ...
-                                'Note: A third column can be given. This column can contain the input "fixed".', char(13), ...
-                                '      This will make the parameter a constant and it will not be adjusted in the calibration.'];
-                error(errorMessage);
-            end            
-                               
-            % Get a list of required forcing inputs and (again) check that
-            % each of the required inputs is provided.
-            %--------------------------------------------------------------
-            obj.settings.simulateLandCover = false;
-            requiredFocingInputs = climateTransform_soilMoistureModels.inputForcingData_required();
-            for j=1:size(requiredFocingInputs,1)
-                filt = strcmpi(forcingData_reqCols(:,1), requiredFocingInputs(j));                                    
-                if ~any(filt) && ~any(strcmpi(requiredFocingInputs(j),{'TreeFraction','temperature'}))
-                    error(['An unexpected error occured. When transforming forcing data, the input cell array for the transformation must contain a row (in 1st column) labelled "forcingdata" that its self contains a cell array in which the forcing data column is defined for the input:', requiredFocingInputs{j}]);
-                elseif any(filt) && strcmpi(requiredFocingInputs(j),'TreeFraction')                    
-                    % Do land cover simulation if the data has any tree
-                    % fraction > 0;
-                    filt_LC = find(strcmpi(forcingData_reqCols(:,1), 'TreeFraction'))+1; 
-                    if any(forcingData_data(:,filt_LC)<0) || any(forcingData_data(:,filt_LC)>1)
-                       error('The tree fraction input data must be between 0 and 1.'); 
-                    end
-                    if sum(forcingData_data(:,filt_LC))>0
-                        obj.settings.simulateLandCover = true;
-                    end
-                end
-            end
              
             % Assign the input forcing data to obj.settings.
             obj.settings.forcingData = forcingData_data;
             obj.settings.forcingData_colnames = forcingData_colnames;
             obj.settings.forcingData_cols = forcingData_reqCols;
-            obj.settings.siteCoordinates = siteCoordinates;
-                              
-            % Get list of model parameters and exclude settings, variables
-            % and the model 'type';
-            all_parameter_names = properties(obj);
-            ind = true(length(all_parameter_names),1);
-            for i=1:length(all_parameter_names)
-                switch all_parameter_names{i,1}
-                    case {'settings', 'variables'}
-                        ind(i) = false;                    
-                end
-            end
-            all_parameter_names = all_parameter_names(ind);
-            
-            % Assign model parameters.
-            % Importantly, if the parameter is not listed then that 
-            % feature of the soil moisture model is turned off.
-            %--------------------------------------------------------------
-            nparams = 0;
-            
-            for i=1:length(all_parameter_names)
-                
-                % Find the required parameter within the input model
-                % options.
-                ind = [];
-                for j=1:length(modelOptions(:,1))
-                    if strcmp(modelOptions(j,1), all_parameter_names{i} )                        
-                        ind = j;
-                        break;
-                    end
-                end
-            
-                % Record the parameter as 'Active'. That is, it can be
-                % calibrated within the time series model,
-                if ~isempty(ind)
-                    if ncols_modelOptions ==3 && strcmpi(modelOptions{ind,3},'fixed')
-                        obj.settings.fixedParameters.(all_parameter_names{i})=true;
-                        obj.settings.activeParameters.(all_parameter_names{i})=false;
-                        obj.(all_parameter_names{i}) = modelOptions{ind,2};
-                    else
-                        nparams = nparams+1;
-                        obj.settings.fixedParameters.(all_parameter_names{i})=false;
-                        obj.settings.activeParameters.(all_parameter_names{i})=true;
-                        paramsInitial(nparams,1) = modelOptions{ind,2};
-                    end
-                else
-                    obj.settings.fixedParameters.(all_parameter_names{i})=true;
-                    obj.settings.activeParameters.(all_parameter_names{i})=false;                    
-                    if strcmp(all_parameter_names{i}, 'alpha')         
-                        obj.(all_parameter_names{i}) = 1;
-                    elseif strcmp(all_parameter_names{i}, 'beta') || strcmp(all_parameter_names{i}, 'gamma')      
-                        % Note, beta is transformed in the soil model to
-                        % 10^beta.
-                        obj.(all_parameter_names{i}) = 0;
-                    elseif strcmp(all_parameter_names{i}, 'k_sat')
-                        % Note, k_sat is transformed in the soil model to
-                        % 10^k_sat = 0 m/d.
-                        obj.(all_parameter_names{i}) = -inf;
-                    elseif strcmp(all_parameter_names{i}, 'interflow_frac')
-                        obj.(all_parameter_names{i}) = 0;                        
-                    elseif strcmp(all_parameter_names{i}, 'S_initialfrac')
-                        obj.(all_parameter_names{i}) = 1;  
-                    elseif strcmp(all_parameter_names{i}, 'eps')
-                        obj.(all_parameter_names{i}) = 0;
-                    else
-                        obj.(all_parameter_names{i}) = 0;
-                    end
-                end
-            end
-            
-            % Check that the soil moisture capacity parameter is active.
-            % This is the simplest model able to be simulated
-            if ~obj.settings.activeParameters.SMSC
-                error('The soil moisture model options must include the soil moisture capacity parameter.');
-            end
-            
-            % Check the SMSM_trees parameter is active if and only if there
-            % is land cover input data.
-            if  isfield(obj.settings,'simulateLandCover') && obj.settings.simulateLandCover
-               if ~obj.settings.activeParameters.SMSC_trees 
-                   error('The trees soil moisture model options must include the soil moisture capacity parameter when land cover data is input.');
-               end
-            else
-                obj.settings.activeParameters.SMSC_trees = false; 
-                obj.settings.fixedParameters.SMSC_trees = true;
-                obj.settings.fixedParameters.treeArea_frac = true;
-                obj.settings.activeParameters.treeArea_frac = false;
-            end
-            
-            % Set a constant for smoothing the soil moisture capacity
-            % thresholds and infiltration excess threshold            
-            obj.settings.lambda_p = 0.2;                        
-            
-            % Set parameters for transfer function.
-            setParameters(obj, paramsInitial)                             
-
-            % Throw an error if any parameters are not finite
-            for i=1:length(all_parameter_names)
-                if ~strcmp(all_parameter_names{i}, 'k_infilt') && ~strcmp(all_parameter_names{i}, 'melt_threshold') && ...
-                ~strcmp(all_parameter_names{i}, 'DDF') && ~contains(all_parameter_names{i},'_deep') && ...
-                 ~isfinite(obj.(all_parameter_names{i}))
-                    error('All soil moisture model parameters must be finite.');
-                end
-            end
-
-            % Initialise soil moisture variables
-            obj.variables.t = [];
-            obj.variables.SMS = [];           
-            obj.variables.nDailySubSteps = getNumDailySubsteps(obj);          
+            obj.settings.siteCoordinates = siteCoordinates;                             
         end
         
 %% Set parameters
@@ -540,20 +334,7 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
 %
 % Date:
 %   11 April 2012  
-
-            % Get the active parameter names
-            param_names = getActiveParameters(obj);
-           
-            % Check if the parameters have changed since the last call to
-            % setTransformedForcing. Note, this must be done prior to the
-            % updating of the parameters.
-            detectParameterChange(obj, params);             
-            
-            % Cycle through each parameter and assign the parameter value.
-            for i=1: length(param_names)
-               obj.(param_names{i}) = params(i,:); 
-            end
-                      
+               obj.threshold = params;                       
         end
         
         function setForcingData(obj, forcingData, forcingData_colnames)
@@ -642,18 +423,8 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
 % Date:
 %   11 April 2012              
             
-            % Get the active parameter names
-            param_names = getActiveParameters(obj);
-            
-            % Cycle through each parameter and get the parameter value.
-            params = zeros(length(param_names),size( obj.(param_names{1}),2));
-            for i=1: length(param_names)
-                if isempty(obj.(param_names{i}))
-                    params(i,:) = NaN;
-                else
-                    params(i,:) = obj.(param_names{i});
-                end
-            end
+            param_names = 'threshold';
+            params = obj.threshold;            
         end   
         
 %% Assess if matrix of parameters is valid.
@@ -731,94 +502,8 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
 % Date:
 %   26 Sept 2014   
 
-            [params, param_names] = getParameters(obj);
-            
-            params_lowerLimit = repmat(0,size(params,1),1);
-            params_upperLimit = repmat(inf,size(params,1),1);         
-
-            if obj.settings.activeParameters.k_infilt
-                ind = cellfun(@(x)(strcmp(x,'k_infilt')),param_names);
-                params_lowerLimit(ind,1) = -inf;                    
-            end       
-            
-            % Upper and lower bounds taken from Rawls et al 1982 Estimation
-            % of Soil Properties. The values are for sand and clay
-            % respectively and transformed from units of cm/h to the assumed
-            % input units of mm/d.
-            if obj.settings.activeParameters.k_sat
-                ind = cellfun(@(x)(strcmp(x,'k_sat')),param_names);
-                %params_lowerLimit(ind,1) = log10(10);                    
-                %params_upperLimit(ind,1) = log10(100);
-                params_lowerLimit(ind,1) = floor(log10(0.06*24*10));
-                params_upperLimit(ind,1) = ceil(log10(21*24*10));
-            end             
-            
-            if obj.settings.activeParameters.bypass_frac
-                ind = cellfun(@(x)(strcmp(x,'bypass_frac')),param_names);
-                params_lowerLimit(ind,1) = 0;         
-                params_upperLimit(ind,1) = 1;
-            end    
-            
-            if isfield(obj.settings.activeParameters,'treeArea_frac') && obj.settings.activeParameters.treeArea_frac
-                ind = cellfun(@(x)(strcmp(x,'treeArea_frac')),param_names);
-                params_lowerLimit(ind,1) = 0;         
-                params_upperLimit(ind,1) = 1;
-            end            
-            
-            if isfield(obj.settings.activeParameters,'interflow_frac') && obj.settings.activeParameters.interflow_frac
-                ind = cellfun(@(x)(strcmp(x,'interflow_frac')),param_names);
-                params_lowerLimit(ind,1) = 0;         
-                params_upperLimit(ind,1) = 1;
-            end                
-            
-            if obj.settings.activeParameters.S_initialfrac
-                ind = cellfun(@(x)(strcmp(x,'S_initialfrac')),param_names);
-                params_lowerLimit(ind,1) = 0;                                    
-                params_upperLimit(ind,1) = 10;                                    
-            end    
-                   
-            if obj.settings.activeParameters.gamma
-                ind = cellfun(@(x)(strcmp(x,'gamma')),param_names);
-                params_lowerLimit(ind,1) = log10(0.01);
-                params_upperLimit(ind,1) = log10(100);
-            end                  
-            
-            if obj.settings.activeParameters.SMSC
-                ind = cellfun(@(x)(strcmp(x,'SMSC')),param_names);
-                params_lowerLimit(ind,1) = log10(25);
-                %params_upperLimit(ind,1) = Inf;
-                params_upperLimit(ind,1) = log10(5000);
-            end    
-            
-            if obj.settings.activeParameters.SMSC_trees
-                ind = cellfun(@(x)(strcmp(x,'SMSC_trees')),param_names);
-                params_lowerLimit(ind,1) = log10(25);
-                params_upperLimit(ind,1) = log10(5000);
-            end              
-     
-            if obj.settings.activeParameters.beta
-                ind = cellfun(@(x)(strcmp(x,'beta')),param_names);
-                params_lowerLimit(ind,1) = log10(1);
-                params_upperLimit(ind,1) = log10(10);
-            end                
-            
-            if isfield( obj.settings.activeParameters,'eps') && obj.settings.activeParameters.eps
-                ind = cellfun(@(x)(strcmp(x,'eps')),param_names);
-                params_lowerLimit(ind,1) = 0;
-                params_upperLimit(ind,1) = 1;
-            end  
-
-            if isfield( obj.settings.activeParameters,'DDF') && obj.settings.activeParameters.DDF
-                ind = cellfun(@(x)(strcmp(x,'DDF')),param_names);
-                params_lowerLimit(ind,1) = 0;
-                params_upperLimit(ind,1) = 2;
-            end  
-
-            if isfield( obj.settings.activeParameters,'melt_threshold') && obj.settings.activeParameters.melt_threshold
-                ind = cellfun(@(x)(strcmp(x,'melt_threshold')),param_names);
-                params_lowerLimit(ind,1) = -5;
-                params_upperLimit(ind,1) = 5;
-            end              
+            params_lowerLimit = -Inf;
+            params_upperLimit = Inf;
         end  
 %% Return fixed upper and lower plausible parameter ranges. 
         function [params_upperLimit, params_lowerLimit] = getParameters_plausibleLimit(obj)
@@ -857,166 +542,12 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
         % for the calibration. These parameter ranges are only used in the 
         % calibration if the user does not input parameter ranges.
             
-            % get parameyer names
-            [params, param_names] = getParameters(obj);
             
-            % Set default plausible parameter range
-            params_lowerLimit = zeros(length(param_names),1);  
-            params_upperLimit = 5.*ones(length(param_names),1);  
-            
-            % Modify plausible range for specific parameters
-            if obj.settings.activeParameters.S_initialfrac
-                ind = cellfun(@(x)(strcmp(x,'S_initialfrac')),param_names);
-                params_lowerLimit(ind,1) = 0;
-                params_upperLimit(ind,1) = 2;
-            end  
-
-            if obj.settings.activeParameters.bypass_frac
-                ind = cellfun(@(x)(strcmp(x,'bypass_frac')),param_names);                
-                params_lowerLimit(ind,1) = 0;
-                params_upperLimit(ind,1) = 1;
-            end              
-            
-            if isfield(obj.settings.activeParameters,'treeArea_frac') && obj.settings.activeParameters.treeArea_frac
-                ind = cellfun(@(x)(strcmp(x,'treeArea_frac')),param_names);                
-                params_lowerLimit(ind,1) = 0;
-                params_upperLimit(ind,1) = 1;
-            end                                                  
-            
-            if  isfield(obj.settings.activeParameters,'interflow_frac') && obj.settings.activeParameters.interflow_frac
-                ind = cellfun(@(x)(strcmp(x,'interflow_frac')),param_names);                
-                params_lowerLimit(ind,1) = 0;
-                params_upperLimit(ind,1) = 1;
-            end                
-            
-%             if obj.settings.activeParameters.SMSC
-%                 ind = cellfun(@(x)(strcmp(x,'SMSC')),param_names);
-%                 params_lowerLimit(ind,1) = log10(10);
-%                 params_upperLimit(ind,1) = log10(1000);
-%             end  
-            if obj.settings.activeParameters.SMSC
-                ind = cellfun(@(x)(strcmp(x,'SMSC')),param_names);
-                params_lowerLimit(ind,1) = log10(50);
-                params_upperLimit(ind,1) = log10(500);
-            end
-
-            if obj.settings.activeParameters.SMSC_trees
-                ind = cellfun(@(x)(strcmp(x,'SMSC_trees')),param_names);
-                params_lowerLimit(ind,1) = log10(50);
-                params_upperLimit(ind,1) = log10(1000);
-            end  
-                        
-            if obj.settings.activeParameters.k_infilt
-                ind = cellfun(@(x)(strcmp(x,'k_infilt')),param_names);
-                params_lowerLimit(ind,1) = log10(10);                    
-                params_upperLimit(ind,1) = log10(100);
-            end  
-            
-            % Upper and lower bounds taken from Rawls et al 1982 Estimation
-            % of Soil Properties. The values are for sand loam and silty clay
-            % respectively and transformed from units of cm/h to the assumed
-            % input units of mm/d.
-            if obj.settings.activeParameters.k_sat
-                ind = cellfun(@(x)(strcmp(x,'k_sat')),param_names);
-                params_lowerLimit(ind,1) = log10(0.09*24*10);
-                params_upperLimit(ind,1) = log10(6.11*24*10);
-            end 
-            
-            if obj.settings.activeParameters.beta
-                ind = cellfun(@(x)(strcmp(x,'beta')),param_names);
-                params_lowerLimit(ind,1) = log10(1);
-                params_upperLimit(ind,1) = log10(10);
-            end      
-            
-            if obj.settings.activeParameters.gamma
-                ind = cellfun(@(x)(strcmp(x,'gamma')),param_names);
-                params_lowerLimit(ind,1) = log10(0.1);
-                params_upperLimit(ind,1) = log10(10);
-            end                  
-            
-             if isfield( obj.settings.activeParameters,'eps') && obj.settings.activeParameters.eps
-                ind = cellfun(@(x)(strcmp(x,'eps')),param_names);
-                params_lowerLimit(ind,1) = 0;
-                params_upperLimit(ind,1) = 1;
-             end  
-
-            if isfield( obj.settings.activeParameters,'DDF') && obj.settings.activeParameters.DDF
-                ind = cellfun(@(x)(strcmp(x,'DDF')),param_names);
-                params_lowerLimit(ind,1) = 0;
-                params_upperLimit(ind,1) = 2;
-            end  
-
-            if isfield( obj.settings.activeParameters,'melt_threshold') && obj.settings.activeParameters.melt_threshold
-                ind = cellfun(@(x)(strcmp(x,'melt_threshold')),param_names);
-                params_lowerLimit(ind,1) = -2;
-                params_upperLimit(ind,1) = 2;
-            end                 
+            params_lowerLimit = -30;
+            params_upperLimit = 0;             
         end        
         
-        %% Check if the model parameters have chanaged since the last calculated.
-        function detectParameterChange(obj, params)
-% detectParameterChange detects if the soil model parameters have changed.            
-%
-% Syntax:
-%   detectParameterChange(obj, params)  
-%
-% Description:  
-%   This method assesses if the user input parameters are different from
-%   those used in the most recent solution to the soil moisture model. This
-%   method allows the differential equation to be only solved when
-%   required. The result of this assessment is stored within the object
-%   variable: obj.variables.isNewParameters .
-%
-% Input:
-%   obj         - soil moisture model object.
-%   params      - a vector (Nx1) of new soil moisture model parameter values.
-%
-% Outputs:
-%   (none)
-%
-% Example:
-%   Create a cell matrix of options for a two parameter soil model:
-%   >> soilModelOptions = { 'lossingOption', 'evap_deficit' ;
-%                           'gainingOption', 'soil_infiltration' ;
-%                           'SMSC', 100 ; 
-%                           'k_sat', 10 };
-%   Build the soil model:
-%   >> soilModel = climateTransform_soilMoistureModels(soilModelOptions);
-%
-%   Check if the new parameter values are different from those already in 
-%   the model. This would set obj.variables.isNewParameters = false:
-%   >> detectParameterChange(soilModel, [100; 10])
-%
-% See also:
-%   climateTransform_soilMoistureModels: class_definition;
-%   setParameters: set_calibration_parameters_values;
-%   getParameters: get_calibration_parameters_values;
-%   setTransformedForcing: run_model_and_store_simulation_results;
-%   getTransformedForcing: get_outputs_for_timeseries_model.
-%
-% Dependencies:
-%   (none)
-%
-% Author: 
-%   Dr. Tim Peterson, The Department of Infrastructure Engineering, 
-%   The University of Melbourne.
-%
-% Date:
-%   11 April 2012  
-
-            % Get current parameters
-            set_params = getParameters(obj);
-
-            % Check if there are any changes to the parameters.
-            if isempty(set_params) || size(set_params,2) ~= size(params,2) || ...
-            any(set_params ~= params,'all')            
-                obj.variables.isNewParameters = true;
-            else
-                obj.variables.isNewParameters = false;
-            end                        
-            
-        end
-                    
+                            
 %% Solve the soil moisture differential equation
         function setTransformedForcing(obj, t, forceRecalculation)
 % setTransformedForcing solves the soil moisture ODE model
@@ -1057,140 +588,9 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
 %
 % Date:
 %   11 April 2012  
-            if nargin==2
-                forceRecalculation=false;
-            end               
-            if obj.variables.isNewParameters || forceRecalculation || ~isfield(obj.variables,'t') || ...
-            (isfield(obj.variables,'t') && obj.variables.t(end) ~= t(end))
 
-                % back transform the parameters
-                [params, param_names] = getDerivedParameters(obj);
-
-                % Assign each param to a variable for efficient access.
-                SMSC = params(1,:);
-                SMSC_trees = params(2,:);
-                treeArea_frac = params(3,:);
-                S_initialfrac = params(4,:);
-                k_infilt = params(5,:);
-                k_sat = params(6,:);
-                bypass_frac = params(7,:);            
-                interflow_frac = params(8,:);
-                alpha = params(9,:);
-                beta = params(10,:);
-                gamma = params(11,:);
-                eps = params(12,:);
-                DDF = params(13,:);
-                melt_threshold = params(14,:);
-
-                % Filter the forcing data to input t.
-                filt_time = obj.settings.forcingData(:,1) >= t(1) & obj.settings.forcingData(:,1) <= t(end);
-                
-                % Get the required forcing data
-                filt = strcmp(obj.settings.forcingData_cols(:,1),'precip');
-                precip_col = obj.settings.forcingData_cols{filt,2};
-                obj.variables.precip = obj.settings.forcingData(filt_time, precip_col );
-
-                filt = strcmp(obj.settings.forcingData_cols(:,1),'et');
-                evap_col = obj.settings.forcingData_cols{filt,2};
-                obj.variables.evap = obj.settings.forcingData(filt_time, evap_col );
-                
-                % Get temperature for snow melt
-                hasSnowMelt = false;
-                if isfinite(DDF) && isfinite(melt_threshold)
-                    filt = strcmp(obj.settings.forcingData_cols(:,1),'temperature');
-                    if any(filt)
-                        hasSnowMelt = true;
-                        temp_col = obj.settings.forcingData_cols{filt,2};
-                        obj.variables.temp = obj.settings.forcingData(filt_time, temp_col );
-                    end
-                end
-
-                % Store the time points
-                obj.variables.t = obj.settings.forcingData(filt_time,1);
-                 
-                if isfield(obj.settings,'simulateLandCover') && obj.settings.simulateLandCover
-                    filt = strcmp(obj.settings.forcingData_cols(:,1),'TreeFraction');
-                    tree_col = obj.settings.forcingData_cols{filt,2};
-                    obj.variables.treeFrac = obj.settings.forcingData(filt_time, tree_col );                    
-                end                               
-                
-                % Get subset size
-                nSubSteps = getNumDailySubsteps(obj);
-
-                % Define daily sub-steps.
-                t_substeps = linspace(1,0,nSubSteps+1);
-
-                % Get number of days
-                nDays = length(obj.variables.precip);
-
-                % Build the timesteps for sub-daily analysis.
-                obj.variables.t = bsxfun(@minus,obj.variables.t, t_substeps(2:end));
-                obj.variables.t = reshape(obj.variables.t', nDays * nSubSteps,1);
-
-                % Add the initial time step
-                obj.variables.t = [floor(obj.variables.t(1)); obj.variables.t];
-
-                % Scale ksat from units of 'per day' to 'per sub daily
-                % time step'
-                k_sat = k_sat./nSubSteps;
-                DDF = DDF./nSubSteps;
-
-                % If SMS in not initialised to nub-daily, then initialise.
-                % This is only done to allow successful calling of
-                % getSubDailyForcing().
-
-                % Get effective daily total precip, ie limited by
-                % infiltration limit.
-                flux = getTransformedForcing(obj, 'effectivePrecip',true);
-
-                % Expand input forcing data to have the required number of days and
-                % scale the forcing data by the number of time steps.
-                effectivePrecip = getSubDailyForcing(obj,flux.effectivePrecip);
-                evap = getSubDailyForcing(obj,obj.variables.evap);
-                if hasSnowMelt
-                    temp = getSubDailyForcing(obj,obj.variables.temp);
-                else
-                    temp = [];
-                    DDF = inf;
-                    melt_threshold = inf;
-                end
-
-                % Set the initial soil moisture as the steady state soln
-                % and then multiply by the scaling fraction (S_initialfrac)
-                fun = @(S) mean(effectivePrecip)*min(1,((SMSC-S)/(SMSC*(1-eps)))^alpha) - k_sat*(S/SMSC)^beta - mean(evap)*(S/SMSC)^gamma;
-                S_initial=fzero(fun,[0, SMSC]);
-                S_initial = min(max(0, S_initial.* S_initialfrac), SMSC);
-
-                % Run the soil models using the sub-steps.
-                obj.variables.SMS = forcingTransform_soilMoisture(S_initial, effectivePrecip, evap, temp, SMSC, k_sat, alpha, beta, gamma, eps, DDF, melt_threshold);
-               
-                % Run soil model again if tree cover is to be simulated
-                if  isfield(obj.settings,'simulateLandCover') && obj.settings.simulateLandCover
-
-                    % Set the initial soil moisture as the steady state soln
-                    % and then multiply by the scaling fraction (S_initialfrac)
-                    fun = @(S) mean(effectivePrecip)*((SMSC_trees-S)/(SMSC_trees*(1-eps)))^alpha - k_sat*(S/SMSC_trees)^beta - mean(evap)*(S/SMSC_trees)^gamma;
-                    S_initial=fzero(fun,[0, SMSC_trees]);
-                    S_initial = min(max(0, S_initial.* S_initialfrac), SMSC_trees);
-                    
-                    % Run the soil models using the sub-steps.
-                    obj.variables.SMS_trees = forcingTransform_soilMoisture(S_initial, effectivePrecip, evap, temp, SMSC_trees, k_sat, alpha, beta, gamma, eps,DDF, melt_threshold);
-                end
-
-            end
         end
        
-        function variable_names = outputForcingdata_activeOptions(obj, bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates)
-            % get list of all possible forcing varioable names
-            variable_names = obj.outputForcingdata_options(bore_ID, forcingData_data,  forcingData_colnames, siteCoordinates);
-
-            % Check if land cover chnage is being modelled.
-            % If not, remove variable with '_tree', _non_tree'
-            if ~isfield(obj.settings,'simulateLandCover') || (isfield(obj.settings,'simulateLandCover') && ~obj.settings.simulateLandCover)
-                filt = contains(variable_names, '_tree') | contains(variable_names, '_nontree');
-                variable_names = variable_names(~filt);
-            end
-        end
 
 %% Return the transformed forcing data
         function [forcingData, isDailyIntegralFlux] = getTransformedForcing(obj, variableName, doSubstepIntegration) 
@@ -1510,9 +910,8 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                                             liquidWater(j) = 0.0;
                                         else
                                             melt(j) = DDF*(temp(j) - melt_threshold);
-                                            melt(j) = min(snow(j-1), melt(j));
-                                            snow(j) = snow(j-1) - melt(j);
-                                            liquidWater(j) = liquidWater(j) + melt(j);
+                                            snow(j) = max(snow(j-1) - melt(j),0.0);
+                                            liquidWater(j) = liquidWater(j) + min(snow(j-1), melt(j));
                                         end
                                     end
                                 end

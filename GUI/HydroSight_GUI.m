@@ -1776,19 +1776,21 @@ classdef HydroSight_GUI < handle
                     this.tab_ModelCalibration.Table.Data(end+1,:)=newTableData(1,:);
                     this.tab_ModelCalibration.Table.RowName{end+1} = num2str(str2double(this.tab_ModelCalibration.Table.RowName{end})+1);
                 end
-                newProjectTableLabels = HydroSight_GUI.modelLabel2FieldName(HydroSight_GUI.removeHTMLTags(newProjectGUITables.tableData.tab_ModelSimulation(:,2)));
-                filt = strcmp(newProjectTableLabels, ModelLabel);                                
-                if ~isempty(filt)
-                    for j=filt
-                        newTableData = newProjectGUITables.tableData.tab_ModelSimulation(j,:);
-                        if size(newTableData,2) ~=size(this.tab_ModelSimulation.Table.Data,2)
-                            importedModels{nModels,1} = [importedModels{nModels,1},': Warning - simulation table inconsistency'];
-                            break
+                if ~isempty(newProjectGUITables.tableData.tab_ModelSimulation{:,2})
+                    newProjectTableLabels = HydroSight_GUI.modelLabel2FieldName(HydroSight_GUI.removeHTMLTags(newProjectGUITables.tableData.tab_ModelSimulation(:,2)));
+                    filt = strcmp(newProjectTableLabels, ModelLabel);
+                    if ~isempty(filt)
+                        for j=filt
+                            newTableData = newProjectGUITables.tableData.tab_ModelSimulation(j,:);
+                            if size(newTableData,2) ~=size(this.tab_ModelSimulation.Table.Data,2)
+                                importedModels{nModels,1} = [importedModels{nModels,1},': Warning - simulation table inconsistency'];
+                                break
+                            end
+                            newTableData{1,2} = strrep(newTableData{1,2}, ModelLabel, newModelLabel);
+                            this.tab_ModelSimulation.Table.Data(end+1,:)=newTableData(1,:);
+                            this.tab_ModelSimulation.Table.RowName{end+1} = num2str(str2double(this.tab_ModelSimulation.Table.RowName{end})+1);
                         end
-                        newTableData{1,2} = strrep(newTableData{1,2}, ModelLabel, newModelLabel);
-                        this.tab_ModelSimulation.Table.Data(end+1,:)=newTableData(1,:);
-                        this.tab_ModelSimulation.Table.RowName{end+1} = num2str(str2double(this.tab_ModelSimulation.Table.RowName{end})+1);
-                    end              
+                    end
                 end
                 
                 % Add model object and label.
@@ -5750,27 +5752,31 @@ classdef HydroSight_GUI < handle
 
             % Set status bar
             obj = findobj(this.tab_ModelSimulation.Panel,'Tag','Statusbar model simulation');            
-            if isempty(data{irow,2})
+            if isempty(data) || isempty(data{irow,2})
                 modelLabel = '(No model label)';
             else
                 modelLabel = HydroSight_GUI.removeHTMLTags(data{irow,2});
             end            
-            if isempty(data{irow,3})
+            if isempty(data) || isempty(data{irow,3})
                 boreID = '(No bore ID)';
             else
                 boreID = HydroSight_GUI.removeHTMLTags(data{irow,3});
             end                        
-            if isempty(data{irow,6})
+            if isempty(data) || isempty(data{irow,6})
                 simLabel ='(No sim. label)';
             else
                 simLabel = data{irow,6};
             end             
-            if isempty(data{irow,10})
+            if isempty(data) || isempty(data{irow,10})
                 simTimestep ='Obs. head dates';
             else
                 simTimestep = data{irow,10};          
-            end                           
-            modelStatus = HydroSight_GUI.removeHTMLTags(data{irow,end});
+            end      
+            if isempty(data)
+                modelStatus = '(No model selected)';
+            else
+                modelStatus = HydroSight_GUI.removeHTMLTags(data{irow,end});
+            end
             obj.String = [modelLabel,', ', boreID,', ',simLabel,', Time step: ',simTimestep,', ', modelStatus];
                         
             % Warn the user if the simulation is already complete and the
@@ -6022,7 +6028,7 @@ classdef HydroSight_GUI < handle
             end
 
             % Show the simulation status
-            if isempty(data{irow,12})
+            if isempty(data) || isempty(data{irow,12})
                 simTableStatus = 'Not simulated.';
             else
                 simTableStatus = HydroSight_GUI.removeHTMLTags(data{irow,12});
@@ -7586,9 +7592,16 @@ classdef HydroSight_GUI < handle
 
                     % Read in the file.
                     try
-                       forcingData= readtable(forcingdata_fname);
-                    catch                   
-                        this.tab_ModelSimulation.Table.Data{i,end} = '<html><font color = "#FF0000">Error: new forcing date file could not be imported.</font></html>';
+                       forcingData= readtable(forcingdata_fname, ...
+                           'FileType', 'delimitedtext', ...
+                           'TrailingDelimitersRule','ignore', ...
+                           'LeadingDelimitersRule','ignore',  ...
+                           'ConsecutiveDelimitersRule','error', ...
+                           'EmptyLineRule','error', ...
+                           'ExtraColumnsRule','error');
+                    catch ME                   
+                        this.tab_ModelSimulation.Table.Data{i,end} =  ...
+                            ['<html><font color = "#FF0000">Error: new forcing date file could not be imported. Import error: ',ME.message,'</font></html>'];
                         nModelsSimFailed = nModelsSimFailed +1;
                         continue;                        
                     end                    
@@ -8133,7 +8146,7 @@ classdef HydroSight_GUI < handle
             % Read in the table.
             try
                 set(this.Figure, 'pointer', 'watch');
-                tbl = readtable(filename,'Delimiter',',');
+                tbl = readtable(filename,'Delimiter',',','DatetimeType','text','TextType','char');
             catch
                 set(this.Figure, 'pointer', 'arrow');
                 h = warndlg('The table datafile could not be read in. Please check it is a CSV file with column headings in the first row.','File error');
@@ -8406,9 +8419,9 @@ classdef HydroSight_GUI < handle
                         
                         % Check that the model ID and simulation label are
                         % unique
-                        modelLabel_dest = HydroSight_GUI.removeHTMLTags(this.tab_ModelCalibration.Table.Data(:,2));
-                        simLabel_dest = HydroSight_GUI.removeHTMLTags(this.tab_ModelCalibration.Table.Data(:,6));
-                        ind = find(strcmp(modelLabel_dest, modelLabel_src) & strcmp(simLabel_dest, simLabel_src), 1);
+                        modelLabel_dest = HydroSight_GUI.removeHTMLTags(this.tab_ModelSimulation.Table.Data(:,2));
+                        simLabel_dest = HydroSight_GUI.removeHTMLTags(this.tab_ModelSimulation.Table.Data(:,6));
+                        ind = find(strcmp(strcat(modelLabel_dest,'_',simLabel_dest), [modelLabel_src{1},'_',simLabel_src{1}]));
                         
                         % Skip if the model and label are not unique
                         if ~isempty(ind)
@@ -8487,22 +8500,27 @@ classdef HydroSight_GUI < handle
                     tbl = this.tab_DataPrep.Table.Data;
                     colnames = this.tab_DataPrep.Table.ColumnName;
                     colFormat = this.tab_DataPrep.Table.ColumnFormat;
-                    
+                    isDateColumn = false([1,size(tbl,2)]);
+                    isDateColumn(7) = true;
                 case 'Model Construction'
                     windowString = 'Input the .csv file name for exporting the model construction table.';
                     tbl = this.tab_ModelConstruction.Table.Data;
                     colnames = this.tab_ModelConstruction.Table.ColumnName;
                     colFormat = this.tab_ModelConstruction.Table.ColumnFormat;
+                    isDateColumn = false([1,size(tbl,2)]);
                 case 'Model Calibration'
                     windowString = 'Input the .csv file name for exporting the model calibration table.';
                     tbl = this.tab_ModelCalibration.Table.Data;
                     colnames = this.tab_ModelCalibration.Table.ColumnName;
                     colFormat = this.tab_ModelCalibration.Table.ColumnFormat;
+                    isDateColumn = false([1,size(tbl,2)]);
+                    isDateColumn(4:7) = true;
                 case 'Model Simulation'
                     windowString = 'Input the .csv file name for exporting the model simulation table.';
                     tbl = this.tab_ModelSimulation.Table.Data;
                     colnames = this.tab_ModelSimulation.Table.ColumnName;
                     colFormat = this.tab_ModelSimulation.Table.ColumnFormat;
+                    isDateColumn = [false([1,3]),true([1,2]),false([1,2]),true([1,2]),false([1,3])];
                 otherwise
                     h = warndlg('Unexpected Error: GUI table type unknown.','Error');
                     setIcon(this, h);
@@ -8542,10 +8560,25 @@ classdef HydroSight_GUI < handle
             for i=find(strcmp(colFormat, 'char'))
                 tbl(:,i) = HydroSight_GUI.removeHTMLTags(tbl(:,i));
             end           
-            
+
+            % Convert date columns from text to datetime
+            tbl_dates = datetime(tbl(:,isDateColumn));
+            tbl_dates.Format = 'dd-MMM-yyyy';
+            for i=1:size(tbl,1)
+                k=0;
+                for j=find(isDateColumn)
+                    k=k+1;
+                    if isnat(tbl_dates(i,k))
+                        tbl{i,j} = [];
+                    else
+                        tbl{i,j} = tbl_dates(i,k);
+                    end
+                end
+            end
+                        
             % Convert cell array to table            
             tbl = cell2table(tbl);
-            tbl.Properties.VariableNames = colnames;
+            tbl.Properties.VariableNames = colnames;           
             
             % Write the table.
             try
@@ -10862,7 +10895,7 @@ classdef HydroSight_GUI < handle
                         end                      
                         
                     end
-                catch ME
+                catch
                     nModelsCalibFailed = nModelsCalibFailed +1;
                     this.tab_ModelCalibration.Table.Data{i,9} = ['<html><font color = "#FF0000">Fail-', ME.message,'</font></html>'];
                 end
@@ -11350,6 +11383,8 @@ classdef HydroSight_GUI < handle
                         str{i} = strtrim(strjoin(str{i}));
                     end
                end
+            elseif isempty(str)
+                str='';
             else
                 if contains(upper(str),'HTML')
                     str = regexp(str,'>.*?<','match');

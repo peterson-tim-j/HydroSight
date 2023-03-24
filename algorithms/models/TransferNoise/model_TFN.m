@@ -1230,7 +1230,8 @@ classdef model_TFN < model_abstract
                     if isobject(obj.parameters.(modelnames{i}))
                         try
                             setForcingData(obj.parameters.(modelnames{i}), forcingData, forcingData_colnames)
-                        catch
+                        catch ME
+                            %disp(['Error:', ME.message]);
                             % do nothing
                         end
                     end
