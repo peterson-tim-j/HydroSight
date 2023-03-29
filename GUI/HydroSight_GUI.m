@@ -94,13 +94,14 @@ classdef HydroSight_GUI < handle
             % Open a window and add some menus
             if noDesktop; disp('Creating GUI figure ...'); end
             this.Figure = figure( ...
-                'Name', ['HydroSight ', vernum], ...
+                'Name', ['HydroSight ', vernum,':    ',char(9733), 'Support HydroSight. Ctrl-Shift-S to give it a ', char(9733),char(9733)], ...
                 'NumberTitle', 'off', ...
                 'MenuBar', 'none', ...
                 'HandleVisibility', 'off', ...
                 'Visible','off', ...
                 'Toolbar','figure', ...
                 'CloseRequestFcn',@this.onExit, ...
+                'WindowKeyReleaseFcn',@this.onKeyStroke, ...
                 'DockControls','off');                             
 
             % Change icon
@@ -120,9 +121,9 @@ classdef HydroSight_GUI < handle
             this.figure_Menu = uimenu( this.Figure, 'Label', 'File' );
             uimenu( this.figure_Menu, 'Label', 'New Project', 'Callback', @this.onNew);
             uimenu( this.figure_Menu, 'Label', 'Set Project Folder ...', 'Callback', @this.onSetProjectFolder);
-            uimenu( this.figure_Menu, 'Label', 'Open Project...', 'Callback', @this.onOpen);            
+            uimenu( this.figure_Menu, 'Label', 'Open Project (Ctrl-o) ...', 'Callback', @this.onOpen);            
             uimenu( this.figure_Menu, 'Label', 'Save Project as ...', 'Callback', @this.onSaveAs );
-            uimenu( this.figure_Menu, 'Label', 'Save Project', 'Callback', @this.onSave,'Enable','off');
+            uimenu( this.figure_Menu, 'Label', 'Save Project (Ctrl-s)', 'Callback', @this.onSave,'Enable','off');
             uimenu( this.figure_Menu, 'Label', 'Cite Project ...', 'Tag','Cite Project','Callback', @this.onCiteProject);
             uimenu( this.figure_Menu, 'Label', 'Import Model(s) ...', 'Callback', @this.onImportModel, 'Separator','on');
             uimenu( this.figure_Menu, 'Label', 'Move models from RAM to HDD...', 'Callback', @this.onMoveModels, 'Enable','off');
@@ -241,7 +242,7 @@ classdef HydroSight_GUI < handle
             %Create Panels for different windows       
             if noDesktop; disp('Creating GUI panels ...'); end
             this.figure_Layout = uiextras.TabPanel( 'Parent', this.Figure, 'Padding',5, 'TabSize',127,'FontSize',8,'Tag','HydroSight Outer Steps TabPanel');
-            this.tab_Project.Panel = uiextras.Panel( 'Parent', this.figure_Layout, 'Padding', 5, 'Tag','ProjectDescription');            
+            this.tab_Project.Panel = uiextras.Panel( 'Parent', this.figure_Layout, 'Padding', 5, 'Tag','ProjectDescription');   
             this.tab_DataPrep.Panel = uiextras.Panel( 'Parent', this.figure_Layout, 'Padding', 5, 'Tag','DataPreparation');
             this.tab_ModelConstruction.Panel = uiextras.Panel( 'Parent', this.figure_Layout, 'Padding', 5, 'Tag','ModelConstruction');
             this.tab_ModelCalibration.Panel = uiextras.Panel( 'Parent', this.figure_Layout, 'Padding', 5, 'Tag','ModelCalibration');
@@ -9503,6 +9504,35 @@ classdef HydroSight_GUI < handle
                web('https://github.com/peterson-tim-j/HydroSight/issues','-browser');
            end                                   
         end
+
+        function onKeyStroke(this, hObject, eventData) %#ok<INUSL>            
+            if any(strcmp(eventData.Modifier,'control'))
+                if any(strcmp(eventData.Modifier,'shift')) && all(strcmp(eventData.Key,'s'))
+                    h = msgbox({'Thanks for supporting HydroSight!','','The project GitHub page will open next.', ...
+                            'Click in the top-right of the webpage to give us a star.'},['Give HydroSight a ',char(9733)],'modal');                    
+                    setIcon(this, h);
+                    uiwait(h);
+
+                    web('https://github.com/peterson-tim-j/HydroSight/wiki/Support#giving-support-to-hydrosight','-browser');            
+                elseif all(strcmp(eventData.Key,'s'))
+                    onSave(this,[],[]);
+                elseif all(strcmp(eventData.Key,'o'))
+                    onOpen(this,[],[]);
+                elseif all(strcmp(eventData.Key,'1'))
+                    this.figure_Layout.Selection = 1;
+                elseif all(strcmp(eventData.Key,'2'))
+                    this.figure_Layout.Selection = 2;
+                elseif all(strcmp(eventData.Key,'3'))
+                    this.figure_Layout.Selection = 3;
+                elseif all(strcmp(eventData.Key,'4'))
+                    this.figure_Layout.Selection = 4;
+                elseif all(strcmp(eventData.Key,'5'))
+                    this.figure_Layout.Selection = 5;                    
+                end
+            end
+        end
+
+
         
         function onVersion(this, ~, ~)         
             [versionNumber,versionDate] = getHydroSightVersion();
@@ -11326,7 +11356,7 @@ classdef HydroSight_GUI < handle
 
             % Set project name/title
             vernum = getHydroSightVersion();
-            set(this.Figure,'Name',['HydroSight ', vernum]);            
+            set(this.Figure,'Name',['HydroSight ', vernum,':    ',char(9733), 'Support HydroSight. Ctrl-Shift-S to give it a ', char(9733),char(9733)]);
                 
             % Enable file menu items
             for i=1:size(this.figure_Menu.Children,1)

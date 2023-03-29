@@ -324,3 +324,7 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 * Bug fixed in the dropdown list of model labels within simulation tab. It occured when the simulation table is empty.
 * Bug fixed in the use of new simulation forcing data when pumping downscaling (pumpingRate_SAestimation.m).
 * Outlines removed from grey fill (for plotting of heads) to better show dynamcis.
+
+29 March 2023
+* Keystroke shortcuts added see https://github.com/peterson-tim-j/HydroSight/wiki/Graphical-interface#keystroke-shortcuts
+* Request for GitHub stars added to opening GUI title bar.
