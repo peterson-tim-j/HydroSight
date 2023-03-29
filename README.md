@@ -42,6 +42,8 @@ The _HydroSight_ graphical interface includes tabs for each step in the modellin
 
 ## Contributing
 
-_HydroSight_ is an ongoing research project and its funding depends upon evidence of impact. To help us demonstrate impact please ensure you cite the relevant papers (using the "Cite Project" option within the GUI). 
+_HydroSight_ is an ongoing research project and that depends upon [your support](https://github.com/peterson-tim-j/HydroSight/wiki/Support#giving-support-to-hydrosight). Two easy ways to support us are:
+1. Give us a GitHub ⭐. 
+2. Cite the relevant papers (using the "Cite Project" option within the GUI). 
 
-And, if _HydroSight_ doesn't do what you need then please consider (i) writing and sharing your own module by extending existing class definitions, (ii) or getting in touch to discuss collaborations.
+And, if _HydroSight_ doesn't do what you need then [Support](https://github.com/peterson-tim-j/HydroSight/wiki/Support#giving-support-to-hydrosight) gives more options.
