@@ -1499,7 +1499,7 @@ classdef climateTransform_soilMoistureModels < forcingTransform_abstract
                                 
                                 nDailySubSteps = getNumDailySubsteps(obj);
                                 
-                                if ~isempty(obj.variables.temp)
+                                if isfield(obj.variables,'temp') && ~isempty(obj.variables.temp)
                                     temp = getSubDailyForcing(obj,obj.variables.temp);                               
                                     DDF = DDF./nDailySubSteps;
                                     for j=2:nsteps

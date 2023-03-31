@@ -328,3 +328,6 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 29 March 2023
 * Keystroke shortcuts added see https://github.com/peterson-tim-j/HydroSight/wiki/Graphical-interface#keystroke-shortcuts
 * Request for GitHub stars added to opening GUI title bar.
+
+1 April 2023
+* Bug fixed causing soil moisture mass balance errors to not be shown. This only arose for models not having snow melt.
