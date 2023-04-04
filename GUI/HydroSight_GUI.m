@@ -94,7 +94,7 @@ classdef HydroSight_GUI < handle
             % Open a window and add some menus
             if noDesktop; disp('Creating GUI figure ...'); end
             this.Figure = figure( ...
-                'Name', ['HydroSight ', vernum,':    ',char(9733), 'Support HydroSight. Ctrl-Shift-S to give it a ', char(9733),char(9733)], ...
+                'Name', ['HydroSight ', vernum,':    ',char(9733),char(9733), 'Support HydroSight. Ctrl-Shift-S to give it a Star', char(9733),char(9733)], ...
                 'NumberTitle', 'off', ...
                 'MenuBar', 'none', ...
                 'HandleVisibility', 'off', ...
@@ -357,9 +357,7 @@ classdef HydroSight_GUI < handle
                 'String',dynList(:),'Value',1,'Callback',...
                 @this.dataPrep_optionsSelection, 'Units','normalized');              
             
-            % Add table. Importantly, this is done using createTable, not
-            % uitable. This was required to achieve acceptable perforamnce
-            % for large tables.
+            % Add table.
             vboxTopInner2 = uiextras.VBox('Parent',vboxTopOuter, 'Visible','on');
             this.tab_DataPrep.modelOptions.resultsOptions.table = uitable(vboxTopInner2, ...
                 'ColumnName',{'Year', 'Month', 'Day', 'Hour', 'Minute', 'Head', 'Date_Error', 'Duplicate_Date_Error', 'Min_Head_Error','Max_Head_Error','Rate_of_Change_Error','Const_Hear_Error','Outlier_Obs'}, ... 
@@ -441,9 +439,7 @@ classdef HydroSight_GUI < handle
             data = cell(1,10);
             data{1,10} = '<html><font color = "#FF0000">Not built.</font></html>';
 
-            % Add table. Importantly, this is done using createTable, not
-            % uitable. This was required to achieve acceptable perforamnce
-            % for large tables.
+            % Add table.
             this.tab_ModelConstruction.Table = uitable(vbox1t3,'ColumnName',cnames1t3,'Data',data,  ...
                 'ColumnEditable',cedit1t3,'ColumnFormat',cformats1t3,'RowName', rnames1t3, ...
                 'CellSelectionCallback', @this.modelConstruction_tableSelection,...
@@ -607,9 +603,7 @@ classdef HydroSight_GUI < handle
       
             toolTipStr = 'Calibration of models that have been successfully built.';              
             
-            % Add table. Importantly, this is done using createTable, not
-            % uitable. This was required to achieve acceptable perforamnce
-            % for large tables.
+            % Add table. 
             this.tab_ModelCalibration.resultsOptions.currentTab = [];
             this.tab_ModelCalibration.resultsOptions.currentPlot = [];                                 
             this.tab_ModelCalibration.Table = uitable(vbox1t4,'ColumnName',cnames1t4,'Data',data,  ...
@@ -634,7 +628,7 @@ classdef HydroSight_GUI < handle
             uicontrol('Parent',hboxBtn2,'String','Import Table Data','Callback', @this.onImportTable, 'Tag','Model Calibration', 'TooltipString', sprintf('Import a .csv file of table data to the table below. \n Only rows with a model label and bore ID matching a row within the table will be imported.') );
             uicontrol('Parent',hboxBtn2,'String','Export Table Data','Callback', @this.onExportTable, 'Tag','Model Calibration', 'TooltipString', sprintf('Export a .csv file of the table below.') );            
             uicontrol('Parent',hboxBtn2,'String','Calibrate Selected Models','Callback', @this.onCalibModels,'Tag','useLocal', 'TooltipString', sprintf('Use the tick-box below to select the models to calibrate then click here. \n During and after calibration, the status is given in the 9th column.') );            
-            uicontrol('Parent',hboxBtn2,'String','Export Selected Results','Callback', @this.onExportResults, 'Tag','Model Calibration', 'TooltipString', sprintf('Export a .csv file of the calibration results from all models.') );            
+            %uicontrol('Parent',hboxBtn2,'String','Export Selected Results','Callback', @this.onExportResults, 'Tag','Model Calibration', 'TooltipString', sprintf('Export a .csv file of the calibration results from all models.') );            
             uicontrol('Parent',hboxBtn1,'Style','slider','Min',0.05,'Max',0.95,'Value',0.5,'Tag','WidthofPanelConstruct', ...
                 'Callback', {@this.onChangeTableWidth, 'Model Calibration outer hbox'} , 'TooltipString', 'Adjust table width');                                                     
             hboxBtn1.ButtonSize(1) = 225;
@@ -679,13 +673,18 @@ classdef HydroSight_GUI < handle
             resultsvboxTable = uiextras.Grid('Parent', resultsvbox ,'Padding', 3, 'Spacing', 3);            
             tbl = uitable(resultsvboxTable , 'ColumnName',{'Year','Month', 'Day','Hour','Minute', 'Obs. Head','Is Calib. Point?','Mod. Head','Model Err.','Noise Lower','Noise Upper'}, ... 
                 'Data',cell(0,11), 'ColumnFormat', {'numeric','numeric','numeric','numeric', 'numeric','numeric','logical','numeric','numeric','numeric','numeric'}, ...
-                'ColumnEditable', true(1,11), 'Tag','Model Calibration - results table', ...
+                'ColumnEditable', false(1,11), 'Tag','Model Calibration - results table', ...
                 'TooltipString',['<html>This table shows the calibration & evaluation results. <br>', ... 
-                'A range of plots can be used to explore aspects of the calibration.']);   
+                'A range of plots can be used to explore aspects of the calibration.'], ...
+                'CellSelectionCallback',@this.onResultsTableSelection); 
 
             % Build calibration results table contect menu
             contextMenu = uicontextmenu(this.Figure,'Visible','on');
-            uimenu(contextMenu,'Label','Export table data ...','Tag','Model Calibration - results table export', 'Callback',@this.onExportResults);                 
+            uimenu(contextMenu,'Label','Export current table (one file) ...','Tag','Model Calibration - results table export', 'Callback',@this.onExportResults);
+            uimenu(contextMenu,'Label','Export selected model tables (many files)...','Tag','Model Calibration - results table export selected', 'Callback',@this.onExportResults);  
+            uimenu(contextMenu,'Label','Export selected model & columns (one file) ...','Tag','Model Calibration - results table export selected column', 'Callback',@this.onExportResults);  
+
+
             set(tbl,'UIContextMenu',contextMenu);
             set(tbl.UIContextMenu,'UserData','Model Calibration - results table');
             
@@ -745,15 +744,17 @@ classdef HydroSight_GUI < handle
             
             tbl = uitable(resultsvbox, 'ColumnName',{'Year','Month', 'Day'}, ... 
                 'Data',cell(0,3), 'ColumnFormat', {'numeric','numeric','numeric'}, ...
-                'ColumnEditable', true(1,3), 'Tag','Model Calibration - forcing table', ...
+                'ColumnEditable', false(1,3), 'Tag','Model Calibration - forcing table', ...
                 'TooltipString',['<html>This table allows exploration of the forcing data used for the calibration <br>', ... 
-                     '& evaluation and forcing data derived from the model (e.g. from a soil moisture <br>', ... 
-                     'transformation model). Use the table to explore forcing dynamics at a range of time-steps.']);  
+                '& evaluation and forcing data derived from the model (e.g. from a soil moisture <br>', ... 
+                'transformation model). Use the table to explore forcing dynamics at a range of time-steps.'], ...
+                'CellSelectionCallback',@this.onResultsTableSelection);  
             contextMenu = uicontextmenu(this.Figure,'Visible','on');
-            uimenu(contextMenu,'Label','Export table data ...','Tag','Model Calibration - forcing table export', 'Callback',@this.onExportResults);                 
+            uimenu(contextMenu,'Label','Export current table (one file) ...','Tag','Model Calibration - forcing table export', 'Callback',@this.onExportResults);
+            uimenu(contextMenu,'Label','Export selected model tables (many files)...','Tag','Model Calibration - forcing table export selected', 'Callback',@this.onExportResults);  
+            uimenu(contextMenu,'Label','Export selected model & columns (one file) ...','Tag','Model Calibration - forcing table export selected column', 'Callback',@this.onExportResults);  
             set(tbl,'UIContextMenu',contextMenu);
             set(tbl.UIContextMenu,'UserData','Model Calibration - forcing table');
-                 
                  
             resultsvboxOptions = uiextras.Grid('Parent', resultsvbox,'Padding', 3, 'Spacing', 3);
             uicontrol(resultsvboxOptions,'Style','text','String','Plot type:' );
@@ -784,13 +785,17 @@ classdef HydroSight_GUI < handle
             tbl = uitable(resultsvbox, ...
                 'ColumnName',{'Component Name','Parameter Name','Value'}, ... 
                 'ColumnFormat', {'char','char','numeric'}, ...
-                'ColumnEditable', true(1,3), ...
+                'ColumnEditable', false(1,3), ...
                 'Tag','Model Calibration - parameter table', ...
                 'TooltipString',['<html>This table allows exploration of the calibrated model parameters. <br>', ... 
-                 'Use this table to inform assessment of the validity of the model.']);            
+                 'Use this table to inform assessment of the validity of the model.'], ...
+                 'CellSelectionCallback',@this.onResultsTableSelection);            
              
             contextMenu = uicontextmenu(this.Figure,'Visible','on');
-            uimenu(contextMenu,'Label','Export table data ...','Tag','Model Calibration - parameter table export', 'Callback',@this.onExportResults);                 
+            uimenu(contextMenu,'Label','Export current table (one file) ...','Tag','Model Calibration - parameter table export', 'Callback',@this.onExportResults);
+            uimenu(contextMenu,'Label','Export selected model tables (many files)...','Tag','Model Calibration - parameter table export selected', 'Callback',@this.onExportResults);  
+            uimenu(contextMenu,'Label','Export selected model & columns (one file) ...','Tag','Model Calibration - parameter table export selected column', 'Callback',@this.onExportResults);  
+
             set(tbl,'UIContextMenu',contextMenu);
             set(tbl.UIContextMenu,'UserData','Model Calibration - parameter table');                         
 
@@ -803,15 +808,19 @@ classdef HydroSight_GUI < handle
             tbl = uitable(resultsvbox, ...
                 'ColumnName',{'Component Name','Parameter Name','Derived Value'}, ... 
                 'ColumnFormat', {'char','char','numeric'}, ...
-                'ColumnEditable', true(1,3), ...
+                'ColumnEditable', false(1,3), ...
                 'Tag','Model Calibration - derived parameter table', ...
                 'TooltipString',['<html>This table allows exploration of the parameters derived from the calibrated <br>', ... 
                  'parameters. The parameters shown are dependent upon the model structure. <br>', ...
                  'For example, TFN models having using, say, the Ferris Knowles weighting function <br>', ...
-                 'will show the transmissivity and storativity.']); 
+                 'will show the transmissivity and storativity.'], ...
+                 'CellSelectionCallback',@this.onResultsTableSelection); 
              
             contextMenu = uicontextmenu(this.Figure,'Visible','on');
-            uimenu(contextMenu,'Label','Export table data ...','Tag','Model Calibration - derived parameter table export', 'Callback',@this.onExportResults);                 
+            uimenu(contextMenu,'Label','Export current table (one file) ...','Tag','Model Calibration - derived parameter table export', 'Callback',@this.onExportResults);
+            uimenu(contextMenu,'Label','Export selected model tables (many files)...','Tag','Model Calibration - derived parameter table export selected', 'Callback',@this.onExportResults);  
+            uimenu(contextMenu,'Label','Export selected model & columns (one file) ...','Tag','Model Calibration - derived parameter table export selected column', 'Callback',@this.onExportResults);  
+
             set(tbl,'UIContextMenu',contextMenu);
             set(tbl.UIContextMenu,'UserData','Model Calibration - derived parameter table');                         
              
@@ -829,14 +838,18 @@ classdef HydroSight_GUI < handle
             tbl = uitable(resultsvbox, ...
                 'ColumnName',{'Variabe 1','Variabe 2'}, ... 
                 'ColumnFormat', {'numeric','numeric'}, ...
-                'ColumnEditable', true(1,2), ...
+                'ColumnEditable', false(1,2), ...
                 'Tag','Model Calibration - derived data table', ...
                 'TooltipString',['<html>This table allows exploration of the data derived from the calibrated. <br>', ... 
                  'The data shown are very dependent upon the model structure. <br>', ...
                  'For example, TFN models having using, say, the Pearsons weighting function <br>', ...
-                 'will show the weighting data and a plot.']);     
+                 'will show the weighting data and a plot.'], ...
+                 'CellSelectionCallback',@this.onResultsTableSelection);     
             contextMenu = uicontextmenu(this.Figure,'Visible','on');
-            uimenu(contextMenu,'Label','Export table data ...','Tag','Model Calibration - derived data table export', 'Callback',@this.onExportResults);                 
+            uimenu(contextMenu,'Label','Export current table (one file) ...','Tag','Model Calibration - derived data table export', 'Callback',@this.onExportResults);
+            uimenu(contextMenu,'Label','Export selected model tables (many files)...','Tag','Model Calibration - derived data table export selected', 'Callback',@this.onExportResults);  
+            uimenu(contextMenu,'Label','Export selected model & columns (one file) ...','Tag','Model Calibration - derived data table export selected column', 'Callback',@this.onExportResults);  
+            
             set(tbl,'UIContextMenu',contextMenu);
             set(tbl.UIContextMenu,'UserData','Model Calibration - derived data table export');               
             uiextras.Panel('Parent', resultsvbox,'BackgroundColor',[1 1 1], ...
@@ -880,7 +893,7 @@ classdef HydroSight_GUI < handle
             uicontrol(hboxBtn2,'String','Append Table Data','Callback', @this.onImportTable, 'Tag','Model Simulation', 'TooltipString', sprintf('Append a .csv file of table data to the table below. \n Only rows where the model label is for a model that have been calibrated will be imported.') );
             uicontrol(hboxBtn2,'String','Export Table Data','Callback', @this.onExportTable, 'Tag','Model Simulation', 'TooltipString', sprintf('Export a .csv file of the table below.') );                        
             uicontrol(hboxBtn2,'String','Simulate Selected Models','Callback', @this.onSimModels, 'TooltipString', sprintf('Use the tick-box below to select the models to simulate then click here. \n During and after simulation, the status is given in the 9th column.') );            
-            uicontrol(hboxBtn2,'String','Export Selected Results','Callback', @this.onExportResults, 'Tag','Model Simulation', 'TooltipString', sprintf('Export a .csv file of the simulation results from all models.') );            
+            %uicontrol(hboxBtn2,'String','Export Selected Results','Callback', @this.onExportResults, 'Tag','Model Simulation', 'TooltipString', sprintf('Export a .csv file of the simulation results from all models.') );            
             uicontrol('Parent',hboxBtn1,'Style','slider','Min',0.05,'Max',0.95,'Value',0.5,'Tag','WidthofPanelConstruct', ...
                 'Callback', {@this.onChangeTableWidth, 'Model Simulation outer hbox'} , 'TooltipString', 'Adjust table width');                                                     
             hboxBtn1.ButtonSize(1) = 225;
@@ -950,12 +963,16 @@ classdef HydroSight_GUI < handle
             resultsvboxTable = uiextras.Grid('Parent', resultsvbox ,'Padding', 3, 'Spacing', 3);            
             tbl = uitable(resultsvboxTable , 'ColumnName',{'Year','Month', 'Day', 'Mod. Head','Noise Lower','Noise Upper'}, ... 
                 'Data',cell(0,6), 'ColumnFormat', {'numeric','numeric','numeric','numeric', 'numeric','numeric','numeric'}, ...
-                'ColumnEditable', true(1,6), 'Tag','Model Simulation - results table', ...
-                'TooltipString','Table shows the simulation results.');   
+                'ColumnEditable', false(1,6), 'Tag','Model Simulation - results table', ...
+                'TooltipString','Table shows the simulation results.', ...
+                'CellSelectionCallback',@this.onResultsTableSelection);   
 
             % Build simulation results table contect menu
             contextMenu = uicontextmenu(this.Figure,'Visible','on');
-            uimenu(contextMenu,'Label','Export table data ...','Tag','Model Simulation - results table export', 'Callback',@this.onExportResults);                 
+            uimenu(contextMenu,'Label','Export current table (one file) ...','Tag','Model Simulation - results table export', 'Callback',@this.onExportResults);
+            uimenu(contextMenu,'Label','Export selected model tables (many files)...','Tag','Model Simulation - results table export selected', 'Callback',@this.onExportResults);  
+            uimenu(contextMenu,'Label','Export selected model & columns (one file) ...','Tag','Model Simulation - results table export selected column', 'Callback',@this.onExportResults);  
+
             set(tbl,'UIContextMenu',contextMenu);
             set(tbl.UIContextMenu,'UserData','Model Simulation - results table');
             
@@ -1008,12 +1025,16 @@ classdef HydroSight_GUI < handle
             
             tbl = uitable(resultsvbox, 'ColumnName',{'Year','Month', 'Day'}, ... 
                 'Data',cell(0,3), 'ColumnFormat', {'numeric','numeric','numeric'}, ...
-                'ColumnEditable', true(1,3), 'Tag','Model Simulation - forcing table', ...
+                'ColumnEditable', false(1,3), 'Tag','Model Simulation - forcing table', ...
                 'TooltipString',['<html>This table allows exploration of the forcing data used for the simulation <br>', ... 
                      '& evaluation and forcing data derived from the model (e.g. from a soil moisture <br>', ... 
-                     'transformation model). Use the table to explore forcing dynamics at a range of time-steps.']);  
+                     'transformation model). Use the table to explore forcing dynamics at a range of time-steps.'], ...
+                     'CellSelectionCallback',@this.onResultsTableSelection);  
             contextMenu = uicontextmenu(this.Figure,'Visible','on');
-            uimenu(contextMenu,'Label','Export table data ...','Tag','Model Simulation - forcing table export', 'Callback',@this.onExportResults);                 
+            uimenu(contextMenu,'Label','Export current table (one file) ...','Tag','Model Simulation - forcing table export', 'Callback',@this.onExportResults);
+            uimenu(contextMenu,'Label','Export selected model tables (many files)...','Tag','Model Simulation - forcing table export selected', 'Callback',@this.onExportResults);  
+            uimenu(contextMenu,'Label','Export selected model & columns (one file) ...','Tag','Model Simulation - forcing table export selected column', 'Callback',@this.onExportResults);  
+            
             set(tbl,'UIContextMenu',contextMenu);
             set(tbl.UIContextMenu,'UserData','Model Simulation - forcing table');
                  
@@ -1552,6 +1573,12 @@ classdef HydroSight_GUI < handle
                     end
                     this.tab_DataPrep.Table.Data = savedData.tableData.tab_DataPrep;
                     
+                    % Set empty row selectors to zero.
+                    ind = cellfun(@(x) isempty(x),this.tab_DataPrep.Table.Data(:,1));
+                    if any(ind)
+                        this.tab_DataPrep.Table.Data{ind,1}=false;
+                    end
+
                     % Update row numbers
                     nrows = size(this.tab_DataPrep.Table.Data,1);
                     this.tab_DataPrep.Table.RowName = mat2cell(transpose(1:nrows),ones(1, nrows));                    
@@ -1572,6 +1599,12 @@ classdef HydroSight_GUI < handle
                     end
                     this.tab_ModelConstruction.Table.Data = savedData.tableData.tab_ModelConstruction;
                     
+                    % Set empty row selectors to zero.
+                    ind = cellfun(@(x) isempty(x),this.tab_ModelConstruction.Table.Data(:,1));
+                    if any(ind)
+                        this.tab_ModelConstruction.Table.Data{ind,1}=false;
+                    end
+
                     % Update row numbers
                     nrows = size(this.tab_ModelConstruction.Table.Data,1);
                     this.tab_ModelConstruction.Table.RowName = mat2cell(transpose(1:nrows),ones(1, nrows));     
@@ -1594,6 +1627,12 @@ classdef HydroSight_GUI < handle
                     end                   
                     this.tab_ModelCalibration.Table.Data = savedData.tableData.tab_ModelCalibration;
                     
+                    % Set empty row selectors to zero.
+                    ind = cellfun(@(x) isempty(x),this.tab_ModelCalibration.Table.Data(:,1));
+                    if any(ind)
+                        this.tab_ModelCalibration.Table.Data{ind,1}=false;
+                    end
+
                     % Update row numbers
                     nrows = size(this.tab_ModelCalibration.Table.Data,1);
                     this.tab_ModelCalibration.Table.RowName = mat2cell(transpose(1:nrows),ones(1, nrows));           
@@ -1614,6 +1653,12 @@ classdef HydroSight_GUI < handle
                     % Update row numbers
                     nrows = size(this.tab_ModelSimulation.Table.Data,1);
                     this.tab_ModelSimulation.Table.RowName = mat2cell(transpose(1:nrows),ones(1, nrows));  
+
+                    % Set empty row selectors to zero.
+                    ind = cellfun(@(x) isempty(x),this.tab_ModelSimulation.Table.Data(:,1));
+                    if any(ind)
+                        this.tab_ModelSimulation.Table.Data{ind,1}=false;
+                    end
 
                     % Convert model labels from a variable name to the full
                     % label (ie without _ chars etc)
@@ -8422,7 +8467,7 @@ classdef HydroSight_GUI < handle
                         % unique
                         modelLabel_dest = HydroSight_GUI.removeHTMLTags(this.tab_ModelSimulation.Table.Data(:,2));
                         simLabel_dest = HydroSight_GUI.removeHTMLTags(this.tab_ModelSimulation.Table.Data(:,6));
-                        ind = find(strcmp(strcat(modelLabel_dest,'_',simLabel_dest), [modelLabel_src{1},'_',simLabel_src{1}]));
+                        ind = find(strcmp(strcat(modelLabel_dest,'_',simLabel_dest), [modelLabel_src{1},'_',simLabel_src{1}])); %#ok<EFIND> 
                         
                         % Skip if the model and label are not unique
                         if ~isempty(ind)
@@ -8589,7 +8634,17 @@ classdef HydroSight_GUI < handle
                 setIcon(this, h);
                 return;
             end            
-        end        
+        end       
+
+        function onResultsTableSelection(this, ~, eventdata)
+            if contains(eventdata.Source.Tag,'Model Calibration -')
+                this.tab_ModelCalibration.resultsOptions.currentTable.Tag = eventdata.Source.Tag;
+                this.tab_ModelCalibration.resultsOptions.currentTable.Indicies = eventdata.Indices;
+            elseif contains(eventdata.Source.Tag,'Model Simulation -')
+                this.tab_ModelSimulation.resultsOptions.currentTable.Tag = eventdata.Source.Tag;
+                this.tab_ModelSimulation.resultsOptions.currentTable.Indicies = eventdata.Indices;
+            end
+        end
         
         function onExportResults(this, hObject, ~)
             
@@ -8755,481 +8810,719 @@ classdef HydroSight_GUI < handle
                            'Export summary');
                     setIcon(this, h);
                     
-                case 'Model Calibration'
-                    
-                    % Check if there are any rows selected for export
-                    if ~any( cellfun(@(x) x==1, this.tab_ModelCalibration.Table.Data(:,1)))
-                        h = warndlg({'No rows are selected for export.','Please select the models to export using the left-hand tick boxes.'},'No rows selected for export ...');
-                        setIcon(this, h);
-                        return;
-                    end                    
-
-                    % Ask the user if they want to export the time-series results or the model parameters or the derived parameters.
-                    response = questdlg_timer(this.figure_icon,15,'Do you want to export the time-series results, or the model and derived parameters?', ...
-                        'Export options.','Time-series results','Model & derived parameters','Cancel','Cancel');                    
-
-                    if isempty(response) || strcmp(response, 'Cancel')
-                        return;
+%                 case 'Model Calibration'
+%                     
+%                     % Check if there are any rows selected for export
+%                     if ~any( cellfun(@(x) x==1, this.tab_ModelCalibration.Table.Data(:,1)))
+%                         h = warndlg({'No rows are selected for export.','Please select the models to export using the left-hand tick boxes.'},'No rows selected for export ...');
+%                         setIcon(this, h);
+%                         return;
+%                     end                    
+% 
+%                     % Ask the user if they want to export the time-series results or the model parameters or the derived parameters.
+%                     response = questdlg_timer(this.figure_icon,15,'Do you want to export the time-series results, or the model and derived parameters?', ...
+%                         'Export options.','Time-series results','Model & derived parameters','Cancel','Cancel');                    
+% 
+%                     if isempty(response) || strcmp(response, 'Cancel')
+%                         return;
+%                     end
+%                     
+%                     % Get output file name
+%                     [fName,pName] = uiputfile({'*.csv'},'Input the .csv file name for results file.'); 
+%                     if fName~=0
+%                         % Assign file name to date cell array
+%                         filename = fullfile(pName,fName);
+%                     else
+%                         return;
+%                     end 
+%                     
+%                     % Change cursor
+%                     set(this.Figure, 'pointer', 'watch');
+%                     drawnow update;                    
+%                     
+%                     % Open file and write headers
+%                     fileID = fopen(filename,'w');
+%                     if strcmp(response, 'Time-series results')
+%                         fprintf(fileID,'Model_Label,BoreID,Year,Month,Day,Hour,Minute,Obs_Head,Is_Calib_Point?,Calib_Head,Eval_Head,Model_Err,Noise_Lower,Noise_Upper \n');
+%                     else 
+%                         fprintf(fileID,'Model_Label,BoreID,ComponentName,ParameterName,ParameterSetNumber,ParameterSetValue \n');
+%                     end
+%                     
+%                     % Setup wait box
+%                     h = waitbar(0,'Exporting results. Please wait ...');      
+%                     setIcon(this, h);
+%                     
+%                     % Loop through each row of the calibration table and
+%                     % export the calibration results (if calibrated)
+%                     nrows = size(this.tab_ModelCalibration.Table.Data,1);
+%                     nResultsWritten=0;
+%                     nModelsToExport=0;
+%                     nModelsNotCalib=0;
+%                     for i=1:nrows
+% 
+%                         % update wait bar
+%                         waitbar(i/nrows);    
+%                         
+%                         % Skip if not selected
+%                         if ~this.tab_ModelCalibration.Table.Data{i,1}
+%                             continue
+%                         end                        
+%                         
+%                         % Get model label.
+%                         modelLabel = this.tab_ModelCalibration.Table.Data{i,2};
+%                         modelLabel = HydroSight_GUI.removeHTMLTags(modelLabel);
+%                         modelLabel = HydroSight_GUI.modelLabel2FieldName(modelLabel);
+%                         
+%                         % Incrment number of models selected for export
+%                         nModelsToExport = nModelsToExport+1;
+%                                                 
+%                         % Skip if not calibrated
+%                         if ~this.model_labels{modelLabel,'isCalibrated'}
+%                             nModelsNotCalib= nModelsNotCalib+1;
+%                             continue
+%                         end
+%                         
+%                         % Get a copy of the model object. This is only done to
+%                         % minimise HDD read when the models are off loaded to HDD using
+%                         % matfile();
+%                         tmpModel = getModel(this, modelLabel);
+% 
+%                         % Exit if model not found.
+%                         if isempty(tmpModel)    
+%                             continue;
+%                         end                        
+%                         
+%                         % Get model results
+%                         if isstruct(tmpModel.calibrationResults) && tmpModel.calibrationResults.isCalibrated                    
+%                     
+%                             if strcmp(response, 'Time-series results')
+%                                 % Get the model calibration data.
+%                                 tableData = tmpModel.calibrationResults.data.obsHead;
+%                                 tableData = [tableData, ones(size(tableData,1),1), tmpModel.calibrationResults.data.modelledHead(:,2), ...
+%                                     nan(size(tableData,1),1), tmpModel.calibrationResults.data.modelledHead_residuals(:,end), ...
+%                                     tmpModel.calibrationResults.data.modelledNoiseBounds(:,end-1:end)]; %#ok<AGROW> 
+%                                 
+%                                 % Get evaluation data
+%                                 if isfield(tmpModel.evaluationResults,'data')
+%                                     % Get data
+%                                     evalData = tmpModel.evaluationResults.data.obsHead;
+%                                     evalData = [evalData, zeros(size(evalData,1),1), nan(size(evalData,1),1), tmpModel.evaluationResults.data.modelledHead(:,2), ...
+%                                         tmpModel.evaluationResults.data.modelledHead_residuals(:,end), ...
+%                                         tmpModel.evaluationResults.data.modelledNoiseBounds(:,end-1:end)]; %#ok<AGROW> 
+%                                     
+%                                     % Append to table of calibration data and sort
+%                                     % by time.
+%                                     tableData = [tableData; evalData]; %#ok<AGROW> 
+%                                     tableData = sortrows(tableData, 1);
+%                                 end
+%                                 
+%                                 % Convert table to real (if previously set to
+%                                 % single for memeory issues)
+%                                 tableData = double(tableData);
+%                                 
+%                                 % Calculate year, month, day etc
+%                                 tableData = [year(tableData(:,1)), month(tableData(:,1)), day(tableData(:,1)), hour(tableData(:,1)), minute(tableData(:,1)), tableData(:,2:end)];
+%                                 
+%                                 % Build write format string
+%                                 fmt = '%s,%s,%i,%i,%i,%i,%i,%12.3f';
+%                                 for j=1:size(tableData,2)-6
+%                                     fmt = strcat(fmt,',%12.3f');
+%                                 end
+%                                 fmt = strcat(fmt,'  \n');
+% 
+%                                 % Get Bore ID
+%                                 boreID = tmpModel.bore_ID;
+%                                 
+%                                 %Write each row.
+%                                 for j=1:size(tableData,1)
+%                                     fprintf(fileID,fmt, modelLabel, boreID, tableData(j,:));
+%                                 end
+%                                                                 
+%                             else
+%                                 % get the parameters and derived parameters
+%                                 [ParamValues, ParamsNames] = getParameters(tmpModel.model);
+%                                 [derivedParamValues, derivedParamsNames] = getDerivedParameters(tmpModel.model);
+% 
+%                                 % Get Bore ID
+%                                 boreID = tmpModel.bore_ID;
+%                                 
+%                                 % Build write format string
+%                                 fmt = '%s,%s,%s,%s,%i,%12.6f \n';                          
+%                                 
+%                                 %Write each parameter and each parameter set (ie if DREAM was used).
+%                                 for j=1:size(ParamsNames,1)
+%                                     for k=1:size(ParamValues,2)
+%                                         fprintf(fileID,fmt, modelLabel, boreID, ParamsNames{j,1},ParamsNames{j,2}, k, ParamValues(j,k));
+%                                     end
+%                                 end
+%                                 
+%                                 %Write each derived parameter and each derived parameter set (ie if DREAM was used).
+%                                 for j=1:size(derivedParamsNames,1)
+%                                     for k=1:size(derivedParamValues,2)
+%                                         fprintf(fileID,fmt, modelLabel, boreID, derivedParamsNames{j,1},derivedParamsNames{j,2}, k, derivedParamValues(j,k));
+%                                     end
+%                                 end                                
+%                             end
+%                                 
+%                             % Update counter
+%                             nResultsWritten = nResultsWritten + 1;
+%                         else
+%                             nModelsNotCalib = nModelsNotCalib + 1;
+%                         end        
+%                     end
+%                     fclose(fileID);
+%                     
+%                     % Close wait bar
+%                     close(h);                      
+%                     
+%                     % Change cursor
+%                     set(this.Figure, 'pointer', 'arrow');
+%                     drawnow update;                    
+%                     
+%                     % Show summary
+%                     h = msgbox({'Export of results finished.','',['Number of model results exported =',num2str(nResultsWritten)],['Number of models selected for export =',num2str(nModelsToExport)],['Number of selected models not calibrated =',num2str(nModelsNotCalib)]},'Export Summary');
+%                     setIcon(this, h);
+%                     
+%                 case 'Model Simulation'
+%                     % Check if there are any rows selected for export
+%                     if ~any( cellfun(@(x) x==1, this.tab_ModelSimulation.Table.Data(:,1)))
+%                         h = warndlg({'No rows are selected for export.','Please select the models to export using the left-hand tick boxes.'},'No rows selected');
+%                         setIcon(this, h);
+%                         return;
+%                     end
+%                       
+%                     % Ask the user if they want to export one file per bore (with decomposition)
+%                     % or all results in one file.
+%                     response = questdlg_timer(this.figure_icon,15,{'Do you want to export all simulations into one file, or as one file per simulation?','', ...
+%                         'NOTE: The forcing decomposition results will only be exported using the multi-file option.'}, ...
+%                         'Export options.','One File','Multiple Files','Cancel','Cancel');
+%                     
+%                     if isempty(response) || strcmp(response,'Cancel')
+%                         return;
+%                     end
+%                     
+%                     if strcmp(response, 'Multiple Files')
+%                         useMultipleFiles = true;
+%                         folderName = uigetdir('' ,'Select where to save the .csv simulation files (one file per simulation).');    
+%                         if isempty(folderName) || (isnumeric(folderName) && folderName==0)
+%                             return;
+%                         end
+%                     else
+%                         useMultipleFiles = false;
+%                         fileName = uiputfile({'*.csv','*.*'} ,'Input the file name for the .csv simulation file (all simulations in one file).');    
+%                         if isempty(fileName) || (isnumeric(fileName) && fileName==0)
+%                             return;
+%                         end   
+%                         
+%                         fileID = fopen(fileName,'w');
+%                         fprintf(fileID,'Simulation_Label,Model_Label,BoreID,Year,Month,Day,Hour,Minute,Sim_Head \n');
+%     
+%                     
+%                     end
+%                                            
+%                     % Change cursor
+%                     set(this.Figure, 'pointer', 'watch');
+%                     drawnow update;                   
+%                     
+%                     % Setup wait box
+%                     h = waitbar(0,'Exporting results. Please wait ...');          
+%                     setIcon(this, h);
+%                     
+%                     % Loop through each row of the simulation table and
+%                     % export the calibration results (if calibrated)
+%                     nrows = size(this.tab_ModelSimulation.Table.Data,1);
+%                     nResultsWritten=0;
+%                     nModelsNotFound=0;
+%                     nSimsNotUndertaken = 0;
+%                     nSimsNotUnique = 0;
+%                     nTableConstFailed = 0;
+%                     nWritteError = 0;
+%                     for i=1:nrows                        
+%                         
+%                         % update wait bar
+%                         waitbar(i/nrows);                   
+%                         
+%                         % Skip if the model is not sleected for export
+%                         if ~this.tab_ModelSimulation.Table.Data{i,1}
+%                             continue
+%                         end
+%                         
+%                         % get model label and simulation label.
+%                         modelLabel = this.tab_ModelSimulation.Table.Data{i,2};
+%                         simLabel = this.tab_ModelSimulation.Table.Data{i,6};
+%                         boreID = this.tab_ModelSimulation.Table.Data{i,3};
+% 
+%                         % Get a copy of the model object. This is only done to
+%                         % minimise HDD read when the models are off loaded to HDD using
+%                         % matfile();
+%                         tmpModel = getModel(this, modelLabel);
+% 
+%                         % Check model exists.
+%                         if isempty(tmpModel) 
+%                             nModelsNotFound = nModelsNotFound +1;
+%                             continue;                            
+%                         end
+%                         
+%                         % Check simulations exists.
+%                         if isempty(tmpModel.simulationResults)    
+%                             nSimsNotUndertaken = nSimsNotUndertaken +1;
+%                             continue;
+%                         end                        
+%                                                                                                 
+%                         % Find the simulation.    
+%                         if isempty(simLabel)
+%                             nSimsNotUndertaken = nSimsNotUndertaken +1;
+%                             continue;
+%                         end
+%                         simInd = cellfun(@(x) strcmp(simLabel, x.simulationLabel), tmpModel.simulationResults);
+%                         if all(~simInd)    % Exit if model not found.
+%                             nSimsNotUndertaken = nSimsNotUndertaken +1;
+%                             continue;
+%                         end          
+%                         simInd = find(simInd);
+%             
+%                         % Check only one simulation found
+%                         if length(simInd)>1
+%                             nSimsNotUnique = nSimsNotUnique +1;
+%                             continue;
+%                         end
+%                         
+% 
+%                         % Get the simulation data and create the output
+%                         % table.
+%                         try
+%                             % Get the model simulation data.
+%                             if useMultipleFiles
+%                                 tableData = tmpModel.simulationResults{simInd,1}.head;
+%                             else
+%                                 tableData = tmpModel.simulationResults{simInd,1}.head(:,1:2);
+%                             end
+%                                                         
+%                             % Calculate year, month, day etc
+%                             tableData = [year(tableData(:,1)), month(tableData(:,1)), day(tableData(:,1)), hour(tableData(:,1)), minute(tableData(:,1)), tableData(:,2:end)];
+% 
+%                             % Create column names.                        
+%                             if useMultipleFiles
+%                                 columnName = {'Year','Month','Day','Hour','Minute',tmpModel.simulationResults{simInd,1}.colnames{2:end}};
+%                                 
+%                                 % Check if there are any invalid column names
+%                                 columnName = regexprep(columnName,'\W','_');                            
+%                                 
+%                                 % Create table and add variable names
+%                                 tableData = array2table(tableData);
+%                                 tableData.Properties.VariableNames = columnName;
+% 
+%                             end
+%                             
+%                         catch
+%                             nTableConstFailed = nTableConstFailed + 1;
+%                         end
+%                         
+%                         % write data to the file
+%                         if useMultipleFiles
+%                             filename_tmp = fullfile(folderName,[modelLabel,'_',simLabel,'.csv']);
+%                             
+%                             try
+%                                 writetable(tableData,filename_tmp);          
+%                                 nResultsWritten = nResultsWritten + 1;
+%                             catch
+%                                 nWritteError = nWritteError + 1;
+%                             end
+%                             
+%                         else
+%                             % Build write format string
+%                             fmt = '%s,%s,%s,%i,%i,%i,%i,%i,%12.3f \n';
+%                             
+%                             % Remove HTML from bore ID
+%                             boreID = HydroSight_GUI.removeHTMLTags(boreID);
+%                             
+%                             %Write each row.
+%                             try
+%                                 for j=1:size(tableData,1)
+%                                     fprintf(fileID,fmt, simLabel, modelLabel, boreID, tableData(j,:));
+%                                 end
+%                                 nResultsWritten = nResultsWritten + 1;
+%                             catch
+%                                 nWritteError = nWritteError + 1;
+%                             end
+%                             
+%                         end
+%                         
+%                                                     
+%                     end
+%                     
+%                     % Close wait bar
+%                     close(h);                         
+%                     
+%                     % Change cursor
+%                     set(this.Figure, 'pointer', 'arrow');
+%                     drawnow update;                    
+%                     
+%                     % Show summary                
+%                     h = msgbox({'Export of results finished.','', ...
+%                            ['Number of simulations exported =',num2str(nResultsWritten)], ...
+%                            ['Number of models not found =',num2str(nModelsNotFound)], ...
+%                            ['Number of simulations not undertaken =',num2str(nSimsNotUndertaken)], ...
+%                            ['Number of simulations labels not unique =',num2str(nSimsNotUnique)], ...
+%                            ['Number of simulations where the construction of results table failed=',num2str(nTableConstFailed)], ...
+%                            ['Number of simulations where the file could not be written =',num2str(nWritteError)]}, ...
+%                            'Export Summary');                    
+%                     setIcon(this, h);
+                case {'Model Calibration - results table export', ...
+                      'Model Calibration - results table export selected', ...
+                      'Model Calibration - results table export selected column', ...
+                      'Model Calibration - forcing table export', ...
+                      'Model Calibration - forcing table export selected', ...
+                      'Model Calibration - forcing table export selected column', ...
+                      'Model Calibration - parameter table export', ...
+                      'Model Calibration - parameter table export selected', ...
+                      'Model Calibration - parameter table export selected column', ...
+                      'Model Calibration - derived parameter table export', ...
+                      'Model Calibration - derived parameter table export selected', ...
+                      'Model Calibration - derived parameter table export selected column', ...
+                      'Model Calibration - derived data table export', ...
+                      'Model Calibration - derived data table export selected', ...
+                      'Model Calibration - derived data table export selected column', ...
+                      'Model Simulation - results table export', ...
+                      'Model Simulation - results table export selected', ...
+                      'Model Simulation - results table export selected column', ...
+                      'Model Simulation - forcing table export', ...
+                      'Model Simulation - forcing table export selected', ...
+                      'Model Simulation - forcing table export selected column'}                    
+                                          
+                    extractCalibData = false;
+                    exportSelectedBores = false;
+                    extractColumns = false;
+                    if contains(hObject.Tag, 'Model Calibration - ')
+                        extractCalibData = true;
+                    end  
+                    if contains(hObject.Tag,'selected')
+                        exportSelectedBores = true;
                     end
-                    
-                    % Get output file name
-                    [fName,pName] = uiputfile({'*.csv'},'Input the .csv file name for results file.'); 
-                    if fName~=0
-                        % Assign file name to date cell array
-                        filename = fullfile(pName,fName);
+                    if contains(hObject.Tag,'column')
+                        extractColumns = true;
+                        exportSelectedBores = true;
+                    end
+
+                    % Get table obj for exporting
+                    searchTag = strrep(hObject.Tag,' export selected column','');
+                    searchTag = strrep(searchTag,' export selected','');
+                    searchTag = strrep(searchTag,' export','');
+                    if extractCalibData
+                        tablObj = findobj(this.tab_ModelCalibration.resultsTabs,'Tag',searchTag);
                     else
-                        return;
-                    end 
-                    
-                    % Change cursor
-                    set(this.Figure, 'pointer', 'watch');
-                    drawnow update;                    
-                    
-                    % Open file and write headers
-                    fileID = fopen(filename,'w');
-                    if strcmp(response, 'Time-series results')
-                        fprintf(fileID,'Model_Label,BoreID,Year,Month,Day,Hour,Minute,Obs_Head,Is_Calib_Point?,Calib_Head,Eval_Head,Model_Err,Noise_Lower,Noise_Upper \n');
-                    else 
-                        fprintf(fileID,'Model_Label,BoreID,ComponentName,ParameterName,ParameterSetNumber,ParameterSetValue \n');
+                        tablObj = findobj(this.tab_ModelSimulation.resultsTabs,'Tag',searchTag);
+                    end
+
+                    % Get main table
+                    if extractCalibData
+                        hObjecttmp = this.tab_ModelCalibration.Table;
+                    else
+                        hObjecttmp = this.tab_ModelSimulation.Table;
+                    end
+
+                    % Get list of selected bores
+                    if exportSelectedBores
+                        ind = find(cell2mat(hObjecttmp.Data(:,1)));                       
+                    else
+                        if extractCalibData
+                            ind = this.tab_ModelCalibration.currentRow;
+                        else
+                            ind = this.tab_ModelSimulation.currentRow;
+                        end
+                    end
+
+                    % Check if any bores are selected
+                    if isempty(ind)
+                        h = msgbox({'No models selected.','Please select the checkboxs of the models to be exported.'},'Selecting error','modal');
+                        setIcon(this, h);
+                        return
+                    end
+
+                    % Check if only selected columns are to be exported.
+                    % If so, get the required colum names.
+                    if extractColumns
+                        if extractCalibData
+                            % Check selected tag and current tag are equal
+                            if isfield(this.tab_ModelCalibration.resultsOptions,'currentTable') && ...
+                            strcmp(this.tab_ModelCalibration.resultsOptions.currentTable.Tag,tablObj.Tag)
+                                extractedColumnsInd = this.tab_ModelCalibration.resultsOptions.currentTable.Indicies(:,2);
+                                if isempty(extractedColumnsInd)
+                                    h = msgbox({'No cells were selected.','Please select the cells within the columns to be extracted.'},'Selecting error','modal');
+                                    setIcon(this, h);
+                                    return
+                                else
+                                    extractedColumns = tablObj.ColumnName(extractedColumnsInd);
+                                end
+                            else
+                                h = msgbox({'Sorry, the selected table and this table are somehow inconsistent.','Please reselect the required column(s)'},'Selecting error','modal');
+                                setIcon(this, h);
+                                return
+                            end
+                        else
+                            if isfield(this.tab_ModelSimulation.resultsOptions,'currentTable') && ...
+                            strcmp(this.tab_ModelSimulation.resultsOptions.currentTable.Tag,tablObj.Tag)
+                                extractedColumnsInd = this.tab_ModelSimulation.resultsOptions.currentTable.Indicies(:,2);
+                                if isempty(extractedColumnsInd)
+                                    h = msgbox({'No cells were selected.','Please select the cells for within the columns to be extracted.'},'Selecting error','modal');
+                                    setIcon(this, h);
+                                    return;
+                                else
+                                    extractedColumns = tablObj.ColumnName(extractedColumnsInd);
+                                end
+                            else
+                                h = msgbox({'Sorry, the selected table and this table are somehow inconsistent.','Please reselect the required column(s)'},'Selecting error','modal');
+                                setIcon(this, h);
+                                return
+                            end
+                        end
                     end
                     
-                    % Setup wait box
-                    h = waitbar(0,'Exporting results. Please wait ...');      
-                    setIcon(this, h);
-                    
-                    % Loop through each row of the calibration table and
-                    % export the calibration results (if calibrated)
-                    nrows = size(this.tab_ModelCalibration.Table.Data,1);
-                    nResultsWritten=0;
-                    nModelsToExport=0;
-                    nModelsNotCalib=0;
-                    for i=1:nrows
-
-                        % update wait bar
-                        waitbar(i/nrows);    
-                        
-                        % Skip if not selected
-                        if ~this.tab_ModelCalibration.Table.Data{i,1}
-                            continue
-                        end                        
-                        
+                    % Build file name.
+                    if extractColumns
+                        if extractCalibData
+                            fName_suffix = 'calib_results';
+                        else
+                            fName_suffix = 'sim_results';
+                        end
+                    else
+                        fName_suffix = strrep(hObject.Tag, 'Model Calibration - ','');
+                        fName_suffix = strrep(fName_suffix, 'Model Simulation - ','');
+                        fName_suffix = strrep(fName_suffix, 'table export','');
+                        fName_suffix = strrep(fName_suffix, 'selected','');
+                    end
+                    [~, fName]=fileparts(this.project_fileName);
+                    fName = [fName, '_',fName_suffix];
+                    fName = strrep(fName, ' ','_');
+                    fName = strrep(fName, '__','_');
+                    if extractColumns
+                        msgStr = 'Input the .csv file name for the model results.';                                                
+                    elseif exportSelectedBores
+                        msgStr = 'Input the .csv file name prefix for the selected model results (model label added).';                                                
+                    else
                         % Get model label.
-                        modelLabel = this.tab_ModelCalibration.Table.Data{i,2};
+                        if extractCalibData
+                            modelLabel = this.tab_ModelCalibration.Table.Data{this.tab_ModelCalibration.currentRow,2};
+                        else
+                            modelLabel = [this.tab_ModelSimulation.Table.Data{this.tab_ModelSimulation.currentRow,2}, ...
+                                '_',this.tab_ModelSimulation.Table.Data{this.tab_ModelSimulation.currentRow,6}];
+                        end
                         modelLabel = HydroSight_GUI.removeHTMLTags(modelLabel);
                         modelLabel = HydroSight_GUI.modelLabel2FieldName(modelLabel);
-                        
-                        % Incrment number of models selected for export
-                        nModelsToExport = nModelsToExport+1;
-                                                
-                        % Skip if not calibrated
-                        if ~this.model_labels{modelLabel,'isCalibrated'}
-                            nModelsNotCalib= nModelsNotCalib+1;
-                            continue
-                        end
-                        
-                        % Get a copy of the model object. This is only done to
-                        % minimise HDD read when the models are off loaded to HDD using
-                        % matfile();
-                        tmpModel = getModel(this, modelLabel);
 
-                        % Exit if model not found.
-                        if isempty(tmpModel)    
-                            continue;
-                        end                        
-                        
-                        % Get model results
-                        if isstruct(tmpModel.calibrationResults) && tmpModel.calibrationResults.isCalibrated                    
-                    
-                            if strcmp(response, 'Time-series results')
-                                % Get the model calibration data.
-                                tableData = tmpModel.calibrationResults.data.obsHead;
-                                tableData = [tableData, ones(size(tableData,1),1), tmpModel.calibrationResults.data.modelledHead(:,2), ...
-                                    nan(size(tableData,1),1), tmpModel.calibrationResults.data.modelledHead_residuals(:,end), ...
-                                    tmpModel.calibrationResults.data.modelledNoiseBounds(:,end-1:end)]; %#ok<AGROW> 
-                                
-                                % Get evaluation data
-                                if isfield(tmpModel.evaluationResults,'data')
-                                    % Get data
-                                    evalData = tmpModel.evaluationResults.data.obsHead;
-                                    evalData = [evalData, zeros(size(evalData,1),1), nan(size(evalData,1),1), tmpModel.evaluationResults.data.modelledHead(:,2), ...
-                                        tmpModel.evaluationResults.data.modelledHead_residuals(:,end), ...
-                                        tmpModel.evaluationResults.data.modelledNoiseBounds(:,end-1:end)]; %#ok<AGROW> 
-                                    
-                                    % Append to table of calibration data and sort
-                                    % by time.
-                                    tableData = [tableData; evalData]; %#ok<AGROW> 
-                                    tableData = sortrows(tableData, 1);
-                                end
-                                
-                                % Convert table to real (if previously set to
-                                % single for memeory issues)
-                                tableData = double(tableData);
-                                
-                                % Calculate year, month, day etc
-                                tableData = [year(tableData(:,1)), month(tableData(:,1)), day(tableData(:,1)), hour(tableData(:,1)), minute(tableData(:,1)), tableData(:,2:end)];
-                                
-                                % Build write format string
-                                fmt = '%s,%s,%i,%i,%i,%i,%i,%12.3f';
-                                for j=1:size(tableData,2)-6
-                                    fmt = strcat(fmt,',%12.3f');
-                                end
-                                fmt = strcat(fmt,'  \n');
-
-                                % Get Bore ID
-                                boreID = tmpModel.bore_ID;
-                                
-                                %Write each row.
-                                for j=1:size(tableData,1)
-                                    fprintf(fileID,fmt, modelLabel, boreID, tableData(j,:));
-                                end
-                                                                
-                            else
-                                % get the parameters and derived parameters
-                                [ParamValues, ParamsNames] = getParameters(tmpModel.model);
-                                [derivedParamValues, derivedParamsNames] = getDerivedParameters(tmpModel.model);
-
-                                % Get Bore ID
-                                boreID = tmpModel.bore_ID;
-                                
-                                % Build write format string
-                                fmt = '%s,%s,%s,%s,%i,%12.6f \n';                          
-                                
-                                %Write each parameter and each parameter set (ie if DREAM was used).
-                                for j=1:size(ParamsNames,1)
-                                    for k=1:size(ParamValues,2)
-                                        fprintf(fileID,fmt, modelLabel, boreID, ParamsNames{j,1},ParamsNames{j,2}, k, ParamValues(j,k));
-                                    end
-                                end
-                                
-                                %Write each derived parameter and each derived parameter set (ie if DREAM was used).
-                                for j=1:size(derivedParamsNames,1)
-                                    for k=1:size(derivedParamValues,2)
-                                        fprintf(fileID,fmt, modelLabel, boreID, derivedParamsNames{j,1},derivedParamsNames{j,2}, k, derivedParamValues(j,k));
-                                    end
-                                end                                
-                            end
-                                
-                            % Update counter
-                            nResultsWritten = nResultsWritten + 1;
-                        else
-                            nModelsNotCalib = nModelsNotCalib + 1;
-                        end        
+                        msgStr = 'Input the .csv file name for the current model results.';
+                        fName = [fName,'_',modelLabel];
                     end
-                    fclose(fileID);
-                    
-                    % Close wait bar
-                    close(h);                      
-                    
+                    [fName,pName] = uiputfile({'*.csv'},msgStr,fName);
+                    if fName==0
+                        return;
+                    end   
+
+                    % Change cursor
+                    set(this.Figure, 'pointer', 'watch');
+                    drawnow update;                          
+
+                    % Remove CSV extension
+                    fName = strrep(fName, '.csv','');
+
+                    % Build event object.
+                    eventdata = struct();
+                    eventdata.Indices(1,1)=1;
+                    eventdata.Indices(1,2)=1;
+                    eventdata.Source = hObjecttmp;
+
+                    % Setup wait bar
+                    if exportSelectedBores && length(ind)>1                            
+                        h = waitbar(0,['0 of ',num2str(length(ind)), ' models exported.'],'Name','Export progress ...');
+                        setIcon(this, h);                   
+                    end
+
+                    % Initialise counts.
+                    nResultsWritten = 0;
+                    nResultsNotWritten = 0;
+                    nResultsEmpty=0;
+                    nResultToExport=length(ind);
+
+                    % Export data
+                    for i=ind'
+                        % Update indexes to next table row
+                        eventdata.Indices(1,1)=i;
+
+                        % Get model label.
+                        if extractCalibData
+                            modelLabel = this.tab_ModelCalibration.Table.Data{i,2};
+                            siteID = this.tab_ModelCalibration.Table.Data{i,3};
+                        else
+                            modelLabel = this.tab_ModelSimulation.Table.Data{i,2};
+                            siteID = this.tab_ModelSimulation.Table.Data{i,3};
+                        end
+                        modelLabel = HydroSight_GUI.removeHTMLTags(modelLabel);
+                        modelLabel = HydroSight_GUI.modelLabel2FieldName(modelLabel);
+                        siteID = HydroSight_GUI.removeHTMLTags(siteID);
+                        siteID = HydroSight_GUI.modelLabel2FieldName(siteID);
+
+                        % Update data
+                        if extractCalibData
+                            modelCalibration_tableSelection(this, hObjecttmp, eventdata)
+                        else
+                            modelSimulation_tableSelection(this, hObjecttmp, eventdata)
+                        end
+
+                        % Convert cell array to table
+                        if iscell(tablObj.Data)
+                            tbl = cell2table(tablObj.Data);
+                        else
+                            tbl = array2table(tablObj.Data);
+                        end
+                        columnName = tablObj.ColumnName;
+                        %columnName = regexprep(columnName,'\W','_');
+                        tbl.Properties.VariableNames =  columnName;
+
+                        if extractColumns
+                            % Find columsn to extract
+                            indCols = find(cellfun(@(x) any(strcmp(extractedColumns, x)), columnName));
+                            indEmptyTargetCols = find(cellfun(@(x) ~any(strcmp(columnName, x)), extractedColumns));
+
+                            if isempty(indCols)
+                                tbl=[];
+                            else
+                                % Add date - if relevant
+                                indCols_Dates = find(cellfun(@(x) any(strcmp({'Year','Month','Day'}, x)), columnName));
+                                indCols = sort(unique([indCols_Dates; indCols]),'ascend');
+
+                                % Filter data to the required columns
+                                tbl = tbl(:,indCols);
+
+                                % Add bore ID
+                                nrows = size(tbl,1);
+                                tbl.SiteID = repmat(siteID,nrows,1);
+                                tbl.ModelName = repmat(modelLabel,nrows,1);
+
+                                % Ensure that each of the required columns
+                                % is within "tbl". This is require to write
+                                % append the results.
+                                if ~isempty(indEmptyTargetCols)
+                                    for j=indEmptyTargetCols
+                                        tbl.(extractedColumns{j}) = nan(nrows,1);
+                                    end
+                                end
+
+                                % Reorder columns
+                                if isempty(indCols_Dates)
+                                    tbl = tbl(:, [{'SiteID'}, {'ModelName'},extractedColumns(:)']);
+                                else
+                                    tbl = tbl(:, [{'SiteID'}, {'ModelName'},{'Year'},{'Month'},{'Day'},extractedColumns(:)']);
+                                end
+                            end
+                        end
+
+                        % Check if data is empty. Write data if not empty.
+                        if isempty(tbl)
+                            nResultsEmpty = nResultsEmpty+1;
+                        else
+                            % Write the table.
+                            try
+                                if extractColumns
+                                    if i==ind(1)
+                                        writetable(tbl, fullfile(pName,[fName,'.csv']),'Delimiter',',', ...
+                                            'WriteVariableNames',true);
+                                    else
+                                        writetable(tbl, fullfile(pName,[fName,'.csv']),'Delimiter',',', ...
+                                            'WriteMode', 'Append', 'WriteVariableNames',false);
+                                    end
+                                elseif exportSelectedBores
+                                    writetable(tbl, fullfile(pName,[fName,'_',modelLabel,'.csv']),'Delimiter',',');
+                                else
+                                    writetable(tbl, fullfile(pName,[fName,'.csv']),'Delimiter',',');
+                                end
+                                nResultsWritten = nResultsWritten+1;
+                            catch
+                                nResultsNotWritten=nResultsNotWritten+1;
+                            end
+                        end
+
+                        % Update wait bar
+                        if nResultToExport
+                            %waitbar((nResultsWritten+nResultsNotWritten)/nResultToExport);
+                            h=waitbar((nResultsWritten+nResultsNotWritten)/nResultToExport, h, ...
+                                [num2str(nResultsWritten+nResultsNotWritten), ' of ',num2str(nResultToExport), ' models exported.']);
+                        end
+                    end
+
+                    % Show summary           
+                    if nResultToExport>1
+                        delete(h);
+                        h = msgbox({'Export of results finished.','', ...
+                            ['Number of models exported = ',num2str(nResultsWritten)], ...
+                            ['Number of empty model reslts (not exported) = ',num2str(nResultsEmpty)], ...
+                            ['Number of models unable to be exported = ',num2str(nResultsNotWritten)], ...
+                            ['Number of models selected for export = ',num2str(nResultToExport)]}, ...
+                            'Summary');
+                        setIcon(this, h);
+                    end
+
                     % Change cursor
                     set(this.Figure, 'pointer', 'arrow');
                     drawnow update;                    
                     
-                    % Show summary
-                    h = msgbox({'Export of results finished.','',['Number of model results exported =',num2str(nResultsWritten)],['Number of models selected for export =',num2str(nModelsToExport)],['Number of selected models not calibrated =',num2str(nModelsNotCalib)]},'Export Summary');
-                    setIcon(this, h);
-                    
-                case 'Model Simulation'
-                    % Check if there are any rows selected for export
-                    if ~any( cellfun(@(x) x==1, this.tab_ModelSimulation.Table.Data(:,1)))
-                        h = warndlg({'No rows are selected for export.','Please select the models to export using the left-hand tick boxes.'},'No rows selected');
-                        setIcon(this, h);
-                        return;
-                    end
-                      
-                    % Ask the user if they want to export one file per bore (with decomposition)
-                    % or all results in one file.
-                    response = questdlg_timer(this.figure_icon,15,{'Do you want to export all simulations into one file, or as one file per simulation?','', ...
-                        'NOTE: The forcing decomposition results will only be exported using the multi-file option.'}, ...
-                        'Export options.','One File','Multiple Files','Cancel','Cancel');
-                    
-                    if isempty(response) || strcmp(response,'Cancel')
-                        return;
-                    end
-                    
-                    if strcmp(response, 'Multiple Files')
-                        useMultipleFiles = true;
-                        folderName = uigetdir('' ,'Select where to save the .csv simulation files (one file per simulation).');    
-                        if isempty(folderName) || (isnumeric(folderName) && folderName==0)
-                            return;
-                        end
-                    else
-                        useMultipleFiles = false;
-                        fileName = uiputfile({'*.csv','*.*'} ,'Input the file name for the .csv simulation file (all simulations in one file).');    
-                        if isempty(fileName) || (isnumeric(fileName) && fileName==0)
-                            return;
-                        end   
-                        
-                        fileID = fopen(fileName,'w');
-                        fprintf(fileID,'Simulation_Label,Model_Label,BoreID,Year,Month,Day,Hour,Minute,Sim_Head \n');
-    
-                    
-                    end
-                                           
-                    % Change cursor
-                    set(this.Figure, 'pointer', 'watch');
-                    drawnow update;                   
-                    
-                    % Setup wait box
-                    h = waitbar(0,'Exporting results. Please wait ...');          
-                    setIcon(this, h);
-                    
-                    % Loop through each row of the simulation table and
-                    % export the calibration results (if calibrated)
-                    nrows = size(this.tab_ModelSimulation.Table.Data,1);
-                    nResultsWritten=0;
-                    nModelsNotFound=0;
-                    nSimsNotUndertaken = 0;
-                    nSimsNotUnique = 0;
-                    nTableConstFailed = 0;
-                    nWritteError = 0;
-                    for i=1:nrows                        
-                        
-                        % update wait bar
-                        waitbar(i/nrows);                   
-                        
-                        % Skip if the model is not sleected for export
-                        if ~this.tab_ModelSimulation.Table.Data{i,1}
-                            continue
-                        end
-                        
-                        % get model label and simulation label.
-                        modelLabel = this.tab_ModelSimulation.Table.Data{i,2};
-                        simLabel = this.tab_ModelSimulation.Table.Data{i,6};
-                        boreID = this.tab_ModelSimulation.Table.Data{i,3};
-
-                        % Get a copy of the model object. This is only done to
-                        % minimise HDD read when the models are off loaded to HDD using
-                        % matfile();
-                        tmpModel = getModel(this, modelLabel);
-
-                        % Check model exists.
-                        if isempty(tmpModel) 
-                            nModelsNotFound = nModelsNotFound +1;
-                            continue;                            
-                        end
-                        
-                        % Check simulations exists.
-                        if isempty(tmpModel.simulationResults)    
-                            nSimsNotUndertaken = nSimsNotUndertaken +1;
-                            continue;
-                        end                        
-                                                                                                
-                        % Find the simulation.    
-                        if isempty(simLabel)
-                            nSimsNotUndertaken = nSimsNotUndertaken +1;
-                            continue;
-                        end
-                        simInd = cellfun(@(x) strcmp(simLabel, x.simulationLabel), tmpModel.simulationResults);
-                        if all(~simInd)    % Exit if model not found.
-                            nSimsNotUndertaken = nSimsNotUndertaken +1;
-                            continue;
-                        end          
-                        simInd = find(simInd);
-            
-                        % Check only one simulation found
-                        if length(simInd)>1
-                            nSimsNotUnique = nSimsNotUnique +1;
-                            continue;
-                        end
-                        
-
-                        % Get the simulation data and create the output
-                        % table.
-                        try
-                            % Get the model simulation data.
-                            if useMultipleFiles
-                                tableData = tmpModel.simulationResults{simInd,1}.head;
-                            else
-                                tableData = tmpModel.simulationResults{simInd,1}.head(:,1:2);
-                            end
-                                                        
-                            % Calculate year, month, day etc
-                            tableData = [year(tableData(:,1)), month(tableData(:,1)), day(tableData(:,1)), hour(tableData(:,1)), minute(tableData(:,1)), tableData(:,2:end)];
-
-                            % Create column names.                        
-                            if useMultipleFiles
-                                columnName = {'Year','Month','Day','Hour','Minute',tmpModel.simulationResults{simInd,1}.colnames{2:end}};
-                                
-                                % Check if there are any invalid column names
-                                columnName = regexprep(columnName,'\W','_');                            
-                                
-                                % Create table and add variable names
-                                tableData = array2table(tableData);
-                                tableData.Properties.VariableNames = columnName;
-
-                            end
-                            
-                        catch
-                            nTableConstFailed = nTableConstFailed + 1;
-                        end
-                        
-                        % write data to the file
-                        if useMultipleFiles
-                            filename_tmp = fullfile(folderName,[modelLabel,'_',simLabel,'.csv']);
-                            
-                            try
-                                writetable(tableData,filename_tmp);          
-                                nResultsWritten = nResultsWritten + 1;
-                            catch
-                                nWritteError = nWritteError + 1;
-                            end
-                            
-                        else
-                            % Build write format string
-                            fmt = '%s,%s,%s,%i,%i,%i,%i,%i,%12.3f \n';
-                            
-                            % Remove HTML from bore ID
-                            boreID = HydroSight_GUI.removeHTMLTags(boreID);
-                            
-                            %Write each row.
-                            try
-                                for j=1:size(tableData,1)
-                                    fprintf(fileID,fmt, simLabel, modelLabel, boreID, tableData(j,:));
-                                end
-                                nResultsWritten = nResultsWritten + 1;
-                            catch
-                                nWritteError = nWritteError + 1;
-                            end
-                            
-                        end
-                        
-                                                    
-                    end
-                    
-                    % Close wait bar
-                    close(h);                         
-                    
-                    % Change cursor
-                    set(this.Figure, 'pointer', 'arrow');
-                    drawnow update;                    
-                    
-                    % Show summary                
-                    h = msgbox({'Export of results finished.','', ...
-                           ['Number of simulations exported =',num2str(nResultsWritten)], ...
-                           ['Number of models not found =',num2str(nModelsNotFound)], ...
-                           ['Number of simulations not undertaken =',num2str(nSimsNotUndertaken)], ...
-                           ['Number of simulations labels not unique =',num2str(nSimsNotUnique)], ...
-                           ['Number of simulations where the construction of results table failed=',num2str(nTableConstFailed)], ...
-                           ['Number of simulations where the file could not be written =',num2str(nWritteError)]}, ...
-                           'Export Summary');                    
-                    setIcon(this, h);
-                case {'Model Calibration - results table export', ...
-                      'Model Calibration - forcing table export', ...
-                      'Model Calibration - parameter table export', ...
-                      'Model Calibration - derived parameter table export', ...
-                      'Model Calibration - derived data table export'}
-                    
-                    % Get model label.
-                    modelLabel = this.tab_ModelCalibration.Table.Data{this.tab_ModelCalibration.currentRow,2};
-                    modelLabel = HydroSight_GUI.removeHTMLTags(modelLabel);
-                    modelLabel = HydroSight_GUI.modelLabel2FieldName(modelLabel);
-                                    
-                    % Build a default file name.
-                    fName = strrep(hObject.Tag, 'Model Calibration - ','');
-                    fName = strrep(fName, ' export','');
-                    fName = [modelLabel,'_',fName,'.csv'];
-                  
-                    % Get output file name                    
-                    [fName,pName] = uiputfile({'*.csv'},'Input the .csv file name for results file.',fName); 
-                    if fName~=0
-                        % Assign file name to date cell array
-                        filename = fullfile(pName,fName);
-                    else
-                        return;
-                    end 
-                    
-                    % Change cursor
-                    set(this.Figure, 'pointer', 'watch');
-                    drawnow update;                    
-                    
-                    % Find table object
-                    tablObj = findobj(this.tab_ModelCalibration.resultsTabs,'Tag',strrep(hObject.Tag,' export',''));
-                    
-                    % Convert cell array to table            
-                    if iscell(tablObj.Data)
-                        tbl = cell2table(tablObj.Data);
-                    else
-                        tbl = array2table(tablObj.Data);
-                    end
-                    columnName = tablObj.ColumnName;
-                    columnName = regexprep(columnName,'\W','_');                            
-                    tbl.Properties.VariableNames =  columnName;
-
-                    % Write the table.
-                    try
-                        writetable(tbl, filename,'Delimiter',',');
-                        
-                        % Change cursor
-                        set(this.Figure, 'pointer', 'arrow');
-                        drawnow update;                            
-                    catch
-                        % Change cursor
-                        set(this.Figure, 'pointer', 'arrow');
-                        drawnow update;                            
-                        
-                        h = warndlg('The table could not be written. Please check you have write permissions to the destination folder.','Save error');
-                        setIcon(this, h);
-                        return;
-                    end
-
-                case {'Model Simulation - results table export', ...
-                      'Model Simulation - forcing table export'}
-                    
-                    % Get model label.
-                    modelLabel = this.tab_ModelSimulation.Table.Data{this.tab_ModelSimulation.currentRow,2};
-                    modelLabel = HydroSight_GUI.removeHTMLTags(modelLabel);
-                    modelLabel = HydroSight_GUI.modelLabel2FieldName(modelLabel);
-                                    
-                    % Get simulation label
-                    simLabel = this.tab_ModelSimulation.Table.Data{this.tab_ModelSimulation.currentRow,6};
-                    
-                    % Build a default file name.
-                    fName = strrep(hObject.Tag, 'Model Simulation - ','');
-                    fName = strrep(fName, ' export','');
-                    fName = [modelLabel,'_',simLabel,'_', fName,'.csv'];
-                  
-                    % Get output file name                    
-                    [fName,pName] = uiputfile({'*.csv'},'Input the .csv file name for results file.',fName); 
-                    if fName~=0
-                        % Assign file name to date cell array
-                        filename = fullfile(pName,fName);
-                    else
-                        return;
-                    end 
-                    
-                    % Change cursor
-                    set(this.Figure, 'pointer', 'watch');
-                    drawnow update;                    
-                    
-                    % Find table object
-                    tablObj = findobj(this.tab_ModelSimulation.resultsTabs,'Tag',strrep(hObject.Tag,' export',''));
-                    
-                    % Convert cell array to table            
-                    if iscell(tablObj.Data)
-                        tbl = cell2table(tablObj.Data);
-                    else
-                        tbl = array2table(tablObj.Data);
-                    end
-                    columnName = tablObj.ColumnName;
-                    columnName = regexprep(columnName,'\W','_');                            
-                    tbl.Properties.VariableNames =  columnName;
-
-                    % Write the table.
-                    try
-                        writetable(tbl, filename,'Delimiter',',');
-                        
-                        % Change cursor
-                        set(this.Figure, 'pointer', 'arrow');
-                        drawnow update;                            
-                    catch
-                        % Change cursor
-                        set(this.Figure, 'pointer', 'arrow');
-                        drawnow update;                            
-                        
-                        h = warndlg('The table could not be written. Please check you have write permissions to the destination folder.','Save error');
-                        setIcon(this, h);
-                        return;
-                    end
+%                 case {'Model Simulation - results table export', ...
+%                       'Model Simulation - forcing table export'}
+%                     
+%                     % Get model label.
+%                     modelLabel = this.tab_ModelSimulation.Table.Data{this.tab_ModelSimulation.currentRow,2};
+%                     modelLabel = HydroSight_GUI.removeHTMLTags(modelLabel);
+%                     modelLabel = HydroSight_GUI.modelLabel2FieldName(modelLabel);
+%                                     
+%                     % Get simulation label
+%                     simLabel = this.tab_ModelSimulation.Table.Data{this.tab_ModelSimulation.currentRow,6};
+%                     
+%                     % Build a default file name.
+%                     fName = strrep(hObject.Tag, 'Model Simulation - ','');
+%                     fName = strrep(fName, ' export','');
+%                     fName = [modelLabel,'_',simLabel,'_', fName,'.csv'];
+%                   
+%                     % Get output file name                    
+%                     [fName,pName] = uiputfile({'*.csv'},'Input the .csv file name for results file.',fName); 
+%                     if fName~=0
+%                         % Assign file name to date cell array
+%                         filename = fullfile(pName,fName);
+%                     else
+%                         return;
+%                     end 
+%                     
+%                     % Change cursor
+%                     set(this.Figure, 'pointer', 'watch');
+%                     drawnow update;                    
+%                     
+%                     % Find table object
+%                     tablObj = findobj(this.tab_ModelSimulation.resultsTabs,'Tag',strrep(hObject.Tag,' export',''));
+%                     
+%                     % Convert cell array to table            
+%                     if iscell(tablObj.Data)
+%                         tbl = cell2table(tablObj.Data);
+%                     else
+%                         tbl = array2table(tablObj.Data);
+%                     end
+%                     columnName = tablObj.ColumnName;
+%                     columnName = regexprep(columnName,'\W','_');                            
+%                     tbl.Properties.VariableNames =  columnName;
+% 
+%                     % Write the table.
+%                     try
+%                         writetable(tbl, filename,'Delimiter',',');
+%                         
+%                         % Change cursor
+%                         set(this.Figure, 'pointer', 'arrow');
+%                         drawnow update;                            
+%                     catch
+%                         % Change cursor
+%                         set(this.Figure, 'pointer', 'arrow');
+%                         drawnow update;                            
+%                         
+%                         h = warndlg('The table could not be written. Please check you have write permissions to the destination folder.','Save error');
+%                         setIcon(this, h);
+%                         return;
+%                     end
                     
                 otherwise
                     h = warndlg('Unexpected Error: GUI table type unknown.','Error');
@@ -11356,7 +11649,7 @@ classdef HydroSight_GUI < handle
 
             % Set project name/title
             vernum = getHydroSightVersion();
-            set(this.Figure,'Name',['HydroSight ', vernum,':    ',char(9733), 'Support HydroSight. Ctrl-Shift-S to give it a ', char(9733),char(9733)]);
+            set(this.Figure,'Name',['HydroSight ', vernum,':    ',char(9733), char(9733),'Support HydroSight. Ctrl-Shift-S to give it a Star ', char(9733),char(9733)]);
                 
             % Enable file menu items
             for i=1:size(this.figure_Menu.Children,1)
