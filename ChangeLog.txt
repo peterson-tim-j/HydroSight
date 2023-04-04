@@ -335,3 +335,4 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 4 April 2023
 * Results export button removed and replaced with a drop-down within the calibration and simulation data tables. This allows exporting of forcing data, e.g. recharge, at the use defined time step.
 * Results table chnaged to non-editable.
+* Splash date and version number shifted to right aligned.
