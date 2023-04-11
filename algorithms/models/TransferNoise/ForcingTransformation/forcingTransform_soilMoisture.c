@@ -3,6 +3,24 @@
 #define MIN(x,y) (x <= y ? x : y)
 #define MAX(x,y) (x <= y ? y : x)
 
+#pragma omp declare simd
+double dSdt_fn(double S, const double precip, const double et, const double *S_cap, const double *ksat, const double *alpha, const double *beta, const double *gamma, const double *eps) {
+    S = MAX(1.0e-6,MIN(*S_cap,S));
+    return (precip * MIN(1.0, pow(((*S_cap - S)/(*S_cap*(1.0- *eps))),*alpha)) - *ksat * pow(S/ *S_cap,*beta) - et * pow(S/ *S_cap,*gamma));
+}
+
+void snowStore(double *snow, double *precip, double temp, double melt_threshold, double DDF) {
+    double melt;
+    if (temp <= melt_threshold) {
+        *snow = *snow + *precip;
+        *precip = 0.0;
+    } else {
+        melt = DDF*(temp - melt_threshold);
+        *precip = *precip + MIN(*snow, melt);
+        *snow = MAX(*snow - melt,0.0);        
+    }
+}
+
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) 
 {
     
@@ -15,7 +33,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
                   gamma = mxGetScalar( prhs[8] ),
 				  eps = mxGetScalar( prhs[9] ), 
                   DDF = mxGetScalar( prhs[10] ),
-                  melt_threshold = mxGetScalar( prhs[11] );
+                  melt_threshold = mxGetScalar( prhs[11] ),
+                  useRK = mxGetScalar( prhs[12] );
 
     /* Declare input data */
     double *precip= mxGetPr( prhs[1] );
@@ -27,7 +46,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     /* Declare ODE variables */
     double soilMoisture_frac, 
            dSdt_precip, d2Sdt2_precip, dSdt_et, dSdt_drain,
-           dSdt, dSdt_iprevDay, melt, snow, snow_prev;
+           dSdt, dSdt_iprevDay, snow, snow_prev;
+    double k1, k2, k3, k4;
             
     /* Declare general ODE solver variables */    
     double f_delta, f, df, relerr, abserr, funcerr;
@@ -51,6 +71,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     /* Create a vectors for results */
     plhs[0] = mxCreateDoubleMatrix(nDays,1,mxREAL);         
     soilMoisture = mxGetPr(plhs[0]);
+    soilMoisture[0] = S0; 
 
     hasSnow = 0;
     if (isfinite(DDF) && isfinite(melt_threshold)) {
@@ -58,291 +79,297 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         snow_prev = 0;
     } 
     
-    /*Cycle though all days within ClimateData to approximate the soil 
-    moisture ode via fixed time-step explicit solver. */    
-    soilMoisture[0] = S0;    
-    for(iDay=1;iDay<nDays;iDay++) 
-    {        
-        /* mexPrintf("%s%d\n", "... Solving SMS for iDay=", iDay);
-         **/
-        
-        /* Update snow and melt data */
-        if (hasSnow==1) {
-            if (temp[iDay] <= melt_threshold) {
-                melt = 0.0;
-                snow = snow_prev + precip[iDay];
-                precip[iDay] = 0.0;
-            } else {
-                melt = DDF*(temp[iDay] - melt_threshold);
-                snow = MAX(snow_prev - melt,0.0);
-                precip[iDay] = precip[iDay] + MIN(snow_prev, melt);
-            }
-            snow_prev = snow;
+    if (useRK==1) {
+        for(iDay=1;iDay<nDays;iDay++) {
+            if (hasSnow==1)
+                snowStore(&snow, &precip+iDay, temp[iDay], melt_threshold, DDF);
+/*
+            k1 = dSdt_fn(soilMoisture[iDay], precip[iDay], et[iDay], S_cap, Ksat, alpha, beta, gamma, eps);
+            k2 = dSdt_fn(soilMoisture[iDay]+k1*0.5*dt, precip[iDay], et[iDay], S_cap, Ksat, alpha, beta, gamma, eps);
+            k3 = dSdt_fn(soilMoisture[iDay]+k2*0.5*dt, precip[iDay], et[iDay], S_cap, Ksat, alpha, beta, gamma, eps);
+            k4 = dSdt_fn(soilMoisture[iDay]+k3, precip[iDay], et[iDay], S_cap, Ksat, alpha, beta, gamma, eps);
+            soilMoisture[iDay] = soilMoisture[iDay-1] + (k1 + 2.0*k2 + 2.0*k3 + k4)*dt/6.0;
+
+*/
+            k1 = dSdt_fn(soilMoisture[iDay-1], precip[iDay], et[iDay], &S_cap, &Ksat, &alpha, &beta, &gamma, &eps);
+            k2 = dSdt_fn(soilMoisture[iDay-1]+k1*2.0/3.0*dt, precip[iDay], et[iDay], &S_cap, &Ksat, &alpha, &beta, &gamma, &eps);
+            soilMoisture[iDay] = MAX(1.0e-6,MIN(S_cap, soilMoisture[iDay-1] + (0.25*k1 + 0.75*k2)*dt));    
         }
+        nIterations = nDays;
 
-        if (precip[iDay]>0.0) 
-            noPrecip =  0;
-        else
-            noPrecip = 1;
+    } else {
+        /*Cycle though all days within ClimateData to approximate the soil
+        moisture ode via fixed time-step explicit solver. */
+        for(iDay=1;iDay<nDays;iDay++) {
+        
+            /* Update snow and melt data */
+            if (hasSnow==1)
+                snowStore(&snow, &precip+iDay, temp[iDay], melt_threshold, DDF);
 
-        /*Get a 1st order estimate using the explicit Euler method */	
-        soilMoisture_frac = soilMoisture[iDay-1]/S_cap;
-        if (noPrecip == 1) 
-            dSdt_precip = 0.0;
-        else     
-			if (eps==0.0)
-                if (alpha == 1.0) 
-					dSdt_precip = precip[iDay] * (1.0 - soilMoisture_frac);                
-				else if (alpha == 0.0) 
-					dSdt_precip = precip[iDay];
-				else
-					dSdt_precip = precip[iDay] * pow(1.0 - soilMoisture_frac,alpha);
-			else 
-				if (alpha == 1.0) 
-					dSdt_precip = precip[iDay] * MIN(1.0, ((S_cap - soilMoisture[iDay-1])/(S_cap*(1.0-eps))));                
-				else if (alpha == 0.0) 
-					dSdt_precip = precip[iDay];
-				else
-					dSdt_precip = precip[iDay] * MIN(1.0, pow(((S_cap - soilMoisture[iDay-1])/(S_cap*(1.0-eps))),alpha));
-		
-		
+            if (precip[iDay]>0.0)
+                noPrecip =  0;
+            else
+                noPrecip = 1;
 
-        if (beta == 0.0 || Ksat==0.0 )
-            dSdt_drain = 0.0;
-        else if (beta==1.0)
-            dSdt_drain = - Ksat * soilMoisture_frac;
-        else
-            dSdt_drain = - Ksat * pow(soilMoisture_frac, beta);
-
-        if (gamma == 1.0)
-            dSdt_et = - et[iDay] * soilMoisture_frac;            
-        else if (gamma == 0.0)
-            dSdt_et = 0.0;
-        else
-            dSdt_et = - et[iDay] * pow(soilMoisture_frac, gamma); 
-
-        dSdt_iprevDay = dSdt_precip + dSdt_drain + dSdt_et;            
-        soilMoisture[iDay] = soilMoisture[iDay-1] + dSdt_iprevDay * dt;            
-
-        /* Limit soil moisture to >=0 and <= SMSC without use of thresholds. */
-        soilMoisture[iDay] = MAX(1.0e-6,MIN(S_cap,soilMoisture[iDay]));
-        dSdt_iprevDay = (soilMoisture[iDay] - soilMoisture[iDay-1])/dt;
-
-        /*Refine solution using a Newtons method */
-        its = 0;
-        abserr = 1.0e16;	            
-        funcerr = 1.0e16;
-        f = 1.0e16;
-
-        /* Use Newton's method for the substep */
-        useNewtonsMethod=1; 
-
-        while ((abserr > absTol || funcerr > funcTol) && its<maxIts) {
-
-            soilMoisture_frac = soilMoisture[iDay]/S_cap;
-
-            /* Update dSdt */
-            if (noPrecip == 1) 
+            /*Get a 1st order estimate using the explicit Euler method */
+            soilMoisture_frac = soilMoisture[iDay-1]/S_cap;
+            if (noPrecip == 1)
                 dSdt_precip = 0.0;
-            else          
-				if (eps==0.0)
-                    if (alpha == 1.0) 
-						dSdt_precip = precip[iDay] * (1.0 - soilMoisture_frac);                
-					else if (alpha == 0.0) 
-						dSdt_precip = precip[iDay];
-					else
-						dSdt_precip = precip[iDay] * pow(1.0 - soilMoisture_frac,alpha);
-				else 
-					if (alpha == 1.0) 
-						dSdt_precip = precip[iDay] * MIN(1.0, ((S_cap - soilMoisture[iDay])/(S_cap*(1.0-eps))));                
-					else if (alpha == 0.0) 
-						dSdt_precip = precip[iDay];
-					else
-						dSdt_precip = precip[iDay] * MIN(1.0, pow(((S_cap - soilMoisture[iDay])/(S_cap*(1.0-eps))),alpha));                 
+            else
+                if (eps==0.0)
+                    if (alpha == 1.0)
+                        dSdt_precip = precip[iDay] * (1.0 - soilMoisture_frac);
+            else if (alpha == 0.0)
+                dSdt_precip = precip[iDay];
+            else
+                dSdt_precip = precip[iDay] * pow(1.0 - soilMoisture_frac,alpha);
+            else
+                if (alpha == 1.0)
+                    dSdt_precip = precip[iDay] * MIN(1.0, ((S_cap - soilMoisture[iDay-1])/(S_cap*(1.0-eps))));
+            else if (alpha == 0.0)
+                dSdt_precip = precip[iDay];
+            else
+                dSdt_precip = precip[iDay] * MIN(1.0, pow(((S_cap - soilMoisture[iDay-1])/(S_cap*(1.0-eps))),alpha));
 
-		
-            if (beta == 0.0  || Ksat==0.0 )
+
+
+            if (beta == 0.0 || Ksat==0.0 )
                 dSdt_drain = 0.0;
-            else if (beta == 1.0)
+            else if (beta==1.0)
                 dSdt_drain = - Ksat * soilMoisture_frac;
             else
                 dSdt_drain = - Ksat * pow(soilMoisture_frac, beta);
 
             if (gamma == 1.0)
-                dSdt_et = - et[iDay] * soilMoisture_frac;            
+                dSdt_et = - et[iDay] * soilMoisture_frac;
             else if (gamma == 0.0)
                 dSdt_et = 0.0;
             else
-                dSdt_et = - et[iDay] * pow(soilMoisture_frac, gamma); 
+                dSdt_et = - et[iDay] * pow(soilMoisture_frac, gamma);
 
-            /* Calculate numerator for Newton Raphson */
-            f_prev = f;                
-            f = soilMoisture[iDay] - soilMoisture[iDay-1] 
-               - dt * 0.5*(dSdt_precip + dSdt_drain + dSdt_et + dSdt_iprevDay);                                                        
+            dSdt_iprevDay = dSdt_precip + dSdt_drain + dSdt_et;
+            soilMoisture[iDay] = soilMoisture[iDay-1] + dSdt_iprevDay * dt;
 
-            /* Calculate demoninator for Newton Raphson */
-            if (noPrecip == 1) {
-                df = 1.0-dt * 0.5 * (beta * dSdt_drain + gamma * dSdt_et)/soilMoisture[iDay];
-                d2Sdt2_precip = 0.0;
-            }
-            else {
-                if (eps==0.0)					
+            /* Limit soil moisture to >=0 and <= SMSC without use of thresholds. */
+            soilMoisture[iDay] = MAX(1.0e-6,MIN(S_cap,soilMoisture[iDay]));
+            dSdt_iprevDay = (soilMoisture[iDay] - soilMoisture[iDay-1])/dt;
+
+            /*Refine solution using a Newtons method */
+            its = 0;
+            abserr = 1.0e16;
+            funcerr = 1.0e16;
+            f = 1.0e16;
+
+            /* Use Newton's method for the substep */
+            useNewtonsMethod=1;
+
+            while ((abserr > absTol || funcerr > funcTol) && its<maxIts) {
+
+                soilMoisture_frac = soilMoisture[iDay]/S_cap;
+
+                /* Update dSdt */
+                if (noPrecip == 1)
+                    dSdt_precip = 0.0;
+                else
+                    if (eps==0.0)
+                        if (alpha == 1.0)
+                            dSdt_precip = precip[iDay] * (1.0 - soilMoisture_frac);
+                else if (alpha == 0.0)
+                    dSdt_precip = precip[iDay];
+                else
+                    dSdt_precip = precip[iDay] * pow(1.0 - soilMoisture_frac,alpha);
+                else
                     if (alpha == 1.0)
-						d2Sdt2_precip = -precip[iDay] / S_cap;
-					else if (alpha == 0.0) 
-						d2Sdt2_precip = 0.0;
-					else if (alpha == 2.0)
-						d2Sdt2_precip = -precip[iDay] * alpha / S_cap * (1.0 - soilMoisture_frac);
-					else
-						d2Sdt2_precip = -precip[iDay] * alpha / S_cap * pow(1.0 - soilMoisture_frac,alpha-1.0);
-				else 
-					if (soilMoisture[iDay] < (S_cap*eps))
-						d2Sdt2_precip = 0.0;
-					else if (alpha == 1.0)
-						d2Sdt2_precip = -precip[iDay] / (S_cap*(1.0-eps));
-					else if (alpha == 0.0) 
-						d2Sdt2_precip = 0.0;
-					else if (alpha == 2.0)
-						d2Sdt2_precip = -precip[iDay] * alpha / (S_cap*(1.0-eps)) * ((S_cap - soilMoisture[iDay])/(S_cap*(1.0-eps)));
-					else
-						d2Sdt2_precip = -precip[iDay] * alpha / (S_cap*(1.0-eps)) * pow(((S_cap - soilMoisture[iDay])/(S_cap*(1.0-eps))),alpha-1.0);
-
-                df = 1.0-dt * 0.5 * (d2Sdt2_precip + (beta * dSdt_drain + gamma * dSdt_et)/soilMoisture[iDay]); 
-            }
+                        dSdt_precip = precip[iDay] * MIN(1.0, ((S_cap - soilMoisture[iDay])/(S_cap*(1.0-eps))));
+                else if (alpha == 0.0)
+                    dSdt_precip = precip[iDay];
+                else
+                    dSdt_precip = precip[iDay] * MIN(1.0, pow(((S_cap - soilMoisture[iDay])/(S_cap*(1.0-eps))),alpha));
 
 
-            /* Undertake Newton-Raphson iteration*/
-            f_delta =  f/df;
-            soilMoisture[iDay] = soilMoisture[iDay] - f_delta;
+                if (beta == 0.0  || Ksat==0.0 )
+                    dSdt_drain = 0.0;
+                else if (beta == 1.0)
+                    dSdt_drain = - Ksat * soilMoisture_frac;
+                else
+                    dSdt_drain = - Ksat * pow(soilMoisture_frac, beta);
 
-            /* Calculate errors*/                
-            abserr = fabs(f_delta);
-            funcerr = fabs(f - f_prev);      
-            its++;
+                if (gamma == 1.0)
+                    dSdt_et = - et[iDay] * soilMoisture_frac;
+                else if (gamma == 0.0)
+                    dSdt_et = 0.0;
+                else
+                    dSdt_et = - et[iDay] * pow(soilMoisture_frac, gamma);
 
-            /* Check if constraints have been violated. 
-             * If so, prepare for switching to bosection solution */
-            if (soilMoisture[iDay] >= S_cap || soilMoisture[iDay]<=0.0 ) { 
+                /* Calculate numerator for Newton Raphson */
+                f_prev = f;
+                f = soilMoisture[iDay] - soilMoisture[iDay-1]
+                    - dt * 0.5*(dSdt_precip + dSdt_drain + dSdt_et + dSdt_iprevDay);
 
-                useNewtonsMethod = 0;
-                if (noPrecip==1) {
-                    soilMoisture[iDay] = 0.5*S_cap;                                                                                                
-                    dSdt = 0.5*(- Ksat * pow(0.5, beta) - et[iDay] * pow(0.5, gamma) +
-                                dSdt_iprevDay);
-                    f = soilMoisture[iDay] - soilMoisture[iDay-1] - dt*dSdt;
-
-                    soilMoisture_iDay_lower = 0.0;
-                    dSdt = 0.5 * dSdt_iprevDay;
-                    fa = soilMoisture_iDay_lower - soilMoisture[iDay-1] - dt*dSdt;
-
-                    soilMoisture_iDay_upper = S_cap;                        
-                    dSdt = 0.5*(dSdt_iprevDay - Ksat - et[iDay] );
-                    fb = soilMoisture_iDay_upper - soilMoisture[iDay-1] - dt*dSdt;
+                /* Calculate demoninator for Newton Raphson */
+                if (noPrecip == 1) {
+                    df = 1.0-dt * 0.5 * (beta * dSdt_drain + gamma * dSdt_et)/soilMoisture[iDay];
+                    d2Sdt2_precip = 0.0;
                 }
                 else {
-					if (eps==0.0) {
-                        soilMoisture[iDay] = 0.5*S_cap;                                                                                                
-						dSdt = 0.5*(precip[iDay] * pow(0.5,alpha)- Ksat * pow(0.5, beta) - et[iDay] * pow(0.5, gamma) +
-									dSdt_iprevDay);
-						f = soilMoisture[iDay] - soilMoisture[iDay-1] - dt*dSdt;
+                    if (eps==0.0)
+                        if (alpha == 1.0)
+                            d2Sdt2_precip = -precip[iDay] / S_cap;
+                    else if (alpha == 0.0)
+                        d2Sdt2_precip = 0.0;
+                    else if (alpha == 2.0)
+                        d2Sdt2_precip = -precip[iDay] * alpha / S_cap * (1.0 - soilMoisture_frac);
+                    else
+                        d2Sdt2_precip = -precip[iDay] * alpha / S_cap * pow(1.0 - soilMoisture_frac,alpha-1.0);
+                    else
+                        if (soilMoisture[iDay] < (S_cap*eps))
+                            d2Sdt2_precip = 0.0;
+                    else if (alpha == 1.0)
+                        d2Sdt2_precip = -precip[iDay] / (S_cap*(1.0-eps));
+                    else if (alpha == 0.0)
+                        d2Sdt2_precip = 0.0;
+                    else if (alpha == 2.0)
+                        d2Sdt2_precip = -precip[iDay] * alpha / (S_cap*(1.0-eps)) * ((S_cap - soilMoisture[iDay])/(S_cap*(1.0-eps)));
+                    else
+                        d2Sdt2_precip = -precip[iDay] * alpha / (S_cap*(1.0-eps)) * pow(((S_cap - soilMoisture[iDay])/(S_cap*(1.0-eps))),alpha-1.0);
 
-						soilMoisture_iDay_lower = 0.0;
-						dSdt = 0.5*(precip[iDay] + dSdt_iprevDay);
-						fa = soilMoisture_iDay_lower - soilMoisture[iDay-1] - dt*dSdt;
-
-						soilMoisture_iDay_upper = S_cap;                        
-						dSdt = precip[iDay] * pow(0.0,alpha)- Ksat - et[iDay];
-                
-						dSdt =  0.5*(dSdt + dSdt_iprevDay);                    
-						fb = soilMoisture_iDay_upper - soilMoisture[iDay-1] - dt*dSdt;   
+                    df = 1.0-dt * 0.5 * (d2Sdt2_precip + (beta * dSdt_drain + gamma * dSdt_et)/soilMoisture[iDay]);
                 }
-                    else {
-						soilMoisture[iDay] = 0.5*S_cap;                                                                                                
-						dSdt = 0.5*(precip[iDay] * MIN(1.0, pow((0.5/(S_cap*(1.0-eps))),alpha)) - Ksat * pow(0.5, beta) - et[iDay] * pow(0.5, gamma) +
-									dSdt_iprevDay);
-						f = soilMoisture[iDay] - soilMoisture[iDay-1] - dt*dSdt;
 
-						soilMoisture_iDay_lower = 0.0;
-						dSdt = 0.5*(precip[iDay] * MIN(1.0, pow((S_cap/(S_cap*(1.0-eps))),alpha)) + dSdt_iprevDay);
-						fa = soilMoisture_iDay_lower - soilMoisture[iDay-1] - dt*dSdt;
 
-						soilMoisture_iDay_upper = S_cap;                        
-						dSdt = precip[iDay] * pow(0.0,alpha)- Ksat - et[iDay];
-              
-						dSdt =  0.5*(dSdt + dSdt_iprevDay);                    
-						fb = soilMoisture_iDay_upper - soilMoisture[iDay-1] - dt*dSdt; 
-					}	
-                }
-               
-                /* Reset error ests.*/
-                abserr = 1.0e16;	
-                funcerr = 1.0e16;                    
+                /* Undertake Newton-Raphson iteration*/
+                f_delta =  f/df;
+                soilMoisture[iDay] = soilMoisture[iDay] - f_delta;
 
-                /* Break Newton=Raphson while loop*/
-                break;
-            }  
-        }
+                /* Calculate errors*/
+                abserr = fabs(f_delta);
+                funcerr = fabs(f - f_prev);
+                its++;
 
-        if (useNewtonsMethod==0) {
-            
-            /* Check if the soil layer will fill. If so, set to S_cap and break*/
-            if (noPrecip==0 && fb<=0.0)
-                soilMoisture[iDay] = S_cap;
-            else {            
-            
-               /* mexPrintf("%s%f\n", "   ... Staring b-section because SMS=", soilMoisture[iDay]); 
-                */
-                
-                
-                nIterations_bisect = 0;
-                while ((abserr > absTol || funcerr > funcTol) && nIterations_bisect<maxIts) {
-                /* Undertake iteration using Bisection method*/                 
-                    
-                    /* mexPrintf("%s%d\n", "      ... Doing bi-section iteration ", nIterations_bisect);                    
-                    mexPrintf("%s%f%s%f%s%f\n", "          fa, f, fb:", fa," , ",f," , ",fb);                    
-                     */
-                    if ( fa*f < 0.0) {
-                        soilMoisture_iDay_upper = soilMoisture[iDay];                        
-                        f_prev = f;
-                        fb = f;
+                /* Check if constraints have been violated.
+                * If so, prepare for switching to bosection solution */
+                if (soilMoisture[iDay] >= S_cap || soilMoisture[iDay]<=0.0 ) {
+
+                    useNewtonsMethod = 0;
+                    if (noPrecip==1) {
+                        soilMoisture[iDay] = 0.5*S_cap;
+                        dSdt = 0.5*(- Ksat * pow(0.5, beta) - et[iDay] * pow(0.5, gamma) +
+                                    dSdt_iprevDay);
+                        f = soilMoisture[iDay] - soilMoisture[iDay-1] - dt*dSdt;
+
+                        soilMoisture_iDay_lower = 0.0;
+                        dSdt = 0.5 * dSdt_iprevDay;
+                        fa = soilMoisture_iDay_lower - soilMoisture[iDay-1] - dt*dSdt;
+
+                        soilMoisture_iDay_upper = S_cap;
+                        dSdt = 0.5*(dSdt_iprevDay - Ksat - et[iDay] );
+                        fb = soilMoisture_iDay_upper - soilMoisture[iDay-1] - dt*dSdt;
                     }
                     else {
-                        soilMoisture_iDay_lower = soilMoisture[iDay];                        
-                        f_prev = f;
-                        fa =f;
-                    }                            
-                    f_delta = soilMoisture[iDay] - 0.5*(soilMoisture_iDay_upper + soilMoisture_iDay_lower);
-                    soilMoisture[iDay] = 0.5*(soilMoisture_iDay_upper + soilMoisture_iDay_lower);
+                        if (eps==0.0) {
+                            soilMoisture[iDay] = 0.5*S_cap;
+                            dSdt = 0.5*(precip[iDay] * pow(0.5,alpha)- Ksat * pow(0.5, beta) - et[iDay] * pow(0.5, gamma) +
+                                        dSdt_iprevDay);
+                            f = soilMoisture[iDay] - soilMoisture[iDay-1] - dt*dSdt;
 
-                    /* Recaculate dS/dt at mid point value of SoilMoisture*/
-                    soilMoisture_frac = soilMoisture[iDay]/S_cap;
-                    if (noPrecip==1)
-                        dSdt = 0.5*(- Ksat * pow(soilMoisture_frac, beta) - et[iDay] * pow(soilMoisture_frac, gamma) + dSdt_iprevDay);
-                    else 
-                        if (eps==0.0)
-                            dSdt = 0.5*(precip[iDay] * pow(1.0-soilMoisture_frac,alpha) - Ksat * pow(soilMoisture_frac, beta) - et[iDay] * pow(soilMoisture_frac, gamma) + dSdt_iprevDay);
-						else if (soilMoisture[iDay] < (S_cap*eps))
-							dSdt = 0.5*(precip[iDay] - Ksat * pow(soilMoisture_frac, beta) - et[iDay] * pow(soilMoisture_frac, gamma) + dSdt_iprevDay);
-						else
-							dSdt = 0.5*(precip[iDay] * MIN(1.0, pow(((S_cap - soilMoisture[iDay])/(S_cap*(1.0-eps))),alpha)) - Ksat * pow(soilMoisture_frac, beta) - et[iDay] * pow(soilMoisture_frac, gamma) + dSdt_iprevDay);
-						
-                    /* Recalculate f using new dS/dt value*/
-                    f = soilMoisture[iDay] - soilMoisture[iDay-1] - dt*dSdt;
+                            soilMoisture_iDay_lower = 0.0;
+                            dSdt = 0.5*(precip[iDay] + dSdt_iprevDay);
+                            fa = soilMoisture_iDay_lower - soilMoisture[iDay-1] - dt*dSdt;
 
-                    /* Calc error values */
-                    abserr = fabs(f_delta);
-                    funcerr = fabs(f - f_prev);
+                            soilMoisture_iDay_upper = S_cap;
+                            dSdt = precip[iDay] * pow(0.0,alpha)- Ksat - et[iDay];
 
-                    /*mexPrintf("%s%f%s%f%s%f\n", "          f, f_prev, f_delta:", fa," , ",f_prev," , ",f_delta);                    
-                    mexPrintf("%s%f%s%f%s%f%\n", "          abserr, funcerr, f-f_prev:", abserr," , ",funcerr," , ",f-f_prev);                    
-                     **/
-                    
-                    nIterations_bisect++;
+                            dSdt =  0.5*(dSdt + dSdt_iprevDay);
+                            fb = soilMoisture_iDay_upper - soilMoisture[iDay-1] - dt*dSdt;
+                        }
+                        else {
+                            soilMoisture[iDay] = 0.5*S_cap;
+                            dSdt = 0.5*(precip[iDay] * MIN(1.0, pow((0.5/(S_cap*(1.0-eps))),alpha)) - Ksat * pow(0.5, beta) - et[iDay] * pow(0.5, gamma) +
+                                        dSdt_iprevDay);
+                            f = soilMoisture[iDay] - soilMoisture[iDay-1] - dt*dSdt;
 
+                            soilMoisture_iDay_lower = 0.0;
+                            dSdt = 0.5*(precip[iDay] * MIN(1.0, pow((S_cap/(S_cap*(1.0-eps))),alpha)) + dSdt_iprevDay);
+                            fa = soilMoisture_iDay_lower - soilMoisture[iDay-1] - dt*dSdt;
+
+                            soilMoisture_iDay_upper = S_cap;
+                            dSdt = precip[iDay] * pow(0.0,alpha)- Ksat - et[iDay];
+
+                            dSdt =  0.5*(dSdt + dSdt_iprevDay);
+                            fb = soilMoisture_iDay_upper - soilMoisture[iDay-1] - dt*dSdt;
+                        }
+                    }
+
+                    /* Reset error ests.*/
+                    abserr = 1.0e16;
+                    funcerr = 1.0e16;
+
+                    /* Break Newton=Raphson while loop*/
+                    break;
                 }
-            }                                         
-        }
-        nIterations = nIterations + its;                     
+            }
+
+            if (useNewtonsMethod==0) {
+
+                /* Check if the soil layer will fill. If so, set to S_cap and break*/
+                if (noPrecip==0 && fb<=0.0)
+                    soilMoisture[iDay] = S_cap;
+                else {
+
+                    /* mexPrintf("%s%f\n", "   ... Staring b-section because SMS=", soilMoisture[iDay]);
+                    */
+
+
+                    nIterations_bisect = 0;
+                    while ((abserr > absTol || funcerr > funcTol) && nIterations_bisect<maxIts) {
+                        /* Undertake iteration using Bisection method*/
+
+                        /* mexPrintf("%s%d\n", "      ... Doing bi-section iteration ", nIterations_bisect);
+                        mexPrintf("%s%f%s%f%s%f\n", "          fa, f, fb:", fa," , ",f," , ",fb);
+                        */
+                        if ( fa*f < 0.0) {
+                            soilMoisture_iDay_upper = soilMoisture[iDay];
+                            f_prev = f;
+                            fb = f;
+                        }
+                        else {
+                            soilMoisture_iDay_lower = soilMoisture[iDay];
+                            f_prev = f;
+                            fa =f;
+                        }
+                        f_delta = soilMoisture[iDay] - 0.5*(soilMoisture_iDay_upper + soilMoisture_iDay_lower);
+                        soilMoisture[iDay] = 0.5*(soilMoisture_iDay_upper + soilMoisture_iDay_lower);
+
+                        /* Recaculate dS/dt at mid point value of SoilMoisture*/
+                        soilMoisture_frac = soilMoisture[iDay]/S_cap;
+                        if (noPrecip==1)
+                            dSdt = 0.5*(- Ksat * pow(soilMoisture_frac, beta) - et[iDay] * pow(soilMoisture_frac, gamma) + dSdt_iprevDay);
+                        else
+                            if (eps==0.0)
+                                dSdt = 0.5*(precip[iDay] * pow(1.0-soilMoisture_frac,alpha) - Ksat * pow(soilMoisture_frac, beta) - et[iDay] * pow(soilMoisture_frac, gamma) + dSdt_iprevDay);
+                        else if (soilMoisture[iDay] < (S_cap*eps))
+                            dSdt = 0.5*(precip[iDay] - Ksat * pow(soilMoisture_frac, beta) - et[iDay] * pow(soilMoisture_frac, gamma) + dSdt_iprevDay);
+                        else
+                            dSdt = 0.5*(precip[iDay] * MIN(1.0, pow(((S_cap - soilMoisture[iDay])/(S_cap*(1.0-eps))),alpha)) - Ksat * pow(soilMoisture_frac, beta) - et[iDay] * pow(soilMoisture_frac, gamma) + dSdt_iprevDay);
+
+                        /* Recalculate f using new dS/dt value*/
+                        f = soilMoisture[iDay] - soilMoisture[iDay-1] - dt*dSdt;
+
+                        /* Calc error values */
+                        abserr = fabs(f_delta);
+                        funcerr = fabs(f - f_prev);
+
+                        /*mexPrintf("%s%f%s%f%s%f\n", "          f, f_prev, f_delta:", fa," , ",f_prev," , ",f_delta);
+                        mexPrintf("%s%f%s%f%s%f%\n", "          abserr, funcerr, f-f_prev:", abserr," , ",funcerr," , ",f-f_prev);
+                        **/
+
+                        nIterations_bisect++;
+
+                    }
+                }
+            }
+            nIterations = nIterations + its;
+        }                           
      }
     
      plhs[1] = mxCreateDoubleScalar(nIterations);
