@@ -134,7 +134,7 @@ classdef derivedForcing_logisticScaling < derivedForcingTransform_abstract
         % Return fixed upper and lower bounds to the parameters.
         function [params_upperLimit, params_lowerLimit] = getParameters_physicalLimit(obj)
             params_upperLimit = 0.0;
-            params_lowerLimit = -inf;
+            params_lowerLimit = -8;
         end        
         
         % Return fixed upper and lower plausible parameter ranges. 
