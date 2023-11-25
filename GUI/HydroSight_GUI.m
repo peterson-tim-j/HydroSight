@@ -11218,9 +11218,9 @@ classdef HydroSight_GUI < handle
                         end                      
                         
                     end
-                catch
+                catch ME
                     nModelsCalibFailed = nModelsCalibFailed +1;
-                    this.tab_ModelCalibration.Table.Data{i,9} = ['<html><font color = "#FF0000">Fail-', ME.message,'</font></html>'];
+                    this.tab_ModelCalibration.Table.Data{i,9} = ['<html><font color = "#FF0000">Model Crashed -', ME.message,'</font></html>'];
                 end
                 
                 % Update wait bar
@@ -11699,7 +11699,7 @@ classdef HydroSight_GUI < handle
         function str = removeHTMLTags(str)
             if iscell(str)
                for i=1:length(str)
-                    if contains(upper(str{i}),'HTML')
+                    if ~isempty(str{i}) && contains(upper(str{i}),'HTML')
                         str{i} = regexp(str{i},'>.*?<','match');
                         str{i} = strrep(str{i}, '<', '');
                         str{i} = strrep(str{i}, '>', '');
