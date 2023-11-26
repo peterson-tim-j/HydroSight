@@ -6290,7 +6290,7 @@ classdef HydroSight_GUI < handle
 
                         % Delete models from simulations table.
                         if size(this.tab_ModelSimulation.Table.Data,1)>0 && ...
-                        any(cellfun(@(x) ~isempty(x), this.tab_ModelSimulation.Table.Data))
+                        any(cellfun(@(x) ~isempty(x), this.tab_ModelSimulation.Table.Data),'all')
                             modelLabels_simTable =  this.tab_ModelSimulation.Table.Data(:,2);
                             modelLabels_simTable = HydroSight_GUI.removeHTMLTags(modelLabels_simTable);
                             ind = cellfun( @(x) strcmp(x,modelLabel), modelLabels_simTable);
