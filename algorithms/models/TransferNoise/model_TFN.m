@@ -1152,6 +1152,16 @@ classdef model_TFN < model_abstract
             forcingData_colnames = forcingData_colnames(filt);
             setForcingData(obj, forcingData_data, forcingData_colnames);
 
+            % Update forcing data column numbers for those components using
+            % the raw inoput data. 
+            filt = find(strcmpi(varargin(:,2),'forcingdata'));
+            for ii=filt'
+               modelComponent = varargin{ii,1};
+               if ischar(varargin{ii,3})
+                  filt_forcingCols = cellfun(@(x,y)(strcmp(x,varargin{ii,3})), forcingData_colnames);
+                  obj.inputData.componentData.(modelComponent).dataColumn  = find(filt_forcingCols);
+               end
+            end
             %-------------
         end
         
