@@ -38,12 +38,16 @@ function Build_C_code()
         mex(mexopts{:},'algorithms/models/TransferNoise/ForcingTransformation/forcingTransform_soilMoisture.c');
         mex(mexopts{:},'algorithms/models/TransferNoise/doIRFconvolution.c');        
         mex(mexopts{:},'algorithms/models/ExpSmooth/doExpSmoothing.c');
-        
-        movefile('doIRFconvolution.mexa64', 'algorithms/models/TransferNoise','f');
-        movefile('forcingTransform_soilMoisture.mexa64', 'algorithms/models/TransferNoise/ForcingTransformation','f');
-        movefile('doExpSmoothing.mexa64', 'algorithms/models/ExpSmooth','f');
-    end
 
-    
+        if ismac
+            movefile('doIRFconvolution.mexmaci64', 'algorithms/models/TransferNoise','f');
+            movefile('forcingTransform_soilMoisture.mexmaci64', 'algorithms/models/TransferNoise/ForcingTransformation','f');
+            movefile('doExpSmoothing.mexmaci64', 'algorithms/models/ExpSmooth','f');
+        elseif isunix
+            movefile('doIRFconvolution.mexa64', 'algorithms/models/TransferNoise','f');
+            movefile('forcingTransform_soilMoisture.mexa64', 'algorithms/models/TransferNoise/ForcingTransformation','f');
+            movefile('doExpSmoothing.mexa64', 'algorithms/models/ExpSmooth','f');
+        end
+    end    
 end
 
