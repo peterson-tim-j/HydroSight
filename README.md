@@ -16,7 +16,7 @@ HydroSight is statistical toolbox for data-driven insights into groundwater dyna
 
 ## Installation Options
 
-_HydroSight_ is operating system independent and has been tested on Windows 10+ and Linux (Ubuntu 20.04 LTS). There are four installation options:
+_HydroSight_ is operating system independent and has been tested on Windows 10+, Mac and Linux (Ubuntu 20.04 LTS). There are four installation options:
 1. Stand-alone app within Windows. The latest .exe is [available here](https://github.com/peterson-tim-j/HydroSight/releases).
 1. Install _Hydrosight_ Matlab source code by (i) downloading the [source code](https://github.com/peterson-tim-j/HydroSight/releases), (ii) unzipping the downloaded file, (ii) setting the Matlab _Current Folder_ to where the file was unzipped and (iv) entering ``HydroSight`` into the Matlab _Command Window_.
 1. Install _Hydrosight_ from within Matlab using the _Add-Ons_ menu item and searching for _HydroSight_. From the _Add_ button select _Add to Matlab_. Once installed, enter ``HydroSight`` into the Matlab _Command Window_. 
