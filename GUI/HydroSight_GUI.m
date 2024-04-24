@@ -6852,6 +6852,16 @@ classdef HydroSight_GUI < handle
                 % Update status in GUI
                 drawnow
                                 
+                % Get model label
+                model_label = data{i,2};
+
+                % Check model label is input
+                if isempty(model_label)                    
+                    this.tab_ModelConstruction.Table.Data{i, end} = '<html><font color = "#FF0000">Model label error - label cannot be empty.</font></html>';
+                    nModelsBuiltFailed = nModelsBuiltFailed + 1;
+                    continue;
+                end
+
                 % Import head data
                 %----------------------------------------------------------
                 % Check the obs. head file is listed
@@ -6995,10 +7005,7 @@ classdef HydroSight_GUI < handle
                    continue;                    
                 end
                 %----------------------------------------------------------
-
-                % Get model label
-                model_label = data{i,2};
-                
+                               
                 % Get bore IDs
                 boreID= data{i,6};
                 
