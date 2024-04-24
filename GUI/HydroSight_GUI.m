@@ -10840,8 +10840,9 @@ classdef HydroSight_GUI < handle
         
         function [model, errmsg] = deleteModel(this, modelLabel)
             % Convert model label to a valid field name
-            modelLabel = HydroSight_GUI.modelLabel2FieldName(modelLabel);
-            
+            if ~isempty(modelLabel)
+                modelLabel = HydroSight_GUI.modelLabel2FieldName(modelLabel);
+            end
             model = [];
             if isempty(modelLabel)
                     errmsg = 'Model label is empty.';
