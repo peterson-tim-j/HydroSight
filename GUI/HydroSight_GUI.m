@@ -3143,7 +3143,7 @@ classdef HydroSight_GUI < handle
                             end                            
                         end 
                     elseif ~strcmp(modelStatus,'Not built.')
-                        modelStatus = ['Model build error.', char newline, char newline, 'Error message: ',modelStatus]; 
+                        % do nothing. Model status should contain the error message.
                     end
 
                     % Find object
@@ -3295,6 +3295,14 @@ classdef HydroSight_GUI < handle
                         newLabel = eventdata.NewData;
                         oldLabel = eventdata.PreviousData;
                         
+                        % Check label is not empry
+                        if isempty(newLabel)
+                            h = warndlg('The model label cannot be empty.','Model label error','modal');
+                            setIcon(this, h);
+                            hObject.Data{irow,2} = oldLabel;
+                            return
+                        end
+
                         % Check label does not start or end with a space
                         if strcmp(newLabel(end),' ') || strcmp(newLabel(1),' ')
                             h = warndlg('The model label cannot start or end with a space. Spaces hace been trimmed','Model label error','modal');
@@ -4574,10 +4582,12 @@ classdef HydroSight_GUI < handle
             t = datetime(tableData(:,1),tableData(:,3),tableData(:,5));
             filt = t>=sdate & t<=edate;
             tableData = tableData(filt,:);
-            if tableData_derived_ndims==3
-                tableData_derived = tableData_derived(filt,:,:);
-            else
-                tableData_derived = tableData_derived(filt,:);
+            if nVariables>0
+                if tableData_derived_ndims==3
+                    tableData_derived = tableData_derived(filt,:,:);
+                else
+                    tableData_derived = tableData_derived(filt,:);
+                end
             end
             
             % Add filter to object for plotting            
@@ -6857,7 +6867,7 @@ classdef HydroSight_GUI < handle
 
                 % Check model label is input
                 if isempty(model_label)                    
-                    this.tab_ModelConstruction.Table.Data{i, end} = '<html><font color = "#FF0000">Model label error - label cannot be empty.</font></html>';
+                    this.tab_ModelConstruction.Table.Data{i, end} = '<html><font color = "#FF0000">Label error - model label cannot be empty.</font></html>';
                     nModelsBuiltFailed = nModelsBuiltFailed + 1;
                     continue;
                 end
@@ -7103,7 +7113,10 @@ classdef HydroSight_GUI < handle
                     
                 catch ME
                     nModelsBuiltFailed = nModelsBuiltFailed + 1;
-                    this.tab_ModelConstruction.Table.Data{i, end} = ['<html><font color = "#FF0000">Model build failed : ', ME.message,'</font></html>'];
+                    this.tab_ModelConstruction.Table.Data{i, end} = ['<html><font color = "#FF0000">Build failed.</font><!---><font color = "#000000"><br><br>',...
+                        'Error Message: ',ME.message,'<br>', ...
+                        'Error in file: ',ME.stack(1).name,'<br>', ...
+                        'Error at line: ',num2str(ME.stack(1).line),'</font></html>'];
                 end
                 
                 % Update status in GUI
@@ -7759,7 +7772,10 @@ classdef HydroSight_GUI < handle
                                       
                catch ME
                    nModelsSimFailed = nModelsSimFailed +1;
-                   this.tab_ModelSimulation.Table.Data{i,end} = ['<html><font color = "#FF0000">Error: ', ME.message,'</font></html>']; '<html><font color = "#FF0000">Failed. </font></html>';                       
+                   this.tab_ModelSimulation.Table.Data{i,end} = ['<html><font color = "#FF0000">Model crashed.</font><!---><font color = "#000000"><br><br>',...
+                        'Error Message: ',ME.message,'<br>', ...
+                        'Error in file: ',ME.stack(1).name,'<br>', ...
+                        'Error at line: ',num2str(ME.stack(1).line),'</font></html>'];    
                end
                
                % Update wait bar
@@ -11228,7 +11244,10 @@ classdef HydroSight_GUI < handle
                     end
                 catch ME
                     nModelsCalibFailed = nModelsCalibFailed +1;
-                    this.tab_ModelCalibration.Table.Data{i,9} = ['<html><font color = "#FF0000">Model Crashed -', ME.message,'</font></html>'];
+                    this.tab_ModelCalibration.Table.Data{i,9} = ['<html><font color = "#FF0000">Model crashed.</font><!---><font color = "#000000"><br><br>',...
+                        'Error Message: ',ME.message,'<br>', ...
+                        'Error in file: ',ME.stack(1).name,'<br>', ...
+                        'Error at line: ',num2str(ME.stack(1).line),'</font></html>'];                    
                 end
                 
                 % Update wait bar
@@ -11718,6 +11737,7 @@ classdef HydroSight_GUI < handle
                 str='';
             else
                 if contains(upper(str),'HTML')
+                    str = strrep(str, '<br>', [char newline]);
                     str = regexp(str,'>.*?<','match');
                     str = strrep(str, '<', '');
                     str = strrep(str, '>', '');
