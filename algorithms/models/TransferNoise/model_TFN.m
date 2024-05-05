@@ -361,7 +361,7 @@ classdef model_TFN < model_abstract
                             % Check each forcing site name is valid.
                             for j=1:length(propertyValue)
                                 if isnumeric(propertyValue{j}) && ( propertyValue{j}<0 || propertyValue{j}+2>size(forcingData_data,2))
-                                    error(['Invalid forcing column number for component:', modelComponent,'. It must be an intereger >0 and <= the number of forcing data columns.' ]);
+                                    error(['Invalid forcing column number for component:', modelComponent,'. It must be an intereger above 0 and less than or equal to the number of forcing data columns.' ]);
                                 elseif ischar(propertyValue{j})
                                     % Check the forcing column name is valid.
                                     filt = cellfun(@(x)(strcmp(x,propertyValue{j})),forcingData_colnames);                                
@@ -396,7 +396,7 @@ classdef model_TFN < model_abstract
                                 % should have rows for 'tranformationfunction'
                                 % and 'outputvariable'.
                                 if size(subPropertyValue,2) ~= 2 || size(subPropertyValue,1) < 2 || size(subPropertyValue,1) > length(valid_transformProperties)
-                                    error(['Invalid inputs for transforming the forcing data for component:', modelComponent,'. The input cell array must have >=2 and <=5 rows and 2 columns.' ]);
+                                    error(['Invalid inputs for transforming the forcing data for component:', modelComponent,'. The input cell array must have between 2 and 5 rows and 2 columns.' ]);
                                 end
 
                                 % Check it has the required minimum inputs to
