@@ -5,7 +5,8 @@ classdef model_TFN_gui < model_gui_abstract
     properties
         % NOTE: Inputs from the parent table are define in abstract
         %  
-        % Model specific GUI properties.
+        % Model specific GUI properties.        
+        dropdownOptions
         forcingTranforms
         weightingFunctions
         derivedForcingTranforms
@@ -64,8 +65,10 @@ classdef model_TFN_gui < model_gui_abstract
                                             %'derivedweighting_ExpPumping', ...
                                             };
                 weightFunctions = {         'responseFunction_Bruggeman', ...
+                                            'responseFunction_exponential', ...
+                                            'responseFunction_exponentialNegative', ...
                                             'responseFunction_FerrisKnowles', ...
-                                            'responseFunction_FerrisKnowlesJacobs', ...
+                                            'responseFunction_FerrisKnowlesJacobs', ...                                            
                                             'responseFunction_Hantush', ...
                                             'responseFunction_Pearsons', ...
                                             'responseFunction_PearsonsNegative', ...
@@ -134,52 +137,49 @@ classdef model_TFN_gui < model_gui_abstract
             % Change icon
             setIcon(this, this.Figure);
 
-            % Add box for the four model settings sub-boxes
-            this.modelComponants = uiextras.GridFlex('Parent', this.Figure,'Padding', 3, 'Spacing', 3);                                    
-            
+            % Add box for drop down and for the details of model settings sub-boxes
+            this.modelComponants = uiextras.VBoxFlex('Parent', this.Figure,'Padding', 0, 'Spacing', 0);                                    
+
+            % Add drop down to model components
+            this.dropdownOptions.hbox = uiextras.HBox('Parent', this.modelComponants,'Padding', 3, 'Spacing', 3);
+            this.dropdownOptions.lbl = uicontrol( 'Parent', this.dropdownOptions.hbox,'Style','text', ...
+                'String','Select a model component:','HorizontalAlignment','left','Visible','on');
+            this.dropdownOptions.dropdown = uicontrol( 'Parent', this.dropdownOptions.hbox,'Style','popupmenu','String', ...
+                {'Weighting functions (required)','Forcing transforms (optional)','Derived forcing transforms (optional)','Derived weighting functions (optional)'}, ...
+                'Visible','on', 'Callback',@this.componentSelection);
+
+            % Add card panel for each drop down option.
+            this.dropdownOptions.cards = uiextras.CardPanel( 'Parent', this.modelComponants, 'Padding', 5 );
+
+            % Build the weighting function settings items
+            this.weightingFunctions.tbl = uitable(this.dropdownOptions.cards,'ColumnName',cnames_weighting,...
+                'ColumnEditable',cedit_weighting,'ColumnFormat',cformats_weighting,'RowName',...                
+                rnames_weighting ,'Data',cdata_weighting, 'Visible','on', 'Units','normalized', ...
+                'CellSelectionCallback', @this.tableSelection, ...
+                'CellEditCallback', @this.tableEdit, ...
+                'Tag','Weighting Functions', ...
+                'TooltipString', toolTip_weighting);
+                        
             % Build the forcing transformation settings items
-            this.forcingTranforms.vbox = uiextras.Grid('Parent', this.modelComponants,'Padding', 3, 'Spacing', 3);
-            this.forcingTranforms.lbl = uicontrol( 'Parent', this.forcingTranforms.vbox,'Style','text','String','1. Forcing Transform Function (optional)','Visible','on');
-            this.forcingTranforms.tbl = uitable(this.forcingTranforms.vbox,'ColumnName',cnames_forcing,...
+            this.forcingTranforms.tbl = uitable(this.dropdownOptions.cards,'ColumnName',cnames_forcing,...
                 'ColumnEditable',cedit_forcing,'ColumnFormat',cformats_forcing,'RowName',...
                 rnames_forcing ,'Data',cdata_forcing, 'Visible','on', 'Units','normalized', ...
                 'CellSelectionCallback', @this.tableSelection, ...
                 'CellEditCallback', @this.tableEdit, ...
                 'Tag','Forcing Transform', ...
                 'TooltipString',toolTip_forcing);
-            
-            set( this.forcingTranforms.vbox, 'ColumnSizes', -1, 'RowSizes', [20 -1] );     
                                     
             % Build the derived  forcing transformation settings items
-            this.derivedForcingTranforms.vbox = uiextras.Grid('Parent', this.modelComponants,'Padding', 3, 'Spacing', 3);
-            this.derivedForcingTranforms.lbl = uicontrol( 'Parent', this.derivedForcingTranforms.vbox,'Style','text','String','3. Derived Forcing Transform Function (optional)','Visible','on');
-            this.derivedForcingTranforms.tbl = uitable(this.derivedForcingTranforms.vbox,'ColumnName',cnames_forcingDerived, ...
+            this.derivedForcingTranforms.tbl = uitable(this.dropdownOptions.cards,'ColumnName',cnames_forcingDerived, ...
                 'ColumnEditable',cedit_forcingDerived,'ColumnFormat',cformats_forcingDerived,'RowName',...
                 rnames_forcingDerived ,'Data',cdata_forcingDerived, 'Visible','on', 'Units','normalized', ...
                 'CellSelectionCallback', @this.tableSelection, ...
                 'CellEditCallback', @this.tableEdit, ...
                 'Tag','Derived Forcing Transform', ...
                 'TooltipString', toolTip_forcingDerived);
-            
-            set( this.derivedForcingTranforms.vbox, 'ColumnSizes', -1, 'RowSizes', [20 -1] );                        
-                        
-            % Build the weighting function settings items
-            this.weightingFunctions.vbox = uiextras.Grid('Parent', this.modelComponants,'Padding', 3, 'Spacing', 3);
-            this.weightingFunctions.lbl = uicontrol( 'Parent', this.weightingFunctions.vbox,'Style','text','String','2. Weighting Functions (required)','Visible','on');
-            this.weightingFunctions.tbl = uitable(this.weightingFunctions.vbox,'ColumnName',cnames_weighting,...
-                'ColumnEditable',cedit_weighting,'ColumnFormat',cformats_weighting,'RowName',...
-                rnames_weighting ,'Data',cdata_weighting, 'Visible','on', 'Units','normalized', ...
-                'CellSelectionCallback', @this.tableSelection, ...
-                'CellEditCallback', @this.tableEdit, ...
-                'Tag','Weighting Functions', ...
-                'TooltipString', toolTip_weighting);
-            
-            set( this.weightingFunctions.vbox, 'ColumnSizes', -1, 'RowSizes', [20 -1] );            
-                        
+                                    
             % Build the derived weighting functions
-            this.derivedWeightingFunctions.vbox = uiextras.Grid('Parent', this.modelComponants,'Padding', 3, 'Spacing', 3);
-            this.derivedWeightingFunctions.lbl = uicontrol( 'Parent', this.derivedWeightingFunctions.vbox,'Style','text','String','4. Derived Weighting Functions (optional)','Visible','on');
-            this.derivedWeightingFunctions.tbl = uitable(this.derivedWeightingFunctions.vbox,'ColumnName',cnames_weightingDerived,...
+            this.derivedWeightingFunctions.tbl = uitable(this.dropdownOptions.cards,'ColumnName',cnames_weightingDerived,...
                 'ColumnEditable',cedit_weightingDerived,'ColumnFormat',cformats_weightingDerived,'RowName',...
                 rnames_weightingDerived ,'Data',cdata_weightingDerived, 'Visible','on', 'Units','normalized', ...
                 'CellSelectionCallback', @this.tableSelection, ...
@@ -187,12 +187,10 @@ classdef model_TFN_gui < model_gui_abstract
                 'Tag','Derived Weighting Functions', ...
                 'TooltipString', toolTip_weightingDerived);
             
-            set( this.derivedWeightingFunctions.vbox, 'ColumnSizes', -1, 'RowSizes', [20 -1] );                     
-
             % Build the forcing transformation and weighting function options
             %----------------------------------------
-            % Create box for the sub-boxes
-            this.modelOptions.grid = uiextras.Grid('Parent',this.Figure,'Padding', 3, 'Spacing', 3);
+            % Add card panel for input options for each compoinent.
+            this.modelOptions.cards = uiextras.CardPanel( 'Parent', this.Figure, 'Padding', 5 );
             
             % Add list box for selecting the input forcing data
             %-------------------
@@ -202,16 +200,14 @@ classdef model_TFN_gui < model_gui_abstract
             cdata = cell(1,2);
             cformats = {'char', 'char'};
                       
+            % Add forcing transform card
             this.modelOptions.options{1,1}.ParentName = 'forcingTranforms';
             this.modelOptions.options{1,1}.ParentSettingName = 'inputForcing';
-            this.modelOptions.options{1,1}.box = uiextras.Grid('Parent', this.modelOptions.grid,'Padding', 3, 'Spacing', 3);                        
-            this.modelOptions.options{1,1}.lbl = uicontrol( 'Parent', this.modelOptions.options{1,1}.box,'Style','text','String','1. Forcing Transform - Input Data','Visible','on');     
-            this.modelOptions.options{1,1}.tbl =  uitable(this.modelOptions.options{1,1}.box,'ColumnName',cnames,...
+            this.modelOptions.options{1,1}.tbl =  uitable(this.modelOptions.cards ,'ColumnName',cnames,...
                                                 'ColumnEditable',cedit,'ColumnFormat',cformats,'RowName',...
                                                 rnames,'Data',cdata, 'Visible','on', 'Units','normalized', ...
                                                 'CellEditCallback', @this.optionsSelection, ...                                                
                                                 'Tag','Forcing Transform - Input Data');
-            set(this.modelOptions.options{1,1}.box, 'ColumnSizes', -1, 'RowSizes', [20 -1] );
             
             % Add context menu for Wizard.
             contextMenu = uicontextmenu(objHydroSight,'Visible','on');
@@ -223,18 +219,15 @@ classdef model_TFN_gui < model_gui_abstract
             set(this.modelOptions.options{1,1}.tbl,'UIContextMenu',contextMenu);
             set(this.modelOptions.options{1,1}.tbl.UIContextMenu,'UserData', 'this.modelOptions.options{1,1}.tbl');
             
-            % Add table for defining the transformation options eg soil
+            % Add vard for table for defining the transformation options eg soil
             % moisture model parameters for calibration.
             %-------------------
             this.modelOptions.options{2,1}.ParentName = 'forcingTranforms';
             this.modelOptions.options{2,1}.ParentSettingName = 'options';            
-            this.modelOptions.options{2,1}.box = uiextras.Grid('Parent',  this.modelOptions.grid,'Padding', 3, 'Spacing', 3);                        
-            this.modelOptions.options{2,1}.lbl = uicontrol( 'Parent', this.modelOptions.options{2,1}.box,'Style','text','String','1. Forcing Transform - Model Settings','Visible','on');     
-            this.modelOptions.options{2,1}.tbl = uitable(this.modelOptions.options{2,1}.box,'ColumnName',{'Parameter','(none set)'}, ...
+            this.modelOptions.options{2,1}.tbl = uitable(this.modelOptions.cards ,'ColumnName',{'Parameter','(none set)'}, ...
                 'ColumnEditable',true,'Data',[], ...
                 'CellEditCallback', @this.optionsSelection, ...    
                 'Tag','Forcing Transform - Model Settings', 'Visible','on');
-            set(this.modelOptions.options{2,1}.box, 'ColumnSizes', -1, 'RowSizes', [20 -1] );
                
             % Add context menu for Wizard.
             contextMenu = uicontextmenu(objHydroSight,'Visible','on');
@@ -251,11 +244,8 @@ classdef model_TFN_gui < model_gui_abstract
             %-------------------
             this.modelOptions.options{3,1}.ParentName = 'weightingFunctions';
             this.modelOptions.options{3,1}.ParentSettingName = 'inputForcing';                     
-            this.modelOptions.options{3,1}.box = uiextras.Grid('Parent', this.modelOptions.grid,'Padding', 3, 'Spacing', 3);                        
-            this.modelOptions.options{3,1}.lbl = uicontrol( 'Parent', this.modelOptions.options{3,1}.box,'Style','text','String','2. Weighting Functions - Input Data','Visible','on');     
-            this.modelOptions.options{3,1}.lst = uicontrol('Parent',this.modelOptions.options{3,1}.box,'Style','list', 'BackgroundColor','w', ...
+            this.modelOptions.options{3,1}.lst = uicontrol('Parent',this.modelOptions.cards,'Style','list', 'BackgroundColor','w', ...
                 'String',{},'Value',1,'Tag','Weighting Functions - Input Data','Callback', @this.optionsSelection, 'Visible','on');
-            set(this.modelOptions.options{3,1}.box, 'ColumnSizes', -1, 'RowSizes', [20 -1] );
 
             contextMenu = uicontextmenu(objHydroSight,'Visible','on');
             uimenu(contextMenu,'Label','Wizard ...','Callback',@this.wizard); 
@@ -267,9 +257,7 @@ classdef model_TFN_gui < model_gui_abstract
             %-------------------
             this.modelOptions.options{4,1}.ParentName = 'weightingFunctions';
             this.modelOptions.options{4,1}.ParentSettingName = 'options';                     
-            this.modelOptions.options{4,1}.box = uiextras.Grid('Parent', this.modelOptions.grid,'Padding', 3, 'Spacing', 3);                        
-            this.modelOptions.options{4,1}.lbl = uicontrol( 'Parent', this.modelOptions.options{4,1}.box,'Style','text','String','2. Weighting Functions - Model Settings','Visible','on');     
-            this.modelOptions.options{4,1}.tabs = uiextras.TabPanel( 'Parent', this.modelOptions.options{4,1}.box, 'Padding', 5, 'TabSize',127,'FontSize',8, 'Tag','Weighting Functions - Options');
+            this.modelOptions.options{4,1}.tabs = uiextras.TabPanel( 'Parent', this.modelOptions.cards, 'Padding', 5, 'TabSize',127,'FontSize',8, 'Tag','Weighting Functions - Options');
             
             tab1 = uiextras.Panel( 'Parent', this.modelOptions.options{4,1}.tabs , 'Padding', 5, 'Tag','Weighting Functions - Options Tab 1');            
             tab2 = uiextras.Panel( 'Parent', this.modelOptions.options{4,1}.tabs , 'Padding', 5, 'Tag','Weighting Functions - Options Tab 2');
@@ -282,7 +270,6 @@ classdef model_TFN_gui < model_gui_abstract
             uitable( tab3,'ColumnName',{'(none)'}, 'ColumnEditable',true,'Data',[], 'Tag','Weighting Functions - Options Tab 3 table', 'CellEditCallback', @this.optionsSelection, 'Visible','on');
             uitable( tab4,'ColumnName',{'(none)'}, 'ColumnEditable',true,'Data',[], 'Tag','Weighting Functions - Options Tab 4 table', 'CellEditCallback', @this.optionsSelection, 'Visible','on');
             uitable( tab5,'ColumnName',{'(none)'}, 'ColumnEditable',true,'Data',[], 'Tag','Weighting Functions - Options Tab 5 table', 'CellEditCallback', @this.optionsSelection, 'Visible','on');
-            set(this.modelOptions.options{4,1}.box, 'ColumnSizes', -1, 'RowSizes', [20 -1] );            
             this.modelOptions.options{4,1}.tabs.TabNames = {'Option 1', 'Option 2','Option 3', 'Option 4','Option 5'};
             this.modelOptions.options{4,1}.tabs.SelectedChild = 1;            
             
@@ -291,40 +278,29 @@ classdef model_TFN_gui < model_gui_abstract
             %-------------------
             this.modelOptions.options{5,1}.ParentName = 'DerivedForcingTransformation';
             this.modelOptions.options{5,1}.ParentSettingName = 'inputForcing';                     
-            this.modelOptions.options{5,1}.box = uiextras.Grid('Parent', this.modelOptions.grid,'Padding', 3, 'Spacing', 3);                        
-            this.modelOptions.options{5,1}.lbl = uicontrol( 'Parent', this.modelOptions.options{5,1}.box,'Style','text','String','3. Derived Forcing Transform - Input Data','Visible','on');     
-            this.modelOptions.options{5,1}.lst = uicontrol('Parent',this.modelOptions.options{5,1}.box,'Style','list', 'BackgroundColor','w', ...
+            this.modelOptions.options{5,1}.lst = uicontrol('Parent',this.modelOptions.cards,'Style','list', 'BackgroundColor','w', ...
                 'String',{},'Value',1, ...
                 'Tag','Derived Forcing Functions - Source Function', ...
                 'Callback', @this.optionsSelection, 'Visible','on');
-            set(this.modelOptions.options{5,1}.box, 'ColumnSizes', -1, 'RowSizes', [20 -1] );            
 
             % Add table for derived forcing inut data options
             %-------------------
             this.modelOptions.options{6,1}.ParentName = 'DerivedForcingTransformation';           
             this.modelOptions.options{6,1}.ParentSettingName = 'inputForcing';
-            this.modelOptions.options{6,1}.box = uiextras.Grid('Parent', this.modelOptions.grid,'Padding', 3, 'Spacing', 3);                        
-            this.modelOptions.options{6,1}.lbl = uicontrol( 'Parent', this.modelOptions.options{6,1}.box, ...
-                'Style','text', ...
-                'String','3. Derived Forcing Transform - Input Data','Visible','on');     
-            this.modelOptions.options{6,1}.tbl =  uitable(this.modelOptions.options{6,1}.box,'ColumnName',cnames,...
+            this.modelOptions.options{6,1}.tbl =  uitable(this.modelOptions.cards,'ColumnName',cnames,...
                 'ColumnEditable',cedit,'ColumnFormat',cformats,'RowName',...
                 rnames,'Data',cdata, 'Visible','on', 'Units','normalized', ...
                 'CellEditCallback', @this.optionsSelection, ...                                                
                 'Tag','Derived Forcing Functions - Input Data');
-            set(this.modelOptions.options{6,1}.box, 'ColumnSizes', -1, 'RowSizes', [20 -1] );
                         
             % Add table for derived forcing options
             %-------------------
             this.modelOptions.options{7,1}.ParentName = 'DerivedForcingTransformation';
             this.modelOptions.options{7,1}.ParentSettingName = 'options';            
-            this.modelOptions.options{7,1}.box = uiextras.Grid('Parent',  this.modelOptions.grid,'Padding', 3, 'Spacing', 3);                        
-            this.modelOptions.options{7,1}.lbl = uicontrol( 'Parent', this.modelOptions.options{7,1}.box,'Style','text','String','3. Derived Forcing Transform - Model Settings','Visible','on');     
-            this.modelOptions.options{7,1}.tbl = uitable(this.modelOptions.options{7,1}.box,'ColumnName',{'Parameter','(none set)'}, ...
+            this.modelOptions.options{7,1}.tbl = uitable(this.modelOptions.cards,'ColumnName',{'Parameter','(none set)'}, ...
                 'ColumnEditable',true,'Data',[], ...
                 'CellEditCallback', @this.optionsSelection, ...    
                 'Tag','Derived Forcing Transform - Model Settings', 'Visible','on');
-            set(this.modelOptions.options{7,1}.box, 'ColumnSizes', -1, 'RowSizes', [20 -1] );
 
             % Add list box for selecting the derived weighting functions input
             % data.
@@ -333,30 +309,25 @@ classdef model_TFN_gui < model_gui_abstract
             %-------------------
             this.modelOptions.options{8,1}.ParentName = 'derivedWeightingFunctions';
             this.modelOptions.options{8,1}.ParentSettingName = 'inputForcing';                     
-            this.modelOptions.options{8,1}.box = uiextras.Grid('Parent', this.modelOptions.grid,'Padding', 3, 'Spacing', 3);                        
-            this.modelOptions.options{8,1}.lbl = uicontrol( 'Parent', this.modelOptions.options{8,1}.box,'Style','text','String','4. Derived Weighting Functions - Input Data','Visible','on');     
-            this.modelOptions.options{8,1}.lst = uicontrol('Parent',this.modelOptions.options{8,1}.box,'Style','list', 'BackgroundColor','w', ...
+            this.modelOptions.options{8,1}.lst = uicontrol('Parent',this.modelOptions.cards,'Style','list', 'BackgroundColor','w', ...
                 'String',{},'Value',1,'Tag','Derived Weighting Functions - Input Data','Callback', @this.optionsSelection, 'Visible','on');
-            set(this.modelOptions.options{8,1}.box, 'ColumnSizes', -1, 'RowSizes', [20 -1] );
 
             % Add table for selecting the derived weighting functions options
             %-------------------
             this.modelOptions.options{9,1}.ParentName = 'derivedWeightingFunctions';
             this.modelOptions.options{9,1}.ParentSettingName = 'options';                     
-            this.modelOptions.options{9,1}.box = uiextras.Grid('Parent', this.modelOptions.grid,'Padding', 3, 'Spacing', 3);                        
-            this.modelOptions.options{9,1}.lbl = uicontrol( 'Parent', this.modelOptions.options{9,1}.box,'Style','text','String','4. Derived Weighting Functions - Model Settings','Visible','on');     
-            this.modelOptions.options{9,1}.tbl = uitable(this.modelOptions.options{9,1}.box,'ColumnName',{'(none)'}, ...
+            this.modelOptions.options{9,1}.tbl = uitable(this.modelOptions.cards,'ColumnName',{'(none)'}, ...
                 'ColumnEditable',true,'Data',[], 'Tag','Derived Weighting Functions - Model Settings', ...
                 'CellEditCallback', @this.optionsSelection, 'Visible','on');
-            set(this.modelOptions.options{9,1}.box, 'ColumnSizes', -1, 'RowSizes', [20 -1] );                                   
             
             % Add label for general communications to user eg to state that
             % a weighting fnction has no options available.
             %-------------------
             this.modelOptions.options{10,1}.ParentName = 'general';
             this.modelOptions.options{10,1}.ParentSettingName = 'general';                     
-            this.modelOptions.options{10,1}.box = uiextras.Grid('Parent', this.modelOptions.grid,'Padding', 3, 'Spacing', 3);                        
-            this.modelOptions.options{10,1}.lbl = uicontrol( 'Parent', this.modelOptions.options{10,1}.box,'Style','text','String','(empty)','Visible','on');                 
+            this.modelOptions.options{10,1}.lbl = uicontrol( 'Parent', this.modelOptions.cards, ...
+                'Style','text','String','(empty)','Visible','on', ...
+                'Tag', 'Model options - description');                 
             %----------------------------------------
 
             % Add context menu for adding /deleting rows
@@ -405,9 +376,8 @@ classdef model_TFN_gui < model_gui_abstract
             
             %----------------------------------------            
             % Set dimensions for the grid     
-            set( this.modelComponants, 'ColumnSizes', [-1 -1], 'RowSizes', [-1 -1] );      
+            this.modelComponants.Heights=[25,-1];
             this.Figure.Heights = [-1 -1];
-            this.modelOptions.grid.Widths = zeros(size(this.modelOptions.grid.Heights));
         end
         
         function initialise(this)
@@ -424,7 +394,7 @@ classdef model_TFN_gui < model_gui_abstract
             this.forcingData.data = [];
 
             % Hide user options
-            this.modelOptions.grid.Widths = zeros(size(this.modelOptions.grid.Widths));
+            setOptionsCardIndex(this, '');
         end
         
         function setForcingData(this, fname)
@@ -734,37 +704,10 @@ classdef model_TFN_gui < model_gui_abstract
                             RHS(:) = {' '};
                             LHS = strcat(LHS,RHS);
                             
-%                             switch nForcingInputs
-%                                 case 1;
-%                                     LHS  = strcat(LHS, {' '});
-%                                 case 2;
-%                                     LHS  = strcat(LHS, {' ';' '});
-%                                 case 3;
-%                                     LHS  = strcat(LHS, {' ';' ';' '});
-%                                 case 4;
-%                                     LHS  = strcat(LHS, {' ';' ';' ';' '});
-%                                 case 5;
-%                                     LHS  = strcat(LHS, {' ';' ';' ';' ';' '});
-%                                 case 6;
-%                                     LHS  = strcat(LHS, {' ';' ';' ';' ';' ';' '});
-%                                 case 7;
-%                                     LHS  = strcat(LHS, {' ';' ';' ';' ';' ';' ';' '});
-%                                 case 8;
-%                                     LHS  = strcat(LHS, {' ';' ';' ';' ';' ';' ';' ';' '});
-%                                 case 9;
-%                                     LHS  = strcat(LHS, {' ';' ';' ';' ';' ';' ';' ';' ';' '});
-%                                 case 10;
-%                                     LHS  = strcat(LHS, {' ';' ';' ';' ';' ';' ';' ';' ';' ';' '});
-%                                 otherwise
-%                                     warndlg('A maximum of 10 forcing data inputs can be assigned to a weighting function')
-%                                     nForcingInputs = 10;
-%                             end
-
                             forcingDataforWeighting = strcat( LHS, forcingDataforWeighting(1:nForcingInputs));
                             forcingDataforWeighting = model_TFN_gui.cell2string(forcingDataforWeighting,'');
                             this.weightingFunctions.tbl.Data{ind,4} = forcingDataforWeighting;
-                            
-                                                                                    
+                                                                                                                
                        else
                             this.weightingFunctions.tbl.Data{ind,4} = [transformFunctionName, ' : ', forcingDataforWeighting];
                        end
@@ -776,42 +719,15 @@ classdef model_TFN_gui < model_gui_abstract
                             RHS = cell(nForcingInputs,1);
                             RHS(:) = {' '};
                             LHS = strcat(LHS,RHS);
-%                             switch nForcingInputs
-%                                 case 1;
-%                                     LHS  = strcat(LHS, {' '});
-%                                 case 2;
-%                                     LHS  = strcat(LHS, {' ';' '});
-%                                 case 3;
-%                                     LHS  = strcat(LHS, {' ';' ';' '});
-%                                 case 4;
-%                                     LHS  = strcat(LHS, {' ';' ';' ';' '});
-%                                 case 5;
-%                                     LHS  = strcat(LHS, {' ';' ';' ';' ';' '});
-%                                 case 6;
-%                                     LHS  = strcat(LHS, {' ';' ';' ';' ';' ';' '});
-%                                 case 7;
-%                                     LHS  = strcat(LHS, {' ';' ';' ';' ';' ';' ';' '});
-%                                 case 8;
-%                                     LHS  = strcat(LHS, {' ';' ';' ';' ';' ';' ';' ';' '});
-%                                 case 9;
-%                                     LHS  = strcat(LHS, {' ';' ';' ';' ';' ';' ';' ';' ';' '});
-%                                 case 10;
-%                                     LHS  = strcat(LHS, {' ';' ';' ';' ';' ';' ';' ';' ';' ';' '});
-%                                 otherwise
-%                                     warndlg('A maximum of 10 forcing data inputs can be assigned to a weighting function')
-%                                     nForcingInputs = 10;
-%                             end
+
                             forcingDataforWeighting = strcat( LHS, forcingDataforWeighting(1:nForcingInputs));
                             forcingDataforWeighting = model_TFN_gui.cell2string(forcingDataforWeighting,'');
-                            this.weightingFunctions.tbl.Data{ind,4} = forcingDataforWeighting;
-                            
+                            this.weightingFunctions.tbl.Data{ind,4} = forcingDataforWeighting;                            
                        else
                            this.weightingFunctions.tbl.Data{ind,4} = ['Input Data : ', forcingDataforWeighting];
                        end
                    end
-                    
-                   
-                    
+                                                      
                 else
                    ind = size(this.derivedWeightingFunctions.tbl.Data,1)+1;
                    if ind==1
@@ -887,12 +803,11 @@ classdef model_TFN_gui < model_gui_abstract
                         this.derivedForcingTranforms.tbl.Data{ind,5} = transformOptions;                        
                         this.derivedForcingTranforms.tbl.RowName = 1:size(this.derivedForcingTranforms.tbl.Data,1);
                     end
-                    
-                    
                 end     
             end            
-            
-            
+
+            % Update card to selected dropdown item
+            this.dropdownOptions.cards.SelectedChild = this.dropdownOptions.dropdown.Value           
         end
         
         function modelOptionsArray = getModelOptions(this)
@@ -1059,6 +974,12 @@ classdef model_TFN_gui < model_gui_abstract
             end             
         end
         
+        function componentSelection(this, hObject, eventdata)
+            if this.dropdownOptions.cards.SelectedChild ~= hObject.Value
+                setOptionsCardIndex(this,'')
+            end
+            this.dropdownOptions.cards.SelectedChild = hObject.Value;
+        end
         
         function tableSelection(this, hObject, eventdata)
             icol=[];
@@ -1113,9 +1034,8 @@ classdef model_TFN_gui < model_gui_abstract
                             end
                             modelDescription = eval([functionName,'.modelDescription']);
                             set(this.modelOptions.options{10,1}.lbl,'HorizontalAlignment','left');
-                            this.modelOptions.options{10,1}.lbl.String = ['1. Forcing Transform - Function description','',modelDescription];
-                            this.modelOptions.grid.Widths = [0 0 0 0 0 0 0 0 0 -1];   
-
+                            this.modelOptions.options{10,1}.lbl.String = ['Forcing Transform - Function description','', modelDescription];
+                            setOptionsCardIndex(this, 'Model options - description');
                         case 'Input Data'
                            % Define the drop down options for the input
                            % data
@@ -1149,8 +1069,7 @@ classdef model_TFN_gui < model_gui_abstract
                            end
 
                            % Display table
-                           this.modelOptions.grid.Widths = [-1 0 0 0 0 0 0 0 0 0];
-
+                           setOptionsCardIndex(this, 'Forcing Transform - Input Data');
                         case 'Options' 
 
                            % Get the model options.
@@ -1158,8 +1077,8 @@ classdef model_TFN_gui < model_gui_abstract
 
                            % Check if options are available.
                            if isempty(colNames)                          
-                                this.modelOptions.options{2,1}.lbl.String = {'1. Forcing Transform - Model Settings',['(No options are available for the following weighting function: ',funName,')']};
-                                this.modelOptions.grid.Widths = [0 -1 0 0 0 0 0 0 0 0];
+                                this.modelOptions.options{2,1}.lbl.String = {'Forcing Transform - Model Settings',['(No options are available for the following weighting function: ',funName,')']};
+                                setOptionsCardIndex(this, 'Model options - description');
                            else
 
                                % Assign model properties and data
@@ -1202,10 +1121,11 @@ classdef model_TFN_gui < model_gui_abstract
                                end                               
                                
                                % Show table
-                               this.modelOptions.grid.Widths = [0 -1 0 0 0 0 0 0 0 0];  
+                               setOptionsCardIndex(this, 'Forcing Transform - Model Settings');
+
                            end
                         otherwise
-                            this.modelOptions.grid.Widths = zeros(size(this.modelOptions.grid.Widths));
+                            setOptionsCardIndex(this, '');
                     end
                 case 'Weighting Functions'
 
@@ -1292,7 +1212,7 @@ classdef model_TFN_gui < model_gui_abstract
                            this.modelOptions.options{3,1}.lst.Value = rowInd;
                            
                            % Show the list box
-                           this.modelOptions.grid.Widths = [0 0 -1 0 0 0 0 0 0 0];
+                           setOptionsCardIndex(this, 'Weighting Functions - Input Data');
 
                         case 'Weighting Function'   
                             % Get description of the function.
@@ -1300,9 +1220,10 @@ classdef model_TFN_gui < model_gui_abstract
                             if ~isempty(functionName)
                                 modelDescription = eval([functionName,'.modelDescription']);
                                 set(this.modelOptions.options{10,1}.lbl,'HorizontalAlignment','left');
-                                this.modelOptions.options{10,1}.lbl.String = ['2. Weighting Functions - Function description','',modelDescription];
+                                this.modelOptions.options{10,1}.lbl.String = ['Weighting Functions - Function description','',modelDescription];
                             end
-                            this.modelOptions.grid.Widths = [0 0 0 0 0 0 0 0 0 -1];                           
+                            setOptionsCardIndex(this, 'Model options - description');
+
                         case 'Options'
                             % Check that the weigthing function and forcing
                             % data have been defined
@@ -1358,10 +1279,10 @@ classdef model_TFN_gui < model_gui_abstract
                            % in box stating no options are available.                           
                            if isempty(modelSettings)  
                                set(this.modelOptions.options{10,1}.lbl,'HorizontalAlignment','center');
-                                this.modelOptions.options{10,1}.lbl.String = {'2. Weighting Functions - Options',['(No options are available for the following weighting function: ',funName,')']};                                    
-                                this.modelOptions.grid.Widths = [0 0 0 0 0 0 0 0 0 -1];
+                               this.modelOptions.options{10,1}.lbl.String = {'Weighting Functions - Options',['(No options are available for the following weighting function: ',funName,')']};                                    
+                               setOptionsCardIndex(this, 'Model options - description');
                            else
-                               this.modelOptions.options{4,1}.lbl.String = '2. Weighting Functions - Options';
+                               %this.modelOptions.options{4,1}.lbl.String = 'Weighting Functions - Options';
 
                                % Loop through each model option
                                if ~iscell(modelSettings)
@@ -1413,7 +1334,8 @@ classdef model_TFN_gui < model_gui_abstract
                                    this.modelOptions.options{4, 1}.tabs.TabTitles{i} =  modelSettings{i}.label;
                                    this.modelOptions.options{4, 1}.tabs.TabEnables{i} =  'on';
                                    
-                                   optionsTable = findobj(this.modelOptions.options{4,1}.tabs,'Tag',['Weighting Functions - Options Tab ',num2str(i),' table']);
+                                   optionsTag = ['Weighting Functions - Options Tab ',num2str(i),' table'];
+                                   optionsTable = findobj(this.modelOptions.options{4,1}.tabs,'Tag',optionsTag);
                                    optionsTable.Data = {};
                                    optionsTable.ColumnName = modelSettings{i}.colNames;
                                    optionsTable.ColumnEditable = modelSettings{i}.colEdits;
@@ -1448,11 +1370,11 @@ classdef model_TFN_gui < model_gui_abstract
                                    end
                                end
                                % Show table
-                               this.modelOptions.grid.Widths = [0 0 0 -1 0 0 0 0 0 0];
+                               setOptionsCardIndex(this, 'Weighting Functions - Options');
                            end
 
                         otherwise
-                            this.modelOptions.grid.Widths = zeros(size(this.modelOptions.grid.Widths));
+                            setOptionsCardIndex(this, '');
                     end
 
                 case 'Derived Forcing Transform'                
@@ -1479,13 +1401,13 @@ classdef model_TFN_gui < model_gui_abstract
                             end
                             modelDescription = eval([functionName,'.modelDescription']);
                             set(this.modelOptions.options{10,1}.lbl,'HorizontalAlignment','left');
-                            this.modelOptions.options{10,1}.lbl.String = ['3. Derived Forcing Transform - Function description','',modelDescription];
-                            this.modelOptions.grid.Widths = [0 0 0 0 0 0 0 0 0 -1];          
+                            this.modelOptions.options{10,1}.lbl.String = ['Derived Forcing Transform - Function description','',modelDescription];
+                            setOptionsCardIndex(this, 'Model options - description');
                             
                         case 'Source Forcing Function' 
                             derivedForcingFunctionsListed = this.forcingTranforms.tbl.Data(:,2);
                             this.derivedForcingTranforms.tbl.ColumnFormat{3} = derivedForcingFunctionsListed;
-                            this.modelOptions.grid.Widths = zeros(size(this.modelOptions.grid.Widths));
+                            setOptionsCardIndex(this, '');
                         case 'Input Data'
                            % Call function method giving required
                            % variable name.
@@ -1516,8 +1438,8 @@ classdef model_TFN_gui < model_gui_abstract
                            this.modelOptions.options{6, 1}.tbl.ColumnFormat = {'char',lstOptions};
 
                            % Display table
-                           this.modelOptions.grid.Widths = [0 0 0 0 0 -1 0 0 0 0];
-                           
+                           setOptionsCardIndex(this, 'Derived Forcing Functions - Input Data');
+                          
                         case 'Options'    
                            % Get the model options.
                            [modelSettings, colNames, colFormats, colEdits, tooltips] = feval(strcat(funName,'.modelOptions'), sourceFunName );
@@ -1525,8 +1447,8 @@ classdef model_TFN_gui < model_gui_abstract
                            % Check if options are available.
                            if isempty(colNames)                          
                                 set(this.modelOptions.options{10,1}.lbl,'HorizontalAlignment','left');
-                                this.modelOptions.options{10,1}.lbl.String = {'3. Derived Forcing Transform - Model Settings','',['(No options are available for the following function: ',funName,')']};
-                                this.modelOptions.grid.Widths = [0 0 0 0 0 0 0 0 0 -1];
+                                this.modelOptions.options{10,1}.lbl.String = {'Derived Forcing Transform - Model Settings','',['(No options are available for the following function: ',funName,')']};
+                                setOptionsCardIndex(this, 'Model options - description');
                            else
 
                                % Assign model properties and data
@@ -1568,10 +1490,10 @@ classdef model_TFN_gui < model_gui_abstract
                                end                               
 
                                % Display table
-                               this.modelOptions.grid.Widths = [0 0 0 0 0 0 -1 0 0 0];                
+                               setOptionsCardIndex(this, this.modelOptions.options{7,1}.tbl.Tag);
                            end
                         otherwise
-                            this.modelOptions.grid.Widths = zeros(size(this.modelOptions.grid.Widths));
+                            setOptionsCardIndex(this, '');
                     end
 
                 case 'Derived Weighting Functions'
@@ -1592,12 +1514,12 @@ classdef model_TFN_gui < model_gui_abstract
                             end
                             modelDescription = eval([functionName,'.modelDescription']);
                             set(this.modelOptions.options{10,1}.lbl,'HorizontalAlignment','left');
-                            this.modelOptions.options{10,1}.lbl.String = ['4. Derived Weighting Functions - Function description','',modelDescription];
-                            this.modelOptions.grid.Widths = [0 0 0 0 0 0 0 0 0 -1];                              
+                            this.modelOptions.options{10,1}.lbl.String = ['Derived Weighting Functions - Function description','',modelDescription];
+                            setOptionsCardIndex(this, 'Model options - description');
                         case 'Source Component'
                             derivedWeightingFunctionsListed = this.weightingFunctions.tbl.Data(:,2);
                             this.derivedWeightingFunctions.tbl.ColumnFormat{4} = derivedWeightingFunctionsListed';
-                            this.modelOptions.grid.Widths = zeros(size(this.modelOptions.grid.Widths));
+                            setOptionsCardIndex(this, '');
                         case 'Input Data'
                             
                            % Get the list of input forcing data.
@@ -1675,7 +1597,7 @@ classdef model_TFN_gui < model_gui_abstract
                            this.modelOptions.options{8,1}.lst.Value = rowInd;                           
                            
                            % Show list box 
-                           this.modelOptions.grid.Widths = [0 0 0 0 0 0 0 -1 0 0];
+                           setOptionsCardIndex(this, 'Derived Weighting Functions - Input Data');
                            
                         case 'Options'
                             % Check that the weigthing function and forcing
@@ -1724,10 +1646,10 @@ classdef model_TFN_gui < model_gui_abstract
                            % in box stating no options are available.
                            if isempty(colNames)                          
                                 set(this.modelOptions.options{10,1}.lbl,'HorizontalAlignment','center');
-                                this.modelOptions.options{10,1}.lbl.String = {'4. Derived Weighting Functions - Options','',['(No options are available for the following weighting function: ',funName,')']};                                    
-                                this.modelOptions.grid.Widths = [0 0 0 0 0 0 0 0 0 -1];
+                                this.modelOptions.options{10,1}.lbl.String = {'Derived Weighting Functions - Options','',['(No options are available for the following weighting function: ',funName,')']};                                    
+                                setOptionsCardIndex(this, 'Model options - description');
                            else
-                               this.modelOptions.options{9,1}.lbl.String = '4. Derived Weighting Functions - Options';
+                               %this.modelOptions.options{9,1}.lbl.String = '4. Derived Weighting Functions - Options';
 
                                % Assign model properties and data
                                this.modelOptions.options{9,1}.tbl.ColumnName = colNames;
@@ -1771,14 +1693,24 @@ classdef model_TFN_gui < model_gui_abstract
                                end
                                
                                % Show table
-                               this.modelOptions.grid.Widths = [0 0 0 0 0 0 0 0 -1 0];
+                               setOptionsCardIndex(this, 'Derived Weighting Functions - Model Settings');
                            end
                         otherwise
-                            this.modelOptions.grid.Widths = zeros(size(this.modelOptions.grid.Widths));
+                            setOptionsCardIndex(this, '');
                     end   
             end            
         end
         
+        function setOptionsCardIndex(this, optionTag)
+            if strcmp(optionTag,'')
+                this.modelOptions.options{10,1}.lbl.String = '';
+                optionTag = 'Model options - description';
+            end
+            ind = find(strcmp(get(this.modelOptions.cards.Contents,'Tag'),optionTag));
+               
+            this.modelOptions.cards.SelectedChild = ind;
+        end
+
         function optionsSelection(this, hObject, eventdata)
             try
                 data=get(hObject,'Data'); %#ok<NASGU> % get the data cell array of the table
@@ -1874,7 +1806,7 @@ classdef model_TFN_gui < model_gui_abstract
                     this.derivedWeightingFunctions.tbl.Data{this.currentSelection.row ,6} = eval([className,'.cell2string(data, colnames)']);
                     
                 otherwise
-                        this.modelOptions.grid.Widths = zeros(size(this.modelOptions.grid.Widths)); 
+                    setOptionsCardIndex(this, '');
             end
         end
         
@@ -1920,8 +1852,8 @@ classdef model_TFN_gui < model_gui_abstract
                    if icol==2 && ~isempty(eventdata.PreviousData) && ~strcmp(eventdata.PreviousData, eventdata.NewData)
                         this.forcingTranforms.tbl.Data{irow ,3} = '';
                         this.forcingTranforms.tbl.Data{irow,4} = '';
-                        this.modelOptions.grid.Widths = zeros(size(this.modelOptions.grid.Widths));
-                        
+                        %this.modelOptions.grid.Widths = zeros(size(this.modelOptions.grid.Widths));
+                        setOptionsCardIndex(this, '');
                    end
                    
                 case 'Weighting Functions'
@@ -1955,7 +1887,8 @@ classdef model_TFN_gui < model_gui_abstract
                    if icol==3 && ~isempty(eventdata.PreviousData) && ~strcmp(eventdata.PreviousData, eventdata.NewData)
                         this.weightingFunctions.tbl.Data{irow ,4} = '';
                         this.weightingFunctions.tbl.Data{irow ,5} = '';
-                        this.modelOptions.grid.Widths = zeros(size(this.modelOptions.grid.Widths));                        
+                        %this.modelOptions.grid.Widths = zeros(size(this.modelOptions.grid.Widths)); 
+                        setOptionsCardIndex(this, '');
                    end                   
                 case 'Derived Forcing Transform'
                     
@@ -1977,7 +1910,8 @@ classdef model_TFN_gui < model_gui_abstract
                         this.derivedForcingTranforms.tbl.Data{irow ,3} = '';
                         this.derivedForcingTranforms.tbl.Data{irow ,4} = '';
                         this.derivedForcingTranforms.tbl.Data{irow ,5} = '';
-                        this.modelOptions.grid.Widths = zeros(size(this.modelOptions.grid.Widths));                        
+                        %this.modelOptions.grid.Widths = zeros(size(this.modelOptions.grid.Widths));  
+                        setOptionsCardIndex(this, '');
                    end                   
                 case 'Derived Weighting Functions'
                     
@@ -2011,7 +1945,8 @@ classdef model_TFN_gui < model_gui_abstract
                         this.derivedWeightingFunctions.tbl.Data{irow ,4} = '';
                         this.derivedWeightingFunctions.tbl.Data{irow ,5} = '';
                         this.derivedWeightingFunctions.tbl.Data{irow ,6} = '';
-                        this.modelOptions.grid.Widths = zeros(size(this.modelOptions.grid.Widths));                        
+                        %this.modelOptions.grid.Widths = zeros(size(this.modelOptions.grid.Widths));     
+                        setOptionsCardIndex(this, '');
                    end                      
                     
             end
