@@ -2224,7 +2224,7 @@ classdef HydroSight_GUI < handle
                                     if isnumeric(boreIDs(i))
                                         errBoreID = num2str(boreIDs(i));
                                     else
-                                        errBoreID = boreID{i};
+                                        errBoreID = boreIDs{i};
                                     end
                                     h = warndlg({['Bore ',errBoreID, 'has an invalid format.'],['It must not start with a number. Consider appending a non-numeric prefix, e.g. "Bore_"']},'Bore ID error');
                                     setIcon(this, h);
