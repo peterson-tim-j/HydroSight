@@ -2221,7 +2221,12 @@ classdef HydroSight_GUI < handle
                                     tmp.(boreIDs{i}) = 1;
                                 catch
                                     set(this.Figure, 'pointer', 'watch');
-                                    h = warndlg({'Bore ',boreIDs{i}, 'has an invalid format.','It must not start with a number.','Consider appending a non-numeric prefix,','e.g. "Bore_"'},'Bore ID error');
+                                    if isnumeric(boreIDs(i))
+                                        errBoreID = num2str(boreIDs(i));
+                                    else
+                                        errBoreID = boreID{i};
+                                    end
+                                    h = warndlg({['Bore ',errBoreID, 'has an invalid format.'],['It must not start with a number. Consider appending a non-numeric prefix, e.g. "Bore_"']},'Bore ID error');
                                     setIcon(this, h);
                                     return;
                                 end

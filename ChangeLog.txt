@@ -336,3 +336,9 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 * Results export button removed and replaced with a drop-down within the calibration and simulation data tables. This allows exporting of forcing data, e.g. recharge, at the use defined time step.
 * Results table chnaged to non-editable.
 * Splash date and version number shifted to right aligned.
+
+31 May 2025
+* Model TFN consutcion options GUI changed from a panel of tables to cards of tables and a dropdown. 
+
+2 June 2025
+* Bug in outlier detection error message with bore ID is a number.
