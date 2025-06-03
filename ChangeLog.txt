@@ -342,3 +342,7 @@ This file documents changes to HydroSight from version 1.2.6 onwards.
 
 2 June 2025
 * Bug in outlier detection error message with bore ID is a number.
+
+3 June 2025
+* GUI calendar added to outlier analysis construction date.
+* Version number increased to 1.4.1.6

@@ -2313,6 +2313,36 @@ classdef HydroSight_GUI < handle
                          set(this.tab_DataPrep.modelOptions.vbox, 'Sizes',[-1 -1]);
                          set(this.Figure, 'pointer', 'arrow');
 
+                    case 'Construction Date (dd-mmm-yyyy)'
+                        % Open the calander with the already input date,
+                        % else use the start date of the obs. head.
+                        minDate = datenum( '01-Jan-1700','dd-mmm-yyyy');
+                        maxDate = now();
+                        defaultDate = datenum( '01-Jan-1970','dd-mmm-yyyy');                        
+                        if isempty(data{irow,icol})
+                            inputDate = defaultDate;
+                        else
+                            try
+                                inputDate = datenum( data{irow,icol},'dd-mmm-yyyy');
+                            catch
+                                inputDate = defaultDate;
+                            end
+                            inputDate = min(max(minDate, inputDate),maxDate);
+                        end
+
+                        
+                        selectedDate = uical(inputDate, 'English',minDate, maxDate, this.figure_icon,'Construction date');
+                        
+                        % Check date is between start and end date of obs
+                        % head.
+                        if selectedDate < minDate || selectedDate > maxDate
+                            h = warndlg('The construction date must be before today and after 1/1/1700.','Date error');
+                            setIcon(this, h);
+                        else
+                            data{eventdata.Indices(1),eventdata.Indices(2)} = datestr(selectedDate,'dd-mmm-yyyy');
+                        end
+                        set(hObject,'Data',data);
+
                     case 'Analysis Status'
                         modelStatus = HydroSight_GUI.removeHTMLTags(data{irow,16});
 
